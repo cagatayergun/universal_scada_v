@@ -1,0 +1,116 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<UseWindowsForms>true</UseWindowsForms>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<AllowUnsafeBlocks>False</AllowUnsafeBlocks>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<FileVersion>1.0.0.0</FileVersion>
+		<InformationalVersion>1.0.0</InformationalVersion>
+		<Company>BestYazılım</Company>
+		<Product>TekstilScada</Product>
+		<Title>Tekstil SCADA Sistemi</Title>
+		<Copyright>Copyright © 2025</Copyright>
+	</PropertyGroup>
+
+	<PropertyGroup Label="Avalonia">
+		<AvaloniaNameGeneratorIsEnabled>False</AvaloniaNameGeneratorIsEnabled>
+		<AvaloniaNameGeneratorAttachDevTools>False</AvaloniaNameGeneratorAttachDevTools>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="TekstilScada.Api\**" />
+	  <Compile Remove="TekstilScada.Core\**" />
+	  <Compile Remove="TekstilScada.WebAPI\**" />
+	  <Compile Remove="TekstilScada.WebApp\**" />
+	  <Compile Remove="TekstilScada.Web\**" />
+	  <Compile Remove="yilmak_scada_setup\**" />
+	  <EmbeddedResource Remove="TekstilScada.Api\**" />
+	  <EmbeddedResource Remove="TekstilScada.Core\**" />
+	  <EmbeddedResource Remove="TekstilScada.WebAPI\**" />
+	  <EmbeddedResource Remove="TekstilScada.WebApp\**" />
+	  <EmbeddedResource Remove="TekstilScada.Web\**" />
+	  <EmbeddedResource Remove="yilmak_scada_setup\**" />
+	  <None Remove="TekstilScada.Api\**" />
+	  <None Remove="TekstilScada.Core\**" />
+	  <None Remove="TekstilScada.WebAPI\**" />
+	  <None Remove="TekstilScada.WebApp\**" />
+	  <None Remove="TekstilScada.Web\**" />
+	  <None Remove="yilmak_scada_setup\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="appsettings.json" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="CircularProgressBar" Version="2.8.0.16" />
+		<PackageReference Include="ClosedXML" Version="0.105.0" />
+		<PackageReference Include="HslCommunication" Version="12.3.2" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.7" />
+		<PackageReference Include="MySql.Data" Version="9.4.0" />
+		<PackageReference Include="ScottPlot" Version="5.0.55" />
+		<PackageReference Include="ScottPlot.WinForms" Version="5.0.55" />
+		<PackageReference Include="WinForms.DataVisualization" Version="1.10.0" />
+		<PackageReference Include="WinSCP" Version="6.5.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="VncSharpCore">
+			<HintPath>..\..\..\Lib\VncSharpCore.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="Localization\Strings.Designer.cs">
+		  <DesignTime>True</DesignTime>
+		  <AutoGen>True</AutoGen>
+		  <DependentUpon>Strings.resx</DependentUpon>
+		</Compile>
+		<Compile Update="Properties\Resource1.Designer.cs">
+		  <DesignTime>True</DesignTime>
+		  <AutoGen>True</AutoGen>
+		  <DependentUpon>Resource1.resx</DependentUpon>
+		</Compile>
+		<Compile Update="Properties\Resources.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Resources.resx</DependentUpon>
+		</Compile>
+		<Compile Update="UIControls\DozajEditor_Boyama_Control.cs">
+			<SubType>UserControl</SubType>
+		</Compile>
+		<Compile Update="UIControls\DozajEditor_Yikama_Control.cs">
+			<SubType>UserControl</SubType>
+		</Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Update="Localization\Strings.resx">
+			<Generator>PublicResXFileCodeGenerator</Generator>
+			<LastGenOutput>Strings.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+		<EmbeddedResource Update="Properties\Resource1.resx">
+		  <Generator>ResXFileCodeGenerator</Generator>
+		  <LastGenOutput>Resource1.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+		<EmbeddedResource Update="Properties\Resources.resx">
+			<Generator>PublicResXFileCodeGenerator</Generator>
+			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="Img\" />
+		<Folder Include="Resources\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="TekstilScada.Core\TekstilScada.Core.csproj" />
+	</ItemGroup>
+
+</Project>
