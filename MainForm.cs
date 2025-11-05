@@ -54,6 +54,7 @@ namespace Universalscada
             _processLogRepository = new ProcessLogRepository();
             _alarmRepository = new AlarmRepository();
             _productionRepository = new ProductionRepository();
+            _plcManagerFactory = new Universalscada.Module.Textile.Services.PlcManagerFactory();
             _pollingService = new PlcPollingService(_alarmRepository, _processLogRepository, _productionRepository, _recipeRepository, _machineRepository,_plcManagerFactory);
             _dashboardRepository = new DashboardRepository(_recipeRepository);
             _costRepository = new CostRepository(); // YENÝ: Nesneyi oluþturun

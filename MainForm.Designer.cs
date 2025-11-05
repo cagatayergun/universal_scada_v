@@ -19,7 +19,6 @@ namespace Universalscada
         private void InitializeComponent()
         {
             pnlNavigation = new Panel();
-            pictureBox2 = new PictureBox();
             pictureBox1 = new PictureBox();
             btnAyarlar = new Button();
             btnRaporlar = new Button();
@@ -38,7 +37,6 @@ namespace Universalscada
             springLabel = new ToolStripStatusLabel();
             lblStatusLiveEvents = new ToolStripStatusLabel();
             pnlNavigation.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             menuStrip1.SuspendLayout();
             statusStrip1.SuspendLayout();
@@ -46,8 +44,7 @@ namespace Universalscada
             // 
             // pnlNavigation
             // 
-            pnlNavigation.BackColor = Color.FromArgb(0, 0, 64);
-            pnlNavigation.Controls.Add(pictureBox2);
+            pnlNavigation.BackColor = Color.Red;
             pnlNavigation.Controls.Add(pictureBox1);
             pnlNavigation.Controls.Add(btnAyarlar);
             pnlNavigation.Controls.Add(btnRaporlar);
@@ -62,24 +59,14 @@ namespace Universalscada
             pnlNavigation.Size = new Size(175, 369);
             pnlNavigation.TabIndex = 0;
             // 
-            // pictureBox2
-            // 
-            pictureBox2.Anchor = AnchorStyles.Bottom;
-            pictureBox2.Image = Properties.Resource1.yilmak;
-            pictureBox2.Location = new Point(0, 329);
-            pictureBox2.Name = "pictureBox2";
-            pictureBox2.Size = new Size(175, 40);
-            pictureBox2.SizeMode = PictureBoxSizeMode.StretchImage;
-            pictureBox2.TabIndex = 6;
-            pictureBox2.TabStop = false;
-            // 
             // pictureBox1
             // 
             pictureBox1.Anchor = AnchorStyles.Bottom;
-            pictureBox1.Image = Properties.Resource1.yilmak2___Kopya;
-            pictureBox1.Location = new Point(56, 274);
+            pictureBox1.BackColor = Color.Red;
+            pictureBox1.Image = Properties.Resource1.best;
+            pictureBox1.Location = new Point(12, 328);
             pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(63, 55);
+            pictureBox1.Size = new Size(141, 41);
             pictureBox1.SizeMode = PictureBoxSizeMode.StretchImage;
             pictureBox1.TabIndex = 5;
             pictureBox1.TabStop = false;
@@ -225,7 +212,7 @@ namespace Universalscada
             // çıkışYapToolStripMenuItem
             // 
             çıkışYapToolStripMenuItem.Name = "çıkışYapToolStripMenuItem";
-            çıkışYapToolStripMenuItem.Size = new Size(121, 22);
+            çıkışYapToolStripMenuItem.Size = new Size(116, 22);
             çıkışYapToolStripMenuItem.Text = "Oturum";
             çıkışYapToolStripMenuItem.Click += çıkışYapToolStripMenuItem_Click;
             // 
@@ -272,12 +259,11 @@ namespace Universalscada
             MainMenuStrip = menuStrip1;
             Margin = new Padding(3, 2, 3, 2);
             Name = "MainForm";
-            Text = "Tekstil SCADA Sistemi";
+            Text = "BEST SCADA";
             WindowState = FormWindowState.Maximized;
             FormClosing += MainForm_FormClosing;
             Load += MainForm_Load;
             pnlNavigation.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)pictureBox2).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
             menuStrip1.ResumeLayout(false);
             menuStrip1.PerformLayout();
@@ -307,6 +293,5 @@ namespace Universalscada
         private System.Windows.Forms.ToolStripMenuItem oturumToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem çıkışYapToolStripMenuItem;
         private PictureBox pictureBox1;
-        private PictureBox pictureBox2;
     }
 }
