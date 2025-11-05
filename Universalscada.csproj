@@ -68,7 +68,7 @@
 	<ItemGroup>
 		<PackageReference Include="CircularProgressBar" Version="2.8.0.16" />
 		<PackageReference Include="ClosedXML" Version="0.105.0" />
-		<PackageReference Include="HslCommunication" Version="12.3.2" />
+		<PackageReference Include="HslCommunication" Version="12.5.2" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.7" />
 		<PackageReference Include="MySql.Data" Version="9.4.0" />
 		<PackageReference Include="ScottPlot" Version="5.0.55" />
@@ -128,6 +128,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Universalscada.Module.Textile\Universalscada.Module.Textile.csproj" />
 		<ProjectReference Include="Universalscada.Core\Universalscada.core.csproj" />
 		<ProjectReference Include="Universalscada.core\Universalscada.core.csproj" />
 	</ItemGroup>

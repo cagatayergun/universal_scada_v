@@ -4,14 +4,15 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using Universalscada.core;
+using Universalscada.core.Services;
 using Universalscada.Localization;
 using Universalscada.Models;
+using Universalscada.Properties;
 using Universalscada.Repositories;
 using Universalscada.Services;
 using Universalscada.UI;
 using Universalscada.UI.Controls;
 using Universalscada.UI.Views;
-using Universalscada.Properties;
 
 namespace Universalscada
 {
@@ -36,7 +37,8 @@ namespace Universalscada
         private readonly Raporlar_Control _raporlarView;
         private readonly LiveEventPopup_Form _liveEventPopup;
         private readonly GenelBakis_Control _genelBakisView;
-       // private readonly FtpTransferService _ftpTransferService; // YENÝ: FTP transfer servisi eklendi
+        private readonly IPlcManagerFactory _plcManagerFactory;
+        // private readonly FtpTransferService _ftpTransferService; // YENÝ: FTP transfer servisi eklendi
         private VncViewer_Form _activeVncViewerForm = null;
         private readonly UserSettings_Control _user_setting;
 
@@ -52,7 +54,7 @@ namespace Universalscada
             _processLogRepository = new ProcessLogRepository();
             _alarmRepository = new AlarmRepository();
             _productionRepository = new ProductionRepository();
-            _pollingService = new PlcPollingService(_alarmRepository, _processLogRepository, _productionRepository, _recipeRepository, _machineRepository);
+            _pollingService = new PlcPollingService(_alarmRepository, _processLogRepository, _productionRepository, _recipeRepository, _machineRepository,_plcManagerFactory);
             _dashboardRepository = new DashboardRepository(_recipeRepository);
             _costRepository = new CostRepository(); // YENÝ: Nesneyi oluþturun
                                                  // DÜZELTME: FtpTransferService nesnesini burada oluþturun ve baðýmlýlýðý enjekte edin.

@@ -1,13 +1,14 @@
 // Dosya: Universalscada.WebAPI/Program.cs
 
+using Microsoft.AspNetCore.Authentication.JwtBearer; // Eklendi
+using Microsoft.AspNetCore.Authorization; // Eklendi
+using Microsoft.IdentityModel.Tokens; // Eklendi
+using System.Text; // Eklendi
+using Universalscada.core.Services;
 using Universalscada.Repositories;
 using Universalscada.Services;
 using Universalscada.WebAPI.Hubs;
 using Universalscada.WebAPI.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer; // Eklendi
-using Microsoft.IdentityModel.Tokens; // Eklendi
-using System.Text; // Eklendi
-using Microsoft.AspNetCore.Authorization; // Eklendi
 
 var builder = WebApplication.CreateBuilder(args);
 // 1. Configuration'dan (appsettings.json) veritabaný baðlantý dizesini oku.
@@ -64,8 +65,10 @@ builder.Services.AddSingleton<PlcPollingService>();
 builder.Services.AddSingleton<SignalRBridgeService>();
 builder.Services.AddSingleton<FtpTransferService>();
 builder.Services.AddSingleton<RecipeConfigurationRepository>();
+builder.Services.AddSingleton<IPlcManagerFactory, Universalscada.Module.Textile.Services.PlcManagerFactory>();
 // PLC Polling servisini arka planda çalýþacak bir hizmet olarak ekliyoruz.
 builder.Services.AddHostedService<PlcPollingBackgroundService>();
+
 //builder.Services.AddScoped<FtpService>();
 builder.Services.AddCors(options =>
 {

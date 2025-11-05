@@ -33,7 +33,7 @@ namespace Universalscada.Services
         private readonly ConcurrentDictionary<int, LiveStepAnalyzer> _liveAnalyzers;
         private readonly RecipeRepository _recipeRepository;
         private readonly ConcurrentDictionary<int, (int machineAlarmSeconds, int operatorPauseSeconds)> _liveAlarmCounters;
-
+        private readonly IPlcManagerFactory _plcManagerFactory;
         private readonly int _pollingIntervalMs = 1000;
         private readonly int _loggingIntervalMs = 5000;
 
@@ -44,7 +44,7 @@ namespace Universalscada.Services
         private readonly ConcurrentDictionary<int, DateTime> _batchStartTimes;
         private readonly ConcurrentDictionary<int, double> _batchNonProductiveSeconds;
 
-        public PlcPollingService(AlarmRepository alarmRepository, ProcessLogRepository processLogRepository, ProductionRepository productionRepository, RecipeRepository recipeRepository,MachineRepository machineRepository)
+        public PlcPollingService(AlarmRepository alarmRepository, ProcessLogRepository processLogRepository, ProductionRepository productionRepository, RecipeRepository recipeRepository,MachineRepository machineRepository,IPlcManagerFactory plcManagerFactory)
         {
             _alarmRepository = alarmRepository;
             _processLogRepository = processLogRepository;
@@ -60,7 +60,7 @@ namespace Universalscada.Services
             _liveAnalyzers = new ConcurrentDictionary<int, LiveStepAnalyzer>();
             _liveAlarmCounters = new ConcurrentDictionary<int, (int, int)>();
             _pollingTasks = new List<Task>();
-
+            _plcManagerFactory = plcManagerFactory;
             // BUG FIXED: Initialization of missing variables has been added.
             _batchTotalTheoreticalTimes = new ConcurrentDictionary<int, double>();
             _batchStartTimes = new ConcurrentDictionary<int, DateTime>();
@@ -77,7 +77,7 @@ namespace Universalscada.Services
             {
                 try
                 {
-                    var plcManager = PlcManagerFactory.Create(machine);
+                    var plcManager = _plcManagerFactory.Create(machine);
                     _plcManagers.TryAdd(machine.Id, plcManager);
                     _connectionStates.TryAdd(machine.Id, ConnectionStatus.Disconnected);
                     MachineDataCache.TryAdd(machine.Id, new FullMachineStatus { MachineId = machine.Id, MachineName = machine.MachineName, ConnectionState = ConnectionStatus.Disconnected });
