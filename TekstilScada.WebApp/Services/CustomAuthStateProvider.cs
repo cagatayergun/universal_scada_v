@@ -2,26 +2,33 @@
 
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
-using System.Threading.Tasks;
-using TekstilScada.Models; // Bu using TekstilScada.Core.Models ise düzeltilmeli
-using System.Collections.Generic;
-using System.Linq;
-using System;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace TekstilScada.WebApp.Services
 {
-    // API'den dönen Token modelini varsayalım
+    // API'den dönen Token modelini WebAPI'ye uyumlu hale getirelim (RefreshToken eklendi)
     public class LoginResponseModel
     {
         public string Token { get; set; }
+        public string RefreshToken { get; set; } // YENİ: WebAPI'den gelen Refresh Token
         public string Message { get; set; }
-        public string Username { get; set; } // Bu alanı ekleyin
-        public List<string> Roles { get; set; } // Bu alanı ekleyin
+        public string Username { get; set; }
+        public List<string> Roles { get; set; }
+    }
+
+    // Refresh isteği için basit model
+    public class RefreshRequestModel
+    {
+        public string RefreshToken { get; set; }
     }
 
     public class CustomAuthStateProvider : AuthenticationStateProvider
@@ -29,100 +36,218 @@ namespace TekstilScada.WebApp.Services
         private readonly HttpClient _httpClient;
         private readonly ILocalStorageService _localStorage;
         private readonly ClaimsPrincipal _anonymous = new ClaimsPrincipal(new ClaimsIdentity());
-
-        // *** DEĞİŞİKLİK 1: Bu iki değişkeni (currentUser ve hasChecked) SİLEBİLİRSİN ***
-        // private ClaimsPrincipal _currentUser = new ClaimsPrincipal(new ClaimsIdentity());
-        // private bool _hasCheckedLocalStorage = false;
-        // (LoginAsync ve LogoutAsync içinde _currentUser ve _hasCheckedLocalStorage kullanan satırları da silmen gerekecek)
-
-
-        public CustomAuthStateProvider(HttpClient httpClient, ILocalStorageService localStorage)
+        private readonly ILogger<CustomAuthStateProvider> _logger; // <-- YENİ: Logger ekleyin
+        public CustomAuthStateProvider(HttpClient httpClient, ILocalStorageService localStorage,
+                                       ILogger<CustomAuthStateProvider> logger)
         {
             _httpClient = httpClient;
             _localStorage = localStorage;
+            _logger = logger; // <-- YENİ
         }
 
-        // --- ADIM 1: GetAuthenticationStateAsync METODUNU TAMAMEN GÜNCELLE ---
-        public override async Task<AuthenticationState> GetAuthenticationStateAsync()
+        // -----------------------------------------------------
+        // 1. YARDIMCI METOTLAR (Süre kontrolü ve Yenileme isteği)
+        // -----------------------------------------------------
+
+        // Token süresinin dolup dolmadığını kontrol eder. 30 saniye marjı eklenmiştir.
+        private bool IsTokenExpired(string token)
         {
-            var token = await _localStorage.GetItemAsync<string>("authToken");
-
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                // Token yoksa, anonim kullanıcı döndür
-                return new AuthenticationState(_anonymous);
-            }
-
-            // Token varsa, geçerli mi diye kontrol et
             try
             {
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
-                var userClaims = ParseClaimsFromJwt(token);
-                var claimsPrincipal = new ClaimsPrincipal(userClaims);
+                var payload = token.Split('.')[1];
+                payload = payload.Replace('-', '+').Replace('_', '/');
+                switch (payload.Length % 4)
+                {
+                    case 2: payload += "=="; break;
+                    case 3: payload += "="; break;
+                }
+                var jsonBytes = Convert.FromBase64String(payload);
+                var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
 
-                // Geçerli token ile kullanıcı bilgisi döndür
-                return new AuthenticationState(claimsPrincipal);
+                if (keyValuePairs.TryGetValue("exp", out object expValue))
+                {
+                    var expirationTime = DateTimeOffset.FromUnixTimeSeconds(long.Parse(expValue.ToString())).UtcDateTime;
+
+                    // Token 30 saniye içinde dolacaksa yenilemeyi tetikle
+                    return expirationTime <= DateTime.UtcNow.AddSeconds(30);
+                }
+                return true;
+            }
+            catch
+            {
+                return true; // Ayrıştırma hatası, token geçersiz sayılır
+            }
+        }
+
+        // Refresh Token ile yeni token seti almayı dener
+        private async Task<bool> RefreshTokenAsync(string refreshToken)
+        {
+            var refreshPayload = new RefreshRequestModel { RefreshToken = refreshToken };
+            var jsonContent = JsonSerializer.Serialize(refreshPayload, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            var httpContent = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+
+            try
+            {
+                // 🔴 KRİTİK DÜZELTME: Refresh isteği gönderilmeden önce eski Authorization başlığı TEMİZLENMELİDİR.
+                _httpClient.DefaultRequestHeaders.Authorization = null; // BU SATIR EKLENMELİDİR.
+
+                // WebAPI'deki /api/auth/refresh ucuna istek gönder
+                var response = await _httpClient.PostAsync("api/auth/refresh", httpContent);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    // 🔴 Console.WriteLine yerine ILogger kullanın
+                    _logger.LogWarning("DEBUG AUTH: Refresh API BAŞARISIZ. Status Code: {StatusCode}. Content: {Content}",
+                                       response.StatusCode,
+                                       await response.Content.ReadAsStringAsync());
+                    return false;
+                }
+
+                var refreshResult = await response.Content.ReadFromJsonAsync<LoginResponseModel>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (refreshResult == null || string.IsNullOrEmpty(refreshResult.Token))
+                {
+                    return false;
+                }
+
+                // YENİ TOKENLARI KAYDET VE HTTP CLIENT'I GÜNCELLE
+                await _localStorage.SetItemAsync("authToken", refreshResult.Token);
+                await _localStorage.SetItemAsync("refreshToken", refreshResult.RefreshToken);
+
+                // Başarılı yenilemeden sonra yeni token'ı tekrar Authorization başlığına ekleyin
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", refreshResult.Token);
+
+                return true; // Yenileme başarılı
             }
             catch (Exception ex)
             {
-                // Token parse edilemedi (örn. süresi dolmuş veya geçersiz)
-                Console.WriteLine($"JWT Parse Hatası: {ex.Message}");
-                await _localStorage.RemoveItemAsync("authToken"); // Bozuk token'ı temizle
-                _httpClient.DefaultRequestHeaders.Authorization = null;
-
-                // Hata durumunda anonim kullanıcı döndür
-                return new AuthenticationState(_anonymous);
+                _logger.LogError(ex, "Token Yenileme Hatası");
+                return false;
             }
         }
 
-        // --- ADIM 2: BU METODA ARTIK İHTİYAÇ YOK ---
-        /*
-        public async Task InitializeAuthenticationStateAsync()
-        {
-           // BU METODUN TAMAMINI SİLEBİLİRSİN
-           // VEYA MainLayout.razor içinden buna yapılan çağrıyı kaldırdığından emin ol.
-        }
-        */
+        // -----------------------------------------------------
+        // 2. KRİTİK METOT: GetAuthenticationStateAsync
+        // -----------------------------------------------------
 
-        // --- ADIM 3: LoginAsync METODUNU GÜNCELLE ---
+        public override async Task<AuthenticationState> GetAuthenticationStateAsync()
+        {
+            // 1. Token'ları okumayı dene
+            string token = null;
+            string refreshToken = null;
+            try
+            {
+                token = await _localStorage.GetItemAsync<string>("authToken");
+                refreshToken = await _localStorage.GetItemAsync<string>("refreshToken");
+            }
+            catch (Exception ex)
+            {
+                // Bu (JS Interop) hatası artık olmuyor gibi görünüyor, ancak kalsın.
+                _logger.LogError(ex, "DEBUG AUTH: Local Storage'dan token okurken HATA (JS Interop?)");
+                return new AuthenticationState(_anonymous);
+            }
+
+            // 2. Token var mı kontrol et
+            if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(refreshToken))
+            {
+                _logger.LogInformation("DEBUG AUTH: Token veya RefreshToken Local Storage'da bulunamadı. Anonim dönülüyor.");
+                return new AuthenticationState(_anonymous);
+            }
+
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
+            _logger.LogInformation("DEBUG AUTH: Tokenlar Local Storage'da bulundu. Geçerlilik kontrol ediliyor.");
+
+            bool needsRefresh = false;
+            ClaimsPrincipal claimsPrincipal;
+
+            // 3. ÖNCE TOKEN'I AYRIŞTIRMAYI DENE
+            try
+            {
+                var userClaims = ParseClaimsFromJwt(token);
+                claimsPrincipal = new ClaimsPrincipal(userClaims);
+
+                // 3.1. Ayrıştırma başarılıysa, SÜRESİNİ kontrol et
+                if (IsTokenExpired(token))
+                {
+                    _logger.LogInformation("DEBUG AUTH: Access Token süresi dolmuş. Yenileme deneniyor.");
+                    needsRefresh = true;
+                }
+                else
+                {
+                    _logger.LogInformation("DEBUG AUTH: Token geçerli ve süresi dolmamış.");
+                }
+            }
+            // 4. AYRIŞTIRMA BAŞARISIZ OLURSA (BOZUK TOKEN)
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "DEBUG AUTH: JWT Claims Parse Hatası. Token'ın bozuk olduğu varsayıldı. Yenileme zorlanıyor.");
+                needsRefresh = true; // Token bozuk, yenilemeyi zorla
+                claimsPrincipal = _anonymous; // Şimdilik anonim ata
+            }
+
+            // 5. YENİLEME GEREKİYORSA (Süresi dolduğu için VEYA bozuk olduğu için)
+            if (needsRefresh)
+            {
+                if (await RefreshTokenAsync(refreshToken))
+                {
+                    _logger.LogInformation("DEBUG AUTH: Refresh Token başarılı! Yeni token ile devam ediliyor.");
+                    token = await _localStorage.GetItemAsync<string>("authToken");
+
+                    // Yenileme sonrası yeni token'ı tekrar ayrıştır
+                    try
+                    {
+                        var newUserClaims = ParseClaimsFromJwt(token);
+                        claimsPrincipal = new ClaimsPrincipal(newUserClaims);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Yeni alınan token bile bozuksa, ciddi bir sorun var. Logout yap.
+                        _logger.LogError(ex, "DEBUG AUTH: YENİ ALINAN REFRESH TOKEN BİLE BOZUK. Logout tetikleniyor.");
+                        await LogoutAsync();
+                        return new AuthenticationState(_anonymous);
+                    }
+                }
+                else
+                {
+                    // Yenileme başarısız oldu (refresh token da geçersiz)
+                    _logger.LogWarning("DEBUG AUTH: Refresh Token BAŞARISIZ OLDU. Logout tetikleniyor.");
+                    await LogoutAsync();
+                    return new AuthenticationState(_anonymous);
+                }
+            }
+
+            // 6. Sonuç
+            _logger.LogInformation("DEBUG AUTH: Oturum geçerli. ClaimsPrincipal dönülüyor.");
+            return new AuthenticationState(claimsPrincipal);
+        }
+
+        // -----------------------------------------------------
+        // 3. Login ve Logout Metotları
+        // -----------------------------------------------------
+
         public async Task<bool> LoginAsync(string username, string password)
         {
+            // ... (Mevcut HTTP POST kodunuz) ...
             var loginPayload = new { Username = username, Password = password };
-            var serializerOptions = new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            };
+            var serializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
             var jsonContent = JsonSerializer.Serialize(loginPayload, serializerOptions);
             var httpContent = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
 
             var response = await _httpClient.PostAsync("api/auth/login", httpContent);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                return false; // Hata durumları
-            }
+            if (!response.IsSuccessStatusCode) return false;
 
             var jsonResponse = await response.Content.ReadAsStringAsync();
-            LoginResponseModel loginResult;
-            try
-            {
-                loginResult = JsonSerializer.Deserialize<LoginResponseModel>(jsonResponse, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            }
-            catch (Exception)
-            {
-                return false; // JSON parse hatası
-            }
+            var loginResult = JsonSerializer.Deserialize<LoginResponseModel>(jsonResponse, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            if (loginResult == null || string.IsNullOrEmpty(loginResult.Token))
-            {
-                return false; // Token gelmedi
-            }
+            if (loginResult == null || string.IsNullOrEmpty(loginResult.Token)) return false;
 
             // --- Başarılı Giriş ---
             await _localStorage.SetItemAsync("authToken", loginResult.Token);
+            await _localStorage.SetItemAsync("refreshToken", loginResult.RefreshToken); // YENİ: Refresh Token kaydedildi
+
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", loginResult.Token);
 
-            // *** DEĞİŞİKLİK 2: Login olunca durumu Blazor'a bildir ***
             var userClaims = ParseClaimsFromJwt(loginResult.Token);
             var claimsPrincipal = new ClaimsPrincipal(userClaims);
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(claimsPrincipal)));
@@ -130,20 +255,18 @@ namespace TekstilScada.WebApp.Services
             return true;
         }
 
-        // --- ADIM 4: LogoutAsync METODUNU GÜNCELLE ---
         public async Task LogoutAsync()
         {
             await _localStorage.RemoveItemAsync("authToken");
+            await _localStorage.RemoveItemAsync("refreshToken"); // YENİ: Refresh Token temizlendi
             _httpClient.DefaultRequestHeaders.Authorization = null;
 
-            // *** DEĞİŞİKLİK 3: Çıkış yapınca durumu Blazor'a bildir ***
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_anonymous)));
         }
 
         // ... (ParseClaimsFromJwt metodu aynı kalır) ...
         private static ClaimsIdentity ParseClaimsFromJwt(string jwt)
         {
-            // (Bu metotta değişiklik yok)
             var claims = new List<Claim>();
             var payload = jwt.Split('.')[1];
             payload = payload.Replace('-', '+').Replace('_', '/');
