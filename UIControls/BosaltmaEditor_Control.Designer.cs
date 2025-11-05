@@ -1,4 +1,4 @@
-﻿namespace TekstilScada.UI.Controls.RecipeStepEditors
+﻿namespace Universalscada.UI.Controls.RecipeStepEditors
 {
     partial class BosaltmaEditor_Control
     {

@@ -5,9 +5,9 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Windows.Forms;
-using TekstilScada.Models;
-using TekstilScada.Repositories; // <-- BU SATIRI EKLEYİN
-namespace TekstilScada.UI.Controls
+using Universalscada.Models;
+using Universalscada.Repositories; // <-- BU SATIRI EKLEYİN
+namespace Universalscada.UI.Controls
 {
     public partial class DashboardMachineCard_Control : UserControl
     {

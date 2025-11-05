@@ -1,4 +1,4 @@
-﻿namespace TekstilScada.UI
+﻿namespace Universalscada.UI
 {
     partial class VncViewer_Form
     {

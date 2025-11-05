@@ -1,12 +1,12 @@
 ﻿// UI/Views/AlarmReport_Control.cs
 using System;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Models;
-using TekstilScada.Properties;
-using TekstilScada.Repositories;
+using Universalscada.core;
+using Universalscada.Models;
+using Universalscada.Properties;
+using Universalscada.Repositories;
 
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     // DÜZELTME: Sınıfın bir UserControl'den türediğini belirtiyoruz.
     public partial class AlarmReport_Control : UserControl

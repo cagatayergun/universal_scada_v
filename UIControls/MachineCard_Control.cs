@@ -3,10 +3,10 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging; // ColorMatrix için bu using ifadesi gerekli
 using System.Windows.Forms;
-using TekstilScada.Models;
-using TekstilScada.Services;
+using Universalscada.Models;
+using Universalscada.Services;
 
-namespace TekstilScada.UI.Controls
+namespace Universalscada.UI.Controls
 {
     public partial class MachineCard_Control : UserControl
     {

@@ -8,11 +8,11 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows.Forms;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
+using Universalscada.core;
+using Universalscada.Models;
+using Universalscada.Repositories;
 
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     public partial class RecipeStepDesigner_Control : UserControl
     {

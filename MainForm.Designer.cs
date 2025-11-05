@@ -1,5 +1,5 @@
 ﻿// MainForm.Designer.cs
-namespace TekstilScada
+namespace Universalscada
 {
     partial class MainForm
     {

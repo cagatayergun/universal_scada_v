@@ -1,5 +1,5 @@
 ﻿// UI/Controls/KurutmaReçete_Control.Designer.cs
-namespace TekstilScada.UI.Controls
+namespace Universalscada.UI.Controls
 {
     partial class KurutmaReçete_Control
     {

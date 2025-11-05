@@ -1,11 +1,11 @@
 ﻿// UI/Views/Ayarlar_Control.cs
 using System.Collections.Generic;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Properties;
-using TekstilScada.Repositories;
-using TekstilScada.Services;
-namespace TekstilScada.UI.Views
+using Universalscada.core;
+using Universalscada.Properties;
+using Universalscada.Repositories;
+using Universalscada.Services;
+namespace Universalscada.UI.Views
 {
     public partial class Ayarlar_Control : UserControl
     {

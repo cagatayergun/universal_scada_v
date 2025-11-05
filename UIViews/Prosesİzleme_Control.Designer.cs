@@ -1,5 +1,5 @@
 ﻿// UI/Views/Prosesİzleme_Control.Designer.cs
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     partial class Prosesİzleme_Control
     {

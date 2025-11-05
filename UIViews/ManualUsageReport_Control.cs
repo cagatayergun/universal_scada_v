@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic; // List için eklendi
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Models;
-using TekstilScada.Properties;
-using TekstilScada.Repositories;
+using Universalscada.core;
+using Universalscada.Models;
+using Universalscada.Properties;
+using Universalscada.Repositories;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     public partial class ManualUsageReport_Control : UserControl
     {

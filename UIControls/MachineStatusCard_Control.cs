@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
-using TekstilScada.Models;
+using Universalscada.Models;
 
-namespace TekstilScada.UI.Controls
+namespace Universalscada.UI.Controls
 {
     public partial class MachineStatusCard_Control : UserControl
     {

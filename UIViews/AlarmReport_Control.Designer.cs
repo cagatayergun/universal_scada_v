@@ -1,5 +1,5 @@
 ﻿// UI/Views/AlarmReport_Control.Designer.cs
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     // DÜZELTME: Sınıfın bir UserControl'den türediğini belirtiyoruz.
     partial class AlarmReport_Control

@@ -2,11 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
-using TekstilScada.Services;
+using Universalscada.Models;
+using Universalscada.Repositories;
+using Universalscada.Services;
 
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     public partial class PlcOperatorSettings_Control : UserControl
     {

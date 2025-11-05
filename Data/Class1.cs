@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TekstilScada.Data
+namespace Universalscada.Data
 {
     internal class Class1
     {

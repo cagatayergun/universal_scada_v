@@ -7,15 +7,15 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
-using TekstilScada.Services;
-using TekstilScada.UI.Controls;
-using TekstilScada.UI.Controls.RecipeStepEditors;
-using TekstilScada.UI.Views;
-using TekstilScada.Core.Models;
-namespace TekstilScada.UI
+using Universalscada.core;
+using Universalscada.Models;
+using Universalscada.Repositories;
+using Universalscada.Services;
+using Universalscada.UI.Controls;
+using Universalscada.UI.Controls.RecipeStepEditors;
+using Universalscada.UI.Views;
+using Universalscada.core.Models;
+namespace Universalscada.UI
 {
     public partial class FtpSync_Form : Form
     {

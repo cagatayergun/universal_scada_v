@@ -1,9 +1,9 @@
 ﻿// UI/Controls/KurutmaReçete_Control.cs
 using System;
 using System.Windows.Forms;
-using TekstilScada.Models;
+using Universalscada.Models;
 
-namespace TekstilScada.UI.Controls
+namespace Universalscada.UI.Controls
 {
     public partial class KurutmaReçete_Control : UserControl
     {

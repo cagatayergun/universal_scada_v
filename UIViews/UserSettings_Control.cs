@@ -3,12 +3,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
-using TekstilScada.Models;
-using TekstilScada.Properties;
-using TekstilScada.Repositories;
-using TekstilScada.Services;
+using Universalscada.Models;
+using Universalscada.Properties;
+using Universalscada.Repositories;
+using Universalscada.Services;
 
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     public partial class UserSettings_Control : UserControl
     {

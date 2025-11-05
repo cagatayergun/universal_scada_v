@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using VncSharpCore; // RemoteDesktop sınıfı için
 
-namespace TekstilScada.UI
+namespace Universalscada.UI
 {
     public partial class VncViewer_Form : Form
     {

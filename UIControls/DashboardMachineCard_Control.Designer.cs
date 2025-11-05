@@ -1,5 +1,5 @@
 ﻿// Bu dosyanın içeriğini tamamen aşağıdakiyle değiştirin
-namespace TekstilScada.UI.Controls
+namespace Universalscada.UI.Controls
 {
     partial class DashboardMachineCard_Control
     {

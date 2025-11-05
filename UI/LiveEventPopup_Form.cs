@@ -2,9 +2,9 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
-using TekstilScada.Services;
+using Universalscada.Services;
 
-namespace TekstilScada.UI
+namespace Universalscada.UI
 {
     public partial class LiveEventPopup_Form : Form
     {

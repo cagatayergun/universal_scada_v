@@ -1,6 +1,6 @@
 ﻿// StepEditor_Control.Designer.cs
 // Bu kod bloğunu StepEditor_Control.Designer.cs dosyasına yapıştırın.
-namespace TekstilScada.UI.Controls.RecipeStepEditors
+namespace Universalscada.UI.Controls.RecipeStepEditors
 {
     partial class StepEditor_Control
     {

@@ -1,4 +1,4 @@
-﻿namespace TekstilScada.UIViews
+﻿namespace Universalscada.UIViews
 {
     partial class RecipeTypeSelection_Form
     {

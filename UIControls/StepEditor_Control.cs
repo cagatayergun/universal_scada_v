@@ -5,10 +5,10 @@ using System.Drawing;
 using System.Linq;
 using System.Text.Json;
 using System.Windows.Forms;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
+using Universalscada.Models;
+using Universalscada.Repositories;
 
-namespace TekstilScada.UI.Controls.RecipeStepEditors
+namespace Universalscada.UI.Controls.RecipeStepEditors
 {
     public partial class StepEditor_Control : UserControl
     {

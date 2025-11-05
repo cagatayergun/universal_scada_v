@@ -1,12 +1,12 @@
 ﻿// UIViews/Raporlar_Control.cs
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Localization;
-using TekstilScada.Properties;
-using TekstilScada.Repositories;
-using TekstilScada.UIViews;
+using Universalscada.core;
+using Universalscada.Localization;
+using Universalscada.Properties;
+using Universalscada.Repositories;
+using Universalscada.UIViews;
 
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     public partial class Raporlar_Control : UserControl
     {

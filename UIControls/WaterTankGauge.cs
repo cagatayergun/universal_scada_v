@@ -5,7 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 // Namespace'i kendi projenize göre düzenleyebilirsiniz.
-namespace TekstilScada.UI.Controls
+namespace Universalscada.UI.Controls
 {
     public partial class WaterTankGauge : UserControl
     {

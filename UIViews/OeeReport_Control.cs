@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Models;
-using TekstilScada.Properties;
-using TekstilScada.Repositories;
+using Universalscada.core;
+using Universalscada.Models;
+using Universalscada.Properties;
+using Universalscada.Repositories;
 
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     public partial class OeeReport_Control : UserControl
     {

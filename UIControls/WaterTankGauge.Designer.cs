@@ -1,5 +1,5 @@
 ﻿// WaterTankGauge.Designer.cs
-namespace TekstilScada.UI.Controls
+namespace Universalscada.UI.Controls
 {
     partial class WaterTankGauge
     {

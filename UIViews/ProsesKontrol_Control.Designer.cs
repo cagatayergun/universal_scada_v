@@ -1,7 +1,7 @@
 ﻿// UI/Views/ProsesKontrol_Control.Designer.cs
-using TekstilScada.Services;
+using Universalscada.Services;
 
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     partial class ProsesKontrol_Control
     {

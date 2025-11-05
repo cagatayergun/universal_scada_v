@@ -1,5 +1,5 @@
 ﻿// UI/Views/ProductionReport_Control.Designer.cs
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     partial class ProductionReport_Control
     {

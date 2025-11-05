@@ -3,11 +3,11 @@ using System;
 using System.Globalization;
 using System.Threading;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.UI;
-using TekstilScada.Properties;
+using Universalscada.core;
+using Universalscada.UI;
+using Universalscada.Properties;
 
-namespace TekstilScada
+namespace Universalscada
 {
     internal static class Program
     {

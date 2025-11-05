@@ -1,5 +1,5 @@
 ﻿// UI/Controls/RecipeStepEditors/DozajEditor_Control.Designer.cs
-namespace TekstilScada.UI.Controls.RecipeStepEditors
+namespace Universalscada.UI.Controls.RecipeStepEditors
 {
     partial class DozajEditor_Yikama_Control
     {

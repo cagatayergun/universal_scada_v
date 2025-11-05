@@ -1,5 +1,5 @@
 ﻿// UI/Views/UserSettings_Control.Designer.cs
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     partial class UserSettings_Control
     {

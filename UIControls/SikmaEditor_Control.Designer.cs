@@ -1,5 +1,5 @@
 ﻿// UI/Controls/RecipeStepEditors/SikmaEditor_Control.Designer.cs
-namespace TekstilScada.UI.Controls.RecipeStepEditors
+namespace Universalscada.UI.Controls.RecipeStepEditors
 {
     partial class SikmaEditor_Control
     {

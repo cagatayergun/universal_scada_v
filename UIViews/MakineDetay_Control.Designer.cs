@@ -1,4 +1,4 @@
-﻿namespace TekstilScada.UI.Views
+﻿namespace Universalscada.UI.Views
 {
     partial class MakineDetay_Control
     {
@@ -26,7 +26,7 @@
             tableLayoutPanelTop = new TableLayoutPanel();
             pnlGaugesAndInfo = new Panel();
             pnlGauges = new Panel();
-            waterTankGauge1 = new TekstilScada.UI.Controls.WaterTankGauge();
+            waterTankGauge1 = new Universalscada.UI.Controls.WaterTankGauge();
             panelTemp = new Panel();
             lblTempValue = new Label();
             lblTempTitle = new Label();

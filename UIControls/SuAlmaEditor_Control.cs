@@ -1,9 +1,9 @@
 ﻿// UI/Controls/RecipeStepEditors/SuAlmaEditor_Control.cs
 using System;
 using System.Windows.Forms;
-using TekstilScada.Models;
+using Universalscada.Models;
 
-namespace TekstilScada.UI.Controls.RecipeStepEditors
+namespace Universalscada.UI.Controls.RecipeStepEditors
 {
     public partial class SuAlmaEditor_Control : UserControl
     {

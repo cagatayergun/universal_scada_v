@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     partial class RecipeStepDesigner_Control
     {

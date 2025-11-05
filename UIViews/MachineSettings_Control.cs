@@ -3,21 +3,21 @@ using System;
 using System.Collections.Generic;
 using System.Reflection.PortableExecutable;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Models;
-using TekstilScada.Properties;
-using TekstilScada.Repositories;
-using TekstilScada.Services;
+using Universalscada.core;
+using Universalscada.Models;
+using Universalscada.Properties;
+using Universalscada.Repositories;
+using Universalscada.Services;
 
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     public partial class MachineSettings_Control : UserControl
     {
         public event EventHandler MachineListChanged;
         private readonly UserRepository _userRepository;
         private readonly MachineRepository _repository;
-        private List<TekstilScada.Models.Machine> _machines;
-        private TekstilScada.Models.Machine _selectedMachine;
+        private List<Universalscada.Models.Machine> _machines;
+        private Universalscada.Models.Machine _selectedMachine;
         private List<object> _machineTypeOptions;
         public MachineSettings_Control()
         {
@@ -96,7 +96,7 @@ namespace TekstilScada.UI.Views
         {
             if (dgvMachines.SelectedRows.Count > 0)
             {
-                _selectedMachine = dgvMachines.SelectedRows[0].DataBoundItem as TekstilScada.Models.Machine;
+                _selectedMachine = dgvMachines.SelectedRows[0].DataBoundItem as Universalscada.Models.Machine;
                 if (_selectedMachine != null)
                 {
                     PopulateFields(_selectedMachine);
@@ -104,7 +104,7 @@ namespace TekstilScada.UI.Views
             }
         }
 
-        private void PopulateFields(TekstilScada.Models.Machine machine)
+        private void PopulateFields(Universalscada.Models.Machine machine)
         {
             txtMachineId.Text = machine.MachineUserDefinedId;
             txtMachineName.Text = machine.MachineName;
@@ -159,7 +159,7 @@ namespace TekstilScada.UI.Views
             {
                 if (_selectedMachine == null) // Yeni Kayıt
                 {
-                    var newMachine = new TekstilScada.Models.Machine
+                    var newMachine = new Universalscada.Models.Machine
                     {
                         MachineUserDefinedId = txtMachineId.Text,
                         MachineName = txtMachineName.Text,

@@ -3,17 +3,17 @@ using System;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Localization;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
-using TekstilScada.Services;
-using TekstilScada.UI;
-using TekstilScada.UI.Controls;
-using TekstilScada.UI.Views;
-using TekstilScada.Properties;
+using Universalscada.core;
+using Universalscada.Localization;
+using Universalscada.Models;
+using Universalscada.Repositories;
+using Universalscada.Services;
+using Universalscada.UI;
+using Universalscada.UI.Controls;
+using Universalscada.UI.Views;
+using Universalscada.Properties;
 
-namespace TekstilScada
+namespace Universalscada
 {
     public partial class MainForm : Form
     {
@@ -230,12 +230,12 @@ namespace TekstilScada
         private void ApplyLocalization()
         {
             // Ana form baþlýðý ve ana menü butonlarý "Strings" sýnýfýndan geliyor.
-            this.Text = TekstilScada.Localization.Strings.ApplicationTitle;
-            btnGenelBakis.Text = TekstilScada.Localization.Strings.MainMenu_GeneralOverview;
-            btnProsesIzleme.Text = TekstilScada.Localization.Strings.MainMenu_ProcessMonitoring;
-            btnProsesKontrol.Text = TekstilScada.Localization.Strings.MainMenu_ProcessControl;
-            btnRaporlar.Text = TekstilScada.Localization.Strings.MainMenu_Reports;
-            btnAyarlar.Text = TekstilScada.Localization.Strings.MainMenu_Settings;
+            this.Text = Universalscada.Localization.Strings.ApplicationTitle;
+            btnGenelBakis.Text = Universalscada.Localization.Strings.MainMenu_GeneralOverview;
+            btnProsesIzleme.Text = Universalscada.Localization.Strings.MainMenu_ProcessMonitoring;
+            btnProsesKontrol.Text = Universalscada.Localization.Strings.MainMenu_ProcessControl;
+            btnRaporlar.Text = Universalscada.Localization.Strings.MainMenu_Reports;
+            btnAyarlar.Text = Universalscada.Localization.Strings.MainMenu_Settings;
 
             // Menü ve durum çubuðu gibi diðer elemanlar "Resources" sýnýfýndan geliyor.
             dilToolStripMenuItem.Text = Resources.Language;

@@ -5,13 +5,13 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Localization;
-using TekstilScada.Models;
-using TekstilScada.Properties;
-using TekstilScada.Repositories;
+using Universalscada.core;
+using Universalscada.Localization;
+using Universalscada.Models;
+using Universalscada.Properties;
+using Universalscada.Repositories;
 
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     public partial class TrendAnaliz_Control : UserControl
     {

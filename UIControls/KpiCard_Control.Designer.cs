@@ -1,4 +1,4 @@
-﻿namespace TekstilScada.UI.Controls
+﻿namespace Universalscada.UI.Controls
 {
     partial class KpiCard_Control
     {

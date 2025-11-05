@@ -3,15 +3,15 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
-using TekstilScada.Services;
-using TekstilScada.UI.Controls;
-using TekstilScada.UI.Controls.RecipeStepEditors;
-using TekstilScada.UIViews;
+using Universalscada.core;
+using Universalscada.Models;
+using Universalscada.Repositories;
+using Universalscada.Services;
+using Universalscada.UI.Controls;
+using Universalscada.UI.Controls.RecipeStepEditors;
+using Universalscada.UIViews;
 
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     public partial class ProsesKontrol_Control : UserControl
     {

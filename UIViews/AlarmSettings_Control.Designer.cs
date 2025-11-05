@@ -1,5 +1,5 @@
 ﻿// UI/Views/AlarmSettings_Control.Designer.cs
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     partial class AlarmSettings_Control
     {

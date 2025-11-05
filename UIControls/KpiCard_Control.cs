@@ -1,7 +1,7 @@
 ﻿using System.Drawing;
 using System.Windows.Forms;
 
-namespace TekstilScada.UI.Controls
+namespace Universalscada.UI.Controls
 {
     public partial class KpiCard_Control : UserControl
     {

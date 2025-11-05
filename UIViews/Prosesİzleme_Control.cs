@@ -2,11 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using TekstilScada.Models;
-using TekstilScada.Services;
-using TekstilScada.UI.Controls;
+using Universalscada.Models;
+using Universalscada.Services;
+using Universalscada.UI.Controls;
 
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     public partial class Prosesİzleme_Control : UserControl
     {

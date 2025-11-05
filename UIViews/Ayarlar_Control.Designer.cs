@@ -1,5 +1,5 @@
 ﻿// UI/Views/Ayarlar_Control.Designer.cs
-namespace TekstilScada.UI.Views
+namespace Universalscada.UI.Views
 {
     partial class Ayarlar_Control
     {

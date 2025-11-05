@@ -1,4 +1,4 @@
-﻿namespace TekstilScada.UI.Views
+﻿namespace Universalscada.UI.Views
 {
     partial class ManualUsageReport_Control
     {

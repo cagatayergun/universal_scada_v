@@ -2,11 +2,11 @@
 using System;
 using System.Linq;
 using System.Windows.Forms;
-//using TekstilScada.Core.Repositories;
-using TekstilScada.Core.Services;
-using TekstilScada.Repositories;
+//using Universalscada.core.Repositories;
+using Universalscada.core.Services;
+using Universalscada.Repositories;
 
-namespace TekstilScada.UIViews
+namespace Universalscada.UIViews
 {
     public partial class ActionLogReport_Control : UserControl
     {
