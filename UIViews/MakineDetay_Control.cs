@@ -9,74 +9,121 @@ using Universalscada.core;
 using Universalscada.Models;
 using Universalscada.Properties;
 using Universalscada.Repositories;
+// using Universalscada.Services; // KALDIRILDI
+using System.Net.Http; // YENİ
+using System.Net.Http.Headers; // YENİ
+using Newtonsoft.Json; // YENİ (NuGet'ten Newtonsoft.Json eklemelisiniz)
+using System.Threading.Tasks; // YENİ
 using Universalscada.Services;
-
 namespace Universalscada.UI.Views
 {
     public partial class MakineDetay_Control : UserControl
     {
         public event EventHandler BackRequested;
 
-        private PlcPollingService _pollingService;
+        // === KALDIRILDI ===
+        // private PlcPollingService _pollingService;
+
+        // === YENİ ===
+        private static readonly HttpClient _apiClient = new HttpClient();
+        // !!! KENDİ WEBAPI ADRESİNİZLE DEĞİŞTİRİN !!!
+        private const string API_BASE_URL = "http://localhost:5000";
+        private FullMachineStatus _currentStatus; // YENİ: Anlık durumu saklamak için
+
         private ProcessLogRepository _logRepository;
         private AlarmRepository _alarmRepository;
         private RecipeRepository _recipeRepository;
         private ProductionRepository _productionRepository;
         private Machine _machine;
+        public int CurrentMachineId => _machine?.Id ?? 0; // YENİ: MainForm'un erişmesi için
+
         private ScottPlot.Plottables.Scatter _tempPlot;
         private ScottPlot.Plottables.Scatter _rpmPlot;
-        private ScottPlot.Plottables.Scatter _waterLevelPlot; // Eğer su seviyesi çizgisini de eklediyseniz veya ekleyecekseniz
-        private List<string> _currentlyDisplayedAlarms = new List<string>(); // BU SATIRI EKLEYİN
+        private ScottPlot.Plottables.Scatter _waterLevelPlot;
+        private List<string> _currentlyDisplayedAlarms = new List<string>();
 
-        private System.Windows.Forms.Timer _uiUpdateTimer;
-        private string _lastLoadedBatchIdForChart = null; // Sadece bu değişken kalacak
+        // === KALDIRILDI ===
+        // private System.Windows.Forms.Timer _uiUpdateTimer;
+        private string _lastLoadedBatchIdForChart = null;
 
         public MakineDetay_Control()
         {
-            
             InitializeComponent();
             btnGeri.Click += (sender, args) => BackRequested?.Invoke(this, EventArgs.Empty);
             this.progressTemp.Paint += new System.Windows.Forms.PaintEventHandler(this.progressTemp_Paint);
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
+
+            // YENİ: API İstemcisini bir kez ayarla
+            if (_apiClient.BaseAddress == null)
+            {
+                _apiClient.BaseAddress = new Uri(API_BASE_URL);
+            }
         }
 
-        public void InitializeControl(Machine machine, PlcPollingService service, ProcessLogRepository logRepo, AlarmRepository alarmRepo, RecipeRepository recipeRepo, ProductionRepository productionRepo)
+        // === DEĞİŞTİ: InitializeControl ===
+        // PlcPollingService parametresi kaldırıldı
+        public void InitializeControl(Machine machine, ProcessLogRepository logRepo, AlarmRepository alarmRepo, RecipeRepository recipeRepo, ProductionRepository productionRepo)
         {
             _machine = machine;
-            _pollingService = service;
-
+            // _pollingService = service; // KALDIRILDI
             _logRepository = logRepo;
             _alarmRepository = alarmRepo;
             _recipeRepository = recipeRepo;
             _productionRepository = productionRepo;
-            _uiUpdateTimer = new System.Windows.Forms.Timer { Interval = 1000 };
-            _uiUpdateTimer.Tick += (sender, args) => UpdateLiveGauges();
-            _uiUpdateTimer.Start();
-            _pollingService.OnMachineDataRefreshed += OnDataRefreshed;
-            _pollingService.OnMachineConnectionStateChanged += OnConnectionStateChanged;
-            _pollingService.OnActiveAlarmStateChanged += OnAlarmStateChanged; // BU SATIRI EKLEYİN
+
+            // === KALDIRILDI ===
+            // _uiUpdateTimer = new System.Windows.Forms.Timer { Interval = 1000 };
+            // _uiUpdateTimer.Tick += (sender, args) => UpdateLiveGauges();
+            // _uiUpdateTimer.Start();
+            // _pollingService.OnMachineDataRefreshed += OnDataRefreshed;
+            // _pollingService.OnMachineConnectionStateChanged += OnConnectionStateChanged;
+            // _pollingService.OnActiveAlarmStateChanged += OnAlarmStateChanged;
+
             this.VisibleChanged += MakineDetay_Control_VisibleChanged;
-            LoadInitialData();
+
+            // === DEĞİŞTİ ===
+            // LoadInitialData(); // KALDIRILDI (Artık verinin SignalR'dan gelmesini bekleyeceğiz)
+            _lastLoadedBatchIdForChart = null; // İzleyiciyi sıfırla
+            ClearAllFieldsWithMessage(Resources.baglantibekleniyro); // Varsayılan mesajı göster
+            ApplyLocalization(); // Lokalizasyonu uygula
         }
 
-        private void LoadInitialData()
+        // === YENİ: GetApiClient ===
+        private HttpClient GetApiClient()
         {
-            if (_pollingService.MachineDataCache.TryGetValue(_machine.Id, out var status))
+            _apiClient.DefaultRequestHeaders.Authorization = null;
+            if (CurrentUser.IsLoggedIn && !string.IsNullOrEmpty(CurrentUser.Token))
             {
-                UpdateUI(status);
-                UpdateAlarmList(); // İLK YÜKLEME: Alarm listesini doldur
-
-                LoadRecipeStepsFromPlcAsync();
+                _apiClient.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", CurrentUser.Token);
             }
-
+            return _apiClient;
         }
+
+        // === YENİ: UpdateStatus (Ana Veri Giriş Noktası) ===
+        // MainForm'dan gelen SignalR verilerini almak için eklendi.
+        public void UpdateStatus(FullMachineStatus status)
+        {
+            if (this.IsHandleCreated && !this.IsDisposed)
+            {
+                // UI thread'inde güvenli güncelleme yap
+                this.BeginInvoke(new Action(() =>
+                {
+                    _currentStatus = status; // En son durumu sakla
+                    UpdateUI(status); // Tüm arayüzü bu yeni durumla güncelle
+                    UpdateAlarmList(status); // Alarm listesini bu yeni durumla güncelle
+                }));
+            }
+        }
+
         private void LanguageManager_LanguageChanged(object sender, EventArgs e)
         {
             ApplyLocalization();
-
         }
+
         public void ApplyLocalization()
         {
+            // ... (Bu metotta değişiklik yok) ...
             btnGeri.Text = Resources.geri;
             label1.Text = Resources.makinebilgileri;
             label2.Text = Resources.RecipeName;
@@ -85,74 +132,59 @@ namespace Universalscada.UI.Views
             label5.Text = Resources.BatchNo;
             label6.Text = Resources.OrderNo;
             lblTempTitle.Text = Resources.Temperature;
-            lstAlarmlar.Text = Resources.baglantibekleniyro;
-
-
-            //btnSave.Text = Resources.Save;
-
-
-        }
-        private void OnConnectionStateChanged(int machineId, FullMachineStatus status)
-        {
-            if (machineId == _machine.Id && this.IsHandleCreated && !this.IsDisposed)
-            {
-                this.BeginInvoke(new Action(() => UpdateUI(status)));
-            }
+            // lstAlarmlar.Text = Resources.baglantibekleniyro; // lstAlarmlar.Text özelliği yok
         }
 
-        private void OnDataRefreshed(int machineId, FullMachineStatus status)
-        {
-            if (machineId == _machine.Id && this.IsHandleCreated && !this.IsDisposed)
-            {
-                this.BeginInvoke(new Action(() => UpdateUI(status)));
-            }
-        }
+        // === KALDIRILDI ===
+        // private void OnConnectionStateChanged(int machineId, FullMachineStatus status)
+        // { ... }
+        // private void OnDataRefreshed(int machineId, FullMachineStatus status)
+        // { ... }
+        // private void LoadInitialData()
+        // { ... }
 
         private void MakineDetay_Control_VisibleChanged(object sender, EventArgs e)
         {
             if (this.Visible && _machine != null)
             {
-                _lastLoadedBatchIdForChart = null; // Sayfa göründüğünde izleyiciyi sıfırla
-                if (_pollingService.MachineDataCache.TryGetValue(_machine.Id, out var status))
+                _lastLoadedBatchIdForChart = null; // Sayfa göründüğünde grafik izleyiciyi sıfırla
+
+                // === DEĞİŞTİ ===
+                // if (_pollingService.MachineDataCache.TryGetValue(_machine.Id, out var status)) // KALDIRILDI
+                if (_currentStatus != null) // En son saklanan durum neyse onu yükle
                 {
-                    UpdateUI(status);
-                    UpdateAlarmList(); // GÖRÜNÜR OLDUĞUNDA: Alarm listesini doldur
+                    UpdateUI(_currentStatus);
+                    UpdateAlarmList(_currentStatus);
+                }
+                else
+                {
+                    ClearAllFieldsWithMessage(Resources.baglantibekleniyro);
                 }
 
+                // Reçete adımlarını (API üzerinden) yeniden yükle
+                LoadRecipeStepsFromPlcAsync();
             }
         }
 
-        private void UpdateLiveGauges()
-        {
-            if (_machine != null && _pollingService.MachineDataCache.TryGetValue(_machine.Id, out var status))
-            {
-                SafeInvoke(() =>
-                {
-                    gaugeRpm.Value = status.AnlikDevirRpm;
-                    gaugeRpm.Text = status.AnlikDevirRpm.ToString();
+        // === KALDIRILDI ===
+        // private void UpdateLiveGauges()
+        // { ... } // Bu metodun içeriği UpdateUI'a taşındı
 
-                    // Anlık sıcaklık değerini Panel'in Tag özelliğine atıyoruz.
-                    // Maksimum değeri (150) burada veya Paint metodunda sabit tutabilirsiniz,
-                    // veya onu da Tag'in farklı bir parçası olarak geçirebilirsiniz.
-                    // DEĞİŞİKLİK: Anlık sıcaklığı 10'a bölerek ondalıklı hale getir
-                    decimal anlikSicaklikDecimal = status.AnlikSicaklik / 10.0m;
-                    progressTemp.Tag = anlikSicaklikDecimal;
-
-                    // DEĞİŞİKLİK: Label'da ondalıklı ve formatlı göster (F1 -> bir ondalık basamak)
-                    lblTempValue.Text = $"{anlikSicaklikDecimal:F1} °C";
-                    lblTempValue.ForeColor = GetTemperatureColor((int)anlikSicaklikDecimal); // Rengi de ondalıklı değere göre al
-
-                 //   lblTempValue.ForeColor = GetTemperatureColor(status.AnlikSicaklik);
-                    progressTemp.Invalidate(); // Panel'in Paint olayını tetikler
-
-                    waterTankGauge1.Value = status.AnlikSuSeviyesi;
-                });
-            }
-        }
-
+        // === DEĞİŞTİ: UpdateUI ===
+        // Artık _uiUpdateTimer tarafından değil, UpdateStatus tarafından tetikleniyor.
         private void UpdateUI(FullMachineStatus status)
         {
-            // 1. Temel bilgileri her zaman güncelle
+            // 1. Canlı Göstergeleri (Eski UpdateLiveGauges) Güncelle
+            gaugeRpm.Value = status.AnlikDevirRpm;
+            gaugeRpm.Text = status.AnlikDevirRpm.ToString();
+            decimal anlikSicaklikDecimal = status.AnlikSicaklik / 10.0m;
+            progressTemp.Tag = anlikSicaklikDecimal; // decimal olarak ata
+            lblTempValue.Text = $"{anlikSicaklikDecimal:F1} °C";
+            lblTempValue.ForeColor = GetTemperatureColor((int)anlikSicaklikDecimal);
+            progressTemp.Invalidate();
+            waterTankGauge1.Value = status.AnlikSuSeviyesi;
+
+            // 2. Temel bilgileri güncelle
             lblMakineAdi.Text = status.MachineName;
             lblOperator.Text = string.IsNullOrEmpty(status.OperatorIsmi) ? "---" : status.OperatorIsmi;
             lblReceteAdi.Text = string.IsNullOrEmpty(status.RecipeName) ? "---" : status.RecipeName;
@@ -161,13 +193,14 @@ namespace Universalscada.UI.Views
             lblSiparisNo.Text = string.IsNullOrEmpty(status.SiparisNumarasi) ? "---" : status.SiparisNumarasi;
             lblCalisanAdim.Text = $"#{status.AktifAdimNo} - {status.AktifAdimAdi}";
 
-            // 2. Bağlantı durumunu kontrol et
+            // 3. Bağlantı durumunu kontrol et
             if (status.ConnectionState != ConnectionStatus.Connected)
             {
                 ClearAllFieldsWithMessage($"{Resources.baglantibekleniyro}");
                 return;
             }
 
+            // 4. Grafik ve Raporlama Mantığı (Bu kısım aynı kalabilir)
             if (!string.IsNullOrEmpty(status.BatchNumarasi))
             {
                 if (status.BatchNumarasi != _lastLoadedBatchIdForChart)
@@ -179,8 +212,7 @@ namespace Universalscada.UI.Views
             {
                 if (_lastLoadedBatchIdForChart != null)
                 {
-                    LoadDataForLive(status);
-                    UpdateAlarmList(); // Canlı moda geçildiğinde alarm listesini yenile
+                    LoadDataForLive(status); // Canlı moda geçildiğinde grafiği temizle/yenile
                 }
                 _lastLoadedBatchIdForChart = null;
                 LoadDataForLive(status);
@@ -197,69 +229,66 @@ namespace Universalscada.UI.Views
             var alarms = _alarmRepository.GetAlarmDetailsForBatch(status.BatchNumarasi, _machine.Id);
             var alarmStrings = alarms.Any() ? alarms.Select(a => a.AlarmDescription).ToList() : new List<string> { $"{Resources.bupartiicinalarmyok}" };
 
-            // Geçmiş raporu görüntülerken de mevcut durumu hafızaya al
             _currentlyDisplayedAlarms = alarmStrings;
             lstAlarmlar.DataSource = _currentlyDisplayedAlarms;
-
 
             LoadTimelineChartForBatch(status.BatchNumarasi);
         }
 
         private void LoadDataForLive(FullMachineStatus status)
         {
-
-
-            // PLC'de o an yüklü olan reçetenin adımlarını yükle
-
-
-            // Son 30 dakikanın canlı grafiğini yükle
+            // Canlı alarm listesi UpdateAlarmList(status) tarafından doldurulacak
             LoadTimelineChartForLive();
         }
 
+        // === DEĞİŞTİ: LoadRecipeStepsFromPlcAsync ===
+        // Artık _pollingService yerine WebAPI kullanıyor
         private async void LoadRecipeStepsFromPlcAsync()
         {
             dgvAdimlar.DataSource = new List<object> { new { Adım = "...", Açıklama = $"{Resources.receteplcdenokunuyor}" } };
 
-            if (_pollingService.GetPlcManagers().TryGetValue(_machine.Id, out var plcManager))
+            try
             {
-                var result = await plcManager.ReadRecipeFromPlcAsync();
-                if (result.IsSuccess)
-                {
-                    var steps = new List<ScadaRecipeStep>();
-                    var rawData = result.Content;
+                var apiClient = GetApiClient();
+                // YENİ API ÇAĞRISI (ProsesKontrol'deki ile aynı)
+                var response = await apiClient.GetAsync($"api/recipes/read-from-plc/{_machine.Id}");
 
-                    if (_machine.MachineType == $"{Resources.kurutmamakinesi}")
+                if (response.IsSuccessStatusCode)
+                {
+                    string jsonResponse = await response.Content.ReadAsStringAsync();
+                    var recipeFromPlc = JsonConvert.DeserializeObject<ScadaRecipe>(jsonResponse);
+
+                    if (recipeFromPlc == null || !recipeFromPlc.Steps.Any())
                     {
-                        var step = new ScadaRecipeStep { StepNumber = 1 };
-                        Array.Copy(rawData, 0, step.StepDataWords, 0, Math.Min(rawData.Length, 6));
-                        steps.Add(step);
+                        dgvAdimlar.DataSource = new List<object> { new { Adım = "!", Açıklama = $"{Resources.plcdenreceteokunmadı} (Boş döndü)" } };
+                        return;
+                    }
+
+                    // (Aşağıdaki kod, orijinal kodunuzdaki ile aynı, sadece 'result.Content' yerine 'recipeFromPlc' kullanır)
+                    var steps = new List<ScadaRecipeStep>();
+                    if (_machine.MachineType == $"{Resources.kurutmamakinesi}") // Bu "Kaynaklar" kullanımı tehlikeli, "Kurutma Makinesi" string'i ile karşılaştırmak daha iyi
+                    {
+                        steps.Add(recipeFromPlc.Steps.First());
                     }
                     else // BYMakinesi
                     {
-                        for (int i = 0; i < 98; i++)
-                        {
-                            var step = new ScadaRecipeStep { StepNumber = i + 1 };
-                            int offset = i * 25;
-                            if (offset + 25 <= rawData.Length)
-                            {
-                                Array.Copy(rawData, offset, step.StepDataWords, 0, 25);
-                                steps.Add(step);
-                            }
-                        }
+                        steps = recipeFromPlc.Steps;
                     }
                     dgvAdimlar.DataSource = steps.Select(s => new { Adım = s.StepNumber, Açıklama = GetStepTypeName(s) }).ToList();
                 }
                 else
                 {
-                    dgvAdimlar.DataSource = new List<object> { new { Adım = "!", Açıklama = $"{Resources.plcdenreceteokunmadı} {result.Message}" } };
+                    string errorMsg = await response.Content.ReadAsStringAsync();
+                    dgvAdimlar.DataSource = new List<object> { new { Adım = "!", Açıklama = $"{Resources.plcdenreceteokunmadı} {errorMsg}" } };
                 }
             }
-            else
+            catch (Exception ex)
             {
-                dgvAdimlar.DataSource = new List<object> { new { Adım = "!", Açıklama = $"{Resources.makinebaglantısıbulunamadı}" } };
+                dgvAdimlar.DataSource = new List<object> { new { Adım = "!", Açıklama = $"API Hatası: {ex.Message}" } };
             }
         }
 
+        // ... (LoadTimelineChartForBatch metodu aynı kalır) ...
         private void LoadTimelineChartForBatch(string batchId)
         {
             SafeInvoke(() =>
@@ -302,13 +331,12 @@ namespace Universalscada.UI.Views
                 rpmPlot.LegendText = $"{Resources.devir}";
                 rpmPlot.Axes.YAxis = rpmAxis;
 
-                // YENİ EKLENEN KOD: Su Seviyesi (Water Level) verisini grafiğe ekle
                 var waterLevelAxis = formsPlot1.Plot.Axes.AddRightAxis();
                 waterLevelAxis.Label.Text = $"{Resources.suseviyesi}";
                 var waterLevelPlot = formsPlot1.Plot.Add.Scatter(
                     dataPoints.Select(p => p.Timestamp.ToOADate()).ToArray(),
                     dataPoints.Select(p => (double)p.WaterLevel).ToArray());
-                waterLevelPlot.Color = ScottPlot.Colors.Green; // Su seviyesi için yeşil renk
+                waterLevelPlot.Color = ScottPlot.Colors.Green;
                 waterLevelPlot.LegendText = $"{Resources.suseviyesi}";
                 waterLevelPlot.Axes.YAxis = waterLevelAxis;
 
@@ -320,19 +348,17 @@ namespace Universalscada.UI.Views
             });
         }
 
-        // MakineDetay_Control.cs
+        // ... (LoadTimelineChartForLive metodu aynı kalır) ...
         private void LoadTimelineChartForLive()
         {
-
             SafeInvoke(() =>
             {
                 formsPlot1.Plot.Clear();
                 DateTime endTime = DateTime.Now;
-                // Son 5 saati (300 dakika) kapsayacak şekilde başlangıç zamanı
-                DateTime startTime = endTime.AddMinutes(-100);
+                DateTime startTime = endTime.AddMinutes(-100); // Son 100 dakika
 
                 var dataPoints = _logRepository.GetManualLogs(_machine.Id, startTime, endTime);
-              
+
                 if (!dataPoints.Any())
                 {
                     formsPlot1.Plot.Clear();
@@ -342,50 +368,39 @@ namespace Universalscada.UI.Views
                 }
 
                 double[] timeData = dataPoints.Select(p => p.Timestamp.ToOADate()).ToArray();
-                double[] tempData = dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray(); // DEĞİŞİKLİK
+                double[] tempData = dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray();
                 double[] rpmData = dataPoints.Select(p => (double)p.Rpm).ToArray();
                 double[] waterLevelData = dataPoints.Select(p => (double)p.WaterLevel).ToArray();
 
-                // Grafik nesneleri henüz oluşturulmadıysa (yani proses detay sayfası yeni açıldıysa)
                 if (_tempPlot == null)
                 {
-                    formsPlot1.Plot.Clear(); // İlk oluşturmada her şeyi temizle
+                    formsPlot1.Plot.Clear();
                     formsPlot1.Plot.Title($"{_machine.MachineName} - ${Resources.canliprosesdata}");
                     formsPlot1.Plot.Axes.DateTimeTicksBottom();
                     formsPlot1.Plot.ShowLegend(ScottPlot.Alignment.UpperLeft);
 
-                    // Sıcaklık Çizgisi
                     _tempPlot = formsPlot1.Plot.Add.Scatter(timeData, tempData);
                     _tempPlot.Color = ScottPlot.Colors.Red;
                     _tempPlot.LegendText = $"{Resources.Temperature}";
                     _tempPlot.LineWidth = 2;
 
-                    // Devir Çizgisi
                     _rpmPlot = formsPlot1.Plot.Add.Scatter(timeData, rpmData);
                     _rpmPlot.Color = ScottPlot.Colors.Blue;
                     _rpmPlot.LegendText = $"{Resources.devir}";
 
-                    // Su Seviyesi Çizgisi
                     _waterLevelPlot = formsPlot1.Plot.Add.Scatter(timeData, waterLevelData);
                     _waterLevelPlot.Color = ScottPlot.Colors.Green;
                     _waterLevelPlot.LegendText = $"{Resources.suseviyesi}";
 
-                    // SADECE İLK AÇILIŞTA EKSEN REFERANSLAMASI
-                    // X eksenini endTime'a (şu anki zamana) göre ayarla ve geçmiş 5 saati göster
                     formsPlot1.Plot.Axes.SetLimitsX(startTime.ToOADate(), endTime.ToOADate());
-
-                    // Y eksenlerini mevcut verilere göre otomatik ölçeklendir
                     formsPlot1.Plot.Axes.AutoScaleY();
                 }
                 else
                 {
-                    // Eğer grafik nesneleri zaten oluşturulduysa (yani sayfa açıkken sonraki güncellemeler geliyorsa)
-                    // Mevcut çizgi grafiklerini kaldır
                     formsPlot1.Plot.Remove(_tempPlot);
                     formsPlot1.Plot.Remove(_rpmPlot);
                     formsPlot1.Plot.Remove(_waterLevelPlot);
 
-                    // Yeni verilerle çizgi grafiklerini yeniden oluştur ve formsPlot1.Plot'a ekle
                     _tempPlot = formsPlot1.Plot.Add.Scatter(timeData, tempData);
                     _tempPlot.Color = ScottPlot.Colors.Red;
                     _tempPlot.LegendText = $"{Resources.Temperature}";
@@ -399,22 +414,10 @@ namespace Universalscada.UI.Views
                     _waterLevelPlot.Color = ScottPlot.Colors.Green;
                     _waterLevelPlot.LegendText = $"{Resources.suseviyesi}";
 
-                    // Sonraki güncellemelerde eksen limitlerini otomatik olarak değiştirmeyin,
-                    // kullanıcının yaptığı zoom ve kaydırmaları koruyun.
-                    // Sadece yeni veri mevcut görünümün dışına taştığında X eksenini biraz kaydırabilirsiniz.
-                    // Bu kısım, kullanıcı etkileşimini korumak için önemlidir.
-
-                    // Opsiyonel: Eğer kullanıcı herhangi bir zoom veya kaydırma yapmadıysa ve son veri
-                    // görünür alanın dışına çıktıysa, görünümü son veriye kaydırabiliriz.
                     var xRange = formsPlot1.Plot.Axes.Bottom.Range;
                     if (timeData.Any() && timeData.Last() > xRange.Max)
                     {
-                        // Mevcut aralığı koruyarak sadece sonuna eklemek için
-                        // formsPlot1.Plot.Axes.SetLimitsX(xRange.Min, timeData.Last() + xRange.Span * 0.05);
-                        // Veya daha basitçe, tüm aralığı en yeni veriye göre güncelle:
                         formsPlot1.Plot.Axes.SetLimitsX(startTime.ToOADate(), endTime.ToOADate());
-                        // Y ekseni için de benzer bir mantık düşünebilirsiniz veya AutoScaleY() çağırarak güncelleyebilirsiniz.
-                        // formsPlot1.Plot.Axes.AutoScaleY(); 
                     }
                 }
 
@@ -422,6 +425,8 @@ namespace Universalscada.UI.Views
             });
         }
 
+        // ... (ClearAllFieldsWithMessage, ClearBatchSpecificFieldsWithMessage, HighlightCurrentStep, GetStepTypeName, GetTemperatureColor, progressTemp_Paint, lblMakineAdi_Click, SafeInvoke metotları aynı kalır) ...
+        #region Değişiklik Olmayan Metotlar
         private void ClearAllFieldsWithMessage(string message)
         {
             ClearBatchSpecificFieldsWithMessage(message);
@@ -446,13 +451,10 @@ namespace Universalscada.UI.Views
         {
             foreach (DataGridViewRow row in dgvAdimlar.Rows)
             {
-                // Önce hücrenin ve değerinin null olup olmadığını kontrol et
                 if (row.Cells["Adım"] != null && row.Cells["Adım"].Value != null)
                 {
-                    // Güvenli çevirme için int.TryParse kullan
                     if (int.TryParse(row.Cells["Adım"].Value.ToString(), out int stepValue))
                     {
-                        // Eğer çevirme başarılı olursa, mevcut adımla karşılaştır
                         if (stepValue == currentStepNumber)
                         {
                             row.DefaultCellStyle.BackColor = Color.LightGreen;
@@ -466,7 +468,6 @@ namespace Universalscada.UI.Views
                     }
                     else
                     {
-                        // Değer bir sayı değilse (örn: "...", "!"), satırı varsayılan renge boya
                         row.DefaultCellStyle.BackColor = Color.White;
                         row.DefaultCellStyle.Font = new Font(dgvAdimlar.Font, FontStyle.Regular);
                     }
@@ -497,79 +498,79 @@ namespace Universalscada.UI.Views
 
         private void progressTemp_Paint(object sender, PaintEventArgs e)
         {
-            // Sender'ı bir Panel olarak alıyoruz
             Panel barPanel = sender as Panel;
-            if (barPanel == null || barPanel.Tag == null) return; // Tag kontrolü eklendi
+            if (barPanel == null || barPanel.Tag == null) return;
 
-            // Tag'den anlık değeri alıyoruz (eğer short atadıysanız short, int atadıysanız int olarak çekin)
-            int currentValue = Convert.ToInt32(barPanel.Tag);
-            int maximumValue = 1500; // Max değeri burada sabit tuttuk (önceki gibi 150)
+            // === DEĞİŞTİ: Tag'den decimal al ===
+            decimal currentValueDecimal;
+            try
+            {
+                currentValueDecimal = Convert.ToDecimal(barPanel.Tag);
+            }
+            catch { currentValueDecimal = 0; }
 
-            // Değerin ProgressBar aralığında olduğundan emin olalım
-            currentValue = Math.Max(0, Math.Min(maximumValue, currentValue));
-
+            decimal maximumValue = 150m; // Max değeri decimal yap (150.0)
             int controlWidth = barPanel.Width;
             int controlHeight = barPanel.Height;
 
-            // Tüm arka planı temizle (varsayılan çizim müdahalesi olmayacak)
             e.Graphics.FillRectangle(new SolidBrush(Color.WhiteSmoke), 0, 0, controlWidth, controlHeight);
 
-            // Dolu olması gereken yüksekliği hesapla
-            int filledHeight = (int)(controlHeight * ((double)currentValue / maximumValue));
+            // Değeri 0'dan küçükse 0 yap
+            if (currentValueDecimal < 0) currentValueDecimal = 0;
 
-            // Dolu alanı çizeceğimiz dikdörtgeni tanımla
+            int filledHeight = (int)(controlHeight * (currentValueDecimal / maximumValue));
+            // Yüksekliğin kontrolden taşmamasını sağla
+            if (filledHeight > controlHeight) filledHeight = controlHeight;
+            if (filledHeight < 0) filledHeight = 0;
+
+
             Rectangle filledRect = new Rectangle(
-                0, // X başlangıcı: Kontrolün sol kenarından başla
-                controlHeight - filledHeight, // Y başlangıcı: Aşağıdan yukarıya dolum için
-                controlWidth, // Genişlik: Kontrolün tam genişliğini kullan
-                filledHeight // Yükseklik: Hesaplanan dolu alan yüksekliği
+                0,
+                controlHeight - filledHeight,
+                controlWidth,
+                filledHeight
             );
 
-            // Dolu alanı çiz
-            e.Graphics.FillRectangle(new SolidBrush(GetTemperatureColor(currentValue)), filledRect);
+            e.Graphics.FillRectangle(new SolidBrush(GetTemperatureColor((int)currentValueDecimal)), filledRect);
 
-            // Kenarlık çiz
             using (Pen borderPen = new Pen(Color.LightGray, 1))
             {
                 e.Graphics.DrawRectangle(borderPen, 0, 0, controlWidth - 1, controlHeight - 1);
             }
         }
 
-        private void lblMakineAdi_Click(object sender, EventArgs e)
-        {
-
-        }
+        private void lblMakineAdi_Click(object sender, EventArgs e) { }
 
         private void SafeInvoke(Action action)
         {
             if (this.IsHandleCreated && !this.IsDisposed)
             {
                 try { this.BeginInvoke(action); }
-                catch (Exception) { /* Form kapatılırken oluşabilecek hataları yoksay */ }
+                catch (Exception) { }
             }
         }
-        // Bu iki yeni metodu sınıfın içine ekleyin
-        private void OnAlarmStateChanged(int machineId, FullMachineStatus status)
-        {
-            // Sadece ilgili makinede ve form açıkken çalış
-            if (machineId == _machine.Id && this.IsHandleCreated && !this.IsDisposed)
-            {
-                // Sadece alarm durumu değiştiğinde listeyi güncellemek için UI thread'ine güvenli bir çağrı yap
-                this.BeginInvoke(new Action(UpdateAlarmList));
-            }
-        }
+        #endregion
 
-        private void UpdateAlarmList()
+        // === KALDIRILDI ===
+        // private void OnAlarmStateChanged(int machineId, FullMachineStatus status)
+        // { ... }
+
+        // === DEĞİŞTİ: UpdateAlarmList ===
+        // Artık _pollingService'e değil, parametre olarak gelen 'status'e bakar.
+        private void UpdateAlarmList(FullMachineStatus status)
         {
+            if (status == null) return;
+
             // Sadece canlı izleme modundaysak (geçmiş bir rapora bakmıyorsak) çalış
             if (string.IsNullOrEmpty(_lastLoadedBatchIdForChart))
             {
-                var activeAlarms = _pollingService.GetActiveAlarmsForMachine(_machine.Id);
                 List<string> newAlarmList;
 
-                if (activeAlarms.Any())
+                if (status.HasActiveAlarm)
                 {
-                    newAlarmList = activeAlarms.Select(a => $"#{a.AlarmNumber}: {a.AlarmText}").ToList();
+                    // Alarm tanımını veritabanından çek
+                    var alarmDef = _alarmRepository.GetAlarmDefinitionByNumber(status.ActiveAlarmNumber);
+                    newAlarmList = new List<string> { $"#{status.ActiveAlarmNumber}: {alarmDef?.AlarmText ?? "Bilinmeyen Alarm"}" };
                 }
                 else
                 {
@@ -584,16 +585,19 @@ namespace Universalscada.UI.Views
                 }
             }
         }
+
         protected override void OnHandleDestroyed(EventArgs e)
         {
-            if (_pollingService != null)
-            {
-                _pollingService.OnMachineDataRefreshed -= OnDataRefreshed;
-                _pollingService.OnMachineConnectionStateChanged -= OnConnectionStateChanged;
-                _pollingService.OnActiveAlarmStateChanged -= OnAlarmStateChanged; // BU SATIRI EKLEYİN
-            }
-            _uiUpdateTimer?.Stop();
-            _uiUpdateTimer?.Dispose();
+            // === KALDIRILDI ===
+            // if (_pollingService != null)
+            // {
+            //     _pollingService.OnMachineDataRefreshed -= OnDataRefreshed;
+            //     _pollingService.OnMachineConnectionStateChanged -= OnConnectionStateChanged;
+            //     _pollingService.OnActiveAlarmStateChanged -= OnAlarmStateChanged;
+            // }
+            // _uiUpdateTimer?.Stop(); // KALDIRILDI
+            // _uiUpdateTimer?.Dispose(); // KALDIRILDI
+
             base.OnHandleDestroyed(e);
         }
 

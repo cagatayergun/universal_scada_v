@@ -5,6 +5,10 @@ using System.Windows.Forms;
 using Universalscada.Models;
 using Universalscada.Repositories;
 using Universalscada.Services;
+using System.Net.Http; // YENİ: API çağrıları için eklendi
+using System.Text; // YENİ: JSON işlemleri için eklendi
+using Newtonsoft.Json; // YENİ: JSON işlemleri için eklendi (NuGet'ten yükleyin)
+using System.Net.Http.Headers; // YENİ: JWT Token için eklendi
 
 namespace Universalscada.UI.Views
 {
@@ -12,20 +16,46 @@ namespace Universalscada.UI.Views
     {
         private MachineRepository _machineRepository;
         private PlcOperatorRepository _plcOperatorRepository;
-        // DEĞİŞİKLİK: LsPlcManager -> IPlcManager
-        private Dictionary<int, IPlcManager> _plcManagers;
+
+        // === KALDIRILDI ===
+        // private Dictionary<int, IPlcManager> _plcManagers;
+
+        // === YENİ: WebAPI İstemcisi ===
+        private static readonly HttpClient _apiClient = new HttpClient();
+        // !!! KENDİ WEBAPI ADRESİNİZLE DEĞİŞTİRİN !!!
+        private const string API_BASE_URL = "http://localhost:5000";
 
         public PlcOperatorSettings_Control()
         {
             InitializeComponent();
             _plcOperatorRepository = new PlcOperatorRepository();
+
+            // YENİ: API İstemcisini bir kez ayarla
+            if (_apiClient.BaseAddress == null)
+            {
+                _apiClient.BaseAddress = new Uri(API_BASE_URL);
+            }
         }
 
-        // DEĞİŞİKLİK: LsPlcManager -> IPlcManager
-        public void InitializeControl(MachineRepository machineRepo, Dictionary<int, IPlcManager> plcManagers)
+        // === DEĞİŞTİ: InitializeControl ===
+        // 'plcManagers' parametresi kaldırıldı
+        public void InitializeControl(MachineRepository machineRepo)
         {
             _machineRepository = machineRepo;
-            _plcManagers = plcManagers;
+            // _plcManagers = plcManagers; // KALDIRILDI
+        }
+
+        // YENİ: API çağrıları için JWT Token'ı ekleyen yardımcı metod
+        private HttpClient GetApiClient()
+        {
+            // Her çağrıdan önce güncel token'ı ekle
+            _apiClient.DefaultRequestHeaders.Authorization = null;
+            if (CurrentUser.IsLoggedIn && !string.IsNullOrEmpty(CurrentUser.Token))
+            {
+                _apiClient.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", CurrentUser.Token);
+            }
+            return _apiClient;
         }
 
         private void PlcOperatorSettings_Control_Load(object sender, EventArgs e)
@@ -58,38 +88,65 @@ namespace Universalscada.UI.Views
             }
         }
 
+        // === DEĞİŞTİ: btnRead_Click ===
+        // Artık 'plcManager' bulmuyor, 'machineId' ile API'yi çağırıyor
         private void btnRead_Click(object sender, EventArgs e)
         {
             if (cmbMachines.SelectedItem is Machine selectedMachine)
             {
-                if (_plcManagers.TryGetValue(selectedMachine.Id, out var plcManager))
-                {
-                    int slotIndex = cmbSlot.SelectedIndex; // 0-4
-                    ReadOperatorFromPlc(plcManager, slotIndex);
-                }
+                // if (_plcManagers.TryGetValue(selectedMachine.Id, out var plcManager)) // KALDIRILDI
+                // {
+                int slotIndex = cmbSlot.SelectedIndex; // 0-4
+                ReadOperatorFromPlc(selectedMachine.Id, slotIndex); // machineId ile çağır
+                // }
             }
         }
 
-        // DEĞİŞİKLİK: LsPlcManager -> IPlcManager
-        private async void ReadOperatorFromPlc(IPlcManager plcManager, int slotIndex)
+        // === DEĞİŞTİ: ReadOperatorFromPlc ===
+        // Artık IPlcManager yerine WebAPI'yi kullanıyor
+        private async void ReadOperatorFromPlc(int machineId, int slotIndex)
         {
             this.Cursor = Cursors.WaitCursor;
-            var result = await plcManager.ReadSinglePlcOperatorAsync(slotIndex);
-            this.Cursor = Cursors.Default;
+            try
+            {
+                var apiClient = GetApiClient();
+                // YENİ API ÇAĞRISI (WebAPI'de /api/operators/read-from-plc/5/0 gibi bir endpoint gerekir)
+                var response = await apiClient.GetAsync($"api/operators/read-from-plc/{machineId}/{slotIndex}");
 
-            if (result.IsSuccess)
-            {
-                var opFromPlc = result.Content;
-                _plcOperatorRepository.SaveOrUpdate(opFromPlc);
-                RefreshGrid();
-                MessageBox.Show($"The operator information at {slotIndex + 1} on the machine was read and added/updated to the list.", "Success");
+                if (response.IsSuccessStatusCode)
+                {
+                    string jsonResponse = await response.Content.ReadAsStringAsync();
+                    var opFromPlc = JsonConvert.DeserializeObject<PlcOperator>(jsonResponse);
+
+                    if (opFromPlc != null)
+                    {
+                        _plcOperatorRepository.SaveOrUpdate(opFromPlc);
+                        RefreshGrid();
+                        MessageBox.Show($"The operator information at {slotIndex + 1} on the machine was read and added/updated to the list.", "Success");
+                    }
+                    else
+                    {
+                        MessageBox.Show("Failed to deserialize operator data from API.", "Error");
+                    }
+                }
+                else
+                {
+                    string errorMsg = await response.Content.ReadAsStringAsync();
+                    MessageBox.Show($"Error reading operator: {response.ReasonPhrase}\n{errorMsg}", "Error");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show($"Error reading operator: {result.Message}", "Error");
+                MessageBox.Show($"API Connection Error: {ex.Message}", "Error");
+            }
+            finally
+            {
+                this.Cursor = Cursors.Default;
             }
         }
 
+        // === DEĞİŞTİ: btnSend_Click ===
+        // Artık 'plcManager' bulmuyor, 'machineId' ile API'yi çağırıyor
         private void btnSend_Click(object sender, EventArgs e)
         {
             if (dgvOperators.SelectedRows.Count == 0)
@@ -99,34 +156,53 @@ namespace Universalscada.UI.Views
             }
             if (cmbMachines.SelectedItem is Machine selectedMachine)
             {
-                if (_plcManagers.TryGetValue(selectedMachine.Id, out var plcManager))
-                {
-                    var selectedOperator = dgvOperators.SelectedRows[0].DataBoundItem as PlcOperator;
-                    int slotIndex = cmbSlot.SelectedIndex; // 0-4
-                    selectedOperator.SlotIndex = slotIndex;
+                // if (_plcManagers.TryGetValue(selectedMachine.Id, out var plcManager)) // KALDIRILDI
+                // {
+                var selectedOperator = dgvOperators.SelectedRows[0].DataBoundItem as PlcOperator;
+                int slotIndex = cmbSlot.SelectedIndex; // 0-4
+                selectedOperator.SlotIndex = slotIndex;
 
-                    SendOperatorToPlc(plcManager, selectedOperator);
-                }
+                SendOperatorToPlc(selectedMachine.Id, selectedOperator); // machineId ile çağır
+                // }
             }
         }
 
-        // DEĞİŞİKLİK: LsPlcManager -> IPlcManager
-        private async void SendOperatorToPlc(IPlcManager plcManager, PlcOperator plcOperator)
+        // === DEĞİŞTİ: SendOperatorToPlc ===
+        // Artık IPlcManager yerine WebAPI'yi kullanıyor
+        private async void SendOperatorToPlc(int machineId, PlcOperator plcOperator)
         {
             this.Cursor = Cursors.WaitCursor;
-            var result = await plcManager.WritePlcOperatorAsync(plcOperator);
-            this.Cursor = Cursors.Default;
+            try
+            {
+                string jsonBody = JsonConvert.SerializeObject(plcOperator);
+                var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
 
-            if (result.IsSuccess)
-            {
-                MessageBox.Show($"Operator '{plcOperator.Name}' was successfully written to slot {plcOperator.SlotIndex + 1} of the selected machine.", "Success");
+                var apiClient = GetApiClient();
+                // YENİ API ÇAĞRISI (WebAPI'de /api/operators/send-to-plc/5 gibi bir endpoint gerekir)
+                var response = await apiClient.PostAsync($"api/operators/send-to-plc/{machineId}", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    MessageBox.Show($"Operator '{plcOperator.Name}' was successfully written to slot {plcOperator.SlotIndex + 1} of the selected machine.", "Success");
+                }
+                else
+                {
+                    string errorMsg = await response.Content.ReadAsStringAsync();
+                    MessageBox.Show($"Error sending operator: {response.ReasonPhrase}\n{errorMsg}", "Error");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show($"Error sending operator: {result.Message}", "Error");
+                MessageBox.Show($"API Connection Error: {ex.Message}", "Error");
+            }
+            finally
+            {
+                this.Cursor = Cursors.Default;
             }
         }
 
+        // === DEĞİŞİKLİK YOK: btnDelete_Click ===
+        // Bu metod sadece lokal veritabanını etkiler, PLC'ye gitmez.
         private void btnDelete_Click(object sender, EventArgs e)
         {
             if (dgvOperators.SelectedRows.Count > 0)
@@ -141,16 +217,14 @@ namespace Universalscada.UI.Views
             }
         }
 
+        // === DEĞİŞİKLİK YOK: ekle_Click ===
+        // Bu metod sadece lokal veritabanını etkiler, PLC'ye gitmez.
         private void ekle_Click(object sender, EventArgs e)
         {
             try
             {
-                // Yeni bir boş operatör şablonu oluşturup veritabanına ekle
                 _plcOperatorRepository.AddDefaultOperator();
-
-                // Tabloyu yenile
                 RefreshGrid();
-
                 MessageBox.Show("A new blank operator template has been added successfully. Click on it to edit and save.", "Success");
             }
             catch (Exception ex)

@@ -69,8 +69,10 @@
 		<PackageReference Include="CircularProgressBar" Version="2.8.0.16" />
 		<PackageReference Include="ClosedXML" Version="0.105.0" />
 		<PackageReference Include="HslCommunication" Version="12.5.2" />
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.21" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.7" />
 		<PackageReference Include="MySql.Data" Version="9.4.0" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 		<PackageReference Include="ScottPlot" Version="5.0.55" />
 		<PackageReference Include="ScottPlot.WinForms" Version="5.0.55" />
 		<PackageReference Include="WinForms.DataVisualization" Version="1.10.0" />

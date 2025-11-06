@@ -1,5 +1,8 @@
 // MainForm.cs
+using Microsoft.AspNetCore.SignalR.Client; // YENÝ: SignalR istemcisi için eklendi
 using System;
+using System.Collections.Concurrent; // YENÝ: Canlý veri önbelleði için eklendi
+using System.Collections.Generic; // YENÝ: List<Machine> için
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
@@ -18,17 +21,25 @@ namespace Universalscada
 {
     public partial class MainForm : Form
     {
-        // Repository ve Servisler
+        // Repository ve Servisler (Artýk sunucudan baðýmsýz, sadece okuma/ayar için)
         private readonly FtpTransferService _ftpTransferService;
         private readonly MachineRepository _machineRepository;
         private readonly RecipeRepository _recipeRepository;
         private readonly ProcessLogRepository _processLogRepository;
         private readonly AlarmRepository _alarmRepository;
         private readonly ProductionRepository _productionRepository;
-        private readonly PlcPollingService _pollingService;
         private readonly DashboardRepository _dashboardRepository;
-        private readonly CostRepository _costRepository; // YENÝ: Alaný ekleyin
-        private readonly UserRepository _userRepository ; // YENÝ: Alaný ekleyin
+        private readonly CostRepository _costRepository;
+        private readonly UserRepository _userRepository;
+
+        // === KALDIRILDI ===
+        // private readonly PlcPollingService _pollingService; // KALDIRILDI
+        // private readonly IPlcManagerFactory _plcManagerFactory; // KALDIRILDI
+
+        // === YENÝ ===
+        private HubConnection _hubConnection; // YENÝ: SignalR baðlantýsý eklendi
+        private readonly ConcurrentDictionary<int, FullMachineStatus> _machineDataCache; // YENÝ: Canlý veri önbelleði
+
         // Arayüz Kontrolleri (Views)
         private readonly ProsesÝzleme_Control _prosesIzlemeView;
         private readonly ProsesKontrol_Control _prosesKontrolView;
@@ -37,8 +48,6 @@ namespace Universalscada
         private readonly Raporlar_Control _raporlarView;
         private readonly LiveEventPopup_Form _liveEventPopup;
         private readonly GenelBakis_Control _genelBakisView;
-        private readonly IPlcManagerFactory _plcManagerFactory;
-        // private readonly FtpTransferService _ftpTransferService; // YENÝ: FTP transfer servisi eklendi
         private VncViewer_Form _activeVncViewerForm = null;
         private readonly UserSettings_Control _user_setting;
 
@@ -46,39 +55,135 @@ namespace Universalscada
         {
             InitializeComponent();
 
-            // 1. ADIM: Tüm nesneler burada oluþturulur.
-            // Bu, NullReferenceException hatasýný önlemek için kritiktir.
-
+            // 1. ADIM: Tüm nesneler (Repository) burada oluþturulur.
             _machineRepository = new MachineRepository();
             _recipeRepository = new RecipeRepository();
             _processLogRepository = new ProcessLogRepository();
             _alarmRepository = new AlarmRepository();
             _productionRepository = new ProductionRepository();
-            _plcManagerFactory = new Universalscada.Module.Textile.Services.PlcManagerFactory();
-            _pollingService = new PlcPollingService(_alarmRepository, _processLogRepository, _productionRepository, _recipeRepository, _machineRepository,_plcManagerFactory);
             _dashboardRepository = new DashboardRepository(_recipeRepository);
-            _costRepository = new CostRepository(); // YENÝ: Nesneyi oluþturun
-                                                 // DÜZELTME: FtpTransferService nesnesini burada oluþturun ve baðýmlýlýðý enjekte edin.
-            _ftpTransferService = new FtpTransferService(_pollingService);
+            _costRepository = new CostRepository();
+            _userRepository = new UserRepository();
+
+            // === KALDIRILDI ===
+            // _plcManagerFactory = new Universalscada.Module.Textile.Services.PlcManagerFactory(); // KALDIRILDI
+            // _pollingService = new PlcPollingService(...); // KALDIRILDI
+
+            // === DEÐÝÞTÝ ===
+            // FtpTransferService artýk PollingService'e baðýmlý deðil.
+            // TODO: FTP iþlemlerinin de WebAPI üzerinden tetiklenmesi gerekir.
+            // Þimdilik null geçiyoruz, FtpTransferService'in null kontrolü yapmasý gerekir.
+            _ftpTransferService = new FtpTransferService(null);
+
+            // === YENÝ ===
+            _machineDataCache = new ConcurrentDictionary<int, FullMachineStatus>(); // YENÝ
+
+            // Arayüz Kontrolleri (Views) oluþturulur
             _prosesIzlemeView = new ProsesÝzleme_Control();
-           _prosesKontrolView = new ProsesKontrol_Control();
+            _prosesKontrolView = new ProsesKontrol_Control();
             _ayarlarView = new Ayarlar_Control();
             _makineDetayView = new MakineDetay_Control();
             _raporlarView = new Raporlar_Control();
             _liveEventPopup = new LiveEventPopup_Form();
             _genelBakisView = new GenelBakis_Control();
             _user_setting = new UserSettings_Control();
-            _userRepository = new UserRepository();
-         //   _ftpTransferService = new FtpTransferService(_pollingService);
-            //_prosesKontrolView = new ProsesKontrol_Control(_ftpTransferService);
+
             // Olay abonelikleri (Events)
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
             _ayarlarView.MachineListChanged += OnMachineListChanged;
-            _pollingService.OnActiveAlarmStateChanged += OnActiveAlarmStateChanged;
+            // _pollingService.OnActiveAlarmStateChanged += OnActiveAlarmStateChanged; // KALDIRILDI
             _prosesIzlemeView.MachineDetailsRequested += OnMachineDetailsRequested;
             _prosesIzlemeView.MachineVncRequested += OnMachineVncRequested;
             _makineDetayView.BackRequested += OnBackRequested;
+
+            // YENÝ: SignalR Hub baðlantýsýný baþlat
+            InitializeSignalR();
         }
+
+        // YENÝ: WebAPI'ye baðlanmak için eklendi
+        private async void InitializeSignalR()
+        {
+            // WebAPI'nizin adresini (ve /scadaHub yolunu) buraya yazýn
+            // ÖNEMLÝ: WebAPI (Program.cs) dosyanýzdaki 'app.MapHub<ScadaHub>("/scadaHub")' ile eþleþmeli
+            string hubUrl = "http://localhost:7039/scadaHub"; // !!! KENDÝ WEBAPI ADRESÝNÝZLE DEÐÝÞTÝRÝN !!!
+
+            _hubConnection = new HubConnectionBuilder()
+               .WithUrl(hubUrl, options =>
+               {
+                   options.AccessTokenProvider = () => Task.FromResult(CurrentUser.Token);
+               })
+                .WithAutomaticReconnect() // Baðlantý koparsa otomatik yeniden baðlan
+                .Build();
+
+            // "ReceiveMachineStatus", WebAPI'deki PlcPollingService'in çaðýrdýðý metodun adýdýr.
+            _hubConnection.On<int, FullMachineStatus>("OnMachineDataRefreshed", (machineId, status) =>
+            {
+                if (status == null) return;
+
+                // Veritabaný yerine direkt canlý veriyi önbelleðe al
+                _machineDataCache[status.MachineId] = status;
+
+                // Bu metod, veriyi aldýktan sonra arayüzü günceller
+                // UI thread'inde çalýþmasý için Invoke kullanýlýr
+                this.Invoke(new Action(() =>
+                {
+                    UpdateUIWithNewStatus(status);
+                }));
+            });
+
+            // "OnActiveAlarmStateChanged", WebAPI'deki SignalRBridgeService'in tetiklediði olaydýr
+            _hubConnection.On<int, FullMachineStatus>("OnActiveAlarmStateChanged", (machineId, status) =>
+            {
+                this.Invoke(new Action(() =>
+                {
+                    // Alarm durum çubuðunu güncellemek için
+                    // Bu metod artýk _pollingService.MachineDataCache yerine _machineDataCache kullanacak (aþaðýda düzenlendi)
+                    OnActiveAlarmStateChanged(machineId, status);
+                }));
+            });
+
+
+            try
+            {
+                await _hubConnection.StartAsync();
+                // Baðlantý baþarýlý olduktan sonra veritabanýndan ilk verileri yükle
+                ReloadSystem(_genelBakisView);
+                foreach (var status in _machineDataCache.Values)
+                {
+                    UpdateUIWithNewStatus(status);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Baðlantý hatasý (WebAPI çalýþmýyor olabilir)
+                MessageBox.Show($"WebAPI sunucusuna ({hubUrl}) baðlanýlamadý. Sunucunun çalýþtýðýndan emin olun.\n\nHata: {ex.Message}", "Baðlantý Hatasý", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                // WebAPI'ye baðlanamazsa uygulama açýlamaz.
+                this.Close();
+            }
+        }
+
+        // YENÝ: SignalR'dan gelen veriyi arayüze daðýtan metod
+        private void UpdateUIWithNewStatus(FullMachineStatus status)
+        {
+            if (this.IsDisposed) return;
+
+            // TODO: Bu UserControl'lerin ÝÇÝNE 'UpdateMachineStatus(FullMachineStatus status)'
+            //       adlý public metotlar eklemeniz ve arayüzü güncellemelerini saðlamanýz gerekir.
+
+            // 1. Proses Ýzleme ekranýndaki ilgili kartý güncelle
+            _prosesIzlemeView.UpdateMachineStatus(status);
+
+            // 2. Genel Bakýþ ekranýný güncelle
+            _genelBakisView.UpdateMachineStatus(status);
+
+            // 3. Makine Detay ekraný açýksa onu güncelle
+            if (_makineDetayView.Visible && _makineDetayView.CurrentMachineId == status.MachineId)
+            {
+                _makineDetayView.UpdateStatus(status);
+            }
+        }
+
 
         private void MainForm_Load(object sender, EventArgs e)
         {
@@ -91,7 +196,7 @@ namespace Universalscada
                 this.Close();
                 return;
             }
-             // Lisans baþarýlý, makine sayýsýný kontrol et
+            // Lisans baþarýlý, makine sayýsýný kontrol et
             var machines = _machineRepository.GetAllMachines();
             if (machines.Count > licenseData.MachineLimit)
             {
@@ -116,16 +221,19 @@ namespace Universalscada
                     return;
                 }
             }
-            // 2. ADIM: Form tamamen yüklendikten sonra bu metot çalýþýr.
-            // Veritabaný ve PLC iþlemlerini baþlatan metotlar burada çaðrýlýr.
+            // 2. ADIM: 
             ApplyLocalization();
             UpdateUserInfoAndPermissions();
-            ReloadSystem(_genelBakisView);
+
+            // ReloadSystem artýk SignalR baðlandýktan sonra (InitializeSignalR içinde) çaðrýlýyor.
+            // ReloadSystem(_genelBakisView); // BURADAN TAÞINDI
+
             LanguageManager.SetLanguage("en-US");
         }
+
         private void ApplyPermissions()
         {
-
+            // ... (Bu metotta deðiþiklik yok) ...
             // === ANA MENÜ BUTONLARI ÝÇÝN YETKÝLENDÝRME ===
             // 5 numaralý role sahip kullanýcýlar rapor alabilir
             btnProsesKontrol.Visible = PermissionService.HasAnyPermission(new List<int> { 1 });
@@ -156,14 +264,15 @@ namespace Universalscada
             }
             _ayarlarView.ApplyPermissions1();
             _user_setting.LoadAllRoles();
-
         }
+
         private void ReloadSystem(Control viewToShow)
-        {
-            //MessageBox.Show($"{btnRaporlar.Visible}");
-            _pollingService.Stop();
+            {
+       
+
             // === YENÝ LÝSANS KONTROLÜ BAÞLANGICI ===
-            var (isValid, message, licenseData) = LicenseManager.ValidateLicense();
+            // ... (Lisans kontrol mantýðý ayný kalýr) ...
+            var(isValid, message, licenseData) = LicenseManager.ValidateLicense();
             if (!isValid)
             {
                 MessageBox.Show($"Lisans Hatasý: {message}", "Uygulama Lisansý", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -187,272 +296,277 @@ namespace Universalscada
                     _machineRepository.DeleteMachine(machines1[i].Id);
                 }
 
-                // Makine listesini yeniden oku
-                machines1 = _machineRepository.GetAllMachines();
+// Makine listesini yeniden oku
+machines1 = _machineRepository.GetAllMachines();
             }
             // === YENÝ LÝSANS KONTROLÜ BÝTÝÞÝ ===
+
+            // Sunucuya (WebAPI) baðlanmaya gerek yok, sadece veritabanýndan makineleri oku
             List<Machine> machines = _machineRepository.GetAllEnabledMachines();
-            if (machines == null)
-            {
-                MessageBox.Show(Resources.DatabaseConnectionFailed, Resources.CriticalError, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-            _pollingService.Start(machines);
-            var plcManagers = _pollingService.GetPlcManagers();
+if (machines == null)
+{
+    MessageBox.Show(Resources.DatabaseConnectionFailed, Resources.CriticalError, MessageBoxButtons.OK, MessageBoxIcon.Error);
+    return;
+}
 
-            // Kontrolleri en güncel verilerle baþlat
-            _prosesIzlemeView.InitializeView(machines, _pollingService);
-            _prosesKontrolView.InitializeControl(_recipeRepository, _machineRepository, plcManagers, _pollingService, _ftpTransferService);
+// _pollingService.Start(machines); // KALDIRILDI
+// var plcManagers = _pollingService.GetPlcManagers(); // KALDIRILDI
 
-            _ayarlarView.InitializeControl(_machineRepository, plcManagers);
-            // GÜNCELLENDÝ: CostRepository parametresini ekleyin
-            _raporlarView.InitializeControl(_machineRepository, _alarmRepository, _productionRepository, _dashboardRepository, _processLogRepository, _recipeRepository, _costRepository);
-            _genelBakisView.InitializeControl(_pollingService, _machineRepository, _dashboardRepository, _alarmRepository, _processLogRepository, _productionRepository);
-            _ayarlarView.RefreshMachineSettingsView();
-            // HANGÝ SAYFANIN GÖSTERÝLECEÐÝNÝ KONTROL ET
-            if (viewToShow != _genelBakisView)
-            {
-                // Eðer bir sayfa belirtilmiþse onu göster
-                ShowView(_ayarlarView);
-            }
-            else
-            {
-                // Eðer bir sayfa belirtilmemiþse (ilk açýlýþ gibi), Genel Bakýþ'ý göster
-                ShowView(_genelBakisView);
-            }
+// Kontrolleri en güncel verilerle baþlat
+// ÖNEMLÝ: Bu UserControl'lerin (*_Control.cs) Initialize... metotlarýndan
+// _pollingService ve plcManagers parametrelerini kaldýrmanýz GEREKÝR.
+
+_prosesIzlemeView.InitializeView(machines); // Parametreler kaldýrýldý
+_prosesKontrolView.InitializeControl(_recipeRepository, _machineRepository, _ftpTransferService); // Parametreler kaldýrýldý
+_ayarlarView.InitializeControl(_machineRepository); // Parametreler kaldýrýldý
+_raporlarView.InitializeControl(_machineRepository, _alarmRepository, _productionRepository, _dashboardRepository, _processLogRepository, _recipeRepository, _costRepository);
+_genelBakisView.InitializeControl(_machineRepository, _dashboardRepository, _alarmRepository, _processLogRepository, _productionRepository); // Parametre kaldýrýldý
+
+_ayarlarView.RefreshMachineSettingsView();
+
+// ... (ShowView mantýðý ayný kalýr) ...
+if (viewToShow != _genelBakisView)
+{
+    ShowView(_ayarlarView);
+}
+else
+{
+    ShowView(_genelBakisView);
+}
         }
 
         #region Arayüz ve Dil Yönetimi
 
+        // ... (ApplyLocalization ve UpdateUserInfoAndPermissions metotlarý ayný kalýr) ...
+
         private void LanguageManager_LanguageChanged(object sender, EventArgs e)
+{
+    ApplyLocalization();
+    UpdateUserInfoAndPermissions();
+}
+
+private void ApplyLocalization()
+{
+    this.Text = Universalscada.Localization.Strings.ApplicationTitle;
+    btnGenelBakis.Text = Universalscada.Localization.Strings.MainMenu_GeneralOverview;
+    btnProsesIzleme.Text = Universalscada.Localization.Strings.MainMenu_ProcessMonitoring;
+    btnProsesKontrol.Text = Universalscada.Localization.Strings.MainMenu_ProcessControl;
+    btnRaporlar.Text = Universalscada.Localization.Strings.MainMenu_Reports;
+    btnAyarlar.Text = Universalscada.Localization.Strings.MainMenu_Settings;
+    dilToolStripMenuItem.Text = Resources.Language;
+    oturumToolStripMenuItem.Text = Resources.Session;
+    çýkýþYapToolStripMenuItem.Text = Resources.Logout;
+    lblStatusLiveEvents.Text = Resources.Livelogsee;
+}
+
+private void UpdateUserInfoAndPermissions()
+{
+    if (CurrentUser.IsLoggedIn)
+    {
+        lblStatusCurrentUser.Text = $"{Resources.Loggedin}: {CurrentUser.User.FullName}";
+        try
         {
-            ApplyLocalization();
+            if (CurrentUser.IsLoggedIn && CurrentUser.User != null)
+            {
+                _userRepository.LogAction(CurrentUser.User.Id, "Log", $"Session Login");
+            }
+        }
+        catch (Exception logEx)
+        {
+            MessageBox.Show($" 'Session Login' is Log error : {logEx.Message}", Resources.Error);
+        }
+    }
+    else
+    {
+        lblStatusCurrentUser.Text = $"{Resources.Loggedin}: -";
+        try
+        {
+            if (CurrentUser.IsLoggedIn && CurrentUser.User != null)
+            {
+                _userRepository.LogAction(CurrentUser.User.Id, "Log", $"Session Logout");
+            }
+        }
+        catch (Exception logEx)
+        {
+            MessageBox.Show($" 'Session Logout' is Log error : {logEx.Message}", Resources.Error);
+        }
+    }
+    _user_setting.LoadAllRoles();
+    _ayarlarView.RefreshUserRoles();
+    ApplyPermissions();
+}
+
+private void ShowView(UserControl view)
+{
+    pnlContent.Controls.Clear();
+    view.Dock = DockStyle.Fill;
+    pnlContent.Controls.Add(view);
+}
+
+#endregion
+
+#region Olay Yöneticileri (Event Handlers)
+
+private void OnMachineListChanged(object sender, EventArgs e) => ReloadSystem(_ayarlarView);
+private void OnBackRequested(object sender, EventArgs e) => ShowView(_prosesIzlemeView);
+private void btnGenelBakis_Click(object sender, EventArgs e) => ShowView(_genelBakisView);
+private void btnProsesIzleme_Click(object sender, EventArgs e) => ShowView(_prosesIzlemeView);
+private void btnProsesKontrol_Click(object sender, EventArgs e) => ShowView(_prosesKontrolView);
+private void btnRaporlar_Click(object sender, EventArgs e) => ShowView(_raporlarView);
+private void btnAyarlar_Click(object sender, EventArgs e) => ShowView(_ayarlarView);
+private void türkçeToolStripMenuItem_Click(object sender, EventArgs e) => LanguageManager.SetLanguage("tr-TR");
+private void englishToolStripMenuItem_Click(object sender, EventArgs e) => LanguageManager.SetLanguage("en-US");
+
+private void çýkýþYapToolStripMenuItem_Click(object sender, EventArgs e)
+{
+    CurrentUser.User = null;
+    UpdateUserInfoAndPermissions();
+    ShowView(_genelBakisView);
+
+    using (var loginForm = new LoginForm())
+    {
+        if (loginForm.ShowDialog() == DialogResult.OK)
+        {
             UpdateUserInfoAndPermissions();
+            ReloadSystem(_genelBakisView);
         }
-
-        private void ApplyLocalization()
+        else
         {
-            // Ana form baþlýðý ve ana menü butonlarý "Strings" sýnýfýndan geliyor.
-            this.Text = Universalscada.Localization.Strings.ApplicationTitle;
-            btnGenelBakis.Text = Universalscada.Localization.Strings.MainMenu_GeneralOverview;
-            btnProsesIzleme.Text = Universalscada.Localization.Strings.MainMenu_ProcessMonitoring;
-            btnProsesKontrol.Text = Universalscada.Localization.Strings.MainMenu_ProcessControl;
-            btnRaporlar.Text = Universalscada.Localization.Strings.MainMenu_Reports;
-            btnAyarlar.Text = Universalscada.Localization.Strings.MainMenu_Settings;
-
-            // Menü ve durum çubuðu gibi diðer elemanlar "Resources" sýnýfýndan geliyor.
-            dilToolStripMenuItem.Text = Resources.Language;
-            oturumToolStripMenuItem.Text = Resources.Session;
-            çýkýþYapToolStripMenuItem.Text = Resources.Logout;
-            lblStatusLiveEvents.Text = Resources.Livelogsee;
+            // Application.Exit();
         }
+    }
+}
 
-        private void UpdateUserInfoAndPermissions()
+private void OnMachineDetailsRequested(object sender, int machineId)
+{
+    var machine = _machineRepository.GetAllMachines().FirstOrDefault(m => m.Id == machineId);
+    if (machine != null)
+    {
+        // _pollingService parametresi kaldýrýldý
+        _makineDetayView.InitializeControl(machine, _processLogRepository, _alarmRepository, _recipeRepository, _productionRepository);
+        ShowView(_makineDetayView);
+    }
+}
+
+private void OnMachineVncRequested(object sender, int machineId)
+{
+    // ... (Bu metodun içinde deðiþiklik yok, _pollingService kullanýlmýyor) ...
+    if (_activeVncViewerForm != null && !_activeVncViewerForm.IsDisposed)
+    {
+        _activeVncViewerForm.Activate();
+        MessageBox.Show(Resources.Vnccurrentclose, Resources.Warning, MessageBoxButtons.OK, MessageBoxIcon.Information);
+        return;
+    }
+    var machine = _machineRepository.GetAllMachines().FirstOrDefault(m => m.Id == machineId);
+    if (machine != null && !string.IsNullOrEmpty(machine.VncAddress))
+    {
+        try
         {
-            if (CurrentUser.IsLoggedIn)
+            if (CurrentUser.IsLoggedIn && CurrentUser.User != null)
             {
-                lblStatusCurrentUser.Text = $"{Resources.Loggedin}: {CurrentUser.User.FullName}";
-                try
-                {
-                    if (CurrentUser.IsLoggedIn && CurrentUser.User != null)
-                    {
-                        _userRepository.LogAction(CurrentUser.User.Id, "Log", $"Session Login");
-                    }
-                }
-                catch (Exception logEx)
-                {
-                    // Loglama sýrasýnda oluþan hatayý kullanýcýya göster
-                    MessageBox.Show($" 'Session Login' is Log error : {logEx.Message}", Resources.Error);
-                }
+                _userRepository.LogAction(CurrentUser.User.Id, "VNC Baðlantýsý", $"{machine.MachineName} makinesine VNC ile baðlandý.");
             }
-            else
-            {
-                lblStatusCurrentUser.Text = $"{Resources.Loggedin}: -";
-                try
-                {
-                    if (CurrentUser.IsLoggedIn && CurrentUser.User != null)
-                    {
-                        _userRepository.LogAction(CurrentUser.User.Id, "Log", $"Session Logout");
-                    }
-                }
-                catch (Exception logEx)
-                {
-                    // Loglama sýrasýnda oluþan hatayý kullanýcýya göster
-                    MessageBox.Show($" 'Session Logout' is Log error : {logEx.Message}", Resources.Error);
-                }
-            }
-            // Ayarlar butonunu sadece "Admin" rolüne sahip kullanýcýlar için etkinleþtir.
-            _user_setting.LoadAllRoles();
-            _ayarlarView.RefreshUserRoles();
-            ApplyPermissions(); // YENÝ: Yetkileri uygula
-                                // LogAction çaðrýsýný try-catch bloðuna taþýyoruz
-
         }
-
-        private void ShowView(UserControl view)
+        catch (Exception logEx)
         {
-          
-            pnlContent.Controls.Clear();
-            view.Dock = DockStyle.Fill;
-            pnlContent.Controls.Add(view);
+            MessageBox.Show($"VNC baðlantýsý loglanýrken bir hata oluþtu: {logEx.Message}", Resources.Error);
         }
 
-        #endregion
-
-        #region Olay Yöneticileri (Event Handlers)
-
-        private void OnMachineListChanged(object sender, EventArgs e) => ReloadSystem(_ayarlarView);
-        private void OnBackRequested(object sender, EventArgs e) => ShowView(_prosesIzlemeView);
-        private void btnGenelBakis_Click(object sender, EventArgs e) => ShowView(_genelBakisView);
-        private void btnProsesIzleme_Click(object sender, EventArgs e) => ShowView(_prosesIzlemeView);
-        private void btnProsesKontrol_Click(object sender, EventArgs e) => ShowView(_prosesKontrolView);
-        private void btnRaporlar_Click(object sender, EventArgs e) => ShowView(_raporlarView);
-        private void btnAyarlar_Click(object sender, EventArgs e) => ShowView(_ayarlarView);
-        private void türkçeToolStripMenuItem_Click(object sender, EventArgs e) => LanguageManager.SetLanguage("tr-TR");
-        private void englishToolStripMenuItem_Click(object sender, EventArgs e) => LanguageManager.SetLanguage("en-US");
-
-        private void çýkýþYapToolStripMenuItem_Click(object sender, EventArgs e)
+        try
         {
-            // Kullanýcý çýkýþ yapýyorsa, CurrentUser'ý sýfýrla
-            CurrentUser.User = null;
-            UpdateUserInfoAndPermissions();
-            ShowView(_genelBakisView); // Çýkýþ yaptýktan sonra genel bakýþ ekranýna dön
-
-            // Yeni bir LoginForm açarak kullanýcý giriþi yapmasýný iste
-            using (var loginForm = new LoginForm())
-            {
-                if (loginForm.ShowDialog() == DialogResult.OK)
-                {
-                    UpdateUserInfoAndPermissions();
-                    ReloadSystem(_genelBakisView);
-                }
-                else
-                {
-                    // Giriþ yapmayý iptal ederse, programý kapat
-                    //Application.Exit();
-                }
-            }
+            var vncForm = new VncViewer_Form(machine.VncAddress, machine.VncPassword);
+            vncForm.Text = $"{machine.MachineName} - {Resources.VncConnectionTo}";
+            vncForm.FormClosed += (s, args) => { _activeVncViewerForm = null; };
+            _activeVncViewerForm = vncForm;
+            vncForm.Show();
         }
-
-        private void OnMachineDetailsRequested(object sender, int machineId)
+        catch (Exception ex)
         {
-            var machine = _machineRepository.GetAllMachines().FirstOrDefault(m => m.Id == machineId);
-            if (machine != null)
-            {
-                // YENÝ: _productionRepository parametresini ekleyin
-                _makineDetayView.InitializeControl(machine, _pollingService, _processLogRepository, _alarmRepository, _recipeRepository, _productionRepository);
-                ShowView(_makineDetayView);
-            }
+            _activeVncViewerForm = null;
+            MessageBox.Show($"{Resources.Vncconnecterror} {ex.Message}", Resources.Error);
         }
-        private void OnMachineVncRequested(object sender, int machineId)
+    }
+    else
+    {
+        MessageBox.Show(Resources.Vncnomachine, Resources.Information);
+    }
+}
+
+// DEÐÝÞTÝ: Bu metod artýk SignalR tarafýndan tetikleniyor
+// ve _pollingService.MachineDataCache yerine _machineDataCache kullanýyor.
+private void OnActiveAlarmStateChanged(int machineId, FullMachineStatus status)
+{
+    if (!this.IsHandleCreated || this.IsDisposed) return;
+
+    // Invoke zaten çaðýran yerde (InitializeSignalR) yapýldý.
+    // this.Invoke(new Action(() =>
+    // {
+    if (this.IsDisposed) return;
+
+    // _pollingService.MachineDataCache yerine _machineDataCache kullan
+    var activeAlarms = _machineDataCache.Values.Where(s => s.HasActiveAlarm).ToList();
+
+    if (activeAlarms.Any())
+    {
+        var alarmToShow = activeAlarms
+            .Select(s => new { Status = s, Definition = _alarmRepository.GetAlarmDefinitionByNumber(s.ActiveAlarmNumber) })
+            .Where(ad => ad.Definition != null)
+            .OrderByDescending(ad => ad.Definition.Severity)
+            .FirstOrDefault();
+
+        if (alarmToShow != null)
         {
-            if (_activeVncViewerForm != null && !_activeVncViewerForm.IsDisposed)
-            {
-                _activeVncViewerForm.Activate();
-                MessageBox.Show(Resources.Vnccurrentclose, Resources.Warning, MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-            var machine = _machineRepository.GetAllMachines().FirstOrDefault(m => m.Id == machineId);
-            if (machine != null && !string.IsNullOrEmpty(machine.VncAddress))
-            {
-               
-
-                // LogAction çaðrýsýný try-catch bloðuna taþýyoruz
-                try
-                {
-                    if (CurrentUser.IsLoggedIn && CurrentUser.User != null)
-                    {
-                        _userRepository.LogAction(CurrentUser.User.Id, "VNC Baðlantýsý", $"{machine.MachineName} makinesine VNC ile baðlandý.");
-                    }
-                }
-                catch (Exception logEx)
-                {
-                    // Loglama sýrasýnda oluþan hatayý kullanýcýya göster
-                    MessageBox.Show($"VNC baðlantýsý loglanýrken bir hata oluþtu: {logEx.Message}", Resources.Error);
-                }
-
-                
-                    try
-                {
-                    var vncForm = new VncViewer_Form(machine.VncAddress, machine.VncPassword);
-                    vncForm.Text = $"{machine.MachineName} - {Resources.VncConnectionTo}";
-                    vncForm.FormClosed += (s, args) => { _activeVncViewerForm = null; };
-                    _activeVncViewerForm = vncForm;
-                    vncForm.Show();
-                }
-                catch (Exception ex)
-                {
-                    _activeVncViewerForm = null;
-                    MessageBox.Show($"{Resources.Vncconnecterror} {ex.Message}", Resources.Error);
-                }
-            }
-            else
-            {
-                MessageBox.Show(Resources.Vncnomachine, Resources.Information);
-            }
+            lblStatusLiveEvents.Text = $"[{alarmToShow.Status.MachineName}] - ALARM: {alarmToShow.Definition.AlarmText}";
+            lblStatusLiveEvents.BackColor = Color.FromArgb(231, 76, 60); // Kýrmýzý
+            lblStatusLiveEvents.ForeColor = Color.White;
         }
+    }
+    else
+    {
+        lblStatusLiveEvents.Text = Resources.Livelogsee; // YENÝ: Alarmlar temizlendiðinde varsayýlan metne dön
+        lblStatusLiveEvents.BackColor = System.Drawing.SystemColors.Control;
+        lblStatusLiveEvents.ForeColor = System.Drawing.SystemColors.ControlText;
+    }
+    // }));
+}
 
-        private void OnActiveAlarmStateChanged(int machineId, FullMachineStatus status)
+private void lblStatusLiveEvents_Click(object sender, EventArgs e)
+{
+    if (_liveEventPopup.Visible)
+    {
+        _liveEventPopup.Hide();
+    }
+    else
+    {
+        _liveEventPopup.Show(this);
+    }
+}
+
+// DEÐÝÞTÝ: async void yapýldý ve SignalR baðlantýsý kapatýldý
+private async void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+{
+    LanguageManager.LanguageChanged -= LanguageManager_LanguageChanged;
+
+    // _pollingService.Stop(); // KALDIRILDI
+
+    // YENÝ: SignalR baðlantýsýný güvenle kapat
+    if (_hubConnection != null)
+    {
+        await _hubConnection.StopAsync();
+    }
+
+    if (_activeVncViewerForm != null && !_activeVncViewerForm.IsDisposed)
+    {
+        try
         {
-            if (!this.IsHandleCreated || this.IsDisposed) return;
-            this.Invoke(new Action(() =>
-            {
-                if (this.IsDisposed) return;
-
-                var activeAlarms = _pollingService.MachineDataCache.Values.Where(s => s.HasActiveAlarm).ToList();
-
-                if (activeAlarms.Any())
-                {
-                    var alarmToShow = activeAlarms
-                        .Select(s => new { Status = s, Definition = _alarmRepository.GetAlarmDefinitionByNumber(s.ActiveAlarmNumber) })
-                        .Where(ad => ad.Definition != null)
-                        .OrderByDescending(ad => ad.Definition.Severity)
-                        .FirstOrDefault();
-
-                    if (alarmToShow != null)
-                    {
-                        lblStatusLiveEvents.Text = $"[{alarmToShow.Status.MachineName}] - ALARM: {alarmToShow.Definition.AlarmText}";
-                        lblStatusLiveEvents.BackColor = Color.FromArgb(231, 76, 60); // Kýrmýzý
-                        lblStatusLiveEvents.ForeColor = Color.White;
-                    }
-                }
-                else
-                {
-                   
-                    lblStatusLiveEvents.BackColor = System.Drawing.SystemColors.Control;
-                    lblStatusLiveEvents.ForeColor = System.Drawing.SystemColors.ControlText;
-                }
-            }));
+            _activeVncViewerForm.Close();
         }
-
-        private void lblStatusLiveEvents_Click(object sender, EventArgs e)
+        catch (Exception ex)
         {
-            if (_liveEventPopup.Visible)
-            {
-                _liveEventPopup.Hide();
-            }
-            else
-            {
-                _liveEventPopup.Show(this);
-            }
+            System.Diagnostics.Debug.WriteLine($"{Resources.Closeandvnc} {ex.Message}");
         }
-
-        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            LanguageManager.LanguageChanged -= LanguageManager_LanguageChanged;
-            _pollingService.Stop();
-            if (_activeVncViewerForm != null && !_activeVncViewerForm.IsDisposed)
-            {
-                try
-                {
-                    _activeVncViewerForm.Close();
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"{Resources.Closeandvnc} {ex.Message}");
-                }
-            }
-        }
+    }
+}
 
         #endregion
     }

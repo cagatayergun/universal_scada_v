@@ -4,7 +4,8 @@ using System.Windows.Forms;
 using Universalscada.core;
 using Universalscada.Properties;
 using Universalscada.Repositories;
-using Universalscada.Services;
+using Universalscada.Services; // Bu using artık gereksiz olabilir
+
 namespace Universalscada.UI.Views
 {
     public partial class Ayarlar_Control : UserControl
@@ -15,8 +16,9 @@ namespace Universalscada.UI.Views
         private readonly UserSettings_Control _userSettings;
         private readonly AlarmSettings_Control _alarmSettings;
         private readonly PlcOperatorSettings_Control _plcOperatorSettings;
-        private readonly CostSettings_Control _costSettings; // YENİ
+        private readonly CostSettings_Control _costSettings;
         private readonly RecipeStepDesigner_Control _recipeStepDesigner;
+
         public Ayarlar_Control()
         {
             InitializeComponent();
@@ -25,8 +27,7 @@ namespace Universalscada.UI.Views
             _userSettings = new UserSettings_Control();
             _alarmSettings = new AlarmSettings_Control();
             _plcOperatorSettings = new PlcOperatorSettings_Control();
-            _costSettings = new CostSettings_Control(); // YENİ
-            // YENİ: Tasarımcı kontrolünü oluştur
+            _costSettings = new CostSettings_Control();
             _recipeStepDesigner = new RecipeStepDesigner_Control();
             _machineSettings.MachineListChanged += (sender, args) => { MachineListChanged?.Invoke(this, args); };
 
@@ -41,34 +42,34 @@ namespace Universalscada.UI.Views
 
             _plcOperatorSettings.Dock = DockStyle.Fill;
             tabPagePlcOperators.Controls.Add(_plcOperatorSettings);
-            _costSettings.Dock = DockStyle.Fill; // YENİ
-            tabPageCostSettings.Controls.Add(_costSettings); // YENİ
-                                                             // YENİ: Tasarımcı kontrolünü yeni sekmeye ekle
+
+            _costSettings.Dock = DockStyle.Fill;
+            tabPageCostSettings.Controls.Add(_costSettings);
+
             _recipeStepDesigner.Dock = DockStyle.Fill;
             tabPageRecipeDesigner.Controls.Add(_recipeStepDesigner);
             ApplyPermissions();
         }
+
         public void RefreshUserRoles()
         {
             _userSettings.LoadAllRoles();
         }
+
         public void ApplyPermissions1()
         {
             ApplyPermissions();
         }
+
         private void ApplyPermissions()
         {
-
-            // === ANA MENÜ BUTONLARI İÇİN YETKİLENDİRME ===
-            // 5 numaralı role sahip kullanıcılar rapor alabilir
+            // ... (Bu metotta hiçbir değişiklik yok) ...
             _machineSettings.Visible = PermissionService.HasAnyPermission(new List<int> { 6 });
             _userSettings.Visible = PermissionService.HasAnyPermission(new List<int> { 7 });
             _alarmSettings.Enabled = PermissionService.HasAnyPermission(new List<int> { 8 });
             _costSettings.Enabled = PermissionService.HasAnyPermission(new List<int> { 9 });
             _plcOperatorSettings.Enabled = PermissionService.HasAnyPermission(new List<int> { 10 });
             _recipeStepDesigner.Visible = PermissionService.HasAnyPermission(new List<int> { 11 });
-            // btnVnc.Enabled = btnVnc.Visible; // Yetkisi yoksa butonun tıklanmasını engelle
-
 
             var master = PermissionService.HasAnyPermission(new List<int> { 1000 });
             if (master == true)
@@ -80,33 +81,36 @@ namespace Universalscada.UI.Views
                 _plcOperatorSettings.Enabled = PermissionService.HasAnyPermission(new List<int> { 1000 });
                 _recipeStepDesigner.Visible = PermissionService.HasAnyPermission(new List<int> { 1000 });
             }
-
         }
+
         public void RefreshMachineSettingsView()
         {
             _machineSettings.RefreshMachineList();
         }
-        // DEĞİŞİKLİK: LsPlcManager -> IPlcManager
-        public void InitializeControl(MachineRepository machineRepo, Dictionary<int, IPlcManager> plcManagers)
+
+        // === DEĞİŞTİ: InitializeControl ===
+        // 'plcManagers' parametresi kaldırıldı.
+        public void InitializeControl(MachineRepository machineRepo)
         {
-            _plcOperatorSettings.InitializeControl(machineRepo, plcManagers);
+            // _plcOperatorSettings'e artık 'plcManagers' geçilmiyor.
+            // BİR SONRAKİ ADIM: 'PlcOperatorSettings_Control.cs' dosyasını düzenlemek olacak.
+            _plcOperatorSettings.InitializeControl(machineRepo);
         }
+
         private void LanguageManager_LanguageChanged(object sender, EventArgs e)
         {
             ApplyLocalization();
-
         }
+
         public void ApplyLocalization()
         {
+            // ... (Bu metotta hiçbir değişiklik yok) ...
             tabPageMachineSettings.Text = Resources.MachineManagement;
             tabPageUserSettings.Text = Resources.UserManagement;
             tabPageAlarmSettings.Text = Resources.AlarmSettings;
             tabPageCostSettings.Text = Resources.cost;
             tabPagePlcOperators.Text = Resources.PlcOperatorManagement;
-           tabPageRecipeDesigner.Text = Resources.recipedesigner;
-            //btnSave.Text = Resources.Save;
-
-
+            tabPageRecipeDesigner.Text = Resources.recipedesigner;
         }
     }
 }

@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using Universalscada.Models;
-using Universalscada.Services;
+// using Universalscada.Services; // KALDIRILDI
 using Universalscada.UI.Controls;
 
 namespace Universalscada.UI.Views
@@ -13,7 +13,10 @@ namespace Universalscada.UI.Views
         public event EventHandler<int> MachineDetailsRequested;
         public event EventHandler<int> MachineVncRequested;
 
-        private PlcPollingService _pollingService;
+        // === KALDIRILDI ===
+        // private PlcPollingService _pollingService;
+
+        // Makine kartlarını ID ile hızlıca bulmak için
         private readonly Dictionary<int, MachineCard_Control> _machineCards = new Dictionary<int, MachineCard_Control>();
 
         public Prosesİzleme_Control()
@@ -22,17 +25,21 @@ namespace Universalscada.UI.Views
             this.DoubleBuffered = true;
         }
 
-        public void InitializeView(List<Machine> machines, PlcPollingService service)
+        // === DEĞİŞTİ: InitializeView ===
+        // PlcPollingService parametresi kaldırıldı
+        public void InitializeView(List<Machine> machines)
         {
-            ClearView();
-            _pollingService = service;
+            ClearView(); // Önceki kartları ve event'leri temizle
 
-            _pollingService.OnMachineDataRefreshed += PollingService_OnMachineDataRefreshed;
-            _pollingService.OnMachineConnectionStateChanged += PollingService_OnMachineConnectionStateChanged;
-            
-            int displayCounter = 1;
+            // _pollingService = service; // KALDIRILDI
+
+            // === KALDIRILDI ===
+            // _pollingService.OnMachineDataRefreshed += PollingService_OnMachineDataRefreshed;
+            // _pollingService.OnMachineConnectionStateChanged += PollingService_OnMachineConnectionStateChanged;
+
             foreach (var machine in machines)
             {
+                // MachineCard_Control'ün de _pollingService bağımlılığı olMAMAlı.
                 var card = new MachineCard_Control(machine.Id, machine.MachineUserDefinedId, machine.MachineName, machine.Id);
                 card.DetailsRequested += Card_DetailsRequested;
                 card.VncRequested += Card_VncRequested;
@@ -61,11 +68,12 @@ namespace Universalscada.UI.Views
 
         private void ClearView()
         {
-            if (_pollingService != null)
-            {
-                _pollingService.OnMachineDataRefreshed -= PollingService_OnMachineDataRefreshed;
-                _pollingService.OnMachineConnectionStateChanged -= PollingService_OnMachineConnectionStateChanged;
-            }
+            // === KALDIRILDI ===
+            // if (_pollingService != null)
+            // {
+            //     _pollingService.OnMachineDataRefreshed -= PollingService_OnMachineDataRefreshed;
+            //     _pollingService.OnMachineConnectionStateChanged -= PollingService_OnMachineConnectionStateChanged;
+            // }
 
             foreach (var card in _machineCards.Values)
             {
@@ -75,34 +83,28 @@ namespace Universalscada.UI.Views
             flowLayoutPanelMachines.Controls.Clear();
         }
 
-        // DÜZELTME: Metot imzası, olayın tanımıyla eşleşecek şekilde güncellendi.
-        private void PollingService_OnMachineConnectionStateChanged(int machineId, FullMachineStatus status)
-        {
-            if (_machineCards.TryGetValue(machineId, out var card))
-            {
-                if (this.IsHandleCreated && !this.IsDisposed)
-                {
-                    this.BeginInvoke(new Action(() => {
-                        if (!card.IsDisposed)
-                        {
-                            card.UpdateView(status);
-                        }
-                    }));
-                }
-            }
-        }
+        // === KALDIRILDI ===
+        // Bu event handler'lar artık PlcPollingService'e bağlı olmadığı için kaldırıldı.
+        // private void PollingService_OnMachineConnectionStateChanged(int machineId, FullMachineStatus status)
+        // { ... }
+        // private void PollingService_OnMachineDataRefreshed(int machineId, FullMachineStatus status)
+        // { ... }
 
-        // DÜZELTME: Metot imzası, olayın tanımıyla eşleşecek şekilde güncellendi.
-        private void PollingService_OnMachineDataRefreshed(int machineId, FullMachineStatus status)
+
+        // === YENİ METOD ===
+        // MainForm'dan gelen SignalR verilerini almak için eklendi.
+        // Bu metod, eski PollingService event handler'larının görevini üstlenir.
+        public void UpdateMachineStatus(FullMachineStatus status)
         {
-            if (_machineCards.TryGetValue(machineId, out var card))
+            if (_machineCards.TryGetValue(status.MachineId, out var card))
             {
                 if (this.IsHandleCreated && !this.IsDisposed)
                 {
+                    // BeginInvoke, UI thread'inde güvenli güncelleme yapar
                     this.BeginInvoke(new Action(() => {
                         if (!card.IsDisposed)
                         {
-                            card.UpdateView(status);
+                            card.UpdateView(status); // MachineCard_Control'deki güncelleme metodu
                         }
                     }));
                 }

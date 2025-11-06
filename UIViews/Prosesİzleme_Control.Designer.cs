@@ -10,11 +10,7 @@ namespace Universalscada.UI.Views
             if (disposing && (components != null))
             {
                 // Abone olunan event'leri temizlemek çok önemlidir, bellek sızıntısını önler.
-                if (_pollingService != null)
-                {
-                    _pollingService.OnMachineDataRefreshed -= PollingService_OnMachineDataRefreshed;
-                    _pollingService.OnMachineConnectionStateChanged -= PollingService_OnMachineConnectionStateChanged;
-                }
+               
                 components.Dispose();
             }
             base.Dispose(disposing);

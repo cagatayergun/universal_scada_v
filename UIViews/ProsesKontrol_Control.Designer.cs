@@ -11,7 +11,7 @@ namespace Universalscada.UI.Views
         {
             if (disposing)
             {
-                FtpTransferService.Instance.RecipeListChanged += OnRecipeListChanged;
+                
                 if (components != null)
                 {
                     components.Dispose();

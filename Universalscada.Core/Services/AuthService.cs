@@ -21,6 +21,9 @@ namespace Universalscada.Services
                
             }
         }
+        // === BU SATIRI EKLEYİN ===
+        public static string Token { get; set; }
+        // === EKLEME SONU ===
         public static bool IsLoggedIn => User != null;
 
         public static void Login(User user)
@@ -31,6 +34,7 @@ namespace Universalscada.Services
         public static void Logout()
         {
             User = null;
+            Token = null; // Çıkış yaparken token'ı da temizle
         }
 
         public static bool HasRole(string roleName)
