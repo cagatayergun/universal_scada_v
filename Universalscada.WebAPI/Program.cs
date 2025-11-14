@@ -1,28 +1,76 @@
-// Dosya: Universalscada.WebAPI/Program.cs
+// Dosya: Universalscada.WebAPI/Program.cs - GÜNCEL VERSÝYON
 
-using Microsoft.AspNetCore.Authentication.JwtBearer; // Eklendi
-using Microsoft.AspNetCore.Authorization; // Eklendi
-using Microsoft.IdentityModel.Tokens; // Eklendi
-using System.Text; // Eklendi
-using Universalscada.core.Services;
-using Universalscada.Repositories;
-using Universalscada.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore; // DbContext için
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Universalscada.Core.Core;         // ScadaDbContext için
+// Yeni Core Katmaný using'leri:
+using Universalscada.Core.Repositories; // Yeni Repository Arayüzleri
+using Universalscada.Core.Services;     // Yeni Core Servisleri
 using Universalscada.WebAPI.Hubs;
 using Universalscada.WebAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-// 1. Configuration'dan (appsettings.json) veritabaný baðlantý dizesini oku.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// 2. Okunan baðlantý dizesini Core katmanýndaki statik AppConfig sýnýfýna ata.
-// Bu sayede projedeki tüm Repository sýnýflarý doðru baðlantý dizesini kullanabilir.
-Universalscada.core.AppConfig.SetConnectionString(connectionString);
+// 1. Core Katmanýndaki Statik Yapýlandýrmayý Koruma (Eski kodlarla uyum için)
+Universalscada.Core.Core.AppConfig.SetConnectionString(connectionString);
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
 
-// === JWT Yapýlandýrmasý BAÞLANGIÇ ===
+
+// === CORE KATMANI DI KAYITLARI (EVRENSEL MÝMARÝ) BAÞLANGIÇ ===
+
+// A. DbContext Kaydý (Scoped)
+// Not: ScadaDbContext'in kendi içinde UseSqlite ayarý olduðu için options kullanýlmadý,
+// ancak en iyi uygulama için Scoped olarak kaydedilmelidir.
+builder.Services.AddDbContext<ScadaDbContext>(options =>
+{
+    // ScadaDbContext'in içindeki OnConfiguring metodu çalýþacaktýr.
+    // Eðer harici bir DB kullanýlacaksa, buraya optionsBuilder.UseSqlServer(connectionString) vb. eklenmeli.
+});
+
+// B. Repositories (Scoped) - Her HTTP isteði veya Scope için yeni örnek
+builder.Services.AddScoped<IMachineRepository, MachineRepository>();
+builder.Services.AddScoped<IMetaDataRepository, MetaDataRepository>();
+// Yeni Core'daki jenerik Repo'larý kaydedin:
+// Not: Mevcut WebAPI Program.cs'deki tekil MachineRepository yerine, 
+// yeni Core yapýsýndan gelen Repositorler eklendi (eski adlar güncellendi varsayýmýyla):
+builder.Services.AddScoped<AlarmRepository>();
+builder.Services.AddScoped<ProductionRepository>();
+builder.Services.AddScoped<ProcessLogRepository>();
+builder.Services.AddScoped<RecipeRepository>();
+builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<DashboardRepository>();
+builder.Services.AddScoped<RecipeConfigurationRepository>();
+// Diðer Repositoriler burada Scoped olarak kaydedilmelidir.
+
+
+// C. Core Servisleri
+// LiveEventAggregator (Singleton) - Uygulama yaþam döngüsü boyunca tek bir olay yayýncýsý
+builder.Services.AddSingleton<LiveEventAggregator>();
+// PlcManagerFactory (Singleton) - Tüm makineler için tek bir fabrika örneði
+builder.Services.AddSingleton<IPlcManagerFactory, Universalscada.Module.Textile.Services.PlcManagerFactory>();
+// PlcPollingService (Singleton) - Arka plan döngüsü yöneticisi
+builder.Services.AddSingleton<PlcPollingService>();
+// LiveStepAnalyzer, DynamicCalculator vb. (Scoped)
+builder.Services.AddScoped<LiveStepAnalyzer>();
+builder.Services.AddScoped<IRecipeTimeCalculator, DynamicRecipeTimeCalculator>();
+// TODO: DynamicRecipeCostCalculator, FtpTransferService vb. buraya eklenmeli.
+
+
+// D. Arka Plan Hizmeti
+// PlcPollingBackgroundService'i IHostedService olarak kaydet
+builder.Services.AddHostedService<PlcPollingBackgroundService>();
+
+// === CORE KATMANI DI KAYITLARI SONU ===
+
+// Diðer JWT ve CORS yapýlandýrmasý ayný kalýr...
+// (JWT Yapýlandýrmasý)
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is missing");
@@ -46,30 +94,14 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
     };
 });
-
-builder.Services.AddAuthorization(); // Yetkilendirme servisini ekle
-// === JWT Yapýlandýrmasý SONU ===
+builder.Services.AddAuthorization();
 
 
-// === Universalscada Servislerini Buraya Ekliyoruz ===
-// Proje boyunca tek bir örneði olacak tüm servisleri Singleton olarak kaydediyoruz.
-// Bu, arka plan servislerinin ve anlýk veri akýþýnýn tutarlý çalýþmasý için gereklidir.
-builder.Services.AddSingleton<MachineRepository>();
-builder.Services.AddSingleton<AlarmRepository>();
-builder.Services.AddSingleton<ProductionRepository>();
-builder.Services.AddSingleton<ProcessLogRepository>();
-builder.Services.AddSingleton<RecipeRepository>();
-builder.Services.AddSingleton<UserRepository>();
-builder.Services.AddSingleton<DashboardRepository>();
-builder.Services.AddSingleton<PlcPollingService>();
+// E. Bridge Service (Singleton) - SignalR Hub'ý ile Core arasýnda köprü
+// Bu hizmet, LiveEventAggregator'a abone olacak þekilde yeniden yazýlmalýdýr.
 builder.Services.AddSingleton<SignalRBridgeService>();
-builder.Services.AddSingleton<FtpTransferService>();
-builder.Services.AddSingleton<RecipeConfigurationRepository>();
-builder.Services.AddSingleton<IPlcManagerFactory, Universalscada.Module.Textile.Services.PlcManagerFactory>();
-// PLC Polling servisini arka planda çalýþacak bir hizmet olarak ekliyoruz.
-builder.Services.AddHostedService<PlcPollingBackgroundService>();
 
-//builder.Services.AddScoped<FtpService>();
+// CORS Politikasý
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
@@ -80,7 +112,6 @@ builder.Services.AddCors(options =>
                    .AllowAnyHeader();
         });
 });
-// === Servis Ekleme Sonu ===
 
 var app = builder.Build();
 
@@ -92,13 +123,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
-// KRÝTÝK SIRALAMA: Kimlik doðrulama, Yetkilendirmeden önce gelmelidir.
-app.UseAuthentication(); // JWT doðrulamasýný etkinleþtir
-app.UseAuthorization(); // Yetkilendirme kurallarýný etkinleþtir
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 app.MapHub<ScadaHub>("/scadaHub");
 
-// Köprü servisinin uygulama baþlarken aktif olmasýný saðlýyoruz.
+// Bridge servisinin (SignalRBridgeService) constructor'unun çalýþmasý için
+// (yani LiveEventAggregator'a abone olmasý için) uygulama baþlarken tetiklenir.
 app.Services.GetRequiredService<SignalRBridgeService>();
 
 app.Run();

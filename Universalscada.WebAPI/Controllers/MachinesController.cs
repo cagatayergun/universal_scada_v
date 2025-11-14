@@ -1,88 +1,73 @@
-﻿// Dosya: Universalscada.WebAPI/Controllers/MachinesController.cs
+﻿// Dosya: Universalscada.WebAPI/Controllers/MachinesController.cs - GÜNCEL VERSİYON
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using Universalscada.Core.Repositories;
+using Universalscada.Core.Services;
 using Universalscada.Models;
-using Universalscada.Repositories;
-using Universalscada.Services;
 
-namespace Universalscada.WebAPI.Controllers
+[Authorize]
+[Route("api/[controller]")]
+[ApiController]
+public class MachinesController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class MachinesController : ControllerBase
+    // IMachineRepository, Machine modelinin esnek Sector ve MachineConfigurationJson alanlarını içerir.
+    private readonly IMachineRepository _machineRepository;
+    private readonly IPlcManagerFactory _plcManagerFactory; // PLC komutları için gerekli
+
+    public MachinesController(IMachineRepository machineRepository, IPlcManagerFactory plcManagerFactory)
     {
-        private readonly MachineRepository _machineRepository;
-        private readonly PlcPollingService _pollingService;
-
-        public MachinesController(MachineRepository machineRepository, PlcPollingService pollingService)
-        {
-            _machineRepository = machineRepository;
-            _pollingService = pollingService;
-        }
-
-        [HttpGet]
-        public ActionResult<IEnumerable<Machine>> GetAllMachines()
-        {
-            return Ok(_machineRepository.GetAllMachines()); // Tüm makineleri getir
-        }
-
-        [HttpGet("{id}/status")]
-        public ActionResult<FullMachineStatus> GetMachineStatus(int id)
-        {
-            // 1. Canlı durumu Polling Cache'ten al.
-            if (!_pollingService.MachineDataCache.TryGetValue(id, out var status))
-            {
-                return NotFound();
-            }
-
-            // 2. MachineRepository'den makinenin statik detaylarını (MachineSubType) al.
-            var machineDetails = _machineRepository.GetAllMachines().FirstOrDefault(m => m.Id == id);
-
-
-            // 3. FullMachineStatus objesine MachineSubType bilgisini ekle.
-            // Bu bilgi, Dashboard'daki gruplama için kullanılır.
-            if (machineDetails != null)
-            {
-                // Machine objesindeki MachineSubType bilgisini FullMachineStatus objesinin MakineTipi alanına ata.
-                status.MakineTipi = machineDetails.MachineSubType;
-            }
-
-            return Ok(status);
-        }
-
-        // === YENİ METOTLAR ===
-        [HttpPost]
-        public IActionResult AddMachine([FromBody] Machine machine)
-        {
-            try
-            {
-                _machineRepository.AddMachine(machine);
-                // NOT: Gerçek bir uygulamada yeni eklenen makine için polling servisini yeniden başlatmak gerekir.
-                return CreatedAtAction(nameof(GetAllMachines), new { id = machine.Id }, machine);
-            }
-            catch (Exception ex) { return StatusCode(500, ex.Message); }
-        }
-
-        [HttpPut("{id}")]
-        public IActionResult UpdateMachine(int id, [FromBody] Machine machine)
-        {
-            if (id != machine.Id) return BadRequest();
-            try
-            {
-                _machineRepository.UpdateMachine(machine);
-                return NoContent();
-            }
-            catch (Exception ex) { return StatusCode(500, ex.Message); }
-        }
-
-        [HttpDelete("{id}")]
-        public IActionResult DeleteMachine(int id)
-        {
-            try
-            {
-                _machineRepository.DeleteMachine(id);
-                return NoContent();
-            }
-            catch (Exception ex) { return StatusCode(500, ex.Message); }
-        }
+        _machineRepository = machineRepository;
+        _plcManagerFactory = plcManagerFactory;
     }
+
+    /// <summary>
+    /// Evrensel Machine modellerini döndürür.
+    /// </summary>
+    [HttpGet]
+    public ActionResult<IEnumerable<Machine>> GetAllMachines()
+    {
+        // Repository'den jenerik Machine listesini çek.
+        var machines = _machineRepository.GetAllMachines();
+        return Ok(machines);
+    }
+
+    /// <summary>
+    /// Tek bir makineyi döndürür (Makine konfigürasyonunu JSON dahil).
+    /// </summary>
+    [HttpGet("{id}")]
+    public ActionResult<Machine> GetMachine(int id)
+    {
+        var machine = _machineRepository.GetMachineById(id);
+        if (machine == null)
+        {
+            return NotFound();
+        }
+        return Ok(machine);
+    }
+
+    /// <summary>
+    /// Makineye PLC'den AcknowledgeAlarm komutu gönderir.
+    /// IPlcManager arayüzü sayesinde tüm PLC tipleriyle uyumludur.
+    /// </summary>
+    [HttpPost("{id}/acknowledgeAlarm")]
+    public async Task<IActionResult> AcknowledgeAlarm(int id)
+    {
+        var machine = _machineRepository.GetMachineById(id);
+        if (machine == null) return NotFound();
+
+        // Fabrika kullanarak makine tipine uygun PLC Manager'ı al.
+        var plcManager = _plcManagerFactory.CreatePlcManager(machine); //
+
+        // Jenerik PLC komutunu çağır.
+        var result = await plcManager.AcknowledgeAlarm(); //
+
+        if (result.IsSuccess)
+        {
+            return Ok(new { Message = $"{machine.MachineName} alarmı onaylandı." });
+        }
+        return BadRequest(result.Message);
+    }
+
+    // PUT ve POST metotları da jenerik Machine modelini kabul etmelidir.
 }

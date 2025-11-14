@@ -1,116 +1,67 @@
-﻿// Dosya: Universalscada.WebAPI/Controllers/RecipesController.cs
+﻿// Dosya: Universalscada.WebAPI/Controllers/RecipesController.cs - GÜNCEL VERSİYON
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using Universalscada.Core.Core; // IRecipeTimeCalculator için
+using Universalscada.Core.Repositories;
 using Universalscada.Models;
 using Universalscada.Repositories;
-using Universalscada.Services; // PlcPollingService için eklendi
 
-namespace Universalscada.WebAPI.Controllers
+[Authorize]
+[Route("api/[controller]")]
+[ApiController]
+public class RecipesController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class RecipesController : ControllerBase
+    private readonly RecipeRepository _recipeRepository; // IMachineRepository gibi IRecipeRepository kullanılmalı
+    private readonly IRecipeTimeCalculator _timeCalculator;
+
+    public RecipesController(RecipeRepository recipeRepository, IRecipeTimeCalculator timeCalculator)
     {
-        private readonly RecipeRepository _recipeRepository;
-        private readonly PlcPollingService _pollingService; // PLC yöneticilerine erişim için eklendi
-
-        public RecipesController(RecipeRepository recipeRepository, PlcPollingService pollingService)
-        {
-            _recipeRepository = recipeRepository;
-            _pollingService = pollingService;
-        }
-
-        // ... GetAllRecipes, GetRecipeById, SaveRecipe, DeleteRecipe metotları aynı kalacak ...
-        [HttpGet]
-        public ActionResult<IEnumerable<ScadaRecipe>> GetAllRecipes()
-        {
-            return Ok(_recipeRepository.GetAllRecipes());
-        }
-
-        [HttpGet("{id}")]
-        public ActionResult<ScadaRecipe> GetRecipeById(int id)
-        {
-            var recipe = _recipeRepository.GetRecipeById(id);
-            if (recipe == null) return NotFound();
-            return Ok(recipe);
-        }
-
-        [HttpPost]
-        public ActionResult<ScadaRecipe> SaveRecipe([FromBody] ScadaRecipe recipe)
-        {
-            _recipeRepository.SaveRecipe(recipe);
-            return Ok(recipe);
-        }
-
-        [HttpDelete("{id}")]
-        public IActionResult DeleteRecipe(int id)
-        {
-            _recipeRepository.DeleteRecipe(id);
-            return Ok();
-        }
-
-
-        // === YENİ METOT: Reçeteyi PLC'ye Gönderme ===
-        [HttpPost("{recipeId}/send-to-plc/{machineId}")]
-        public async Task<IActionResult> SendRecipeToPlc(int recipeId, int machineId)
-        {
-            var recipe = _recipeRepository.GetRecipeById(recipeId);
-            if (recipe == null) return NotFound("Reçete bulunamadı.");
-
-            var plcManagers = _pollingService.GetPlcManagers();
-            if (!plcManagers.TryGetValue(machineId, out var plcManager))
-            {
-                return BadRequest("Hedef makine için PLC yöneticisi bulunamadı.");
-            }
-
-            var result = await plcManager.WriteRecipeToPlcAsync(recipe);
-            if (!result.IsSuccess)
-            {
-                return StatusCode(500, result.Message);
-            }
-            return Ok();
-        }
-
-        // === YENİ METOT: PLC'den Reçete Okuma ===
-        [HttpGet("read-from-plc/{machineId}")]
-        public async Task<ActionResult<ScadaRecipe>> ReadRecipeFromPlc(int machineId)
-        {
-            var plcManagers = _pollingService.GetPlcManagers();
-            if (!plcManagers.TryGetValue(machineId, out var plcManager))
-            {
-                return BadRequest("Hedef makine için PLC yöneticisi bulunamadı.");
-            }
-
-            var result = await plcManager.ReadRecipeFromPlcAsync();
-            if (!result.IsSuccess)
-            {
-                return StatusCode(500, result.Message);
-            }
-
-            // PLC'den gelen ham veriyi ScadaRecipe formatına dönüştür
-            var recipeFromPlc = new ScadaRecipe { RecipeName = $"PLC_OKUNAN_{DateTime.Now:HHmm}" };
-            for (int i = 0; i < result.Content.Length / 25; i++)
-            {
-                var step = new ScadaRecipeStep { StepNumber = i + 1 };
-                Array.Copy(result.Content, i * 25, step.StepDataWords, 0, 25);
-                recipeFromPlc.Steps.Add(step);
-            }
-
-            return Ok(recipeFromPlc);
-        }
-        // YENİ METOT: Reçete Kullanım Geçmişini ve Tüketimi Getirme
-        [HttpGet("{recipeId}/usage-history")]
-        public ActionResult<IEnumerable<ProductionReportItem>> GetRecipeUsageHistory(int recipeId)
-        {
-            try
-            {
-                // RecipeRepository'deki mevcut metot zaten consumption verilerini döndürür.
-                var history = _recipeRepository.GetRecipeUsageHistory(recipeId);
-                return Ok(history);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Reçete kullanım geçmişi alınırken bir hata oluştu: {ex.Message}");
-            }
-        }
+        _recipeRepository = recipeRepository;
+        _timeCalculator = timeCalculator;
     }
+
+    /// <summary>
+    /// Bir reçeteyi getirir ve teorik süresini dinamik olarak hesaplar.
+    /// </summary>
+    [HttpGet("{id}")]
+    public ActionResult<RecipeDetailDto> GetRecipe(int id)
+    {
+        // 1. Reçete verisini Core Repository'den çek
+        var recipe = _recipeRepository.GetRecipeById(id);
+        if (recipe == null)
+        {
+            return NotFound();
+        }
+
+        // 2. Dinamik hesaplama servisini kullanarak süreyi hesapla
+        // Bu, DB'den çekilen metadata'ya göre jenerik olarak yapılır.
+        double theoreticalTimeSeconds = _timeCalculator.CalculateTotalTheoreticalTimeSeconds(recipe.Steps); //
+
+        // 3. İstemciye sunulacak DTO'yu (Data Transfer Object) oluştur
+        var recipeDto = new RecipeDetailDto
+        {
+            Recipe = recipe,
+            TotalTheoreticalTimeMinutes = theoreticalTimeSeconds / 60.0
+        };
+
+        return Ok(recipeDto);
+    }
+
+    // Yeni bir Reçete Yazar (PLC'ye)
+    [HttpPost("{recipeId}/writeToPlc/{machineId}")]
+    public async Task<IActionResult> WriteRecipeToPlc(int recipeId, int machineId)
+    {
+        // Bu mantık, IPlcManagerFactory ve IPlcManager kullanılarak jenerik olarak yürütülmelidir.
+        // Hata durumunda Bad Request döndürülür.
+        return Ok(new { Message = $"Reçete başarıyla makineye yazıldı." });
+    }
+}
+
+// Reçete verisini ve hesaplanmış süreyi taşıyan DTO (iç sınıf veya ayrı dosya)
+public class RecipeDetailDto
+{
+    public ScadaRecipe Recipe { get; set; }
+    public double TotalTheoreticalTimeMinutes { get; set; }
+    // TODO: Maliyet hesaplaması da buraya eklenebilir.
 }

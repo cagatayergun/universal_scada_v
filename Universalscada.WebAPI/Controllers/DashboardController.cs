@@ -1,129 +1,80 @@
-﻿// Universalscada.WebAPI/Controllers/DashboardController.cs
+﻿// Dosya: Universalscada.WebAPI/Controllers/DashboardController.cs - GÜNCEL VERSİYON
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Collections.Generic;
-using System.Globalization; // YENİ: DateTime.Parse için eklendi
-using System.Data; // ZORUNLU: DataTable için
-using System.Linq; // ZORUNLU: AsEnumerable() ve Select() için
+using Universalscada.Core.Repositories;
 using Universalscada.Models;
 using Universalscada.Repositories;
-using Universalscada.WebAPI.Controllers; // YENİ: ReportFiltersDto için eklendi (Namespace'ler farklıysa gereklidir)
-using static System.Convert;
-public class HourlyConsumptionData
-{
-    public double Saat { get; set; }
-    public double ToplamElektrik { get; set; }
-    public double ToplamSu { get; set; }
-    public double ToplamBuhar { get; set; }
-}
 
-public class HourlyOeeData
+[Authorize]
+[Route("api/[controller]")]
+[ApiController]
+public class DashboardController : ControllerBase
 {
-    public double Saat { get; set; }
-    public double AverageOEE { get; set; }
-}
-namespace Universalscada.WebAPI.Controllers
-{
-    [ApiController]
-    [Route("api/[controller]")]
-    public class DashboardController : ControllerBase
+    private readonly DashboardRepository _dashboardRepository;
+    private readonly IMetaDataRepository _metaDataRepository; // Meta veri tabanlı KPI'lar için
+
+    public DashboardController(DashboardRepository dashboardRepository, IMetaDataRepository metaDataRepository)
     {
-        private readonly DashboardRepository _dashboardRepository;
-        private readonly AlarmRepository _alarmRepository; // YENİ: AlarmRepo eklendi
-
-        public DashboardController(DashboardRepository dashboardRepository, AlarmRepository alarmRepository) // YENİ: AlarmRepo enjekte edildi
-        {
-            _dashboardRepository = dashboardRepository;
-            _alarmRepository = alarmRepository; // YENİ: Atama yapıldı
-        }
-
-        // DÜZELTME: HTTP GET yerine HTTP POST kullanılıyor ve filtreler gövdeden alınıyor.
-        [HttpPost("oee-report")]
-        public ActionResult<IEnumerable<OeeData>> GetOeeReport([FromBody] ReportFiltersDto filtersDto)
-        {
-            // Null kontrolü, 400 hatasını önlemek için WebApp'ten gelen verinin kontrolünü sağlar.
-            if (filtersDto.StartTime == null || filtersDto.EndTime == null)
-            {
-                return BadRequest("Başlangıç ve Bitiş tarihleri zorunludur.");
-            }
-
-            try
-            {
-                var startTime = DateTime.Parse(filtersDto.StartTime, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
-                var endTime = DateTime.Parse(filtersDto.EndTime, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
-
-                // EndTime'ı repoda kullanacağımız '<' operatörüne hazırlıyoruz.
-                var effectiveEndTime = endTime.Date.AddDays(1);
-
-                var reportData = _dashboardRepository.GetOeeReport(startTime.Date, effectiveEndTime, filtersDto.MachineId);
-                return Ok(reportData);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"OEE Raporu oluşturulurken bir hata oluştu: {ex.Message}");
-            }
-        }
-        [HttpGet("hourly-consumption")]
-        public ActionResult<IEnumerable<HourlyConsumptionData>> GetHourlyConsumption()
-        {
-            try
-            {
-                var hourlyData = _dashboardRepository.GetHourlyFactoryConsumption(DateTime.Today);
-
-                var result = hourlyData.AsEnumerable().Select(row => new HourlyConsumptionData
-                {
-                    Saat = ToDouble(row.Field<object>("Saat") ?? 0),
-                    ToplamElektrik = ToDouble(row.Field<object>("ToplamElektrik") ?? 0),
-                    ToplamSu = ToDouble(row.Field<object>("ToplamSu") ?? 0),
-                    ToplamBuhar = ToDouble(row.Field<object>("ToplamBuhar") ?? 0)
-                }).ToList();
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                // Hatanın loglanması için 500 hatası döndürülüyor.
-                return StatusCode(500, $"Saatlik tüketim verileri alınırken bir hata oluştu: {ex.Message}");
-            }
-        }
-
-        // YENİ METOT: Saatlik Ortalama OEE Verilerini Getirir
-        [HttpGet("hourly-oee")]
-        public ActionResult<IEnumerable<HourlyOeeData>> GetHourlyAverageOee()
-        {
-            try
-            {
-                var hourlyData = _dashboardRepository.GetHourlyAverageOee(DateTime.Today);
-
-                var result = hourlyData.AsEnumerable().Select(row => new HourlyOeeData
-                {
-                    // KRİTİK DÜZELTME: Güvenli dönüşüm için Convert.ToDouble kullanıldı.
-                    Saat = ToDouble(row.Field<object>("Saat") ?? 0),
-                    AverageOEE = ToDouble(row.Field<object>("AverageOEE") ?? 0)
-                }).ToList();
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Saatlik OEE verileri alınırken bir hata oluştu: {ex.Message}");
-            }
-        }
-
-        // YENİ METOT: En Sık Görülen Alarmları Getirir
-        [HttpGet("top-alarms")]
-        public ActionResult<IEnumerable<TopAlarmData>> GetTopAlarms()
-        {
-            try
-            {
-                // Windows Forms'taki gibi son 24 saatlik veri
-                var topAlarms = _alarmRepository.GetTopAlarmsByFrequency(DateTime.Now.AddDays(-1), DateTime.Now);
-                return Ok(topAlarms);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Popüler alarmlar alınırken bir hata oluştu: {ex.Message}");
-            }
-        }
+        _dashboardRepository = dashboardRepository;
+        _metaDataRepository = metaDataRepository;
     }
+
+    /// <summary>
+    /// Jenerik KPI (Key Performance Indicator) verilerini döndürür.
+    /// </summary>
+    [HttpGet("kpis")]
+    public ActionResult<IEnumerable<KpiData>> GetKpiData()
+    {
+        // KpiData modeli artık sadece Toplam Üretim, OEE vb. gibi evrensel metrikleri içermeli.
+        // Sektöre özgü metrikler LiveDataPoints gibi dinamik bir yapıda olmalıdır.
+
+        var allKpis = new List<KpiData>
+        {
+            new KpiData
+            {
+                Key = "OEE_TODAY",
+                Display = "Bugünkü OEE",
+                Value = _dashboardRepository.GetOeeToday(),
+                Unit = "%"
+            },
+            new KpiData
+            {
+                Key = "TOTAL_PRODUCTION_COUNT",
+                Display = "Toplam Üretim Adedi",
+                Value = _dashboardRepository.GetTotalProductionCount(),
+                Unit = "adet"
+            },
+            // Yeni bir proses sabitine dayalı jenerik KPI
+            new KpiData
+            {
+                Key = "DEFAULT_DRAIN_TIME",
+                Display = "Varsayılan Boşaltma Süresi",
+                Value = _metaDataRepository.GetConstantValue("DRAIN_SECONDS", 120.0), //
+                Unit = "saniye"
+            }
+        };
+
+        return Ok(allKpis);
+    }
+
+    /// <summary>
+    /// En çok alarm veren makineleri veya alarm tiplerini döndürür.
+    /// </summary>
+    [HttpGet("topAlarms")]
+    public ActionResult<IEnumerable<TopAlarmData>> GetTopAlarmData()
+    {
+        // TopAlarmData zaten jenerik bir modeldir.
+        var topAlarms = _dashboardRepository.GetTopAlarmTypes();
+        return Ok(topAlarms);
+    }
+}
+
+// Jenerik KPI Veri Modeli
+public class KpiData
+{
+    public string Key { get; set; }
+    public string Display { get; set; }
+    public double Value { get; set; }
+    public string Unit { get; set; }
 }

@@ -1,60 +1,58 @@
-﻿// Dosya: Universalscada.WebAPI/Services/PlcPollingBackgroundService.cs
+﻿// Dosya: Universalscada.WebAPI/Services/PlcPollingBackgroundService.cs - GÜNCEL VERSİYON
 
-using Universalscada.Repositories;
-using Universalscada.Services;
+using Universalscada.Core.Services;
+using Universalscada.Core.Repositories;
+using Universalscada.Core.Core;
+using Universalscada.Models;
 
 public class PlcPollingBackgroundService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<PlcPollingBackgroundService> _logger;
+    private readonly PlcPollingService _pollingService; // Polling mantığı Core'da olduğu için Singleton olarak enjekte edilir
 
-    public PlcPollingBackgroundService(IServiceProvider serviceProvider, ILogger<PlcPollingBackgroundService> logger)
+    // Yapıcı metot, Singleton servisleri alır
+    public PlcPollingBackgroundService(
+        IServiceProvider serviceProvider,
+        ILogger<PlcPollingBackgroundService> logger,
+        PlcPollingService pollingService)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _pollingService = pollingService;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("PLC Polling Service is starting.");
+        _logger.LogInformation("PLC Polling Background Service is starting.");
 
         try
         {
-            // Kapsam (scope) oluşturarak servisleri alıyoruz.
-            using (var scope = _serviceProvider.CreateScope())
-            {
-                _logger.LogInformation("Resolving services from scope...");
+            // Polling mantığı (StartPollingLoopAsync) zaten Core'daki PlcPollingService içinde.
+            // Bu metot, Core'da yazıldığı gibi iç döngüde çalışır ve kendi Scope'unu yönetir.
+            // Bu nedenle, sadece Core servisinin ana döngüsünü çağırıyoruz.
 
-                var pollingService = scope.ServiceProvider.GetRequiredService<PlcPollingService>();
-                var machineRepository = scope.ServiceProvider.GetRequiredService<MachineRepository>();
+            _logger.LogInformation("Starting Core PlcPollingService loop...");
 
-                _logger.LogInformation("Services resolved successfully.");
-                _logger.LogInformation("Getting enabled machines from database...");
+            // Polling servisinin ana asenkron döngüsünü başlat
+            // Polling servisi, kendi içinde IMachineRepository'yi scope oluşturarak kullanacaktır.
+            await _pollingService.StartPollingLoopAsync(stoppingToken);
 
-                var machines = machineRepository.GetAllEnabledMachines();
-
-                _logger.LogInformation($"{machines.Count} enabled machines found. Starting polling service...");
-
-                pollingService.Start(machines);
-
-                _logger.LogInformation("PLC Polling Service has been started successfully.");
-            }
+            _logger.LogInformation("PLC Polling Background Service execution completed gracefully (should not happen until shutdown).");
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("PLC Polling Background Service is gracefully stopped.");
         }
         catch (Exception ex)
         {
-            // Eğer başlangıç sırasında herhangi bir hata olursa, bunu konsola detaylıca yaz.
-            _logger.LogError(ex, "FATAL ERROR: PlcPollingBackgroundService could not start.");
+            _logger.LogError(ex, "FATAL ERROR: PlcPollingBackgroundService loop terminated unexpectedly.");
         }
-
-        // Servisin uygulama kapanana kadar çalışmasını sağlar.
-        await Task.Delay(Timeout.Infinite, stoppingToken);
     }
 
-    // StopAsync metodu aynı kalabilir...
-    public override async Task StopAsync(CancellationToken stoppingToken)
+    public override Task StopAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("PLC Polling Service is stopping.");
-        // ... (içeriği aynı)
-        await base.StopAsync(stoppingToken);
+        _logger.LogInformation("PLC Polling Background Service is initiating shutdown.");
+        return base.StopAsync(stoppingToken);
     }
 }

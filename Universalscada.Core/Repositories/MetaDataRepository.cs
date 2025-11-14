@@ -1,50 +1,50 @@
 ﻿// Universalscada.Core/Repositories/MetaDataRepository.cs
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.EntityFrameworkCore; // DBSet ve LINQ metodları için
-using Universalscada.Core.Meta; // Meta veri modelleri için
+using Universalscada.Core.Core; // ScadaDbContext için
+using Universalscada.Core.Meta;
+using Microsoft.EntityFrameworkCore;
 
 namespace Universalscada.Core.Repositories
 {
-    /// <summary>
-    /// Evrensel SCADA projesinin dinamik meta verilerine (adım tipleri, parametre eşleşmeleri, sabitler) 
-    /// SQLite veritabanı üzerinden EF Core ile erişimi sağlar.
-    /// </summary>
     public class MetaDataRepository : IMetaDataRepository
     {
-        // ScadaDbContext, SQLite bağlantımızı temsil eder.
         private readonly ScadaDbContext _context;
 
-        // Bağımlılık Enjeksiyonu (DI) ile DbContext'i alıyoruz
         public MetaDataRepository(ScadaDbContext context)
         {
             _context = context;
         }
 
-        /// <summary>
-        /// Tüm tanımlı StepTypeDefinition nesnelerini, ilişkili StepParameterDefinition'lar ile birlikte getirir.
-        /// </summary>
         public IEnumerable<StepTypeDefinition> GetAllStepDefinitions()
         {
-            // .Include(s => s.Parameters) kritik öneme sahiptir.
-            // Bu, StepTypeDefinition çekilirken, o tipe ait tüm Word Index ve Key eşleşmelerini (StepParameterDefinition) 
-            // tek bir sorgu ile (JOIN) getirmeyi sağlar.
+            // İlgili parametre tanımlarını (WordIndex, DataType vb.) yüklemek için Include kullanılır.
             return _context.StepTypeDefinitions
                 .Include(s => s.Parameters)
-                .AsNoTracking() // Sadece okuma amaçlı olduğu için performansı artırır.
+                .AsNoTracking()
                 .ToList();
         }
 
-        /// <summary>
-        /// Belirtilen anahtara sahip ProcessConstant değerini getirir.
-        /// </summary>
-        public double GetConstantValue(string key, double defaultValue)
+        public StepTypeDefinition GetStepDefinitionByUniversalName(string universalName)
         {
-            // Eğer anahtar bulunamazsa, varsayılan değeri (defaultValue) döndürür.
-            return _context.ProcessConstants
+            return _context.StepTypeDefinitions
+                .Include(s => s.Parameters)
                 .AsNoTracking()
-                .FirstOrDefault(c => c.Key == key)?
-                .Value ?? defaultValue;
+                .FirstOrDefault(s => s.UniversalName.ToLower() == universalName.ToLower());
+        }
+
+        public double GetConstantValue(string key, double defaultValue = 0.0)
+        {
+            var constant = _context.ProcessConstants
+                .AsNoTracking()
+                .FirstOrDefault(c => c.Key.ToLower() == key.ToLower());
+
+            if (constant != null && double.TryParse(constant.Value.ToString(), out double result))
+            {
+                return result;
+            }
+
+            return defaultValue;
         }
     }
 }

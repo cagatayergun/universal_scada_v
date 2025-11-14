@@ -1,4 +1,4 @@
-﻿// Models/ScadaRecipeStep.cs
+﻿// Universalscada.Core/Models/ScadaRecipeStep.cs - KÖKLÜ DEĞİŞİKLİK
 namespace Universalscada.Models
 {
     public class ScadaRecipeStep
@@ -7,14 +7,25 @@ namespace Universalscada.Models
         public int RecipeId { get; set; }
         public int StepNumber { get; set; }
 
-        // Adım verilerini ham olarak tutacağız.
-        // Her word, bir dizi elemanına karşılık gelir.
+        /// <summary>
+        /// Adım verilerini ham olarak tutar. Boyutu, kullanılan adım tipine ve
+        /// makineye göre dinamik olarak belirlenir.
+        /// </summary>
         public short[] StepDataWords { get; set; }
 
         public ScadaRecipeStep()
         {
-            // Her adım 25 word'den oluşur.
-            StepDataWords = new short[25];
+            // Eski: StepDataWords = new short[25];
+            // YENİ: Boyut kısıtlamasını kaldırmak için, bu constructor boş bırakıldı.
+            // DataWords array'i, adım oluşturulurken dinamik olarak boyutlandırılmalıdır.
+        }
+
+        /// <summary>
+        /// Reçeteyi dış sistemlere aktarırken/kaydederken kullanılacak metot.
+        /// </summary>
+        public bool IsStepDataValid()
+        {
+            return StepDataWords != null && StepDataWords.Length > 0;
         }
     }
 }

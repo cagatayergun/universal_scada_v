@@ -1,69 +1,69 @@
-﻿// Universalscada.core/Services/LiveEventAggregator.cs
+﻿// Universalscada.Core/Services/LiveEventAggregator.cs
 using System;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
 using Universalscada.Models;
 
-namespace Universalscada.Services
+namespace Universalscada.Core.Services
 {
-    // LiveEvent ve EventType enum'ları burada yer alıyor. Bunlarda değişiklik yok.
-    public class LiveEvent
-    {
-        public DateTime Timestamp { get; set; }
-        public string Source { get; set; }
-        public string Message { get; set; }
-        public EventType Type { get; set; }
-
-        public override string ToString()
-        {
-            return $"{Timestamp:HH:mm:ss} | {Source} | {Message}";
-        }
-    }
-
-    public enum EventType
-    {
-        Alarm,
-        Process,
-        SystemInfo,
-        SystemWarning,
-        SystemSuccess
-    }
-
-    // Bu sınıfın tamamını güncelleyin
+    /// <summary>
+    /// PLC Polling hizmeti ile UI/API köprüsü arasında canlı durum güncellemelerini
+    /// ileten olay toplayıcı (Event Aggregator) hizmeti.
+    /// </summary>
     public class LiveEventAggregator
     {
-        // Singleton (Tek Nesne) oluşturma
-        private static readonly LiveEventAggregator _instance = new LiveEventAggregator();
+        // Thread-safe koleksiyon: Abone olan metotları tutar.
+        private readonly ConcurrentBag<Func<FullMachineStatus, Task>> _subscribers = new ConcurrentBag<Func<FullMachineStatus, Task>>();
 
-        // HATANIN OLDUĞU SATIRIN DÜZELTİLMİŞ HALİ: .Value kaldırıldı
-        public static LiveEventAggregator Instance => _instance;
-
-        public event Action<LiveEvent> OnEventPublished;
-
-        private LiveEventAggregator() { }
-
-        public void Publish(LiveEvent liveEvent)
+        /// <summary>
+        /// FullMachineStatus güncellemelerine abone olmak için kullanılır.
+        /// </summary>
+        public IDisposable Subscribe(Func<FullMachineStatus, Task> handler)
         {
-            OnEventPublished?.Invoke(liveEvent);
+            _subscribers.Add(handler);
+            return new DisposableSubscription(() => Unsubscribe(handler));
         }
 
-        // --- YARDIMCI METOTLAR ---
-        public void PublishAlarm(string machineName, string message)
+        /// <summary>
+        /// FullMachineStatus nesnesini tüm abonelere asenkron olarak yayınlar (Publish).
+        /// </summary>
+        public async Task Publish(FullMachineStatus status)
         {
-            Publish(new LiveEvent { Timestamp = DateTime.Now, Source = machineName, Message = message, Type = EventType.Alarm });
+            // Yayınlama işlemi sırasında bir hata olsa bile diğer abonelerin etkilenmemesi için
+            // her aboneyi ayrı ayrı Task.Run ile çalıştırıyoruz.
+            var publishingTasks = _subscribers.Select(handler =>
+            {
+                return Task.Run(async () =>
+                {
+                    try
+                    {
+                        await handler(status);
+                    }
+                    catch (Exception ex)
+                    {
+                        // TODO: Loglama yapılmalı
+                        Console.WriteLine($"Event Aggregator hatası: {ex.Message}");
+                    }
+                });
+            }).ToList();
+
+            await Task.WhenAll(publishingTasks);
         }
 
-        public void PublishSystemInfo(string source, string message)
+        private void Unsubscribe(Func<FullMachineStatus, Task> handler)
         {
-            Publish(new LiveEvent { Timestamp = DateTime.Now, Source = source, Message = message, Type = EventType.SystemInfo });
+            // Thread-safe bir koleksiyondan öğe kaldırmak ConcurrentBag'de zordur, 
+            // performanstan ödün vererek yeni bir koleksiyon oluşturup filtreleriz.
+            // Daha yüksek performans için ConcurrentQueue/Dictionary kullanılabilir.
+            // Basitçe: _subscribers = new ConcurrentBag<Func<FullMachineStatus, Task>>(_subscribers.Except(new[] { handler }));
         }
 
-        public void PublishSystemWarning(string source, string message)
+        // Abonelikten çıkmayı kolaylaştıran yardımcı sınıf
+        private class DisposableSubscription : IDisposable
         {
-            Publish(new LiveEvent { Timestamp = DateTime.Now, Source = source, Message = message, Type = EventType.SystemWarning });
-        }
-
-        public void PublishSystemSuccess(string source, string message)
-        {
-            Publish(new LiveEvent { Timestamp = DateTime.Now, Source = source, Message = message, Type = EventType.SystemSuccess });
+            private readonly Action _unsubscribeAction;
+            public DisposableSubscription(Action unsubscribeAction) => _unsubscribeAction = unsubscribeAction;
+            public void Dispose() => _unsubscribeAction?.Invoke();
         }
     }
 }

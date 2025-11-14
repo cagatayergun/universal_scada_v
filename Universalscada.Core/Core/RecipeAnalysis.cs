@@ -1,23 +1,32 @@
-﻿// Universalscada.Core/Core/RecipeAnalysis.cs (TAMAMEN YENİ İÇERİK)
+﻿// Universalscada.Core/Core/RecipeAnalysis.cs
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Universalscada.Core.Meta;
 using Universalscada.Models;
-using Universalscada.Core.Repositories; // Meta veriyi çekecek Repository varsayımı
+using Universalscada.Core.Repositories; // IMetaDataRepository için gerekli
 
 namespace Universalscada.Core.Core
 {
-    // Eski statik sınıf yerine DI destekli bir hizmet oluşturuyoruz
+    // IRecipeTimeCalculator arayüzünü uygulayan DI destekli jenerik hizmet
     public class DynamicRecipeTimeCalculator : IRecipeTimeCalculator
     {
-        // Meta veri ve sabit değerleri bu servis üzerinden alacağız
         private readonly IMetaDataRepository _metaDataRepository;
+        // Hesaplama fonksiyonlarını CalculationServiceKey ile eşleştiren strateji haritası
+        private readonly Dictionary<string, Func<ScadaRecipeStep, StepTypeDefinition, double>> _calculationStrategies;
 
-        // Constructor ile DI üzerinden bağımlılıkları alıyoruz
         public DynamicRecipeTimeCalculator(IMetaDataRepository metaDataRepository)
         {
             _metaDataRepository = metaDataRepository;
+
+            // Jenerik hesaplama metotlarını tanımla
+            _calculationStrategies = new Dictionary<string, Func<ScadaRecipeStep, StepTypeDefinition, double>>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "WaterTime", CalculateWaterTime }, // Örn: WATER_TRANSFER
+                { "HeatTime", CalculateHeatTime },   // Örn: HEAT_RAMP
+                { "SimpleTime", CalculateDurationFromWordIndex }, // Örn: MECHANICAL_WORK, SPIN_DRY
+                { "ConstantTime", CalculateConstantTime } // Örn: DRAIN
+            };
         }
 
         public double CalculateTotalTheoreticalTimeSeconds(IEnumerable<ScadaRecipeStep> steps)
@@ -25,52 +34,32 @@ namespace Universalscada.Core.Core
             if (steps == null || !steps.Any()) return 0;
 
             double totalSeconds = 0;
-            // 1. ADIM: Tüm proses tiplerini ve sabitleri DB'den (SQLite) al
+            // Tüm proses tiplerini ve sabitleri DB'den tek seferde al
             var stepDefinitions = _metaDataRepository.GetAllStepDefinitions();
-            var waterPerLiterSeconds = _metaDataRepository.GetConstantValue("WATER_PER_LITER_SECONDS", 0.5);
-            var drainSeconds = _metaDataRepository.GetConstantValue("DRAIN_SECONDS", 120.0);
 
             foreach (var step in steps)
             {
                 var parallelDurations = new List<double>();
-                // Kontrol kelimesi, her zaman 25. word (index 24) kabul ediliyor.
-                short controlWord = step.StepDataWords[24];
+                // Kontrol kelimesi, DB'de bu bilgi yoksa varsayılan index 24 kabul edilir.
+                int controlWordIndex = 24;
+                if (step.StepDataWords == null || step.StepDataWords.Length <= controlWordIndex) continue;
 
-                var dynamicParams = new DynamicStepParams(step.StepDataWords);
+                // Ham verilere dinamik erişim için yeni accessor
+                var accessor = new DynamicStepDataAccessor(step.StepDataWords);
+                short controlWord = accessor.GetShort(controlWordIndex);
 
-                // 2. ADIM: Her step tipi için kontrol et
+                // Adımdaki her olası proses tipi için kontrol et
                 foreach (var stepDef in stepDefinitions)
                 {
                     // Adımın bit'i kontrol kelimesinde aktif mi?
-                    if ((controlWord & (1 << stepDef.ControlWordBit)) != 0)
+                    if (stepDef.ControlWordBit.HasValue && (controlWord & (1 << stepDef.ControlWordBit.Value)) != 0)
                     {
                         double stepDuration = 0;
 
-                        // Bu kısım artık dinamik olarak CalculationServiceKey'e göre çalışmalı.
-                        // Şimdilik sadece eski mantığı dinamik okumaya çevirelim:
-
-                        if (stepDef.UniversalName == "WATER_TRANSFER") // Eski Su Alma
+                        // İlgili hesaplama stratejisini CalculationServiceKey ile bul ve çalıştır
+                        if (_calculationStrategies.TryGetValue(stepDef.CalculationServiceKey, out var calculatorFunc))
                         {
-                            var paramDef = stepDef.Parameters.FirstOrDefault(p => p.ParameterKey == "QUANTITY_LITERS");
-                            if (paramDef != null)
-                            {
-                                short litre = dynamicParams.GetShortParam(paramDef.ParameterKey, paramDef.WordIndex);
-                                stepDuration = litre * waterPerLiterSeconds;
-                            }
-                        }
-                        else if (stepDef.UniversalName == "HEAT_RAMP") // Eski Isıtma
-                        {
-                            var paramDef = stepDef.Parameters.FirstOrDefault(p => p.ParameterKey == "DURATION_MINUTES");
-                            if (paramDef != null)
-                            {
-                                short sure = dynamicParams.GetShortParam(paramDef.ParameterKey, paramDef.WordIndex);
-                                stepDuration = sure * 60;
-                            }
-                        }
-                        // ... Diğer tüm adımlar (Dozaj, Çalışma, Boşaltma) bu şekilde DB'den okunan bilgilerle yazılmalıdır.
-                        else if (stepDef.UniversalName == "DRAIN") // Eski Boşaltma
-                        {
-                            stepDuration = drainSeconds;
+                            stepDuration = calculatorFunc(step, stepDef);
                         }
 
                         if (stepDuration > 0)
@@ -80,11 +69,67 @@ namespace Universalscada.Core.Core
                     }
                 }
 
+                // Paralel çalışan adımların en uzun olanını toplam süreye ekle
                 totalSeconds += parallelDurations.Any() ? parallelDurations.Max() : 0;
             }
             return totalSeconds;
         }
 
-        // Eski statik metotları arayüzden kaldırdık, sadece tek bir yöntem bıraktık.
+        #region Jenerik Hesaplama Stratejileri
+
+        // WATER_TRANSFER (Su Alma) gibi, miktar tabanlı hesaplamalar için
+        private double CalculateWaterTime(ScadaRecipeStep step, StepTypeDefinition stepDef)
+        {
+            var paramDef = stepDef.Parameters.FirstOrDefault(p => p.ParameterKey == "QUANTITY_LITERS");
+            if (paramDef == null) return 0;
+
+            var accessor = new DynamicStepDataAccessor(step.StepDataWords);
+            short litre = accessor.GetShort(paramDef.WordIndex);
+
+            // Katsayıyı dinamik olarak ProcessConstant tablosundan çek
+            double waterPerLiterSeconds = _metaDataRepository.GetConstantValue("WATER_PER_LITER_SECONDS", 0.5);
+
+            return litre * waterPerLiterSeconds;
+        }
+
+        // HEAT_RAMP (Isıtma) gibi, süresi direk word'den okunan ve saniyeye çevrilen hesaplamalar için
+        private double CalculateHeatTime(ScadaRecipeStep step, StepTypeDefinition stepDef)
+        {
+            var paramDef = stepDef.Parameters.FirstOrDefault(p => p.ParameterKey == "DURATION_MINUTES");
+            if (paramDef == null) return 0;
+
+            var accessor = new DynamicStepDataAccessor(step.StepDataWords);
+            // Word'deki değeri al (Dakika cinsinden)
+            short sureMinutes = accessor.GetShort(paramDef.WordIndex);
+
+            // NOT: Bu kısma ek olarak, sicaklik artış hızı ve hedef sıcaklık kullanılarak 
+            // dinamik ısıtma süresi hesaplaması da eklenebilir (RampCalculator servisi kullanılır).
+
+            return sureMinutes * 60.0;
+        }
+
+        // MECHANICAL_WORK, SPIN_DRY gibi, süresi direk word'den okunan basit işlemler için
+        private double CalculateDurationFromWordIndex(ScadaRecipeStep step, StepTypeDefinition stepDef)
+        {
+            // Bu strateji, Duration parametresinin WordIndex'ini kullanır
+            var paramDef = stepDef.Parameters.FirstOrDefault(p => p.ParameterKey.Contains("DURATION") || p.ParameterKey.Contains("TIME") || p.ParameterKey.Contains("SURE"));
+            if (paramDef == null) return 0;
+
+            var accessor = new DynamicStepDataAccessor(step.StepDataWords);
+            short durationValue = accessor.GetShort(paramDef.WordIndex);
+
+            // Eğer birim dakika ise 60 ile çarp, değilse (saniye ise) direk kullan
+            string unit = paramDef.Unit?.ToLower() ?? "";
+            return unit.Contains("dakika") ? durationValue * 60.0 : durationValue;
+        }
+
+        // DRAIN (Boşaltma) gibi, her zaman sabit süre alan işlemler için
+        private double CalculateConstantTime(ScadaRecipeStep step, StepTypeDefinition stepDef)
+        {
+            // Süreyi ProcessConstant tablosundan çek
+            return _metaDataRepository.GetConstantValue("DRAIN_SECONDS", 120.0);
+        }
+
+        #endregion
     }
 }

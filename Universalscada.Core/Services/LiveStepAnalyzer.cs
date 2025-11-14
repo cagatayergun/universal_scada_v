@@ -1,272 +1,88 @@
-﻿// File: Universalscada.core/Services/LiveStepAnalyzer.cs
-using System;
+﻿// Universalscada.Core/Services/LiveStepAnalyzer.cs
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
+using Universalscada.Core.Meta;
+using Universalscada.Core.Repositories;
 using Universalscada.Models;
-using Universalscada.Repositories;
 
-namespace Universalscada.core.Services
+namespace Universalscada.Core.Services
 {
+    /// <summary>
+    /// PLC'den gelen ham veriyi (short[]) alıp, MetaDataRepository'den okunan
+    /// adrese dayalı yapılandırmayı kullanarak evrensel FullMachineStatus'a dönüştüren hizmet.
+    /// </summary>
     public class LiveStepAnalyzer
     {
-        private readonly ScadaRecipe _recipe;
-        private readonly ProductionRepository _productionRepository;
-        private int _currentStepNumber = 0;
-        private DateTime _currentStepStartTime;
-        private DateTime? _currentPauseStartTime;
-        private double _currentStepPauseSeconds = 0;
+        private readonly IMetaDataRepository _metaDataRepository;
 
-        private int _pendingStepNumber = 0;
-        private DateTime? _pendingStepTimestamp = null;
-        private const int StepReadDelaySeconds = 2;
-
-        public List<ProductionStepDetail> AnalyzedSteps { get; }
-        public ScadaRecipe Recipe { get; private set; }
-        public DateTime CurrentStepStartTime { get; private set; }
-
-        public LiveStepAnalyzer(ScadaRecipe recipe, ProductionRepository productionRepository)
+        public LiveStepAnalyzer(IMetaDataRepository metaDataRepository)
         {
-            _recipe = recipe;
-            this.Recipe = recipe;
-            _productionRepository = productionRepository;
-            AnalyzedSteps = new List<ProductionStepDetail>();
-            CurrentStepStartTime = DateTime.Now;
+            _metaDataRepository = metaDataRepository;
         }
 
-        public bool ProcessData(FullMachineStatus status)
+        /// <summary>
+        /// Ham PLC verisini (PLC'den okunan tam blok) FullMachineStatus nesnesine eşler.
+        /// </summary>
+        /// <param name="machine">İşlenen makine.</param>
+        /// <param name="rawPlcData">PLC'den okunan tüm ham veri (short[]).</param>
+        /// <returns>Dinamik LiveDataPoints içeren FullMachineStatus.</returns>
+        public FullMachineStatus Analyze(Machine machine, short[] rawPlcData)
         {
-
-            bool hasStepChanged = false;
-
-            // The pause/resume logic will remain the same
-            if (status.IsPaused && !_currentPauseStartTime.HasValue)
+            var status = new FullMachineStatus
             {
-                _currentPauseStartTime = DateTime.Now;
-            }
-            else if (!status.IsPaused && _currentPauseStartTime.HasValue)
+                MachineId = machine.Id,
+                MachineName = machine.MachineName,
+                ConnectionState = ConnectionStatus.Connected, // Başarılı okundu varsayımı
+            };
+
+            // Ham verilere erişim için DynamicStepDataAccessor'ı kullanalım
+            var accessor = new DynamicStepDataAccessor(rawPlcData);
+
+            // NOT: Gerçek projede LiveDataPoint eşlemesi Machine.MachineConfigurationJson'dan çekilmelidir.
+            // Örnek eşleme:
+            status.LiveDataPoints.Add("PROCESS_TEMPERATURE", new LiveValue
             {
-                _currentStepPauseSeconds += (DateTime.Now - _currentPauseStartTime.Value).TotalSeconds;
-                _currentPauseStartTime = null;
-            }
-
-            // When a step change is detected
-            if (status.AktifAdimNo != _pendingStepNumber)
-            {
-                // Move the pending step to the new step and start the waiting period.
-                _pendingStepNumber = status.AktifAdimNo;
-                _pendingStepTimestamp = DateTime.Now;
-
-            }
-
-            // If the new step continues stably for 3 seconds, start the new step.
-            if (status.AktifAdimTipiWordu != 0 && _pendingStepNumber != 0 && _pendingStepNumber == status.AktifAdimNo && (DateTime.Now - _pendingStepTimestamp.Value).TotalSeconds >= StepReadDelaySeconds)
-            {
-
-
-                // Only call FinalizeStep and StartNewStep when a new step begins
-                if (_currentStepNumber != status.AktifAdimNo)
-                {
-                    // Immediately finalize and save the previous step.
-                    if (_currentStepNumber > 0)
-                    {
-
-                        FinalizeStep(_currentStepNumber, status.BatchNumarasi, status.MachineId);
-                    }
-
-                    // Handle skipped steps
-                    HandleSkippedSteps(status, _currentStepNumber + 1, status.AktifAdimNo);
-
-                    // Start the new step
-                    StartNewStep(status);
-
-                    // Assign _currentStepNumber to the last started step to ensure FinalizeStep works correctly in the next loop.
-                    _currentStepNumber = status.AktifAdimNo;
-
-                    hasStepChanged = true;
-                }
-
-                // Reset the waiting state.
-                _pendingStepNumber = 0;
-                _pendingStepTimestamp = null;
-            }
-            else if (_pendingStepNumber != status.AktifAdimNo)
-            {
-                // If the step changed between PLC reading cycles, reset the waiting state.
-                _pendingStepNumber = 0;
-                _pendingStepTimestamp = null;
-            }
-
-            return hasStepChanged;
-        }
-
-        public void FinalizeStep(int stepNumber, string batchId, int machineId)
-        {
-
-
-            var stepToFinalize = AnalyzedSteps.LastOrDefault(s => s.StepNumber == stepNumber && s.WorkingTime == "Processing...");
-            if (stepToFinalize == null)
-            {
-
-                return;
-            }
-
-            TimeSpan workingTime = DateTime.Now - CurrentStepStartTime;
-            stepToFinalize.WorkingTime = workingTime.ToString(@"hh\:mm\:ss");
-
-            if (_currentPauseStartTime.HasValue)
-            {
-                _currentStepPauseSeconds += (DateTime.Now - _currentPauseStartTime.Value).TotalSeconds;
-                _currentPauseStartTime = null;
-            }
-            stepToFinalize.StopTime = TimeSpan.FromSeconds(_currentStepPauseSeconds).ToString(@"hh\:mm\:ss");
-
-            TimeSpan theoreticalTime;
-            TimeSpan.TryParse(stepToFinalize.TheoreticalTime, out theoreticalTime);
-
-            TimeSpan actualWorkTime = workingTime - TimeSpan.FromSeconds(_currentStepPauseSeconds);
-            TimeSpan deflection = actualWorkTime - theoreticalTime;
-
-            string sign = deflection.TotalSeconds >= 0 ? "+" : "";
-            stepToFinalize.DeflectionTime = $"{sign}{deflection:hh\\:mm\\:ss}";
-
-
-
-            //_productionRepository.LogSingleStepDetail(stepToFinalize, machineId, batchId);
-        }
-
-        public void StartNewStep(FullMachineStatus status)
-        {
-
-            CurrentStepStartTime = DateTime.Now;
-            _currentPauseStartTime = null;
-            _currentStepPauseSeconds = 0;
-
-            var recipeStep = _recipe.Steps.FirstOrDefault(s => s.StepNumber == status.AktifAdimNo);
-
-            AnalyzedSteps.Add(new ProductionStepDetail
-            {
-                StepNumber = status.AktifAdimNo,
-                StepName = GetStepTypeName(status.AktifAdimTipiWordu),
-                TheoreticalTime = CalculateTheoreticalTime(status.AktifAdimDataWords),
-                WorkingTime = "Processing...",
-                StopTime = "00:00:00",
-                DeflectionTime = ""
+                Key = "TEMPERATURE_PV",
+                DisplayName = "Anlık Sıcaklık",
+                Unit = "°C",
+                Value = accessor.GetShort(400) // Ham verideki D400'ün indexi (örnektir)
             });
 
-            if ((status.AktifAdimTipiWordu & 8) != 0)
+            // Reçete Adımı Analizi:
+            // Adım Numarası (Örn: D99'dan oku) - Word indexi 99 varsayımı
+            status.AktifAdimNo = accessor.GetShort(99);
+
+            if (status.AktifAdimNo > 0)
             {
-                try
-                {
-                    var dozajParams = new DozajParams(status.AktifAdimDataWords);
-                    if (!string.IsNullOrEmpty(dozajParams.Kimyasal) && dozajParams.DozajLitre > 0)
-                    {
-                        var consumptionData = new List<ChemicalConsumptionData>
-                        {
-                            new ChemicalConsumptionData
-                            {
-                                StepNumber = status.AktifAdimNo,
-                                ChemicalName = dozajParams.Kimyasal,
-                                AmountLiters = dozajParams.DozajLitre
-                            }
-                        };
-                        _productionRepository.LogChemicalConsumption(status.MachineId, status.BatchNumarasi, consumptionData);
+                // Kontrol Word'ü (Örn: D124'ten oku) - Word indexi 124 varsayımı
+                short activeControlWord = accessor.GetShort(124);
 
-                    }
-                }
-                catch (Exception ex)
-                {
-
-                }
+                status.AktifAdimAdi = FindActiveStepName(activeControlWord);
             }
+
+            // Temel Durum Bayrakları
+            // Alarm Durumu (Örn: M100 - Word indexi 0, 4. biti varsayımı)
+            status.HasActiveAlarm = accessor.GetBit(0, 4);
+            status.ConnectionState = ConnectionStatus.Connected; // Örnek olarak bırakıldı.
+
+            return status;
         }
 
-        private void HandleSkippedSteps(FullMachineStatus status, int fromStep, int toStep)
+        private string FindActiveStepName(short controlWord)
         {
-            for (int i = fromStep; i < toStep; i++)
-            {
-                var recipeStep = _recipe.Steps.FirstOrDefault(s => s.StepNumber == i);
-                if (recipeStep != null && recipeStep.StepDataWords[24] != 0)
-                {
-                    string skippedStepName = GetStepTypeName(recipeStep.StepDataWords[24]) + " (Skipped)";
+            // Veritabanından tüm adım tiplerini ve bit maskelerini getir.
+            var stepDefinitions = _metaDataRepository.GetAllStepDefinitions(); //
 
-                    AnalyzedSteps.Add(new ProductionStepDetail
-                    {
-                        StepNumber = i,
-                        StepName = skippedStepName,
-                        TheoreticalTime = CalculateTheoreticalTime(recipeStep),
-                        WorkingTime = "00:00:00",
-                        StopTime = "00:00:00",
-                        DeflectionTime = ""
-                    });
+            foreach (var stepDef in stepDefinitions)
+            {
+                if (stepDef.ControlWordBit.HasValue && (controlWord & (1 << stepDef.ControlWordBit.Value)) != 0)
+                {
+                    // Aktif olan ilk adımı döndür.
+                    return stepDef.DisplayNameKey;
                 }
             }
-        }
 
-        public ProductionStepDetail GetLastCompletedStep()
-        {
-            return AnalyzedSteps.LastOrDefault(s => s.WorkingTime != "Processing...");
-        }
-
-        private const double SECONDS_PER_LITER = 0.5;
-        private string CalculateTheoreticalTime(ScadaRecipeStep step)
-        {
-            var parallelDurations = new List<double>();
-            short controlWord = step.StepDataWords[24];
-            if ((controlWord & 1) != 0) parallelDurations.Add(new SuAlmaParams(step.StepDataWords).MiktarLitre * SECONDS_PER_LITER);
-            if ((controlWord & 8) != 0)
-            {
-                var dozajParams = new DozajParams(step.StepDataWords);
-                double dozajSuresi = 0;
-                if (dozajParams.AnaTankMakSu || dozajParams.AnaTankTemizSu) { dozajSuresi += 60; }
-                dozajSuresi += dozajParams.CozmeSure;
-                if (dozajParams.Tank1Dozaj) { dozajSuresi += dozajParams.DozajSure; }
-                parallelDurations.Add(dozajSuresi);
-            }
-            if ((controlWord & 2) != 0) parallelDurations.Add(new IsitmaParams(step.StepDataWords).Sure * 60);
-            if ((controlWord & 4) != 0) parallelDurations.Add(new CalismaParams(step.StepDataWords).CalismaSuresi * 60);
-            if ((controlWord & 16) != 0) parallelDurations.Add(120);
-            if ((controlWord & 32) != 0) parallelDurations.Add(new SikmaParams(step.StepDataWords).SikmaSure * 60);
-            double maxDurationSeconds = parallelDurations.Any() ? parallelDurations.Max() : 0;
-            return TimeSpan.FromSeconds(maxDurationSeconds).ToString(@"hh\:mm\:ss");
-        }
-
-        private string GetStepTypeName(short controlWord)
-        {
-            if (controlWord == 0) return "Undefined Step";
-
-            var stepTypes = new List<string>();
-            if ((controlWord & 1) != 0) stepTypes.Add("Water Intake");
-            if ((controlWord & 2) != 0) stepTypes.Add("Heating");
-            if ((controlWord & 4) != 0) stepTypes.Add("Working");
-            if ((controlWord & 8) != 0) stepTypes.Add("Dosing");
-            if ((controlWord & 16) != 0) stepTypes.Add("Discharge");
-            if ((controlWord & 32) != 0) stepTypes.Add("Squeezing");
-            return stepTypes.Any() ? string.Join(" + ", stepTypes) : "Waiting...";
-        }
-
-        private string CalculateTheoreticalTime(short[] stepDataWords)
-        {
-            var parallelDurations = new List<double>();
-            short controlWord = stepDataWords[24];
-
-            if ((controlWord & 1) != 0) parallelDurations.Add(new SuAlmaParams(stepDataWords).MiktarLitre * SECONDS_PER_LITER);
-            if ((controlWord & 8) != 0)
-            {
-                var dozajParams = new DozajParams(stepDataWords);
-                double dozajSuresi = 0;
-                if (dozajParams.AnaTankMakSu || dozajParams.AnaTankTemizSu) { dozajSuresi += 60; }
-                dozajSuresi += dozajParams.CozmeSure;
-                if (dozajParams.Tank1Dozaj) { dozajSuresi += dozajParams.DozajSure; }
-                parallelDurations.Add(dozajSuresi);
-            }
-            if ((controlWord & 2) != 0) parallelDurations.Add(new IsitmaParams(stepDataWords).Sure * 60);
-            if ((controlWord & 4) != 0) parallelDurations.Add(new CalismaParams(stepDataWords).CalismaSuresi * 60);
-            if ((controlWord & 16) != 0) parallelDurations.Add(120);
-            if ((controlWord & 32) != 0) parallelDurations.Add(new SikmaParams(stepDataWords).SikmaSure * 60);
-
-            double maxDurationSeconds = parallelDurations.Any() ? parallelDurations.Max() : 0;
-            return TimeSpan.FromSeconds(maxDurationSeconds).ToString(@"hh\:mm\:ss");
+            return "Boşta";
         }
     }
 }

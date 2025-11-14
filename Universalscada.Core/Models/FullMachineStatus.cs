@@ -1,9 +1,21 @@
-﻿// Models/FullMachineStatus.cs
+﻿// Universalscada.Core/Models/FullMachineStatus.cs - KÖKLÜ DEĞİŞİKLİK
+using System.Collections.Generic;
+using System.Linq; // Dictionary kullanmak için eklendi
+
 namespace Universalscada.Models
 {
+    // Yeni bir yardımcı model oluşturalım:
+    public class LiveValue
+    {
+        public string Key { get; set; } // Örn: "ANLIK_SU_SEVIYESI"
+        public object Value { get; set; } // Değer (short, int, bool vb. olabilir)
+        public string Unit { get; set; } // Örn: "Litre", "°C"
+        public string DisplayName { get; set; } // Örn: "Anlık Su Seviyesi"
+    }
+
     /// <summary>
-    /// Bir makinenin tüm anlık durumunu tek bir nesnede birleştiren sınıf.
-    /// UI katmanını beslemek için kullanılır.
+    /// Bir makinenin tüm anlık durumunu barındıran evrensel veri taşıma nesnesi.
+    /// Domaine özgü özellikler yerine dinamik anahtar/değer çiftlerini kullanır.
     /// </summary>
     public class FullMachineStatus
     {
@@ -11,54 +23,36 @@ namespace Universalscada.Models
         public string MachineName { get; set; }
         public ConnectionStatus ConnectionState { get; set; }
 
-        // Anlık Proses Değerleri
-        public short AnlikSuSeviyesi { get; set; }
-        public short AnlikDevirRpm { get; set; }
-        public short AnlikSicaklik { get; set; }
-        public short ProsesYuzdesi { get; set; }
-        public short[] AktifAdimDataWords { get; set; }
-        // Durum Bayrakları
-        public bool IsInRecipeMode { get; set; }
-        public bool IsPaused { get; set; }
-        public bool manuel_status { get; set; }
+        // YENİ: Makineye özel tüm anlık proses verileri ve durum bayrakları bu koleksiyonda tutulur.
+        // IPlcManager'dan gelen ham veri (short[]) bu yapıya dönüştürülmelidir.
+        public Dictionary<string, LiveValue> LiveDataPoints { get; set; } = new Dictionary<string, LiveValue>();
+
+        // YENİ: Alarm ve Temel Bilgiler Jenerikleştirildi
         public bool HasActiveAlarm { get; set; }
-        
         public int ActiveAlarmNumber { get; set; }
         public string ActiveAlarmText { get; set; }
 
-        // İş Emri ve Tanımlayıcı Bilgiler
-        public string MakineTipi { get; set; }
-        public string SiparisNumarasi { get; set; }
-        public string MusteriNumarasi { get; set; }
-        public string BatchNumarasi { get; set; }
-        public string OperatorIsmi { get; set; }
-        // YENİ: Reçete Adı özelliği eklendi.
+        // Temel Operasyonel Durumlar - Çoğu SCADA için ortaktır.
+        public bool IsMachineInProduction { get; set; }
+        public bool IsPaused { get; set; }
         public string RecipeName { get; set; }
-
-        
-            public int nameok_status { get; set; }     // D7764
-        // Aktif Adım Bilgileri
         public short AktifAdimNo { get; set; }
         public string AktifAdimAdi { get; set; }
-        public short AktifAdimTipiWordu { get; set; } // YENİ: D94'ten gelen anlık adım tipi word'ü
-        public short SuMiktari { get; set; }
-        public short ElektrikHarcama { get; set; }
-        public short BuharHarcama { get; set; }
 
-        // Aktif Adım Bilgileri
-        public bool IsMachineInProduction { get; set; } // M2501
-        public int TotalDownTimeSeconds { get; set; }     // D7764
-        public short StandardCycleTimeMinutes { get; set; } // D6411
-        public short TotalProductionCount { get; set; }   // D7768
-        public short DefectiveProductionCount { get; set; } // D7770
 
-        // YENİ
-        public int CalismaSuresiDakika { get; set; }
+        // KALDIRILMASI GEREKEN ESKİ ALANLARIN YENİDEN TANIMLANMASI İÇİN YORUM SATIRI:
+        // Eski: public short AnlikSuSeviyesi { get; set; } -> LiveDataPoints["WATER_LEVEL"]
+        // Eski: public short AnlikSicaklik { get; set; } -> LiveDataPoints["TEMPERATURE_PV"]
+        // Eski: public string MakineTipi { get; set; } -> Machine sınıfına taşındı.
+        // ... Diğer tüm domain-specific özellikler kaldırılmalıdır.
 
-        public int ActualQuantityProduction { get; set; }
-        
+        public FullMachineStatus()
+        {
+            // İhtiyaç olursa başlangıçta ortak/temel noktalar eklenebilir.
+        }
     }
 
+    // ConnectionStatus enum'ı yerinde kalabilir.
     public enum ConnectionStatus
     {
         Disconnected,
