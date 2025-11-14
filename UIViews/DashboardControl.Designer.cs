@@ -1,6 +1,7 @@
 ﻿namespace Universalscada.UI.Views
 {
-    partial class GenelBakis_Control
+    // Renamed from GenelBakis_Control for global sector appeal
+    partial class DashboardControl
     {
         private System.ComponentModel.IContainer components = null;
         protected override void Dispose(bool disposing) { if (disposing && (components != null)) { components.Dispose(); } base.Dispose(disposing); }
@@ -22,10 +23,8 @@
             this.formsPlotHourlyWater = new ScottPlot.WinForms.FormsPlot();
             this.gbHourlyConsumption = new System.Windows.Forms.GroupBox();
             this.formsPlotHourly = new ScottPlot.WinForms.FormsPlot();
-            // YENİ KOD BAŞLANGICI
             this.gbHourlyOee = new System.Windows.Forms.GroupBox();
             this.formsPlotHourlyOee = new ScottPlot.WinForms.FormsPlot();
-            // YENİ KOD BİTİŞİ
             this.pnlHeader.SuspendLayout();
             this.pnlMain.SuspendLayout();
             this.tlpMainLayout.SuspendLayout();
@@ -35,9 +34,7 @@
             this.gbHourlyConsumptionSteam.SuspendLayout();
             this.gbHourlyConsumptionWater.SuspendLayout();
             this.gbHourlyConsumption.SuspendLayout();
-            // YENİ KOD BAŞLANGICI
             this.gbHourlyOee.SuspendLayout();
-            // YENİ KOD BİTİŞİ
             this.SuspendLayout();
             // 
             // pnlHeader
@@ -113,20 +110,18 @@
             // tlpSidebarLayout
             // 
             this.tlpSidebarLayout.ColumnCount = 1;
-            // GÜNCELLENDİ: Satır sayısı 4'ten 5'e çıkarıldı
             this.tlpSidebarLayout.RowCount = 5;
             this.tlpSidebarLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            // GÜNCELLENDİ: Tüm satırların boyutu %20 olarak ayarlandı
             this.tlpSidebarLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
             this.tlpSidebarLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
             this.tlpSidebarLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
             this.tlpSidebarLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
-            this.tlpSidebarLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F)); // YENİ SATIR
+            this.tlpSidebarLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
             this.tlpSidebarLayout.Controls.Add(this.gbTopAlarms, 0, 3);
             this.tlpSidebarLayout.Controls.Add(this.gbHourlyConsumptionSteam, 0, 2);
             this.tlpSidebarLayout.Controls.Add(this.gbHourlyConsumptionWater, 0, 1);
             this.tlpSidebarLayout.Controls.Add(this.gbHourlyConsumption, 0, 0);
-            this.tlpSidebarLayout.Controls.Add(this.gbHourlyOee, 0, 4); // YENİ: Grup kutusu 5. satıra eklendi
+            this.tlpSidebarLayout.Controls.Add(this.gbHourlyOee, 0, 4);
             this.tlpSidebarLayout.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tlpSidebarLayout.Location = new System.Drawing.Point(0, 0);
             this.tlpSidebarLayout.Name = "tlpSidebarLayout";
@@ -175,22 +170,22 @@
             // 
             this.formsPlotHourlySteam.DisplayScale = 1F;
             this.formsPlotHourlySteam.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.formsPlotHourlySteam.Location = new Point(3, 20);
-            this.formsPlotHourlySteam.Margin = new Padding(3, 2, 3, 2);
+            this.formsPlotHourlySteam.Location = new System.Drawing.Point(3, 20);
+            this.formsPlotHourlySteam.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.formsPlotHourlySteam.Name = "formsPlotHourlySteam";
-            this.formsPlotHourlySteam.Size = new Size(288, 76);
+            this.formsPlotHourlySteam.Size = new System.Drawing.Size(288, 76);
             this.formsPlotHourlySteam.TabIndex = 0;
             // 
             // gbHourlyConsumptionWater
             // 
             this.gbHourlyConsumptionWater.Controls.Add(this.formsPlotHourlyWater);
-            this.gbHourlyConsumptionWater.Dock = DockStyle.Fill;
-            this.gbHourlyConsumptionWater.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
-            this.gbHourlyConsumptionWater.Location = new Point(3, 103);
-            this.gbHourlyConsumptionWater.Margin = new Padding(3, 2, 3, 2);
+            this.gbHourlyConsumptionWater.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.gbHourlyConsumptionWater.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold);
+            this.gbHourlyConsumptionWater.Location = new System.Drawing.Point(3, 103);
+            this.gbHourlyConsumptionWater.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.gbHourlyConsumptionWater.Name = "gbHourlyConsumptionWater";
-            this.gbHourlyConsumptionWater.Padding = new Padding(3, 2, 3, 2);
-            this.gbHourlyConsumptionWater.Size = new Size(294, 98);
+            this.gbHourlyConsumptionWater.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.gbHourlyConsumptionWater.Size = new System.Drawing.Size(294, 98);
             this.gbHourlyConsumptionWater.TabIndex = 1;
             this.gbHourlyConsumptionWater.TabStop = false;
             this.gbHourlyConsumptionWater.Text = "Saatlik Su Tüketimi";
@@ -198,23 +193,23 @@
             // formsPlotHourlyWater
             // 
             this.formsPlotHourlyWater.DisplayScale = 1F;
-            this.formsPlotHourlyWater.Dock = DockStyle.Fill;
-            this.formsPlotHourlyWater.Location = new Point(3, 20);
-            this.formsPlotHourlyWater.Margin = new Padding(3, 2, 3, 2);
+            this.formsPlotHourlyWater.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.formsPlotHourlyWater.Location = new System.Drawing.Point(3, 20);
+            this.formsPlotHourlyWater.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.formsPlotHourlyWater.Name = "formsPlotHourlyWater";
-            this.formsPlotHourlyWater.Size = new Size(288, 76);
+            this.formsPlotHourlyWater.Size = new System.Drawing.Size(288, 76);
             this.formsPlotHourlyWater.TabIndex = 0;
             // 
             // gbHourlyConsumption
             // 
             this.gbHourlyConsumption.Controls.Add(this.formsPlotHourly);
-            this.gbHourlyConsumption.Dock = DockStyle.Fill;
-            this.gbHourlyConsumption.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
-            this.gbHourlyConsumption.Location = new Point(3, 3);
-            this.gbHourlyConsumption.Margin = new Padding(3, 2, 3, 2);
+            this.gbHourlyConsumption.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.gbHourlyConsumption.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold);
+            this.gbHourlyConsumption.Location = new System.Drawing.Point(3, 3);
+            this.gbHourlyConsumption.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.gbHourlyConsumption.Name = "gbHourlyConsumption";
-            this.gbHourlyConsumption.Padding = new Padding(3, 2, 3, 2);
-            this.gbHourlyConsumption.Size = new Size(294, 98);
+            this.gbHourlyConsumption.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.gbHourlyConsumption.Size = new System.Drawing.Size(294, 98);
             this.gbHourlyConsumption.TabIndex = 0;
             this.gbHourlyConsumption.TabStop = false;
             this.gbHourlyConsumption.Text = "Saatlik Elektrik Tüketimi";
@@ -222,24 +217,23 @@
             // formsPlotHourly
             // 
             this.formsPlotHourly.DisplayScale = 1F;
-            this.formsPlotHourly.Dock = DockStyle.Fill;
-            this.formsPlotHourly.Location = new Point(3, 20);
-            this.formsPlotHourly.Margin = new Padding(3, 2, 3, 2);
+            this.formsPlotHourly.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.formsPlotHourly.Location = new System.Drawing.Point(3, 20);
+            this.formsPlotHourly.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.formsPlotHourly.Name = "formsPlotHourly";
-            this.formsPlotHourly.Size = new Size(288, 76);
+            this.formsPlotHourly.Size = new System.Drawing.Size(288, 76);
             this.formsPlotHourly.TabIndex = 0;
             // 
-            // YENİ KOD BAŞLANGICI
             // gbHourlyOee
             // 
             this.gbHourlyOee.Controls.Add(this.formsPlotHourlyOee);
-            this.gbHourlyOee.Dock = DockStyle.Fill;
-            this.gbHourlyOee.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
-            this.gbHourlyOee.Location = new Point(3, 403);
-            this.gbHourlyOee.Margin = new Padding(3, 2, 3, 2);
+            this.gbHourlyOee.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.gbHourlyOee.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold);
+            this.gbHourlyOee.Location = new System.Drawing.Point(3, 403);
+            this.gbHourlyOee.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.gbHourlyOee.Name = "gbHourlyOee";
-            this.gbHourlyOee.Padding = new Padding(3, 2, 3, 2);
-            this.gbHourlyOee.Size = new Size(294, 100);
+            this.gbHourlyOee.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.gbHourlyOee.Size = new System.Drawing.Size(294, 100);
             this.gbHourlyOee.TabIndex = 4;
             this.gbHourlyOee.TabStop = false;
             this.gbHourlyOee.Text = "Son 24 Saatin OEE Ortalaması";
@@ -247,26 +241,25 @@
             // formsPlotHourlyOee
             // 
             this.formsPlotHourlyOee.DisplayScale = 1F;
-            this.formsPlotHourlyOee.Dock = DockStyle.Fill;
-            this.formsPlotHourlyOee.Location = new Point(3, 20);
-            this.formsPlotHourlyOee.Margin = new Padding(3, 2, 3, 2);
+            this.formsPlotHourlyOee.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.formsPlotHourlyOee.Location = new System.Drawing.Point(3, 20);
+            this.formsPlotHourlyOee.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.formsPlotHourlyOee.Name = "formsPlotHourlyOee";
-            this.formsPlotHourlyOee.Size = new Size(288, 78);
+            this.formsPlotHourlyOee.Size = new System.Drawing.Size(288, 78);
             this.formsPlotHourlyOee.TabIndex = 0;
-            // YENİ KOD BİTİŞİ
             // 
-            // GenelBakis_Control
+            // DashboardControl
             // 
-            this.AutoScaleDimensions = new SizeF(7F, 15F);
-            this.AutoScaleMode = AutoScaleMode.Font;
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.ControlLight;
             this.Controls.Add(this.pnlMain);
             this.Controls.Add(this.pnlHeader);
-            this.Margin = new Padding(9, 8, 9, 8);
-            this.Name = "GenelBakis_Control";
+            this.Margin = new System.Windows.Forms.Padding(9, 8, 9, 8);
+            this.Name = "DashboardControl";
             this.Padding = new System.Windows.Forms.Padding(9, 8, 9, 8);
-            this.Size = new Size(1050, 600);
-            this.Load += new System.EventHandler(this.GenelBakis_Control_Load);
+            this.Size = new System.Drawing.Size(1050, 600);
+            this.Load += new System.EventHandler(this.DashboardControl_Load);
             this.pnlHeader.ResumeLayout(false);
             this.pnlMain.ResumeLayout(false);
             this.tlpMainLayout.ResumeLayout(false);
@@ -276,9 +269,7 @@
             this.gbHourlyConsumptionSteam.ResumeLayout(false);
             this.gbHourlyConsumptionWater.ResumeLayout(false);
             this.gbHourlyConsumption.ResumeLayout(false);
-            // YENİ KOD BAŞLANGICI
             this.gbHourlyOee.ResumeLayout(false);
-            // YENİ KOD BİTİŞİ
             this.ResumeLayout(false);
         }
         #endregion
@@ -297,9 +288,7 @@
         private System.Windows.Forms.GroupBox gbHourlyConsumptionSteam;
         private ScottPlot.WinForms.FormsPlot formsPlotHourlySteam;
         private System.Windows.Forms.TableLayoutPanel tlpSidebarLayout;
-        // YENİ KOD BAŞLANGICI
         private System.Windows.Forms.GroupBox gbHourlyOee;
         private ScottPlot.WinForms.FormsPlot formsPlotHourlyOee;
-        // YENİ KOD BİTİŞİ
     }
 }

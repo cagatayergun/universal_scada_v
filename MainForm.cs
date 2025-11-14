@@ -59,7 +59,7 @@ namespace Universalscada
         private readonly MakineDetay_Control _makineDetayView;
         private readonly Raporlar_Control _raporlarView;
         private readonly LiveEventPopup_Form _liveEventPopup;
-        private readonly GenelBakis_Control _genelBakisView;
+        private readonly DashboardControl _genelBakisView;
         private VncViewer_Form _activeVncViewerForm = null;
         private readonly UserSettings_Control _user_setting;
 
@@ -99,7 +99,7 @@ namespace Universalscada
             _makineDetayView = new MakineDetay_Control();
             _raporlarView = new Raporlar_Control();
             _liveEventPopup = new LiveEventPopup_Form();
-            _genelBakisView = new GenelBakis_Control();
+            _genelBakisView = new DashboardControl();
             _user_setting = new UserSettings_Control();
 
             // Olay abonelikleri (Events)

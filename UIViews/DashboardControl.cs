@@ -1,5 +1,6 @@
-﻿// UI/Views/GenelBakis_Control.cs
+﻿// UI/Views/DashboardControl.cs
 using System;
+using System.Collections.Concurrent; // Added for live data cache
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
@@ -9,19 +10,19 @@ using Universalscada.core;
 using Universalscada.Models;
 using Universalscada.Properties;
 using Universalscada.Repositories;
-// using Universalscada.Services; // KALDIRILDI
+// using Universalscada.Services; // REMOVED
 using Universalscada.UI.Controls;
-using System.Collections.Concurrent; // YENİ: Canlı veri önbelleği için eklendi
 
 namespace Universalscada.UI.Views
 {
-    public partial class GenelBakis_Control : UserControl
+    // Renamed from GenelBakis_Control for global sector appeal
+    public partial class DashboardControl : UserControl // CLASS NAME CHANGED
     {
-        // === KALDIRILDI ===
+        // === REMOVED ===
         // private PlcPollingService _pollingService;
 
-        // === YENİ ===
-        // Bu UserControl'ün kendi canlı veri önbelleği
+        // === NEW ===
+        // This UserControl's own live data cache
         private readonly ConcurrentDictionary<int, FullMachineStatus> _machineDataCache = new ConcurrentDictionary<int, FullMachineStatus>();
 
         private MachineRepository _machineRepository;
@@ -33,7 +34,7 @@ namespace Universalscada.UI.Views
         private readonly Dictionary<int, DashboardMachineCard_Control> _machineCards = new Dictionary<int, DashboardMachineCard_Control>();
         private System.Windows.Forms.Timer _uiUpdateTimer;
 
-        // ... (KPI kartları ve Renk listesi aynı kalır) ...
+        // ... (KPI cards and Color list remain the same) ...
         private KpiCard_Control _kpiTotalMachines;
         private KpiCard_Control _kpiRunningMachines;
         private KpiCard_Control _kpiAlarmMachines;
@@ -55,7 +56,7 @@ namespace Universalscada.UI.Views
         private int _colorIndex = 0;
 
 
-        public GenelBakis_Control()
+        public DashboardControl() // CONSTRUCTOR NAME CHANGED
         {
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
             InitializeComponent();
@@ -68,11 +69,10 @@ namespace Universalscada.UI.Views
             ApplyLocalization();
         }
 
-        // === DEĞİŞTİ: InitializeControl ===
-        // PlcPollingService parametresi kaldırıldı
+        // === MODIFIED: InitializeControl - PlcPollingService parameter removed
         public void InitializeControl(MachineRepository machineRepo, DashboardRepository dashboardRepo, AlarmRepository alarmRepo, ProcessLogRepository logRepo, ProductionRepository productionRepo)
         {
-            // _pollingService = pollingService; // KALDIRILDI
+            // _pollingService = pollingService; // REMOVED
             _machineRepository = machineRepo;
             _dashboardRepository = dashboardRepo;
             _alarmRepository = alarmRepo;
@@ -85,20 +85,18 @@ namespace Universalscada.UI.Views
             ApplyLocalization();
         }
 
-        private void GenelBakis_Control_Load(object sender, EventArgs e)
+        private void DashboardControl_Load(object sender, EventArgs e) // LOAD METHOD NAME CHANGED
         {
             if (this.DesignMode) return;
 
             InitializeKpiCards();
 
-            // === DEĞİŞTİ ===
-            // Başlangıçta cache boş, o yüzden boş bir dictionary başlatıyoruz
+            // === MODIFIED ===
             _previousBatchStatuses = new Dictionary<int, bool>();
-            // _previousBatchStatuses = _pollingService.MachineDataCache... // KALDIRILDI
 
             BuildMachineCards();
 
-            // _pollingService.OnMachineDataRefreshed += PollingService_OnMachineDataRefreshed; // KALDIRILDI
+            // _pollingService.OnMachineDataRefreshed += PollingService_OnMachineDataRefreshed; // REMOVED
 
             _uiUpdateTimer = new System.Windows.Forms.Timer { Interval = 2000 };
             _uiUpdateTimer.Tick += (s, a) => RefreshDashboard();
@@ -107,7 +105,7 @@ namespace Universalscada.UI.Views
             RefreshDashboard();
         }
 
-        // ... (InitializeKpiCards metodu aynı kalır) ...
+        // ... (InitializeKpiCards method remains the same) ...
         private void InitializeKpiCards()
         {
             _kpiTotalMachines = new KpiCard_Control();
@@ -128,11 +126,11 @@ namespace Universalscada.UI.Views
             _machineCards.Clear();
             flpMachineGroups.Controls.Clear();
 
-            // === DEĞİŞTİ ===
-            // _pollingService.MachineDataCache yerine _machineDataCache kullan
+            // === MODIFIED ===
+            // Use _machineDataCache directly
             var machineCache = _machineDataCache;
 
-            // ... (Sıralama mantığı aynı kalır, 'machineCache' değişkenini kullanır) ...
+            // ... (Sorting logic remains the same) ...
             var sortedMachines = allMachines
                 .OrderByDescending(m =>
                 {
@@ -152,12 +150,13 @@ namespace Universalscada.UI.Views
                     return DateTime.MinValue;
                 });
 
+            // UPDATED: Resources.diger -> Resources.OtherMachineType
             var groupedMachines = sortedMachines
-                .GroupBy(m => m.MachineSubType ?? $"{Resources.diger}");
+                .GroupBy(m => m.MachineSubType ?? $"{Resources.OtherMachineType}");
             _colorIndex = 0;
             foreach (var group in groupedMachines)
             {
-                // ... (GroupBox ve innerPanel oluşturma kodları aynı kalır) ...
+                // ... (GroupBox and innerPanel creation codes remain the same) ...
                 var groupPanel = new GroupBox
                 {
                     Text = group.Key,
@@ -197,8 +196,8 @@ namespace Universalscada.UI.Views
         {
             if (this.IsDisposed) return;
 
-            // === DEĞİŞTİ ===
-            // _pollingService.MachineDataCache yerine _machineDataCache kullan
+            // === MODIFIED ===
+            // Use _machineDataCache directly
             var currentBatchStatuses = _machineDataCache
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.IsInRecipeMode);
 
@@ -212,17 +211,16 @@ namespace Universalscada.UI.Views
             UpdateSidebarCharts();
         }
 
-        // === DEĞİŞTİ: PollingService_OnMachineDataRefreshed ===
-        // Bu metodun adı 'UpdateMachineStatus' olarak değişti ve public oldu.
-        // Artık SignalR'dan gelen 'status' nesnesini doğrudan işleyecek.
+        // === MODIFIED: Public method replaces PollingService event handler
+        // Public method to receive push data (e.g., from SignalR)
         public void UpdateMachineStatus(FullMachineStatus status)
         {
             if (status == null) return;
 
-            // 1. Gelen veriyi lokal cache'e al
+            // 1. Store the incoming data in the local cache
             _machineDataCache[status.MachineId] = status;
 
-            // 2. İlgili kartı bul ve güncelle (Eski event handler'ın mantığı)
+            // 2. Find and update the relevant card
             if (_machineCards.TryGetValue(status.MachineId, out var cardToUpdate))
             {
                 List<ProcessDataPoint> trendData;
@@ -236,7 +234,7 @@ namespace Universalscada.UI.Views
                     trendData = _logRepository.GetManualLogs(status.MachineId, DateTime.Now.AddMinutes(-15), DateTime.Now);
                 }
 
-                // DashboardMachineCard_Control'ün UI thread'inde güncellenmesi gerekir
+                // Update the DashboardMachineCard_Control on the UI thread
                 if (cardToUpdate.InvokeRequired)
                 {
                     cardToUpdate.Invoke(new Action(() => cardToUpdate.UpdateData(status, trendData)));
@@ -248,11 +246,11 @@ namespace Universalscada.UI.Views
             }
         }
 
-        // === DEĞİŞTİ: UpdateKpiCards ===
-        // _pollingService.MachineDataCache yerine _machineDataCache kullan
+        // === UPDATED: UpdateKpiCards ===
+        // Uses new resource keys
         private void UpdateKpiCards()
         {
-            // Lokal cache'den verileri al
+            // Get data from local cache
             var allStatuses = _machineDataCache.Values;
 
             int totalMachines = allStatuses.Count;
@@ -260,14 +258,14 @@ namespace Universalscada.UI.Views
             int alarmMachines = allStatuses.Count(s => s.HasActiveAlarm);
             int idleMachines = totalMachines - runningMachines - alarmMachines;
 
-            // Mevcut kartların verilerini güncelle
-            _kpiTotalMachines.SetData($"{Resources.AllMachines}", totalMachines.ToString(), Color.FromArgb(41, 128, 185));
-            _kpiRunningMachines.SetData($"{Resources.aktifüretim}", runningMachines.ToString(), Color.FromArgb(46, 204, 113));
-            _kpiAlarmMachines.SetData($"{Resources.alarmdurum}", alarmMachines.ToString(), Color.FromArgb(231, 76, 60));
-            _kpiIdleMachines.SetData($"{Resources.bosbekleyen}", idleMachines.ToString(), Color.FromArgb(243, 156, 18));
+            // Update KPI cards with new localized text keys
+            _kpiTotalMachines.SetData($"{Resources.TotalMachinesCountLabel}", totalMachines.ToString(), Color.FromArgb(41, 128, 185));
+            _kpiRunningMachines.SetData($"{Resources.ActiveProductionKpi}", runningMachines.ToString(), Color.FromArgb(46, 204, 113));
+            _kpiAlarmMachines.SetData($"{Resources.AlarmStatusKpi}", alarmMachines.ToString(), Color.FromArgb(231, 76, 60));
+            _kpiIdleMachines.SetData($"{Resources.IdleWaitingKpi}", idleMachines.ToString(), Color.FromArgb(243, 156, 18));
         }
 
-        // ... (UpdateSidebarCharts metodu aynı kalır, _pollingService kullanmıyor) ...
+        // ... (UpdateSidebarCharts method remains the same) ...
         private void UpdateSidebarCharts()
         {
             var hourlyElecData = _dashboardRepository.GetHourlyFactoryConsumption(DateTime.Today);
@@ -340,7 +338,7 @@ namespace Universalscada.UI.Views
 
         protected override void OnHandleDestroyed(EventArgs e)
         {
-            // === KALDIRILDI ===
+            // === REMOVED ===
             // if (_pollingService != null)
             // {
             //     _pollingService.OnMachineDataRefreshed -= PollingService_OnMachineDataRefreshed;
@@ -351,14 +349,15 @@ namespace Universalscada.UI.Views
             base.OnHandleDestroyed(e);
         }
 
+        // === UPDATED: ApplyLocalization ===
+        // Uses new resource keys
         public void ApplyLocalization()
         {
-            // ... (Bu metotta değişiklik yok) ...
-            gbHourlyConsumption.Text = Resources.Saatlikelektrik;
-            gbTopAlarms.Text = Resources.ensikalarm;
-            gbHourlyConsumptionWater.Text = Resources.ortalamasutuketimi;
-            gbHourlyConsumptionSteam.Text = Resources.ortalamabuhartuketimi;
-            gbHourlyOee.Text = "24 Hourly OEE";
+            gbHourlyConsumption.Text = Resources.HourlyElectricityConsumptionChartTitle;
+            gbTopAlarms.Text = Resources.TopAlarmsLast24HoursTitle;
+            gbHourlyConsumptionWater.Text = Resources.AverageWaterConsumptionTitle;
+            gbHourlyConsumptionSteam.Text = Resources.AverageSteamConsumptionTitle;
+            gbHourlyOee.Text = "24 Hourly OEE"; // Consider adding this to the resource file for full localization
         }
     }
 }
