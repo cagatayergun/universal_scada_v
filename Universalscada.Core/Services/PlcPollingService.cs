@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Universalscada.core;
 using Universalscada.core.Services;
+using Universalscada.Core.Core;
 using Universalscada.Models;
 using Universalscada.Repositories;
 
@@ -43,8 +44,8 @@ namespace Universalscada.Services
         private readonly ConcurrentDictionary<int, double> _batchTotalTheoreticalTimes;
         private readonly ConcurrentDictionary<int, DateTime> _batchStartTimes;
         private readonly ConcurrentDictionary<int, double> _batchNonProductiveSeconds;
-
-        public PlcPollingService(AlarmRepository alarmRepository, ProcessLogRepository processLogRepository, ProductionRepository productionRepository, RecipeRepository recipeRepository,MachineRepository machineRepository,IPlcManagerFactory plcManagerFactory)
+        private readonly IRecipeTimeCalculator _timeCalculator; // YENİ ALAN
+        public PlcPollingService(AlarmRepository alarmRepository, ProcessLogRepository processLogRepository, ProductionRepository productionRepository, RecipeRepository recipeRepository, MachineRepository machineRepository, IPlcManagerFactory plcManagerFactory, IRecipeTimeCalculator timeCalculator)
         {
             _alarmRepository = alarmRepository;
             _processLogRepository = processLogRepository;
@@ -65,6 +66,7 @@ namespace Universalscada.Services
             _batchTotalTheoreticalTimes = new ConcurrentDictionary<int, double>();
             _batchStartTimes = new ConcurrentDictionary<int, DateTime>();
             _batchNonProductiveSeconds = new ConcurrentDictionary<int, double>();
+            _timeCalculator = timeCalculator; // Atama eklendi
         }
 
         public void Start(List<Models.Machine> machines)
@@ -172,7 +174,7 @@ namespace Universalscada.Services
                                 {
                                     double timeInCurrentStep = (DateTime.Now - analyzer.CurrentStepStartTime).TotalSeconds;
                                     var remainingSteps = analyzer.Recipe.Steps.Where(s => s.StepNumber >= newStatus.AktifAdimNo);
-                                    double remainingTheoreticalTime = RecipeAnalysis.CalculateTheoreticalTimeForSteps(remainingSteps);
+                                    double remainingTheoreticalTime = _timeCalculator.CalculateTotalTheoreticalTimeSeconds(remainingSteps);
                                     double completedStepsTime = totalTheoreticalTime - remainingTheoreticalTime;
                                     double totalProgressSeconds = completedStepsTime + timeInCurrentStep;
                                     double percentage = (totalProgressSeconds / totalTheoreticalTime) * 100.0;
@@ -305,7 +307,7 @@ namespace Universalscada.Services
                         var fullRecipe = recipeReadResult.Content;
                         fullRecipe.RecipeName = currentStatus.RecipeName;
                         _liveAnalyzers[machineId] = new LiveStepAnalyzer(fullRecipe, _productionRepository);
-                        double totalSeconds = RecipeAnalysis.CalculateTotalTheoreticalTimeSeconds(fullRecipe);
+                        double totalSeconds = _timeCalculator.CalculateTotalTheoreticalTimeSeconds(fullRecipe.Steps);
                         _batchTotalTheoreticalTimes[machineId] = totalSeconds;
                         _batchStartTimes[machineId] = DateTime.Now;
                         _batchNonProductiveSeconds[machineId] = 0;

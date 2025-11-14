@@ -17,7 +17,7 @@ namespace Universalscada.UI
         // === YENİ ===
         private static readonly HttpClient _apiClient = new HttpClient();
         // !!! KENDİ WEBAPI ADRESİNİZLE DEĞİŞTİRİN !!!
-        private const string API_BASE_URL = "http://localhost:7039/scadaHub";
+        private const string API_BASE_URL = "http://localhost:7039";
 
         public LoginForm()
         {

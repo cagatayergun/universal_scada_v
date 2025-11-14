@@ -241,7 +241,7 @@ namespace Universalscada.UI.Controls
             // 
             picConnection.BackColor = Color.Transparent;
             picConnection.Image = Properties.Resource1.yilmak_baglanti_2;
-            picConnection.InitialImage = Properties.Resource1.yilmak_baglanti;
+            picConnection.InitialImage = Properties.Resource1.yilmak_baglanti_2;
             picConnection.Location = new Point(149, 4);
             picConnection.Margin = new Padding(3, 2, 3, 2);
             picConnection.Name = "picConnection";

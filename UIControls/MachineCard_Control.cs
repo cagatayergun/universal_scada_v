@@ -50,7 +50,7 @@ namespace Universalscada.UI.Controls
             _originalAlarmIcon = Properties.Resource1.alarm_var;
             _originalAlarmyokIcon = Properties.Resource1.alarm_yok;
             _originalbaglantivarIcon = Properties.Resource1.yilmak_baglanti_2;
-            _originalbaglantiyokIcon = Properties.Resource1.yilmak_baglanti;
+            //_originalbaglantiyokIcon = Properties.Resource1.yilmak_baglanti;
             // GÜNCELLENDİ: PictureBox'ların arkaplanını şeffaf yap
             picPlay.BackColor = Color.Transparent;
             picPause.BackColor = Color.Transparent;

@@ -3,18 +3,22 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using Universalscada.Models;
 using Universalscada.core; // Bu satırı ekleyin
+using Universalscada.Models;
+using Universalscada.Core.Core;
 namespace Universalscada.Repositories
 {
     public class DashboardRepository
     {
         private readonly string _connectionString = AppConfig.ConnectionString;
-        private readonly RecipeRepository _recipeRepository; // YENİ: Bağımlılık eklendi
+        private readonly RecipeRepository _recipeRepository;
+        private readonly IRecipeTimeCalculator _timeCalculator; // YENİ ALAN
 
-        public DashboardRepository(RecipeRepository recipeRepository)
+        // CONSTRUCTOR GÜNCELLENDİ: Yeni bağımlılık eklendi
+        public DashboardRepository(RecipeRepository recipeRepository, IRecipeTimeCalculator timeCalculator)
         {
             _recipeRepository = recipeRepository;
+            _timeCalculator = timeCalculator;
         }
         public List<OeeData> GetOeeReport(DateTime startTime, DateTime endTime, int? machineId)
         {
@@ -76,7 +80,7 @@ namespace Universalscada.Repositories
                             var recipe = _recipeRepository.GetRecipeByName(recipeName);
                             if (recipe != null)
                             {
-                                double totalTheoreticalTimeSeconds = RecipeAnalysis.CalculateTotalTheoreticalTimeSeconds(recipe);
+                                double totalTheoreticalTimeSeconds = _timeCalculator.CalculateTotalTheoreticalTimeSeconds(recipe.Steps);
                                 if (totalTheoreticalTimeSeconds > 0)
                                 {
                                     // Performans = (Toplam Teorik Süre / Fiili Çalışma Süresi) * 100

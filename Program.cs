@@ -1,92 +1,70 @@
-// Program.cs
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Globalization;
-using System.Threading;
 using System.Windows.Forms;
-using Universalscada.core;
-using Universalscada.UI;
-using Universalscada.Properties;
-using System.IO; // YENÝ: Hata yakalama için eklendi
+using Universalscada.Core;
+using Universalscada.Core.Core;
+using Universalscada.Core.Repositories;
+using Universalscada.Services;
+using Universalscada.Repositories;
+using Universalscada.Services;
 
 namespace Universalscada
 {
-    internal static class Program
+    static class Program
     {
+        private static IServiceProvider ServiceProvider { get; set; }
+
         [STAThread]
         static void Main()
         {
-            // === HATA YAKALAMA ===
-            // Uygulamanýn en baþýna genel hata yakalayýcýlarý ekleyin
-            Application.ThreadException += new System.Threading.ThreadExceptionEventHandler(Application_ThreadException);
-            AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(CurrentDomain_UnhandledException);
-            // === HATA YAKALAMA SONU ===
-
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            // === LÝSANS DOÐRULAMA (Sizin kodunuz) ===
-            var (isValid, message, licenseData) = LicenseManager.ValidateLicense();
-            if (!isValid)
-            {
-                // (isValid false ise LicenseManager zaten MessageBox göstermiþ olmalý)
-                Application.Exit();
-                return;
-            }
-            AppConfig.SetConnectionString(licenseData.EncryptedConnectionString);
-            // === LÝSANS DOÐRULAMA BÝTÝÞÝ ===
+            // 1. DI konteynerini oluþtur
+            ConfigureServices();
 
-            // === YENÝ GÝRÝÞ AKIÞI ===
-            try
-            {
-                // 1. Önce Login formunu aç
-                using (var loginForm = new LoginForm()) //
-                {
-                    if (loginForm.ShowDialog() == DialogResult.OK)
-                    {
-                        // 2. Giriþ baþarýlý olduysa (CurrentUser dolduysa)
-                        // Ana formu çalýþtýr
-                        Application.Run(new MainForm()); //
-                    }
-                    else
-                    {
-                        // 3. Giriþ baþarýsýz olduysa veya iptal edildiyse
-                        Application.Exit();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                HandleException(ex);
-            }
-            // === YENÝ GÝRÝÞ AKIÞI SONU ===
-
-            // ESKÝ KOD:
-            // Application.Run(new MainForm()); // Bu satýr artýk yukarýdaki try-catch içinde
+            // 2. MainForm'u DI üzerinden resolve et ve baþlat
+            var mainForm = ServiceProvider.GetService<MainForm>();
+            Application.Run(mainForm);
         }
 
-        // === HATA YAKALAMA METOTLARI ===
-        private static void Application_ThreadException(object sender, System.Threading.ThreadExceptionEventArgs e)
+        private static void ConfigureServices()
         {
-            HandleException(e.Exception);
-        }
+            var services = new ServiceCollection();
 
-        private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
-        {
-            HandleException(e.ExceptionObject as Exception);
-        }
-
-        private static void HandleException(Exception ex)
-        {
-            if (ex == null) return;
-            string errorMessage = $"Beklenmeyen bir hata oluþtu:\r\n{ex.Message}\r\n\r\n{ex.StackTrace}";
-            try
+            // --- CORE VE VERÝTABANI HÝZMETLERÝ (Dahili SQL - SQLite) ---
+            services.AddDbContext<ScadaDbContext>(options =>
             {
-                string logFilePath = Path.Combine(Application.StartupPath, "error_log.txt");
-                File.AppendAllText(logFilePath, $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss}] - {errorMessage}\r\n\r\n");
-            }
-            catch (Exception) { }
-            MessageBox.Show(errorMessage, "Kritik Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            Application.Exit();
+                // Dahili SQL gereksinimine uygun olarak SQLite kullanýlýyor.
+                options.UseSqlite("Data Source=scada_db.sqlite");
+            }, ServiceLifetime.Scoped);
+
+            // Yeni Evrensel Servisler
+            services.AddScoped<IMetaDataRepository, MetaDataRepository>();
+            services.AddScoped<IRecipeTimeCalculator, DynamicRecipeTimeCalculator>();
+
+            // Mevcut Repository'leri kaydet
+            // Artýk bu repository'ler, constructor'larýna ScadaDbContext alabilir (Gerekiyorsa).
+            // DashboardRepository'nin RecipeRepository ve IRecipeTimeCalculator baðýmlýlýklarý otomatik çözülecek.
+            services.AddScoped<AlarmRepository>();
+            services.AddScoped<CostRepository>();
+            services.AddScoped<DashboardRepository>();
+            services.AddScoped<MachineRepository>();
+            services.AddScoped<ProcessLogRepository>();
+            services.AddScoped<ProductionRepository>();
+            services.AddScoped<RecipeRepository>();
+            services.AddScoped<UserRepository>();
+
+            // Servisler
+            // FtpTransferService'in constructor'ý null alýyorsa, bunu DI'a kaydederken düzeltmek gerekir
+            // VEYA sadece bir kez new'lenip MainForm'a geçirilebilir. DI'a kaydý varsayalým:
+            services.AddSingleton<FtpTransferService>(s => new FtpTransferService(null));
+
+            // Ana Formu kaydet (Form, artýk tüm baðýmlýlýklarýný constructor'dan alacak)
+            services.AddTransient<MainForm>();
+
+            ServiceProvider = services.BuildServiceProvider();
         }
     }
 }

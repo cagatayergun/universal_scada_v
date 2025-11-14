@@ -153,16 +153,6 @@ namespace Universalscada.Properties {
         /// <summary>
         ///   System.Drawing.Bitmap türünde yerelleştirilmiş bir kaynak arar.
         /// </summary>
-        internal static System.Drawing.Bitmap yilmak_baglanti {
-            get {
-                object obj = ResourceManager.GetObject("yilmak_baglanti", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   System.Drawing.Bitmap türünde yerelleştirilmiş bir kaynak arar.
-        /// </summary>
         internal static System.Drawing.Bitmap yilmak_baglanti_2 {
             get {
                 object obj = ResourceManager.GetObject("yilmak_baglanti_2", resourceCulture);
