@@ -3,6 +3,7 @@
 // New property added to the TransferJob class and queue processing logic updated.
 // ======================================================
 
+using HslCommunication;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -13,9 +14,9 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Universalscada.core;
+using Universalscada.Core.Services;
 using Universalscada.Models;
 using Universalscada.Repositories;
-using Universalscada.Core.Services;
 namespace Universalscada.Services
 {
     public enum TransferType { Send, Receive }
@@ -110,7 +111,49 @@ namespace Universalscada.Services
         {
             // If there are no other dependencies here, leave it empty
         }
+        public async Task<OperateResult<Dictionary<int, string>>> ReadRecipeNamesFromPlcAsync(IPlcManager plcManager)
+        {
+            try
+            {
+                const int startAddress = 3212;
+                const int wordsPerName = 6;
+                const int numRecipes = 99; // Varsayım
+                const int totalWords = numRecipes * wordsPerName;
 
+                // YENİ: IPlcManager'ın jenerik metodunu kullan
+                var readResult = await plcManager.ReadDataWordsAsync(startAddress.ToString(), (ushort)totalWords);
+
+                if (!readResult.IsSuccess)
+                {
+                    return OperateResult.CreateFailedResult<Dictionary<int, string>>(readResult);
+                }
+
+                var recipeNames = new Dictionary<int, string>();
+                byte[] nameBytes = new byte[wordsPerName * 2];
+                var data = readResult.Content;
+
+                for (int i = 0; i < numRecipes; i++)
+                {
+                    short[] nameWords = new short[wordsPerName];
+                    // Ham veriyi (short[]) al
+                    Array.Copy(data, i * wordsPerName, nameWords, 0, wordsPerName);
+
+                    // Ham veriyi stringe dönüştür (Eski BYMakinesiManager.cs'deki mantık)
+                    Buffer.BlockCopy(nameWords, 0, nameBytes, 0, nameBytes.Length);
+                    string name = Encoding.ASCII.GetString(nameBytes).Trim('\uFFFD', ' '); // Encoding'i eklemeyi unutmayın
+
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        recipeNames.Add(i + 1, name);
+                    }
+                }
+                return OperateResult.CreateSuccessResult(recipeNames);
+            }
+            catch (Exception ex)
+            {
+                return new OperateResult<Dictionary<int, string>>($"Tarif adları okunurken hata oluştu: {ex.Message}");
+            }
+        }
         public void SetSyncContext(SynchronizationContext context)
         {
             _syncContext = context;

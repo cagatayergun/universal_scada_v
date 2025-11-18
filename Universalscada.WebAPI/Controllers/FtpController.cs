@@ -6,7 +6,10 @@ using Universalscada.Models; // ScadaRecipe, Machine gibi modeller buradaysa
 using Universalscada.Repositories;
 using Universalscada.Services;
 using System.Collections.Generic;
-
+using Universalscada.Core.Repositories; // MachineRepository için
+using Universalscada.Core.Services;     // PlcPollingService için
+using Universalscada.Services; // IPlcManager için
+using Universalscada.Models; // Recipe DTO'ları için
 namespace Universalscada.WebAPI.Controllers
 {
     // DTO'lar (Request Body Modelleri - API projenizde tanımlanmalıdır)
@@ -31,7 +34,7 @@ namespace Universalscada.WebAPI.Controllers
         private readonly RecipeRepository _recipeRepository;
         private readonly FtpTransferService _transferService;
         private readonly PlcPollingService _plcPollingService;
-
+        private readonly FtpTransferService _ftptransferservice;
         public FtpController(
             MachineRepository machineRepository,
             RecipeRepository recipeRepository,
@@ -59,7 +62,9 @@ namespace Universalscada.WebAPI.Controllers
                 }
 
                 // PLC'den Slot -> Name eşleşmesini okur (WinForms mantığı)
-                var readResult = await plcManager.ReadRecipeNamesFromPlcAsync();
+               
+                // ... FtpTransferService'i enjekte edin ...
+                var readResult = await _ftptransferservice.ReadRecipeNamesFromPlcAsync(plcManager);
 
                 if (readResult.IsSuccess)
                 {

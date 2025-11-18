@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-
+using Universalscada.Models; // Machine türü için (ScadaDbContext.cs'deki kullanıma göre)
 namespace Universalscada.Core.Models
 {
     public class PlcTagDefinition
