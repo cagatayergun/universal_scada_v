@@ -8,7 +8,7 @@ namespace Universalscada.Repositories
 {
     public class PlcOperatorRepository
     {
-        private readonly string _connectionString = AppConfig.ConnectionString;
+        private readonly string _connectionString = AppConfig.PrimaryConnectionString;
 
         public List<PlcOperator> GetAll()
         {

@@ -39,7 +39,20 @@ namespace Universalscada.Models
         public string RecipeName { get; set; }
         public short AktifAdimNo { get; set; }
         public string AktifAdimAdi { get; set; }
+        // EKLENDİ: ProductionRepository tarafından kullanılan alanlar
+        public string OperatorName { get; set; }
+        public string CustomerNumber { get; set; }
+        public string OrderNumber { get; set; }
+        public int TotalUnitsProduced { get; set; }
+        public int DefectiveUnitsCount { get; set; }
 
+        // EKLENDİ: ProcessLogRepository tarafından hala kullanılan eski sensör değerleri (CS1061 Hatalarını Çözmek İçin)
+        public short AnlikSicaklik { get; set; }
+        public short AnlikSuSeviyesi { get; set; }
+        public short AnlikDevirRpm { get; set; }
+        public short SuMiktari { get; set; }
+        public short ElektrikHarcama { get; set; }
+        public short BuharHarcama { get; set; }
 
         // KALDIRILMASI GEREKEN ESKİ ALANLARIN YENİDEN TANIMLANMASI İÇİN YORUM SATIRI:
         // Eski: public short AnlikSuSeviyesi { get; set; } -> LiveDataPoints["WATER_LEVEL"]

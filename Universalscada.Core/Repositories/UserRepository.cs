@@ -11,7 +11,7 @@ namespace Universalscada.Repositories
 {
     public class UserRepository
     {
-        private readonly string _connectionString = AppConfig.ConnectionString;
+        private readonly string _connectionString = AppConfig.PrimaryConnectionString;
 
         public User GetUserByUsername(string username)
         {

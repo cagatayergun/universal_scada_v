@@ -52,7 +52,7 @@ namespace Universalscada.Core.Core
                 foreach (var stepDef in stepDefinitions)
                 {
                     // Adımın bit'i kontrol kelimesinde aktif mi?
-                    if (stepDef.ControlWordBit.HasValue && (controlWord & (1 << stepDef.ControlWordBit.Value)) != 0)
+                    if (stepDef.ControlWordBit >= 0 && (controlWord & (1 << stepDef.ControlWordBit)) != 0)
                     {
                         double stepDuration = 0;
 

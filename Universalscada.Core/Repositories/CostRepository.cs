@@ -9,7 +9,7 @@ namespace Universalscada.Repositories
 {
     public class CostRepository
     {
-        private readonly string _connectionString = AppConfig.ConnectionString;
+        private readonly string _connectionString = AppConfig.PrimaryConnectionString;
 
         public List<CostParameter> GetAllParameters()
         {

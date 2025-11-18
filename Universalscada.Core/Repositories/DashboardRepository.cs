@@ -10,7 +10,7 @@ namespace Universalscada.Repositories
 {
     public class DashboardRepository
     {
-        private readonly string _connectionString = AppConfig.ConnectionString;
+        private readonly string _connectionString = AppConfig.PrimaryConnectionString;
         private readonly RecipeRepository _recipeRepository;
         private readonly IRecipeTimeCalculator _timeCalculator; // YENİ ALAN
 

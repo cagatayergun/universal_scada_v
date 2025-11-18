@@ -10,8 +10,8 @@ namespace Universalscada.Models
         public string MachineName { get; set; }
         public string RecipeName { get; set; }
         public string OperatorName { get; set; }
-        public string MusteriNo { get; set; }
-        public string SiparisNo { get; set; }
+        public string CustomerNumber { get; set; } // DÜZELTİLDİ: MusteriNo -> CustomerNumber
+        public string OrderNumber { get; set; } // DÜZELTİLDİ: SiparisNo -> OrderNumber
         public string BatchId { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }

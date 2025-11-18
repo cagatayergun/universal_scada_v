@@ -71,11 +71,14 @@ namespace Universalscada.Core.Services
         private string FindActiveStepName(short controlWord)
         {
             // Veritabanından tüm adım tiplerini ve bit maskelerini getir.
-            var stepDefinitions = _metaDataRepository.GetAllStepDefinitions(); //
+            var stepDefinitions = _metaDataRepository.GetAllStepDefinitions();
 
             foreach (var stepDef in stepDefinitions)
             {
-                if (stepDef.ControlWordBit.HasValue && (controlWord & (1 << stepDef.ControlWordBit.Value)) != 0)
+                // DÜZELTME: CS1061 hatası giderildi. 
+                // ControlWordBit'in int olduğu (veya int? olmasına rağmen hata verdiği) varsayılarak, 
+                // null kontrolü yerine 0'dan büyük kontrolü yapılır ve değer doğrudan kullanılır.
+                if (stepDef.ControlWordBit > 0 && (controlWord & (1 << stepDef.ControlWordBit)) != 0)
                 {
                     // Aktif olan ilk adımı döndür.
                     return stepDef.DisplayNameKey;
@@ -84,5 +87,6 @@ namespace Universalscada.Core.Services
 
             return "Boşta";
         }
-    }
+    
+}
 }

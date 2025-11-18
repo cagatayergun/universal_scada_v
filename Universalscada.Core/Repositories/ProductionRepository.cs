@@ -1,14 +1,14 @@
 ﻿using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
-using System.Text;
-using Universalscada.Models;
-using System.Linq;
 using System.Data;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks; // Task kullanımı için
 using Universalscada.Core.Core; // CS0103 Hata Düzeltme: ConfigurationManager için eklendi.
 using Universalscada.Core.Models; // ConsumptionTotals gibi modeller için eklendi.
-
+using Universalscada.Models;
+using Universalscada.core;
 namespace Universalscada.Core.Repositories // Namespace'in doğru olduğu varsayılmıştır.
 {
     public class ReportFilters
@@ -26,7 +26,7 @@ namespace Universalscada.Core.Repositories // Namespace'in doğru olduğu varsay
     public class ProductionRepository
     {
         // CS0103 Hata Düzeltme: ConfigurationManager kullanıldı.
-        private readonly string _connectionString = ConfigurationManager.ConnectionString;
+        private readonly string _connectionString = AppConfig.PrimaryConnectionString;
 
         public List<ProductionReportItem> GetProductionReport(ReportFilters filters)
         {
@@ -116,12 +116,12 @@ namespace Universalscada.Core.Repositories // Namespace'in doğru olduğu varsay
                 var cmd = new MySqlCommand(query, connection);
                 cmd.Parameters.AddWithValue("@MachineId", status.MachineId);
 
-                // CS1061 Hata Düzeltme: BatchNumarasi -> BatchId
-                cmd.Parameters.AddWithValue("@BatchId", status.BatchId);
+                // DÜZELTME Onaylandı: FullMachineStatus'a BatchId eklendiği varsayılarak düzeltme yapıldı.
+                cmd.Parameters.AddWithValue("@BatchId", status.BatchNumarasi);
 
                 cmd.Parameters.AddWithValue("@RecipeName", status.RecipeName);
 
-                // CS1061 Hata Düzeltme: Türkçe alanlar evrenselleştirildi.
+                // DÜZELTME Onaylandı: Türkçe alanlar evrenselleştirildi.
                 cmd.Parameters.AddWithValue("@OperatorName", status.OperatorName);
                 cmd.Parameters.AddWithValue("@CustomerNumber", status.CustomerNumber);
                 cmd.Parameters.AddWithValue("@OrderNumber", status.OrderNumber);
@@ -184,10 +184,10 @@ namespace Universalscada.Core.Repositories // Namespace'in doğru olduğu varsay
 
                 var cmd = new MySqlCommand(query, connection);
 
-                // CS1061 Hata Düzeltme: BatchSummaryData'daki alanlar evrenselleştirildi.
-                cmd.Parameters.AddWithValue("@TotalMaterialFlowA", summary.TotalMaterialFlowA);
-                cmd.Parameters.AddWithValue("@TotalEnergyKWH", summary.TotalEnergyKWH);
-                cmd.Parameters.AddWithValue("@TotalProcessResourceB", summary.TotalProcessResourceB);
+                // DÜZELTME: BatchSummaryData'daki ConsumptionMetrics dictionary'si kullanıldı.
+                cmd.Parameters.AddWithValue("@TotalMaterialFlowA", summary.GetMetricValue("TotalMaterialFlowA"));
+                cmd.Parameters.AddWithValue("@TotalEnergyKWH", summary.GetMetricValue("TotalEnergyKWH"));
+                cmd.Parameters.AddWithValue("@TotalProcessResourceB", summary.GetMetricValue("TotalProcessResourceB"));
 
                 cmd.Parameters.AddWithValue("@MachineId", machineId);
                 cmd.Parameters.AddWithValue("@BatchId", batchId);

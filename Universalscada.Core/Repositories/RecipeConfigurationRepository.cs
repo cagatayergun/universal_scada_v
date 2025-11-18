@@ -21,7 +21,7 @@ namespace Universalscada.Repositories
     // Veritabanındaki yeni step_editor_layouts tablosuyla iletişim kurar
     public class RecipeConfigurationRepository
     {
-        private readonly string _connectionString = AppConfig.ConnectionString;
+        private readonly string _connectionString = AppConfig.PrimaryConnectionString;
 
         public string GetLayoutJson(string machineSubType, int stepTypeId)
         {

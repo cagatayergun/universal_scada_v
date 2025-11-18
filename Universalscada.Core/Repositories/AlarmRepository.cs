@@ -11,7 +11,7 @@ namespace Universalscada.Repositories
 {
     public class AlarmRepository
     {
-        private readonly string _connectionString = AppConfig.ConnectionString;
+        private readonly string _connectionString = AppConfig.PrimaryConnectionString;
 
         public List<AlarmDefinition> GetAllAlarmDefinitions()
         {
