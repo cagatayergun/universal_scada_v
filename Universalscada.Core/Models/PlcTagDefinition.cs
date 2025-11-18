@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Universalscada.Core.Models
 {
@@ -39,5 +40,10 @@ namespace Universalscada.Core.Models
 
         // Ekranda gösterim sırası
         public int DisplayOrder { get; set; }
+        // Yeni Alan: Geçmişe Kayıt (Trend)
+        public bool IsHistorical { get; set; } = false;
+        // İlişki
+        [ForeignKey("MachineId")]
+        public Machine Machine { get; set; }
     }
 }

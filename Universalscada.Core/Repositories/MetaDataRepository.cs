@@ -69,5 +69,40 @@ namespace Universalscada.Core.Repositories
             // Arayüzün beklediği Task<PlcTagDefinition> tipini döndürmek için
             return Task.FromResult(tagDefinition);
         }
+        // Tag Yönetimi Metotları
+        public async Task<List<PlcTagDefinition>> GetAllPlcTagsAsync(int machineId)
+        {
+            return await _context.PlcTagDefinitions
+                                 .Where(t => t.MachineId == machineId)
+                                 .ToListAsync();
+        }
+
+        public async Task<PlcTagDefinition> GetPlcTagByIdAsync(int id)
+        {
+            return await _context.PlcTagDefinitions.FindAsync(id);
+        }
+
+        public async Task<PlcTagDefinition> AddPlcTagAsync(PlcTagDefinition tag)
+        {
+            _context.PlcTagDefinitions.Add(tag);
+            await _context.SaveChangesAsync();
+            return tag;
+        }
+
+        public async Task UpdatePlcTagAsync(PlcTagDefinition tag)
+        {
+            _context.PlcTagDefinitions.Update(tag);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeletePlcTagAsync(int id)
+        {
+            var tag = await _context.PlcTagDefinitions.FindAsync(id);
+            if (tag != null)
+            {
+                _context.PlcTagDefinitions.Remove(tag);
+                await _context.SaveChangesAsync();
+            }
+        }
     }
 }

@@ -1,0 +1,218 @@
+﻿@page "/tagyonetimi"
+@using Universalscada.Core.Models
+@using Universalscada.WebApp.Services
+@inject ScadaDataService ScadaDataService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Tag Yönetimi</PageTitle>
+
+<h1>PLC Tag Yönetimi</h1>
+<p>
+    Sektörden bağımsız olarak PLC'den okunacak adresleri ve geçmişe dönük kaydedilecek (Historical) tag'leri buradan tanımlayın.
+</p>
+
+@if (!string.IsNullOrEmpty(StatusMessage))
+{
+    <div class="alert alert-info">@StatusMessage</div>
+}
+
+<button class="btn btn-primary mb-3" @onclick="() => OpenEditModal(new PlcTagDefinition() { IsHistorical = false })">Yeni Tag Ekle</button>
+
+@if (Loading)
+{
+    <p><em>Yükleniyor...</em></p>
+}
+else if (Tags == null || !Tags.Any())
+{
+    <p>Tanımlanmış herhangi bir Tag bulunmamaktadır.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Makine ID</th>
+                    <th>Tag Adı</th>
+                    <th>PLC Adresi</th>
+                    <th>Veri Tipi</th>
+                    <th>Birim</th>
+                    <th>Geçmiş Kayıt</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tag in Tags)
+                {
+                    <tr>
+                        <td>@tag.MachineId</td>
+                        <td>@tag.TagName</td>
+                        <td>@tag.PlcAddress</td>
+                        <td>@tag.DataType</td>
+                        <td>@tag.Unit</td>
+                        <td>
+                            <span class="badge @(tag.IsHistorical ? "bg-success" : "bg-warning")">
+                                @(tag.IsHistorical ? "Evet" : "Hayır")
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-info" @onclick="() => OpenEditModal(tag)">Düzenle</button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteTag(tag.Id)">Sil</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+
+<div class="modal @(ShowModal ? "show d-block" : "")" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,.5);">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <EditForm Model="@CurrentTag" OnValidSubmit="SaveTag">
+                <DataAnnotationsValidator />
+                <div class="modal-header">
+                    <h5 class="modal-title">@(CurrentTag.Id == 0 ? "Yeni Tag Ekle" : "Tag Düzenle")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="MachineId" class="form-label">Makine ID (Geçici)</label>
+                        <InputNumber id="MachineId" class="form-control" @bind-Value="CurrentTag.MachineId" />
+                        <ValidationMessage For="@(() => CurrentTag.MachineId)" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="TagName" class="form-label">Tag Adı</label>
+                        <InputText id="TagName" class="form-control" @bind-Value="CurrentTag.TagName" />
+                        <ValidationMessage For="@(() => CurrentTag.TagName)" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="PlcAddress" class="form-label">PLC Adresi</label>
+                        <InputText id="PlcAddress" class="form-control" @bind-Value="CurrentTag.PlcAddress" />
+                        <ValidationMessage For="@(() => CurrentTag.PlcAddress)" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="DataType" class="form-label">Veri Tipi</label>
+                        <InputText id="DataType" class="form-control" @bind-Value="CurrentTag.DataType" />
+                        <ValidationMessage For="@(() => CurrentTag.DataType)" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="Unit" class="form-label">Birim</label>
+                        <InputText id="Unit" class="form-control" @bind-Value="CurrentTag.Unit" />
+                        <ValidationMessage For="@(() => CurrentTag.Unit)" />
+                    </div>
+                    <div class="form-check mb-3">
+                        <InputCheckbox id="IsHistorical" class="form-check-input" @bind-Value="CurrentTag.IsHistorical" />
+                        <label class="form-check-label" for="IsHistorical">Geçmişe Kaydet (Grafikler için)</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Kapat</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<PlcTagDefinition> Tags;
+    private PlcTagDefinition CurrentTag = new PlcTagDefinition();
+    private bool Loading = true;
+    private bool ShowModal = false;
+    private string StatusMessage;
+
+    // TODO: Gerçek Makine Seçimi Mekanizması Eklenene Kadar Varsayılan ID Kullanılmalı
+    private int DefaultMachineId = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTags();
+    }
+
+    private async Task LoadTags()
+    {
+        Loading = true;
+        try
+        {
+            // API'den Tag'leri çekme
+            Tags = await ScadaDataService.GetPlcTagsAsync(DefaultMachineId);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Tag'ler yüklenirken bir hata oluştu: {ex.Message}";
+        }
+        finally
+        {
+            Loading = false;
+        }
+    }
+
+    private void OpenEditModal(PlcTagDefinition tag)
+    {
+        // Düzenleme için kopya oluşturulur, aksi takdirde listedeki nesne doğrudan değiştirilir
+        CurrentTag = new PlcTagDefinition
+        {
+            Id = tag.Id,
+            MachineId = tag.MachineId == 0 ? DefaultMachineId : tag.MachineId,
+            TagName = tag.TagName,
+            PlcAddress = tag.PlcAddress,
+            DataType = tag.DataType,
+            Unit = tag.Unit,
+            IsHistorical = tag.IsHistorical
+        };
+        ShowModal = true;
+    }
+
+    private async Task SaveTag()
+    {
+        try
+        {
+            if (CurrentTag.Id == 0)
+            {
+                // Yeni Kayıt
+                await ScadaDataService.CreatePlcTagAsync(CurrentTag);
+                StatusMessage = $"{CurrentTag.TagName} Tag'i başarıyla eklendi.";
+            }
+            else
+            {
+                // Mevcut Kaydı Güncelleme
+                await ScadaDataService.UpdatePlcTagAsync(CurrentTag);
+                StatusMessage = $"{CurrentTag.TagName} Tag'i başarıyla güncellendi.";
+            }
+            CloseModal();
+            await LoadTags();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Kaydetme sırasında bir hata oluştu: {ex.Message}";
+        }
+    }
+
+    private async Task DeleteTag(int id)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Bu Tag'i silmek istediğinizden emin misiniz?");
+
+        if (confirmed)
+        {
+            try
+            {
+                await ScadaDataService.DeletePlcTagAsync(id);
+                StatusMessage = "Tag başarıyla silindi.";
+                await LoadTags();
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Silme sırasında bir hata oluştu: {ex.Message}";
+            }
+        }
+    }
+
+    private void CloseModal()
+    {
+        ShowModal = false;
+        CurrentTag = new PlcTagDefinition(); // Modalı kapatınca formu sıfırla
+        StateHasChanged();
+    }
+}

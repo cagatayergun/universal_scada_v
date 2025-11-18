@@ -1,8 +1,9 @@
 ﻿// Dosya: Universalscada.WebApp/Services/ScadaDataService.cs - GÜNCEL VERSİYON
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
-using System.Collections.Generic;
+using Universalscada.Core.Models;
 // Universalscada.Models'tan temel modelleri (Machine, ScadaRecipe vb.) kullanır
 using Universalscada.Models;
 
@@ -82,6 +83,29 @@ namespace Universalscada.WebApp.Services
             var response = await _httpClient.GetAsync($"api/Reports/consumptionSummary?batchId={batchId}");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<ConsumptionReportDto>();
+        }
+        // Yeni Tag Yönetimi Metotları
+        public async Task<List<PlcTagDefinition>> GetPlcTagsAsync(int machineId)
+        {
+            return await _httpClient.GetFromJsonAsync<List<PlcTagDefinition>>($"api/Tags/machine/{machineId}");
+        }
+
+        public async Task CreatePlcTagAsync(PlcTagDefinition tag)
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/Tags", tag);
+            response.EnsureSuccessStatusCode();
+        }
+
+        public async Task UpdatePlcTagAsync(PlcTagDefinition tag)
+        {
+            var response = await _httpClient.PutAsJsonAsync($"api/Tags/{tag.Id}", tag);
+            response.EnsureSuccessStatusCode();
+        }
+
+        public async Task DeletePlcTagAsync(int id)
+        {
+            var response = await _httpClient.DeleteAsync($"api/Tags/{id}");
+            response.EnsureSuccessStatusCode();
         }
     }
 }

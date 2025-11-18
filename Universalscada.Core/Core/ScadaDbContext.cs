@@ -33,7 +33,9 @@ namespace Universalscada.Core
         {
             // ProcessConstant için anahtar tanımlama
             modelBuilder.Entity<ProcessConstant>().HasKey(c => c.Key);
-
+            modelBuilder.Entity<PlcTagDefinition>()
+                .HasIndex(t => new { t.MachineId, t.TagName })
+                .IsUnique();
             // Seed Data (Başlangıç Verileri)
             SeedData(modelBuilder);
         }

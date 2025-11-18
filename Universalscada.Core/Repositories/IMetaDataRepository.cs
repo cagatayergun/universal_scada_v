@@ -24,5 +24,10 @@ namespace Universalscada.Core.Repositories
         Task<PlcTagDefinition> SavePlcTagDefinitionAsync(PlcTagDefinition tag);
         // TODO: Makineye özel PLC adres haritasını getiren metot eklenebilir.
         // MachineConfiguration GetMachineConfiguration(string machineType, string sector); 
+        Task<List<PlcTagDefinition>> GetAllPlcTagsAsync(int machineId);
+        Task<PlcTagDefinition> GetPlcTagByIdAsync(int id);
+        Task<PlcTagDefinition> AddPlcTagAsync(PlcTagDefinition tag);
+        Task UpdatePlcTagAsync(PlcTagDefinition tag);
+        Task DeletePlcTagAsync(int id);
     }
 }

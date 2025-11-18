@@ -1,4 +1,7 @@
 ﻿@page "/ayarlar"
+@* TagYonetimi bileşenini kullanabilmek için dosyanın Pages klasöründe olması veya @using ile tanımlanması gerekir. *@
+
+<PageTitle>Ayarlar</PageTitle>
 
 <h1>Ayarlar</h1>
 
@@ -6,10 +9,25 @@
     <div class="card-header">
         <ul class="nav nav-tabs card-header-tabs">
             <li class="nav-item">
-                <a class="nav-link @(activeTab == "machines" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "machines"'>Makine Yönetimi</a>
+                <a class="nav-link @(activeTab == "machines" ? "active" : "")"
+                   href="javascript:void(0);"
+                   @onclick='() => activeTab = "machines"'>
+                    Makine Yönetimi
+                </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(activeTab == "users" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "users"'>Kullanıcı Yönetimi</a>
+                <a class="nav-link @(activeTab == "tags" ? "active" : "")"
+                   href="javascript:void(0);"
+                   @onclick='() => activeTab = "tags"'>
+                    Tag Yönetimi 👈 Yeni
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(activeTab == "users" ? "active" : "")"
+                   href="javascript:void(0);"
+                   @onclick='() => activeTab = "users"'>
+                    Kullanıcı Yönetimi
+                </a>
             </li>
         </ul>
     </div>
@@ -17,6 +35,10 @@
         @if (activeTab == "machines")
         {
             <MakineYonetimi />
+        }
+        else if (activeTab == "tags") // 👈 Yeni Sekme İçeriği
+        {
+            <TagYonetimi />
         }
         else if (activeTab == "users")
         {
