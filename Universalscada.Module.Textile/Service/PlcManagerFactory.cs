@@ -1,19 +1,18 @@
-﻿// File: Universalscada.core/Services/PlcManagerFactory.cs
-using System;
-using Universalscada.core.Services;
+﻿using System;
 using Universalscada.Models;
 using Universalscada.Module.Textile.Services;
-using Universalscada.Models;     // 'Machine' tipini bulmak için
-using Universalscada.Services;
+using Universalscada.Services; // IPlcManager burada
+using Universalscada.Core.Services; // IPlcManagerFactory burada (Core projesinden)
 
 namespace Universalscada.Module.Textile.Services
 {
     /// <summary>
-    /// Factory class that creates the appropriate IPlcManager object based on the given machine type.
+    /// Makine tipine göre uygun IPlcManager nesnesini oluşturan fabrika sınıfı.
     /// </summary>
     public class PlcManagerFactory : IPlcManagerFactory
     {
-        public IPlcManager Create(Machine machine)
+        // Bu metot IPlcManagerFactory arayüzünden geliyor
+        public IPlcManager CreatePlcManager(Machine machine)
         {
             switch (machine.MachineType)
             {
@@ -24,9 +23,23 @@ namespace Universalscada.Module.Textile.Services
                     return new KurutmaMakinesiManager(machine.IpAddress, machine.Port);
 
                 default:
-                    // Throw an exception for an unknown machine type to prevent the program from crashing.
-                    throw new ArgumentException($"Unknown machine type: '{machine.MachineType}'. Please check machine settings.");
+                    // Bilinmeyen makine tipi için varsayılan bir manager veya hata fırlatılabilir.
+                    // Şimdilik BYMakinesiManager döndürüyoruz (veya GenericModbusManager yazılabilir)
+                    return new BYMakinesiManager(machine.IpAddress, machine.Port);
             }
+        }
+
+        public IPlcManager GetPlcManagerByIp(string ipAddress)
+        {
+            // Bu metot genellikle PollingService tarafından yönetilen bir havuzdan çekmek için kullanılır.
+            // Fabrika sınıfı yeni instance üretmekten sorumludur, havuz yönetiminden değil.
+            // Ancak arayüz gereği implemente etmemiz gerekirse:
+            throw new NotImplementedException("Bu metot Factory üzerinden değil, PollingService üzerinden kullanılmalıdır.");
+        }
+
+        public void DisposeAll()
+        {
+            // Fabrika sınıfı durum tutmadığı için (stateless), dispose edecek bir şeyi yoktur.
         }
     }
 }

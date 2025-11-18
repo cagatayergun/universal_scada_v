@@ -1,90 +1,45 @@
-﻿using MySql.Data.MySqlClient;
+﻿using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-//using System.Windows.Forms;
 using Universalscada.core;
-using Universalscada.Models;
-using Universalscada.Repositories;
-
-
-
-// --- YENİ DOSYA: Universalscada.core/Models/ControlMetadata.cs ---
 
 namespace Universalscada.Repositories
 {
-    // Veritabanındaki yeni step_editor_layouts tablosuyla iletişim kurar
     public class RecipeConfigurationRepository
     {
         private readonly string _connectionString = AppConfig.PrimaryConnectionString;
 
         public string GetLayoutJson(string machineSubType, int stepTypeId)
         {
-            using (var connection = new MySql.Data.MySqlClient.MySqlConnection(_connectionString))
+            using (var connection = new SqliteConnection(_connectionString))
             {
                 connection.Open();
-                string query = "SELECT LayoutJson FROM step_editor_layouts WHERE MachineSubType = @SubType AND StepTypeId = @StepId";
-                var cmd = new MySql.Data.MySqlClient.MySqlCommand(query, connection);
+                // Tablo adı migration ile uyumlu olmalı (step_editor_layouts -> StepEditorLayouts)
+                string query = "SELECT LayoutJson FROM StepEditorLayouts WHERE MachineSubType = @SubType AND StepTypeId = @StepId";
+                var cmd = new SqliteCommand(query, connection);
                 cmd.Parameters.AddWithValue("@SubType", machineSubType ?? "DEFAULT");
                 cmd.Parameters.AddWithValue("@StepId", stepTypeId);
                 var result = cmd.ExecuteScalar();
 
                 if (result != null && result != DBNull.Value) return result.ToString();
 
-                // Makineye özel tanım yoksa, varsayılanı (DEFAULT) dene
+                // Özel tip yoksa varsayılanı dene
                 cmd.Parameters["@SubType"].Value = "DEFAULT";
                 result = cmd.ExecuteScalar();
                 return result?.ToString();
             }
         }
 
-        // Tasarımcıdan gelen JSON'ı veritabanına kaydeder/günceller
-        public void SaveLayout(string layoutName, string machineSubType, int stepTypeId, string layoutJson)
-        {
-            using (var connection = new MySql.Data.MySqlClient.MySqlConnection(_connectionString))
-            {
-                connection.Open();
-                // ON DUPLICATE KEY UPDATE sayesinde kayıt varsa günceller, yoksa ekler.
-                // Bunun çalışması için veritabanında (MachineSubType, StepTypeId) üzerinde UNIQUE KEY olması gerekir.
-                string query = @"
-                    INSERT INTO step_editor_layouts (LayoutName, MachineSubType, StepTypeId, LayoutJson)
-                    VALUES (@LayoutName, @MachineSubType, @StepTypeId, @LayoutJson)
-                    ON DUPLICATE KEY UPDATE LayoutName = @LayoutName, LayoutJson = @LayoutJson;";
-                var cmd = new MySql.Data.MySqlClient.MySqlCommand(query, connection);
-                cmd.Parameters.AddWithValue("@LayoutName", layoutName);
-                cmd.Parameters.AddWithValue("@MachineSubType", machineSubType);
-                cmd.Parameters.AddWithValue("@StepTypeId", stepTypeId);
-                cmd.Parameters.AddWithValue("@LayoutJson", layoutJson);
-                cmd.ExecuteNonQuery();
-            }
-        }
-        public DataTable GetStepTypes()
-        {
-            using (var connection = new MySqlConnection(_connectionString))
-            {
-                string query = "SELECT Id, StepName FROM step_types ORDER BY Id";
-                var adapter = new MySqlDataAdapter(query, connection);
-                var dt = new DataTable();
-                adapter.Fill(dt);
-                return dt;
-            }
-        }
-
-        // YENİ: Veritabanındaki tüm farklı makine alt tiplerini çeker.
         public List<string> GetMachineSubTypes()
         {
-            var subTypes = new List<string> { "DEFAULT" }; // Varsayılan her zaman olmalı
-            using (var connection = new MySqlConnection(_connectionString))
+            var subTypes = new List<string> { "DEFAULT" };
+            using (var connection = new SqliteConnection(_connectionString))
             {
                 connection.Open();
-                // Sadece 'BYMakinesi' tipindeki makinelerin alt tiplerini al
-                string query = "SELECT DISTINCT MachineSubType FROM machines WHERE MachineType = 'BYMakinesi' AND MachineSubType IS NOT NULL AND MachineSubType <> ''";
-                var cmd = new MySqlCommand(query, connection);
+                // SQLite'ta DISTINCT kullanımı
+                string query = "SELECT DISTINCT MachineSubType FROM Machines WHERE MachineType = 'BYMakinesi' AND MachineSubType IS NOT NULL AND MachineSubType <> ''";
+                var cmd = new SqliteCommand(query, connection);
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
@@ -94,6 +49,48 @@ namespace Universalscada.Repositories
                 }
             }
             return subTypes;
+        }
+
+        public void SaveLayout(string layoutName, string machineSubType, int stepTypeId, string layoutJson)
+        {
+            using (var connection = new SqliteConnection(_connectionString))
+            {
+                connection.Open();
+                // MySQL: INSERT ... ON DUPLICATE KEY UPDATE
+                // SQLite: INSERT ... ON CONFLICT(...) DO UPDATE
+                // NOT: Bu sorgunun çalışması için (MachineSubType, StepTypeId) üzerinde UNIQUE INDEX olması gerekir.
+                string query = @"
+                    INSERT INTO StepEditorLayouts (LayoutName, MachineSubType, StepTypeId, LayoutJson)
+                    VALUES (@LayoutName, @MachineSubType, @StepTypeId, @LayoutJson)
+                    ON CONFLICT(MachineSubType, StepTypeId) 
+                    DO UPDATE SET 
+                        LayoutName = excluded.LayoutName, 
+                        LayoutJson = excluded.LayoutJson;";
+
+                var cmd = new SqliteCommand(query, connection);
+                cmd.Parameters.AddWithValue("@LayoutName", layoutName);
+                cmd.Parameters.AddWithValue("@MachineSubType", machineSubType);
+                cmd.Parameters.AddWithValue("@StepTypeId", stepTypeId);
+                cmd.Parameters.AddWithValue("@LayoutJson", layoutJson);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public DataTable GetStepTypes()
+        {
+            var dt = new DataTable();
+            using (var connection = new SqliteConnection(_connectionString))
+            {
+                connection.Open();
+                // Tablo adı: step_types -> StepTypeDefinitions
+                string query = "SELECT Id, DisplayNameKey as StepName FROM StepTypeDefinitions ORDER BY Id";
+                var cmd = new SqliteCommand(query, connection);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    dt.Load(reader);
+                }
+            }
+            return dt;
         }
     }
 }

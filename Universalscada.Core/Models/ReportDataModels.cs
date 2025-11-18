@@ -1,5 +1,4 @@
-﻿// Universalscada.Core/Models/ReportDataModels.cs - KÖKLÜ DEĞİŞİKLİK
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 namespace Universalscada.Models
@@ -11,18 +10,40 @@ namespace Universalscada.Models
     {
         public string MachineUserDefinedId { get; set; }
         public string BatchId { get; set; }
-        /// <summary> YENİ: Tüketim metriklerini tutan jenerik koleksiyon. Örn: "TotalElectricityKwh", "TotalWaterLiters". </summary>
+
+        /// <summary> 
+        /// Tüketim metriklerini tutan jenerik koleksiyon. 
+        /// </summary>
         public Dictionary<string, double> ConsumptionMetrics { get; set; } = new Dictionary<string, double>();
 
         public double GetMetricValue(string key)
         {
             return ConsumptionMetrics.GetValueOrDefault(key, 0);
         }
+
+        // === HATA DÜZELTME: BYMakinesiManager uyumluluğu için Property'ler eklendi ===
+        // Bu property'ler arka planda Dictionary'i günceller/okur.
+        public double TotalWater
+        {
+            get => GetMetricValue("TotalWaterLiters");
+            set => ConsumptionMetrics["TotalWaterLiters"] = value;
+        }
+
+        public double TotalElectricity
+        {
+            get => GetMetricValue("TotalElectricityKwh");
+            set => ConsumptionMetrics["TotalElectricityKwh"] = value;
+        }
+
+        public double TotalSteam
+        {
+            get => GetMetricValue("TotalSteamKg");
+            set => ConsumptionMetrics["TotalSteamKg"] = value;
+        }
     }
 
     /// <summary>
     /// Üretim sonu gerçekleşen detaylı madde tüketim verilerini tutan evrensel model.
-    /// Eski ChemicalConsumptionData modelinin yerini alır.
     /// </summary>
     public class MaterialConsumptionData
     {

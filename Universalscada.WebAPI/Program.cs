@@ -1,83 +1,71 @@
-// Dosya: Universalscada.WebAPI/Program.cs - DÜZELTÝLMÝÞ VERSÝYON
-
-// ... (using'ler ayný kalýr)
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore; // DbContext için
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Universalscada.Core; // ScadaDbContext için
-using Universalscada.Core.Core;         // AppConfig için
-using Universalscada.Core.Repositories; // Yeni Repository Arayüzleri
-using Universalscada.Core.Services;     // Yeni Core Servisleri
+using Universalscada.Core;
+using Universalscada.Core.Core;
+using Universalscada.Core.Repositories;
+using Universalscada.Core.Services;
+using Universalscada.Repositories; // Manuel Repositoryler için
+using Universalscada.Services;
 using Universalscada.WebAPI.Hubs;
 using Universalscada.WebAPI.Services;
+// Module.Textile referansý artýk .csproj'a eklendiði için bu namespace görülebilir
+using Universalscada.Module.Textile.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// 1. Core Katmanýndaki Statik Yapýlandýrmayý Koruma (Eski kodlarla uyum için)
-//Universalscada.Core.Core.AppConfig.SetConnectionString(connectionString);
+// Statik AppConfig'i de güncelle (Repository'ler buradan okuyor)
+Universalscada.core.AppConfig.Initialize(builder.Configuration);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
 
-
-// === CORE KATMANI DI KAYITLARI (EVRENSEL MÝMARÝ) BAÞLANGIÇ ===
-
-// A. DbContext Kaydý (Scoped) - DÜZELTÝLDÝ: Artýk baðlantý bilgisi burada set ediliyor
+// 1. DB Context (SQLite)
 builder.Services.AddDbContext<ScadaDbContext>(options =>
 {
-    // Artýk DbContext'in içindeki OnConfiguring deðil, bu metot çalýþacak ve zorunlu hale geldi.
     options.UseSqlite(connectionString);
 });
 
-// B. Repositories (Scoped) - Her HTTP isteði veya Scope için yeni örnek
+// 2. Repositories (Scoped)
 builder.Services.AddScoped<IMachineRepository, MachineRepository>();
 builder.Services.AddScoped<IMetaDataRepository, MetaDataRepository>();
-// Yeni Core'daki jenerik Repo'larý kaydedin:
 builder.Services.AddScoped<AlarmRepository>();
 builder.Services.AddScoped<ProductionRepository>();
-builder.Services.AddScoped<ProcessLogRepository>();
 builder.Services.AddScoped<RecipeRepository>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<DashboardRepository>();
-builder.Services.AddScoped<RecipeConfigurationRepository>();
-// Diðer Repositoriler burada Scoped olarak kaydedilmelidir.
+builder.Services.AddScoped<CostRepository>(); // Eklendi
+builder.Services.AddScoped<ProcessLogRepository>(); // Eklendi
+builder.Services.AddScoped<PlcOperatorRepository>(); // Eklendi
+builder.Services.AddScoped<RecipeConfigurationRepository>(); // Eklendi
 
-
-// C. Core Servisleri
-// LiveEventAggregator (Singleton) - Uygulama yaþam döngüsü boyunca tek bir olay yayýncýsý
+// 3. Services
 builder.Services.AddSingleton<LiveEventAggregator>();
-// PlcManagerFactory (Singleton) - Tüm makineler için tek bir fabrika örneði
-builder.Services.AddSingleton<IPlcManagerFactory, Universalscada.Module.Textile.Services.PlcManagerFactory>();
-// PlcPollingService (Singleton) - DÜZELTME SONRASI IServiceScopeFactory içerir.
+// PlcManagerFactory kaydý - Artýk proje referansý olduðu için hata vermemeli
+builder.Services.AddSingleton<IPlcManagerFactory, PlcManagerFactory>();
 builder.Services.AddSingleton<PlcPollingService>();
-builder.Services.AddSingleton<Universalscada.Services.FtpTransferService>();
-// LiveStepAnalyzer, DynamicCalculator vb. (Scoped)
+builder.Services.AddSingleton<FtpTransferService>();
 builder.Services.AddScoped<LiveStepAnalyzer>();
 builder.Services.AddScoped<IRecipeTimeCalculator, DynamicRecipeTimeCalculator>();
-// TODO: DynamicRecipeCostCalculator, FtpTransferService vb. buraya eklenmeli.
+builder.Services.AddScoped<DynamicRecipeCostCalculator>();
+builder.Services.AddSingleton<SignalRBridgeService>();
 
-
-// D. Arka Plan Hizmeti
-// PlcPollingBackgroundService'i IHostedService olarak kaydet
+// 4. Hosted Services
 builder.Services.AddHostedService<PlcPollingBackgroundService>();
 
-// === CORE KATMANI DI KAYITLARI SONU ===
-
-// Diðer JWT ve CORS yapýlandýrmasý ayný kalýr...
-// (JWT Yapýlandýrmasý)
+// JWT Auth
+var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
-var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is missing");
 
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
@@ -92,25 +80,20 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
     };
 });
-builder.Services.AddAuthorization();
 
-
-// E. Bridge Service (Singleton) - SignalR Hub'ý ile Core arasýnda köprü
-builder.Services.AddSingleton<SignalRBridgeService>();
-
-// CORS Politikasý
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll",
-        builder =>
-        {
-            builder.AllowAnyOrigin()
-                   .AllowAnyMethod()
-                   .AllowAnyHeader();
-        });
+    options.AddPolicy("AllowAll", b => b.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 });
 
 var app = builder.Build();
+
+// Veritabanýný otomatik oluþtur (Opsiyonel - Üretimde Migration kullanýlmalý)
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ScadaDbContext>();
+    dbContext.Database.EnsureCreated();
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -118,14 +101,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<ScadaHub>("/scadaHub");
 
-// Bridge servisinin (SignalRBridgeService) constructor'unun çalýþmasý için
+// Bridge servisini baþlat
 app.Services.GetRequiredService<SignalRBridgeService>();
 
 app.Run();

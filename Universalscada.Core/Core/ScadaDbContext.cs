@@ -1,7 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Universalscada.Core.Meta; // Yeni meta modeller için eklendi
+using Universalscada.Core.Meta;
 using Universalscada.Models;
 using Universalscada.Core.Models;
+
 namespace Universalscada.Core
 {
     public class ScadaDbContext : DbContext
@@ -11,25 +12,40 @@ namespace Universalscada.Core
         public DbSet<ScadaRecipeStep> RecipeSteps { get; set; }
         public DbSet<Machine> Machines { get; set; }
         public DbSet<User> Users { get; set; }
-        // ... Diğer DbSet tanımlarınız ...
         public DbSet<PlcTagDefinition> PlcTagDefinitions { get; set; }
-        // Yeni EVRENSEL Meta Veri Setleri
+
+        // Meta Veri Setleri
         public DbSet<StepTypeDefinition> StepTypeDefinitions { get; set; }
         public DbSet<StepParameterDefinition> StepParameterDefinitions { get; set; }
         public DbSet<ProcessConstant> ProcessConstants { get; set; }
+
         public ScadaDbContext(DbContextOptions<ScadaDbContext> options) : base(options)
         {
+            // Veritabanının oluşturulduğundan emin ol (Migration yoksa development için pratik)
+            // Database.EnsureCreated(); 
         }
 
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+                // Fallback connection string
+                optionsBuilder.UseSqlite("Data Source=scada_db.sqlite");
+            }
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // ProcessConstant için anahtar tanımlama
             modelBuilder.Entity<ProcessConstant>().HasKey(c => c.Key);
+
             modelBuilder.Entity<PlcTagDefinition>()
                 .HasIndex(t => new { t.MachineId, t.TagName })
                 .IsUnique();
-            // Seed Data (Başlangıç Verileri)
+
+            // SQLite decimal desteği sınırlıdır, bu yüzden conversion gerekebilir
+            // Ancak EF Core Sqlite provider'ı genellikle bunu string veya double olarak saklar.
+
             SeedData(modelBuilder);
         }
 
@@ -38,7 +54,9 @@ namespace Universalscada.Core
             // --- 1. PROSES SABİTLERİ (ProcessConstants) ---
             modelBuilder.Entity<ProcessConstant>().HasData(
                 new ProcessConstant { Key = "WATER_PER_LITER_SECONDS", Value = 0.5, Description = "Su alma süresi katsayısı (saniye/litre)." },
-                new ProcessConstant { Key = "DRAIN_SECONDS", Value = 120.0, Description = "Boşaltma işlemi için standart süre (saniye)." }
+                new ProcessConstant { Key = "DRAIN_SECONDS", Value = 120.0, Description = "Boşaltma işlemi için standart süre (saniye)." },
+                new ProcessConstant { Key = "GENERIC_ENERGY_FACTOR_KW", Value = 15.0, Description = "Ortalama enerji tüketimi (kW)." },
+                new ProcessConstant { Key = "PROCESS_RESOURCE_FACTOR", Value = 5.0, Description = "Kaynak tüketim katsayısı." }
             );
 
             // --- 2. ADIM TİPLERİ (StepTypeDefinition) ---

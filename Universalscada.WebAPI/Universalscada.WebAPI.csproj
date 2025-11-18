@@ -19,5 +19,6 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\Universalscada.core\Universalscada.core.csproj" />
+	  <ProjectReference Include="..\Universalscada.Module.Textile\Universalscada.Module.Textile.csproj" />
 	</ItemGroup>
 </Project>
