@@ -18,7 +18,6 @@
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
 	</ItemGroup>
 	<ItemGroup>
-	  <ProjectReference Include="..\..\Universalscada.Module.Textile\Universalscada.Module.Textile.csproj" />
 	  <ProjectReference Include="..\Universalscada.core\Universalscada.core.csproj" />
 	</ItemGroup>
 </Project>
