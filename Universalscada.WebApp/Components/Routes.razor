@@ -1,0 +1,38 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Universalscada.WebApp.Components.Layout
+@using Universalscada.WebApp.Components.Shared
+@* (RedirectToLogin.razor'u 'Shared' klasörüne koyduğumuzu varsayarak) *@
+
+<Router AppAssembly="@typeof(Program).Assembly">
+    <Found Context="routeData">
+        @* DefaultLayout olarak MainLayout'u kullan, ancak yetkisiz ise RedirectToLogin'a yönlendir. *@
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+            <NotAuthorized>
+                @* Kullanıcı kimliği doğrulaması TAMAMLANDI ve 
+                   sonuç "yetkisiz" ise, <RedirectToLogin /> ÇALIŞIR.
+                *@
+                <RedirectToLogin />
+            </NotAuthorized>
+            <Authorizing>
+                @* --- YENİ EKLENEN BLOK ---
+                   CustomAuthStateProvider'daki GetAuthenticationStateAsync görevi 
+                   (yani Local Storage'dan token okuma) tamamlanana kadar 
+                   <RedirectToLogin />'in çalışmasını engeller.
+                *@
+                <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Oturum kontrol ediliyor...</span>
+                    </div>
+                    <span class="ms-3">Oturum kontrol ediliyor...</span>
+                </div>
+            </Authorizing>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(MainLayout)">
+
+            <p role="alert">Üzgünüz, böyle bir sayfa bulunamadı.</p>
+        </LayoutView>
+    </NotFound>
+</Router>

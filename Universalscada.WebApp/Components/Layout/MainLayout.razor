@@ -1,0 +1,42 @@
+﻿@inherits LayoutComponentBase
+@using Universalscada.WebApp.Services
+@using Microsoft.AspNetCore.Components.Authorization @* <-- BU SATIRI EKLEYİN *@
+@inject CustomAuthStateProvider AuthProvider
+@inject NavigationManager NavigationManager
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+    <main>
+        <div class="top-row px-4">
+
+            <AuthorizeView>
+                <Authorized>
+                    @* Kullanıcı adını göstermek için span kullanın. Bootstrap'te mr-auto ile sağa kaydırılabilir. *@
+                    <a class="text-black-60 mr-auto">
+                        Hoş geldiniz, <strong>@context.User.Identity.Name</strong>
+                    </a>
+                </Authorized>
+            </AuthorizeView>
+
+            <button class="btn btn-link nav-link" @onclick="HandleLogout">Çıkış Yap</button>
+            
+        </div>
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    // Bu, kimlik durumunu yükler
+
+
+    // Bu, çıkış yap butonu için
+    private async Task HandleLogout()
+    {
+        await AuthProvider.LogoutAsync();
+        NavigationManager.NavigateTo("/login");
+    }
+}
