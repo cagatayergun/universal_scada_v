@@ -1,8 +1,11 @@
-﻿using System;
+﻿// Dosya: Universalscada.Core/Services/PlcPollingService.cs - DÜZELTİLMİŞ VERSİYON
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection; // Scope Factory için gerekli
 using Universalscada.Core.Repositories;
 using Universalscada.Models;
 using Universalscada.Repositories;
@@ -18,33 +21,32 @@ namespace Universalscada.Core.Services
         private const ushort LIVE_DATA_LENGTH = 200;
         private const int POLLING_INTERVAL_MS = 1000;
 
+        private readonly IServiceScopeFactory _scopeFactory; // DÜZELTME: Repository yerine Factory
         private readonly IPlcManagerFactory _plcManagerFactory;
-        private readonly IMachineRepository _machineRepository; // Makine listesini çekmek için gerekli
         private readonly LiveStepAnalyzer _stepAnalyzer;
-        private readonly LiveEventAggregator _eventAggregator; // Durum güncellemelerini UI/API'a iletmek için
+        private readonly LiveEventAggregator _eventAggregator;
 
-        // YENİ: Makine ID'sine göre IPlcManager'ları tutacak sözlük
+        // Makine ID'sine göre IPlcManager'ları tutacak sözlük
         private readonly Dictionary<int, IPlcManager> _plcManagers = new Dictionary<int, IPlcManager>();
         private readonly object _lock = new object(); // Sözlük erişimi için kilit
 
         public PlcPollingService(
+            IServiceScopeFactory scopeFactory, // DÜZELTME: Dependency Injection hatasını çözer
             IPlcManagerFactory plcManagerFactory,
-            IMachineRepository machineRepository,
             LiveStepAnalyzer stepAnalyzer,
             LiveEventAggregator eventAggregator)
         {
+            _scopeFactory = scopeFactory;
             _plcManagerFactory = plcManagerFactory;
-            _machineRepository = machineRepository;
             _stepAnalyzer = stepAnalyzer;
             _eventAggregator = eventAggregator;
         }
 
         /// <summary>
-        /// CS1061 Hatasını Çözer: FtpTransferService'in kullanması için PLC yöneticilerinin listesini sağlar.
+        /// FtpTransferService vb. servislerin kullanması için PLC yöneticilerinin salt okunur listesini sağlar.
         /// </summary>
         public IReadOnlyDictionary<int, IPlcManager> GetPlcManagers()
         {
-            // Dictionary'nin anlık salt okunur bir kopyasını döndürmek, harici erişimi güvence altına alır.
             lock (_lock)
             {
                 return new Dictionary<int, IPlcManager>(_plcManagers);
@@ -56,13 +58,27 @@ namespace Universalscada.Core.Services
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                // 1. Tüm makineleri veritabanından getir
-                var machines = _machineRepository.GetAllMachines();
+                try
+                {
+                    // DÜZELTME: Scope oluşturarak Scoped servis (Repository) çağrılır
+                    using (var scope = _scopeFactory.CreateScope())
+                    {
+                        // Repository'yi bu scope içinden talep et
+                        var machineRepository = scope.ServiceProvider.GetRequiredService<IMachineRepository>();
 
-                var tasks = machines.Select(machine => PollSingleMachineAsync(machine));
+                        // 1. Tüm makineleri veritabanından getir (Db context bu scope ile yaşar ve ölür)
+                        var machines = machineRepository.GetAllMachines();
 
-                // Tüm makineleri paralel olarak sorgula
-                await Task.WhenAll(tasks);
+                        // Makineleri paralel olarak sorgula
+                        var tasks = machines.Select(machine => PollSingleMachineAsync(machine));
+                        await Task.WhenAll(tasks);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Döngünün genel hatadan dolayı tamamen durmasını engellemek için loglama yapılabilir
+                    // Console.WriteLine($"Polling Loop Error: {ex.Message}");
+                }
 
                 await Task.Delay(POLLING_INTERVAL_MS, cancellationToken);
             }
@@ -83,7 +99,7 @@ namespace Universalscada.Core.Services
                 // 1. Makineye özel PLC Manager'ı fabrika ile oluştur/al
                 plcManager = _plcManagerFactory.CreatePlcManager(machine);
 
-                // 1.5. YENİ: Manager'ı sözlüğe kaydet veya güncelle
+                // 1.5. Manager'ı sözlüğe kaydet veya güncelle
                 lock (_lock)
                 {
                     if (_plcManagers.ContainsKey(machine.Id))
@@ -96,8 +112,8 @@ namespace Universalscada.Core.Services
                     }
                 }
 
-                // 2. Jenerik metot ile ham data block'u oku
-                // Bu metot, IPlcManager'ın tek jenerik veri okuma yöntemidir.
+                // 2. Jenerik metot ile ham data block'u oku (Blok Okuma - Performans İçin)
+                // NOT: KurutmaMakinesiManager bu metoda henüz sahip değil, sonraki adımda ekleyeceğiz.
                 var readResult = await plcManager.ReadDataWordsAsync(LIVE_DATA_START_ADDRESS, LIVE_DATA_LENGTH);
 
                 if (readResult.IsSuccess)
@@ -108,14 +124,12 @@ namespace Universalscada.Core.Services
                 }
                 else
                 {
-                    // Okuma hatası durumunu logla
                     status.ConnectionState = ConnectionStatus.ConnectionLost;
                     status.ActiveAlarmText = readResult.Message;
                 }
             }
             catch (Exception ex)
             {
-                // Kritik hata durumunu yakala
                 status.ConnectionState = ConnectionStatus.Disconnected;
                 status.ActiveAlarmText = $"Kritik Hata: {ex.Message}";
             }

@@ -1,7 +1,4 @@
-﻿// ======================================================
-// FILE: Universalscada.core/Services/FtpTransferService.cs
-// New property added to the TransferJob class and queue processing logic updated.
-// ======================================================
+﻿// Dosya: Universalscada.Core/Services/FtpTransferService.cs - DÜZELTİLMİŞ VE MİMARİYE UYGUN VERSİYON
 
 using HslCommunication;
 using System;
@@ -13,24 +10,23 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection; // IServiceScopeFactory için gerekli
 using Universalscada.core;
 using Universalscada.Core.Services;
 using Universalscada.Models;
 using Universalscada.Repositories;
+
 namespace Universalscada.Services
 {
+    // ... TransferJob sınıfı aynı kalır ...
     public enum TransferType { Send, Receive }
     public enum TransferStatus { Pending, Transferring, Successful, Failed }
 
     public class TransferJob : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
-
         public string TargetFileName { get; set; }
-
-        // NEWLY ADDED PROPERTY
         public int RecipeNumber { get; set; }
-
         public string RecipeName => OperationType == TransferType.Send
                                     ? (!string.IsNullOrEmpty(TargetFileName) ? $"{LocalRecipe?.RecipeName} -> {TargetFileName}" : LocalRecipe?.RecipeName)
                                     : RemoteFileName;
@@ -89,28 +85,28 @@ namespace Universalscada.Services
         public string MachineName => Machine.MachineName;
     }
 
+
     public class FtpTransferService
     {
-        // NEW: Only one 'private static' instance field is left.
-        private static readonly FtpTransferService _instance = new FtpTransferService();
-        public static FtpTransferService Instance => _instance;
+        // Singleton yapısı KALDIRILDI. Servis DI ile yönetilir.
         public event EventHandler RecipeListChanged;
         public BindingList<TransferJob> Jobs { get; } = new BindingList<TransferJob>();
         private bool _isProcessing = false;
         private SynchronizationContext _syncContext;
-        private PlcPollingService _plcPollingService;
 
-        // NEW: The constructor method takes PlcPollingService as a parameter.
-        public FtpTransferService(PlcPollingService plcPollingService)
+        // YENİ BAĞIMLILIKLAR
+        private readonly PlcPollingService _plcPollingService;
+        private readonly IServiceScopeFactory _scopeFactory; // DbContext bağımlılığını çözmek için
+
+        // DÜZELTME: Constructor artık DI'dan gelen Factory'yi kabul eder.
+        public FtpTransferService(PlcPollingService plcPollingService, IServiceScopeFactory scopeFactory)
         {
             _plcPollingService = plcPollingService;
+            _scopeFactory = scopeFactory;
         }
 
-        // NEW: Parameterless constructor, only for singleton initialization.
-        private FtpTransferService()
-        {
-            // If there are no other dependencies here, leave it empty
-        }
+        // Eski statik Instance ve özel constructor KALDIRILDI.
+
         public async Task<OperateResult<Dictionary<int, string>>> ReadRecipeNamesFromPlcAsync(IPlcManager plcManager)
         {
             try
@@ -135,12 +131,10 @@ namespace Universalscada.Services
                 for (int i = 0; i < numRecipes; i++)
                 {
                     short[] nameWords = new short[wordsPerName];
-                    // Ham veriyi (short[]) al
                     Array.Copy(data, i * wordsPerName, nameWords, 0, wordsPerName);
 
-                    // Ham veriyi stringe dönüştür (Eski BYMakinesiManager.cs'deki mantık)
                     Buffer.BlockCopy(nameWords, 0, nameBytes, 0, nameBytes.Length);
-                    string name = Encoding.ASCII.GetString(nameBytes).Trim('\uFFFD', ' '); // Encoding'i eklemeyi unutmayın
+                    string name = Encoding.ASCII.GetString(nameBytes).Trim('\uFFFD', ' ');
 
                     if (!string.IsNullOrEmpty(name))
                     {
@@ -154,6 +148,7 @@ namespace Universalscada.Services
                 return new OperateResult<Dictionary<int, string>>($"Tarif adları okunurken hata oluştu: {ex.Message}");
             }
         }
+
         public void SetSyncContext(SynchronizationContext context)
         {
             _syncContext = context;
@@ -170,6 +165,7 @@ namespace Universalscada.Services
             }
             StartProcessingIfNotRunning();
         }
+
         public void QueueSendJobs(List<ScadaRecipe> recipes, List<Machine> machines)
         {
             foreach (var machine in machines)
@@ -184,6 +180,7 @@ namespace Universalscada.Services
             }
             StartProcessingIfNotRunning();
         }
+
         public void QueueReceiveJobs(List<string> fileNames, Machine machine)
         {
             foreach (var file in fileNames)
@@ -197,9 +194,12 @@ namespace Universalscada.Services
         {
             if (!_isProcessing)
             {
-                Task.Run(() => ProcessQueue(new RecipeRepository()));
+                // DÜZELTME: RecipeRepository oluşturma ProcessQueue'a taşındı.
+                Task.Run(() => ProcessQueue());
             }
         }
+
+        // DÜZELTME: RecipeRepository artık çağırılırken parametre olarak alınıyor.
         private string GenerateNewRecipeName(TransferJob job, ScadaRecipe recipe, RecipeRepository recipeRepo)
         {
             string machineName = job.Machine.MachineName;
@@ -251,6 +251,7 @@ namespace Universalscada.Services
             string baseName = $"{machineName}-{recipeNumberPart}-{asciiPart}";
             string finalName = baseName;
             int copyCounter = 1;
+            // DÜZELTME: recipeRepo artık geçerli bir nesne.
             var existingNames = new HashSet<string>(recipeRepo.GetAllRecipes().Select(r => r.RecipeName));
 
             while (existingNames.Contains(finalName))
@@ -262,7 +263,7 @@ namespace Universalscada.Services
             return finalName;
         }
 
-        private async Task ProcessQueue(RecipeRepository recipeRepo)
+        private async Task ProcessQueue()
         {
             _isProcessing = true;
             while (Jobs.Any(j => j.Status == TransferStatus.Pending))
@@ -270,93 +271,111 @@ namespace Universalscada.Services
                 var job = Jobs.FirstOrDefault(j => j.Status == TransferStatus.Pending);
                 if (job == null) continue;
 
-                try
+                // KRİTİK DÜZELTME: Her iş için yeni bir DI scope oluştur
+                using (var scope = _scopeFactory.CreateScope())
                 {
-                    job.Status = TransferStatus.Transferring;
-                    var ftpService = new FtpService(job.Machine.VncAddress, job.Machine.FtpUsername, job.Machine.FtpPassword);
-                    job.Progress = 20;
+                    // Scope'tan gerekli servisleri talep et (RecipeRepository DbContext'e bağlıdır)
+                    var recipeRepo = scope.ServiceProvider.GetRequiredService<RecipeRepository>();
 
-                    if (job.OperationType == TransferType.Send)
+                    // RecipeCsvConverter'ın statik olmadığı varsayılırsa buradan çözülmelidir.
+                    // Şimdilik RecipeCsvConverter'ın statik olduğunu varsayarak devam ediyoruz.
+
+                    try
                     {
-                        var fullRecipe = recipeRepo.GetRecipeById(job.LocalRecipe.Id);
-                        if (fullRecipe == null || !fullRecipe.Steps.Any())
-                        {
-                            throw new Exception("Recipe not found in database or steps are empty.");
-                        }
+                        job.Status = TransferStatus.Transferring;
 
-                        // Write the recipe name to the PLC
-                        if (_plcPollingService.GetPlcManagers().TryGetValue(job.Machine.Id, out var plcManager))
+                        // FtpService DI'a kaydedilmemiş (WinSCP bağımlılığından dolayı olabilir),
+                        // bu yüzden orijinal mantıktaki gibi manuel oluşturuluyor.
+                        var ftpService = new FtpService(job.Machine.VncAddress, job.Machine.FtpUsername, job.Machine.FtpPassword);
+                        job.Progress = 20;
+
+                        if (job.OperationType == TransferType.Send)
                         {
-                            // Extract the recipe number from the target filename
-                            var recipeNumberMatch = Regex.Match(job.TargetFileName, @"XPR(\d+)\.csv");
-                            if (!recipeNumberMatch.Success || !int.TryParse(recipeNumberMatch.Groups[1].Value, out int recipeNumber))
+                            var fullRecipe = recipeRepo.GetRecipeById(job.LocalRecipe.Id);
+                            if (fullRecipe == null || !fullRecipe.Steps.Any())
                             {
-                                throw new Exception("Invalid target filename format. Recipe number could not be extracted.");
+                                throw new Exception("Recipe not found in database or steps are empty.");
                             }
 
-                            // Call the method to write to the PLC
-                            var writeResult = await plcManager.WriteRecipeNameAsync(recipeNumber, fullRecipe.RecipeName);
-                            if (!writeResult.IsSuccess)
+                            // PLC'ye reçete adını yazma (Polling Service aktif bağlantıyı sağlar)
+                            if (_plcPollingService.GetPlcManagers().TryGetValue(job.Machine.Id, out var plcManager))
                             {
-                                throw new Exception($"Recipe name could not be written to PLC: {writeResult.Message}");
+                                var recipeNumberMatch = Regex.Match(job.TargetFileName, @"XPR(\d+)\.csv");
+                                if (!recipeNumberMatch.Success || !int.TryParse(recipeNumberMatch.Groups[1].Value, out int recipeNumber))
+                                {
+                                    throw new Exception("Invalid target filename format. Recipe number could not be extracted.");
+                                }
+
+                                var writeResult = await plcManager.WriteRecipeNameAsync(recipeNumber, fullRecipe.RecipeName);
+                                if (!writeResult.IsSuccess)
+                                {
+                                    throw new Exception($"Recipe name could not be written to PLC: {writeResult.Message}");
+                                }
                             }
+                            else
+                            {
+                                throw new Exception("PLC connection is not active, recipe name could not be written to PLC.");
+                            }
+
+                            // Step 99 Güncelleme (ASCII ile isim gömme mantığı)
+                            string nameToEmbed = job.LocalRecipe.RecipeName;
+                            if (nameToEmbed.Length > 10)
+                            {
+                                nameToEmbed = nameToEmbed.Substring(0, 10);
+                            }
+                            byte[] asciiBytes = new byte[10];
+                            Encoding.ASCII.GetBytes(nameToEmbed, 0, nameToEmbed.Length, asciiBytes, 0);
+                            var step99 = fullRecipe.Steps.FirstOrDefault(s => s.StepNumber == 99);
+                            if (step99 == null)
+                            {
+                                step99 = new ScadaRecipeStep { StepNumber = 99 };
+                                fullRecipe.Steps.Add(step99);
+                                fullRecipe.Steps = fullRecipe.Steps.OrderBy(s => s.StepNumber).ToList();
+                            }
+
+                            for (int i = 0; i < 5; i++)
+                            {
+                                // StepDataWords'ün boyutunun kontrol edilmesi gerekebilir
+                                step99.StepDataWords[i] = BitConverter.ToInt16(asciiBytes, i * 2);
+                            }
+
+                            job.Progress = 50;
+
+                            // RecipeCsvConverter'ın statik olduğu varsayılıyor.
+                            string csvContent = RecipeCsvConverter.ToCsv(fullRecipe);
+                            await ftpService.UploadFileAsync(job.TargetFileName, csvContent);
                         }
-                        else
+                        else // Receive
                         {
-                            throw new Exception("PLC connection is not active, recipe name could not be written to PLC.");
+                            var csvContent = await ftpService.DownloadFileAsync(job.RemoteFileName);
+                            job.Progress = 50;
+
+                            // RecipeCsvConverter'ın statik olduğu varsayılıyor.
+                            var tempRecipe = RecipeCsvConverter.ToRecipe(csvContent, job.RemoteFileName);
+
+                            // DÜZELTME: GenerateNewRecipeName'e scoped RecipeRepo geçildi.
+                            string newFormattedName = this.GenerateNewRecipeName(job, tempRecipe, recipeRepo);
+                            tempRecipe.RecipeName = newFormattedName;
+                            tempRecipe.TargetMachineType = !string.IsNullOrEmpty(job.Machine.MachineSubType) ? job.Machine.MachineSubType : job.Machine.MachineType;
+
+                            recipeRepo.AddOrUpdateRecipe(tempRecipe);
+                            RecipeListChanged?.Invoke(this, EventArgs.Empty);
                         }
 
-                        // Update step 99 to embed the recipe name in the PLC
-                        string nameToEmbed = job.LocalRecipe.RecipeName;
-                        if (nameToEmbed.Length > 10)
-                        {
-                            nameToEmbed = nameToEmbed.Substring(0, 10);
-                        }
-                        byte[] asciiBytes = new byte[10];
-                        Encoding.ASCII.GetBytes(nameToEmbed, 0, nameToEmbed.Length, asciiBytes, 0);
-                        var step99 = fullRecipe.Steps.FirstOrDefault(s => s.StepNumber == 99);
-                        if (step99 == null)
-                        {
-                            step99 = new ScadaRecipeStep { StepNumber = 99 };
-                            fullRecipe.Steps.Add(step99);
-                            fullRecipe.Steps = fullRecipe.Steps.OrderBy(s => s.StepNumber).ToList();
-                        }
+                        job.Progress = 100;
+                        job.Status = TransferStatus.Successful;
 
-                        for (int i = 0; i < 5; i++)
-                        {
-                            step99.StepDataWords[i] = BitConverter.ToInt16(asciiBytes, i * 2);
-                        }
-
-                        job.Progress = 50;
-
-                        string csvContent = RecipeCsvConverter.ToCsv(fullRecipe);
-                        await ftpService.UploadFileAsync(job.TargetFileName, csvContent);
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        var csvContent = await ftpService.DownloadFileAsync(job.RemoteFileName);
-                        job.Progress = 50;
-                        var tempRecipe = RecipeCsvConverter.ToRecipe(csvContent, job.RemoteFileName);
-                        string newFormattedName = this.GenerateNewRecipeName(job, tempRecipe, recipeRepo);
-                        tempRecipe.RecipeName = newFormattedName;
-                        tempRecipe.TargetMachineType = !string.IsNullOrEmpty(job.Machine.MachineSubType) ? job.Machine.MachineSubType : job.Machine.MachineType;
-                        recipeRepo.AddOrUpdateRecipe(tempRecipe);
-                        RecipeListChanged?.Invoke(this, EventArgs.Empty);
+                        job.Status = TransferStatus.Failed;
+                        job.ErrorMessage = ex.Message;
                     }
-
-                    job.Progress = 100;
-                    job.Status = TransferStatus.Successful;
-
-                }
-                catch (Exception ex)
-                {
-                    job.Status = TransferStatus.Failed;
-                    job.ErrorMessage = ex.Message;
-                }
-                finally
-                {
-                    _syncContext?.Post(_ => { }, null);
-                }
+                    finally
+                    {
+                        _syncContext?.Post(_ => { }, null);
+                    }
+                } // Scope biter ve DbContext temizlenir.
             }
             _isProcessing = false;
         }
@@ -369,8 +388,7 @@ namespace Universalscada.Services
                 string targetFileName = $"XPR{currentRecipeNumber:D5}.csv";
                 foreach (var machine in machines)
                 {
-                    // CORRECTION: Check only for pending jobs.
-                    // If there is no pending job for the same machine and recipe, add a new one.
+                    // DÜZELTME: Sadece bekleyen işler kontrol ediliyor.
                     if (!Jobs.Any(j => j.Machine.Id == machine.Id && j.LocalRecipe?.Id == recipe.Id && j.TargetFileName == targetFileName && j.Status == TransferStatus.Pending))
                     {
                         Jobs.Add(new TransferJob

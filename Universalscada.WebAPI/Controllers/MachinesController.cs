@@ -1,24 +1,32 @@
-﻿// Dosya: Universalscada.WebAPI/Controllers/MachinesController.cs - GÜNCEL VERSİYON
+﻿// Dosya: Universalscada.WebAPI/Controllers/MachinesController.cs - DÜZELTİLMİŞ VERSİYON
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Universalscada.Core.Repositories;
-using Universalscada.Core.Services;
+using Universalscada.Core.Services; // PlcPollingService için gerekli
 using Universalscada.Models;
+using Universalscada.Services; // IPlcManager için gerekli
 
 [Authorize]
 [Route("api/[controller]")]
 [ApiController]
 public class MachinesController : ControllerBase
 {
-    // IMachineRepository, Machine modelinin esnek Sector ve MachineConfigurationJson alanlarını içerir.
     private readonly IMachineRepository _machineRepository;
-    private readonly IPlcManagerFactory _plcManagerFactory; // PLC komutları için gerekli
+    // DÜZELTME: Polling servisinden aktif PLC Manager listesine erişmek için eklendi.
+    private readonly PlcPollingService _pollingService;
 
-    public MachinesController(IMachineRepository machineRepository, IPlcManagerFactory plcManagerFactory)
+    // IPlcManagerFactory'yi constructor'dan kaldırıyoruz, çünkü artık aktif manager'ları 
+    // doğrudan PollingService tutuyor. Yeni bir manager oluşturmaya ihtiyaç kalmadı.
+    // private readonly IPlcManagerFactory _plcManagerFactory; 
+
+    public MachinesController(IMachineRepository machineRepository, PlcPollingService pollingService)
     {
         _machineRepository = machineRepository;
-        _plcManagerFactory = plcManagerFactory;
+        _pollingService = pollingService;
+        // _plcManagerFactory = plcManagerFactory; // KALDIRILDI
     }
 
     /// <summary>
@@ -27,7 +35,6 @@ public class MachinesController : ControllerBase
     [HttpGet]
     public ActionResult<IEnumerable<Machine>> GetAllMachines()
     {
-        // Repository'den jenerik Machine listesini çek.
         var machines = _machineRepository.GetAllMachines();
         return Ok(machines);
     }
@@ -48,25 +55,34 @@ public class MachinesController : ControllerBase
 
     /// <summary>
     /// Makineye PLC'den AcknowledgeAlarm komutu gönderir.
-    /// IPlcManager arayüzü sayesinde tüm PLC tipleriyle uyumludur.
+    /// Polling servisinin yönettiği aktif bağlantıyı kullanır.
     /// </summary>
     [HttpPost("{id}/acknowledgeAlarm")]
     public async Task<IActionResult> AcknowledgeAlarm(int id)
     {
         var machine = _machineRepository.GetMachineById(id);
-        if (machine == null) return NotFound();
+        if (machine == null) return NotFound("Makine bulunamadı.");
 
-        // Fabrika kullanarak makine tipine uygun PLC Manager'ı al.
-        var plcManager = _plcManagerFactory.CreatePlcManager(machine); //
+        // 1. Polling servisinden aktif PLC Manager'ı al.
+        var activeManagers = _pollingService.GetPlcManagers();
+        IPlcManager plcManager;
 
-        // Jenerik PLC komutunu çağır.
-        var result = await plcManager.AcknowledgeAlarm(); //
+        if (!activeManagers.TryGetValue(id, out plcManager) || plcManager == null)
+        {
+            // Bağlantı listesinde yoksa (aktif olarak sorgulanmıyorsa)
+            return StatusCode(503, new { Message = $"{machine.MachineName} şu anda aktif olarak bağlı değil veya Polling servisi başlamamış." });
+        }
+
+        // 2. Jenerik PLC komutunu çağır.
+        var result = await plcManager.AcknowledgeAlarm();
 
         if (result.IsSuccess)
         {
-            return Ok(new { Message = $"{machine.MachineName} alarmı onaylandı." });
+            return Ok(new { Message = $"{machine.MachineName} alarmı aktif bağlantı üzerinden onaylandı." });
         }
-        return BadRequest(result.Message);
+
+        // 3. PLC komutu hata verdi (Örn: PLC'ye erişim kesildi, komut yazılamadı)
+        return BadRequest(new { Message = $"Alarm onaylama işlemi başarısız: {result.Message}" });
     }
 
     // PUT ve POST metotları da jenerik Machine modelini kabul etmelidir.

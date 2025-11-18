@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿// Dosya: Universalscada.Core/Repositories/MetaDataRepository.cs - DÜZELTİLMİŞ VERSİYON
+
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks; // Task için gerekli
@@ -49,27 +51,38 @@ namespace Universalscada.Core.Repositories
             return defaultValue;
         }
 
+        // === PLC TAG YÖNETİMİ METOTLARI DÜZELTMELERİ ===
+
         /// <summary>
-        /// Task<List<PlcTagDefinition>> dönüş tipini uygulamak için önceki düzeltme.
+        /// Belirtilen makine ID'sine ait tüm PLC Tag Tanımlarını asenkron olarak getirir.
         /// </summary>
-        public Task<List<PlcTagDefinition>> GetPlcTagDefinitionsAsync(int machineId, string machineType)
+        public async Task<List<PlcTagDefinition>> GetPlcTagDefinitionsAsync(int machineId, string machineType)
         {
-            // Gerçek sorgulama mantığı buraya eklenecektir.
-            return Task.FromResult(new List<PlcTagDefinition>());
+            // Bu metot, GetAllPlcTagsAsync metodunu çağırarak iş mantığını yeniden kullanır.
+            // machineType, gelecekte özel filtreleme için kullanılabilir.
+            return await GetAllPlcTagsAsync(machineId);
         }
 
         /// <summary>
-        /// CS0738 Hata Düzeltme: Dönüş tipi Task<PlcTagDefinition> olarak düzeltildi.
+        /// Yeni bir PLC Tag Tanımını kaydeder veya mevcut olanı günceller.
         /// </summary>
-        public Task<PlcTagDefinition> SavePlcTagDefinitionAsync(PlcTagDefinition tagDefinition)
+        public async Task<PlcTagDefinition> SavePlcTagDefinitionAsync(PlcTagDefinition tagDefinition)
         {
-            // Bu metot için PLC Tag Tanımlarını kaydetme/güncelleme mantığı uygulanmalıdır.
-            // Örneğin: _context.PlcTagDefinitions.Update(tagDefinition); await _context.SaveChangesAsync();
-
-            // Arayüzün beklediği Task<PlcTagDefinition> tipini döndürmek için
-            return Task.FromResult(tagDefinition);
+            if (tagDefinition.Id == 0)
+            {
+                // Yeni kayıt (Add)
+                return await AddPlcTagAsync(tagDefinition);
+            }
+            else
+            {
+                // Mevcut kayıt (Update)
+                await UpdatePlcTagAsync(tagDefinition);
+                return tagDefinition;
+            }
         }
-        // Tag Yönetimi Metotları
+
+        // --- Diğer Tag Yönetimi Metotları (Tamamlanmış Hali) ---
+
         public async Task<List<PlcTagDefinition>> GetAllPlcTagsAsync(int machineId)
         {
             return await _context.PlcTagDefinitions
@@ -84,6 +97,7 @@ namespace Universalscada.Core.Repositories
 
         public async Task<PlcTagDefinition> AddPlcTagAsync(PlcTagDefinition tag)
         {
+            // Aynı MachineId ve TagName kombinasyonunun benzersizliğini kontrol etmek iyi bir pratik olabilir (Unique Index ScadaDbContext'te tanımlı).
             _context.PlcTagDefinitions.Add(tag);
             await _context.SaveChangesAsync();
             return tag;

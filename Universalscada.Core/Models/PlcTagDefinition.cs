@@ -45,5 +45,7 @@ namespace Universalscada.Core.Models
         // İlişki
         [ForeignKey("MachineId")]
         public Machine Machine { get; set; }
+        public bool IsLiveStatus { get; set; } = true;
+        public int WordIndex { get; set; }
     }
 }

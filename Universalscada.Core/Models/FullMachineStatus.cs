@@ -59,7 +59,18 @@ namespace Universalscada.Models
         // Eski: public short AnlikSicaklik { get; set; } -> LiveDataPoints["TEMPERATURE_PV"]
         // Eski: public string MakineTipi { get; set; } -> Machine sınıfına taşındı.
         // ... Diğer tüm domain-specific özellikler kaldırılmalıdır.
-
+        public short AktifAdimTipiWordu { get; set; }
+        public string OperatorIsmi { get; set; }
+        public string SiparisNumarasi { get; set; }
+        public string MusteriNumarasi { get; set; }
+        public short CalismaSuresiDakika { get; set; }
+        public int TotalDownTimeSeconds { get; set; }
+        public short TotalProductionCount { get; set; }
+        public short DefectiveProductionCount { get; set; }
+        public short ActualQuantityProduction { get; set; }
+        public short[] AktifAdimDataWords { get; set; }
+        public bool manuel_status { get; set; }
+        
         public FullMachineStatus()
         {
             // İhtiyaç olursa başlangıçta ortak/temel noktalar eklenebilir.
