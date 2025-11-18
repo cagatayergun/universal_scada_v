@@ -17,7 +17,9 @@ namespace Universalscada.Core
         public DbSet<StepTypeDefinition> StepTypeDefinitions { get; set; }
         public DbSet<StepParameterDefinition> StepParameterDefinitions { get; set; }
         public DbSet<ProcessConstant> ProcessConstants { get; set; }
-
+        public ScadaDbContext(DbContextOptions<ScadaDbContext> options) : base(options)
+        {
+        }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
