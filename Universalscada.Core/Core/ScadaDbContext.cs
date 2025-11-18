@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Universalscada.Models;
 using Universalscada.Core.Meta; // Yeni meta modeller için eklendi
-
+using Universalscada.Models;
+using Universalscada.Core.Models;
 namespace Universalscada.Core
 {
     public class ScadaDbContext : DbContext
@@ -12,7 +12,7 @@ namespace Universalscada.Core
         public DbSet<Machine> Machines { get; set; }
         public DbSet<User> Users { get; set; }
         // ... Diğer DbSet tanımlarınız ...
-
+        public DbSet<PlcTagDefinition> PlcTagDefinitions { get; set; }
         // Yeni EVRENSEL Meta Veri Setleri
         public DbSet<StepTypeDefinition> StepTypeDefinitions { get; set; }
         public DbSet<StepParameterDefinition> StepParameterDefinitions { get; set; }

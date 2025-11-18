@@ -1,6 +1,7 @@
 ﻿// Universalscada.Core/Repositories/IMetaDataRepository.cs
 using System.Collections.Generic;
 using Universalscada.Core.Meta;
+using Universalscada.Core.Models;
 
 namespace Universalscada.Core.Repositories
 {
@@ -19,7 +20,8 @@ namespace Universalscada.Core.Repositories
 
         // Bir proses sabitinin değerini anahtarına göre getirir.
         double GetConstantValue(string key, double defaultValue = 0.0);
-
+        Task<List<PlcTagDefinition>> GetPlcTagDefinitionsAsync(int machineId, string viewContext);
+        Task<PlcTagDefinition> SavePlcTagDefinitionAsync(PlcTagDefinition tag);
         // TODO: Makineye özel PLC adres haritasını getiren metot eklenebilir.
         // MachineConfiguration GetMachineConfiguration(string machineType, string sector); 
     }

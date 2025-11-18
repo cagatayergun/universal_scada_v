@@ -1,16 +1,18 @@
 ﻿// Universalscada.Core/Meta/StepTypeDefinition.cs
+using System.Collections.Generic; // 'ICollection' kullanımı için eklendi
+
 namespace Universalscada.Core.Meta
 {
     /// <summary>
-    /// Proses adımının türünü (örneğin: Su Alma, Isıtma) tanımlar.
+    /// Proses adımının türünü (örneğin: Malzeme Transferi, Isıl İşlem, Ayarlama) tanımlar.
     /// Bu bilgiler veritabanında (SQLite) tutulacaktır.
     /// </summary>
     public class StepTypeDefinition
     {
         public int Id { get; set; }
-        // Evrensel Ad: Örneğin, "WATER_TRANSFER", "HEAT_RAMP"
+        // Evrensel Ad: Örneğin, "MATERIAL_TRANSFER", "PROCESS_RAMP"
         public string UniversalName { get; set; }
-        // Kullanıcı arayüzünde görüntülenecek yerelleştirilebilir Ad: "Su Alma"
+        // Kullanıcı arayüzünde görüntülenecek yerelleştirilebilir Ad: "Transfer", "Isıtma", "Basınç Ayarı" vb.
         public string DisplayNameKey { get; set; }
         // PLC'deki kontrol word'ünde bu adımı aktive eden bit (örneğin: 1. bit)
         public int ControlWordBit { get; set; }
@@ -28,14 +30,14 @@ namespace Universalscada.Core.Meta
     {
         public int Id { get; set; }
         public int StepTypeDefinitionId { get; set; }
-        // Parametrenin anahtarı (Örn: QUANTITY_LITERS, TARGET_TEMP)
+        // Parametrenin anahtarı (Örn: TARGET_VALUE, DURATION_SECONDS, RESOURCE_FLOW)
         public string ParameterKey { get; set; }
         // Ham veri dizisindeki (short[25]) karşılık gelen word indexi (Örn: 1, 3, 4)
         public int WordIndex { get; set; }
         // Veri Tipi (Örn: short, byte, string). UI için kritik.
         public string DataType { get; set; }
 
-        // UI'da kullanılacak ek meta veriler (Birim, Min/Max Değer, UI Kontrol Tipi)
+        // UI'da kullanılacak ek meta veriler (Birim - örneğin kg, metre, Min/Max Değer, UI Kontrol Tipi)
         public string Unit { get; set; }
 
         // EF Core için navigasyon özelliği

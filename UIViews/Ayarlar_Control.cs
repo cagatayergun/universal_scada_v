@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Windows.Forms;
 using Universalscada.core;
+using Universalscada.Core.Repositories;
 using Universalscada.Properties;
 using Universalscada.Repositories;
 using Universalscada.Services; // Bu using artık gereksiz olabilir
@@ -18,7 +19,7 @@ namespace Universalscada.UI.Views
         private readonly PlcOperatorSettings_Control _plcOperatorSettings;
         private readonly CostSettings_Control _costSettings;
         private readonly RecipeStepDesigner_Control _recipeStepDesigner;
-
+        private IMachineRepository _machineRepository;
         public Ayarlar_Control()
         {
             InitializeComponent();
@@ -90,8 +91,9 @@ namespace Universalscada.UI.Views
 
         // === DEĞİŞTİ: InitializeControl ===
         // 'plcManagers' parametresi kaldırıldı.
-        public void InitializeControl(MachineRepository machineRepo)
+        public void InitializeControl(IMachineRepository machineRepository)
         {
+            _machineRepository = machineRepository;
             // _plcOperatorSettings'e artık 'plcManagers' geçilmiyor.
             // BİR SONRAKİ ADIM: 'PlcOperatorSettings_Control.cs' dosyasını düzenlemek olacak.
             _plcOperatorSettings.InitializeControl(machineRepo);
@@ -105,12 +107,12 @@ namespace Universalscada.UI.Views
         public void ApplyLocalization()
         {
             // ... (Bu metotta hiçbir değişiklik yok) ...
-            tabPageMachineSettings.Text = Resources.MachineManagement;
-            tabPageUserSettings.Text = Resources.UserManagement;
-            tabPageAlarmSettings.Text = Resources.AlarmSettings;
-            tabPageCostSettings.Text = Resources.cost;
-            tabPagePlcOperators.Text = Resources.PlcOperatorManagement;
-            tabPageRecipeDesigner.Text = Resources.recipedesigner;
+            tabPageMachineSettings.Text = Resources.MachineManagementTitle;
+            tabPageUserSettings.Text = Resources.UserManagementTitle;
+            tabPageAlarmSettings.Text = Resources.AlarmDefinitionTitle;
+            tabPageCostSettings.Text = Resources.CostParametersTitle;
+            tabPagePlcOperators.Text = Resources.PlcOperatorManagementTitle;
+            tabPageRecipeDesigner.Text = Resources.RecipeStepDesignerTitle;
         }
     }
 }

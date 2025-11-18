@@ -2,50 +2,64 @@
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using Universalscada.Core.Models;
+using Universalscada.Core.Repositories; // IMetaDataRepository için gerekli
 using Universalscada.Models;
-// using Universalscada.Services; // KALDIRILDI
 using Universalscada.UI.Controls;
 
 namespace Universalscada.UI.Views
 {
     public partial class Prosesİzleme_Control : UserControl
     {
+        // === MEVCUT EVENT'ler: Hata CS1061'i çözer ===
         public event EventHandler<int> MachineDetailsRequested;
         public event EventHandler<int> MachineVncRequested;
 
-        // === KALDIRILDI ===
-        // private PlcPollingService _pollingService;
+        private readonly IMetaDataRepository _metaDataRepository; // DI ile alınan yeni bağımlılık
+        private readonly IMachineRepository _machineRepository;
 
-        // Makine kartlarını ID ile hızlıca bulmak için
         private readonly Dictionary<int, MachineCard_Control> _machineCards = new Dictionary<int, MachineCard_Control>();
 
-        public Prosesİzleme_Control()
+        // === CONSTRUCTOR: Hata CS7036'yı çözer ===
+        public Prosesİzleme_Control(IMetaDataRepository metaDataRepository, IMachineRepository machineRepository)
         {
+            // InitializeComponent, tasarımcı dosyasında tanımlı olduğu için burada kalmalıdır (CS0103 tasarım anında oluşur).
             InitializeComponent();
             this.DoubleBuffered = true;
+            _metaDataRepository = metaDataRepository;
+            _machineRepository = machineRepository;
         }
 
-        // === DEĞİŞTİ: InitializeView ===
-        // PlcPollingService parametresi kaldırıldı
+        // === InitializeView: Hata CS1061'i çözmek için yeniden eklendi/güncellendi ===
+        // Bu metot, MainForm tarafından makine listesini başlatmak için çağrılır.
         public void InitializeView(List<Machine> machines)
         {
-            ClearView(); // Önceki kartları ve event'leri temizle
+            // Not: Dinamik UI kodlarını (LoadDynamicProcessView) bu metot içinde veya
+            // ayrı bir metotta çağırarak makine ID'sine göre ekranı şekillendireceksiniz.
 
-            // _pollingService = service; // KALDIRILDI
-
-            // === KALDIRILDI ===
-            // _pollingService.OnMachineDataRefreshed += PollingService_OnMachineDataRefreshed;
-            // _pollingService.OnMachineConnectionStateChanged += PollingService_OnMachineConnectionStateChanged;
+            ClearView();
 
             foreach (var machine in machines)
             {
-                // MachineCard_Control'ün de _pollingService bağımlılığı olMAMAlı.
                 var card = new MachineCard_Control(machine.Id, machine.MachineUserDefinedId, machine.MachineName, machine.Id);
                 card.DetailsRequested += Card_DetailsRequested;
                 card.VncRequested += Card_VncRequested;
                 _machineCards.Add(machine.Id, card);
+                // flowLayoutPanelMachines, Designer dosyasında tanımlı olmalıdır.
                 flowLayoutPanelMachines.Controls.Add(card);
             }
+        }
+
+        // ... Card_DetailsRequested, Card_VncRequested, ClearView metotları ...
+
+        private void ClearView()
+        {
+            foreach (var card in _machineCards.Values)
+            {
+                card.Dispose();
+            }
+            _machineCards.Clear();
+            // flowLayoutPanelMachines.Controls.Clear();
         }
 
         private void Card_DetailsRequested(object sender, EventArgs e)
@@ -66,45 +80,19 @@ namespace Universalscada.UI.Views
             }
         }
 
-        private void ClearView()
-        {
-            // === KALDIRILDI ===
-            // if (_pollingService != null)
-            // {
-            //     _pollingService.OnMachineDataRefreshed -= PollingService_OnMachineDataRefreshed;
-            //     _pollingService.OnMachineConnectionStateChanged -= PollingService_OnMachineConnectionStateChanged;
-            // }
 
-            foreach (var card in _machineCards.Values)
-            {
-                card.Dispose();
-            }
-            _machineCards.Clear();
-            flowLayoutPanelMachines.Controls.Clear();
-        }
-
-        // === KALDIRILDI ===
-        // Bu event handler'lar artık PlcPollingService'e bağlı olmadığı için kaldırıldı.
-        // private void PollingService_OnMachineConnectionStateChanged(int machineId, FullMachineStatus status)
-        // { ... }
-        // private void PollingService_OnMachineDataRefreshed(int machineId, FullMachineStatus status)
-        // { ... }
-
-
-        // === YENİ METOD ===
-        // MainForm'dan gelen SignalR verilerini almak için eklendi.
-        // Bu metod, eski PollingService event handler'larının görevini üstlenir.
+        // === YENİ METOD: Hata CS1061'i çözer ===
+        // MainForm'dan gelen SignalR verilerini (FullMachineStatus) almak için kullanılır.
         public void UpdateMachineStatus(FullMachineStatus status)
         {
             if (_machineCards.TryGetValue(status.MachineId, out var card))
             {
                 if (this.IsHandleCreated && !this.IsDisposed)
                 {
-                    // BeginInvoke, UI thread'inde güvenli güncelleme yapar
                     this.BeginInvoke(new Action(() => {
                         if (!card.IsDisposed)
                         {
-                            card.UpdateView(status); // MachineCard_Control'deki güncelleme metodu
+                            card.UpdateView(status); // MachineCard_Control'ün içindeki güncelleme metodunu çağırır.
                         }
                     }));
                 }

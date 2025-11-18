@@ -8,7 +8,7 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using Universalscada.core;
-using Universalscada.core.Services;
+using Universalscada.Core.Services;
 using Universalscada.Core;
 using Universalscada.Core.Core;
 using Universalscada.Core.Repositories;
@@ -32,7 +32,7 @@ namespace Universalscada
         // DI ile alýnan baðýmlýlýklar artýk constructor'dan atanacak.
         // Manuel oluþturma ortadan kalktýðý için DI nesneleri artýk burada tanýmlý.
         private readonly FtpTransferService _ftpTransferService;
-        private readonly MachineRepository _machineRepository;
+       // private readonly MachineRepository _machineRepository;
         private readonly RecipeRepository _recipeRepository;
         private readonly ProcessLogRepository _processLogRepository;
         private readonly AlarmRepository _alarmRepository;
@@ -40,7 +40,7 @@ namespace Universalscada
         private readonly DashboardRepository _dashboardRepository;
         private readonly CostRepository _costRepository;
         private readonly UserRepository _userRepository;
-
+        private readonly IMachineRepository _machineRepository; // DEÐÝÞTÝ
         // === KALDIRILDI ===
         // private readonly ScadaDbContext _dbContext; 
         // private readonly IMetaDataRepository _metaDataRepository;
@@ -51,7 +51,7 @@ namespace Universalscada
         // === YENÝ ===
         private HubConnection _hubConnection; // SignalR baðýmlýlýðý DI ile alýnamaz/almýyoruz, bu yüzden burada kalýyor.
         private readonly ConcurrentDictionary<int, FullMachineStatus> _machineDataCache; // Canlý veri önbelleði (Constructor'da new'lenmeli)
-
+        private readonly IMetaDataRepository _metaDataRepository;
         // Arayüz Kontrolleri (Views)
         private readonly ProsesÝzleme_Control _prosesIzlemeView;
         private readonly ProsesKontrol_Control _prosesKontrolView;
@@ -65,21 +65,23 @@ namespace Universalscada
 
 
         // CONSTRUCTOR ENJEKSÝYONU: Tüm baðýmlýlýklar DI konteynerinden alýnýr
-        public MainForm(
-            FtpTransferService ftpTransferService,
-            MachineRepository machineRepository,
-            RecipeRepository recipeRepository,
-            ProcessLogRepository processLogRepository,
-            AlarmRepository alarmRepository,
-            ProductionRepository productionRepository,
-            DashboardRepository dashboardRepository,
-            CostRepository costRepository,
-            UserRepository userRepository)
+        public MainForm(
+             FtpTransferService ftpTransferService,
+             IMachineRepository machineRepository, // Tipin arayüz olmasý daha doðru
+             RecipeRepository recipeRepository,
+             ProcessLogRepository processLogRepository,
+             AlarmRepository alarmRepository,
+             ProductionRepository productionRepository,
+             DashboardRepository dashboardRepository,
+             CostRepository costRepository,
+             UserRepository userRepository,
+             IMetaDataRepository metaDataRepository)
         {
             InitializeComponent();
 
             // 1. ADIM: Baðýmlýlýklarý alanlara atama
             _ftpTransferService = ftpTransferService;
+
             _machineRepository = machineRepository;
             _recipeRepository = recipeRepository;
             _processLogRepository = processLogRepository;
@@ -88,12 +90,13 @@ namespace Universalscada
             _dashboardRepository = dashboardRepository;
             _costRepository = costRepository;
             _userRepository = userRepository;
-
+            _metaDataRepository = metaDataRepository; // YENÝ ATAMA
             // Manuel new'leme artýk sadece UI nesneleri ve SignalR için kullanýlýr
             _machineDataCache = new ConcurrentDictionary<int, FullMachineStatus>();
 
             // Arayüz Kontrolleri (Views) oluþturulur
-            _prosesIzlemeView = new ProsesÝzleme_Control();
+            _prosesIzlemeView = new ProsesÝzleme_Control(_metaDataRepository, _machineRepository);
+           
             _prosesKontrolView = new ProsesKontrol_Control();
             _ayarlarView = new Ayarlar_Control();
             _makineDetayView = new MakineDetay_Control();
@@ -313,13 +316,14 @@ namespace Universalscada
                 // Makine listesini yeniden oku
                 machines1 = _machineRepository.GetAllMachines();
             }
-            // === YENÝ LÝSANS KONTROLÜ BÝTÝÞÝ ===
+            // === YENÝ LÝSANS KONTROLÜ BÝTÝÞÝ ===
 
-            // Sunucuya (WebAPI) baðlanmaya gerek yok, sadece veritabanýndan makineleri oku
-            List<Machine> machines = _machineRepository.GetAllEnabledMachines();
+            // Sunucuya (WebAPI) baðlanmaya gerek yok, sadece veritabanýndan makineleri oku
+            List<Machine> machines = _machineRepository.GetAllEnabledMachines();
             if (machines == null)
             {
-                MessageBox.Show(Resources.DatabaseConnectionFailed, Resources.CriticalError, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                // Hata CS0117'yi çözer: Resource anahtarlarý düzeltildi
+                MessageBox.Show(Resources.DatabaseConnectionFailedMessage, Resources.CriticalErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -331,11 +335,10 @@ namespace Universalscada
             // _pollingService ve plcManagers parametrelerini kaldýrmanýz GEREKÝR.
 
             _prosesIzlemeView.InitializeView(machines); // Parametreler kaldýrýldý
-            _prosesKontrolView.InitializeControl(_recipeRepository, _machineRepository, _ftpTransferService); // Parametreler kaldýrýldý
-            _ayarlarView.InitializeControl(_machineRepository); // Parametreler kaldýrýldý
+            _prosesKontrolView.InitializeControl(_recipeRepository, _machineRepository, _ftpTransferService);
+            _ayarlarView.InitializeControl(_machineRepository);
             _raporlarView.InitializeControl(_machineRepository, _alarmRepository, _productionRepository, _dashboardRepository, _processLogRepository, _recipeRepository, _costRepository);
-            _genelBakisView.InitializeControl(_machineRepository, _dashboardRepository, _alarmRepository, _processLogRepository, _productionRepository); // Parametre kaldýrýldý
-
+            _genelBakisView.InitializeControl(_machineRepository, _dashboardRepository, _alarmRepository, _processLogRepository, _productionRepository);
             _ayarlarView.RefreshMachineSettingsView();
 
             // ... (ShowView mantýðý ayný kalýr) ...
@@ -367,17 +370,17 @@ namespace Universalscada
             btnProsesKontrol.Text = Universalscada.Localization.Strings.MainMenu_ProcessControl;
             btnRaporlar.Text = Universalscada.Localization.Strings.MainMenu_Reports;
             btnAyarlar.Text = Universalscada.Localization.Strings.MainMenu_Settings;
-            dilToolStripMenuItem.Text = Resources.Language;
-            oturumToolStripMenuItem.Text = Resources.Session;
-            çýkýþYapToolStripMenuItem.Text = Resources.Logout;
-            lblStatusLiveEvents.Text = Resources.Livelogsee;
+            dilToolStripMenuItem.Text = Resources.LanguageMenu;
+            oturumToolStripMenuItem.Text = Resources.SessionTitle;
+            çýkýþYapToolStripMenuItem.Text = Resources.LogoutButton;
+            lblStatusLiveEvents.Text = Resources.ViewLiveEventStreamButton;
         }
 
         private void UpdateUserInfoAndPermissions()
         {
             if (CurrentUser.IsLoggedIn)
             {
-                lblStatusCurrentUser.Text = $"{Resources.Loggedin}: {CurrentUser.User.FullName}";
+                lblStatusCurrentUser.Text = $"{Resources.LoggedInUserLabel}: {CurrentUser.User.FullName}";
                 try
                 {
                     if (CurrentUser.IsLoggedIn && CurrentUser.User != null)
@@ -387,12 +390,12 @@ namespace Universalscada
                 }
                 catch (Exception logEx)
                 {
-                    MessageBox.Show($" 'Session Login' is Log error : {logEx.Message}", Resources.Error);
+                    MessageBox.Show($" 'Session Login' is Log error : {logEx.Message}", Resources.ErrorTitle);
                 }
             }
             else
             {
-                lblStatusCurrentUser.Text = $"{Resources.Loggedin}: -";
+                lblStatusCurrentUser.Text = $"{Resources.LoggedInUserLabel}: {CurrentUser.User.FullName}";
                 try
                 {
                     if (CurrentUser.IsLoggedIn && CurrentUser.User != null)
@@ -402,7 +405,7 @@ namespace Universalscada
                 }
                 catch (Exception logEx)
                 {
-                    MessageBox.Show($" 'Session Logout' is Log error : {logEx.Message}", Resources.Error);
+                    MessageBox.Show($" 'Session Logout' is Log error : {logEx.Message}", Resources.ErrorTitle);
                 }
             }
             _user_setting.LoadAllRoles();
@@ -468,7 +471,7 @@ namespace Universalscada
             if (_activeVncViewerForm != null && !_activeVncViewerForm.IsDisposed)
             {
                 _activeVncViewerForm.Activate();
-                MessageBox.Show(Resources.Vnccurrentclose, Resources.Warning, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(Resources.VncAlreadyOpenMessage, Resources.WarningTitle, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
             var machine = _machineRepository.GetAllMachines().FirstOrDefault(m => m.Id == machineId);
@@ -483,13 +486,13 @@ namespace Universalscada
                 }
                 catch (Exception logEx)
                 {
-                    MessageBox.Show($"VNC baðlantýsý loglanýrken bir hata oluþtu: {logEx.Message}", Resources.Error);
+                    MessageBox.Show($"VNC baðlantýsý loglanýrken bir hata oluþtu: {logEx.Message}", Resources.ErrorTitle);
                 }
 
                 try
                 {
                     var vncForm = new VncViewer_Form(machine.VncAddress, machine.VncPassword);
-                    vncForm.Text = $"{machine.MachineName} - {Resources.VncConnectionTo}";
+                    vncForm.Text = $"{machine.MachineName} - {Resources.VncConnectionTitle}";
                     vncForm.FormClosed += (s, args) => { _activeVncViewerForm = null; };
                     _activeVncViewerForm = vncForm;
                     vncForm.Show();
@@ -497,12 +500,12 @@ namespace Universalscada
                 catch (Exception ex)
                 {
                     _activeVncViewerForm = null;
-                    MessageBox.Show($"{Resources.Vncconnecterror} {ex.Message}", Resources.Error);
+                    MessageBox.Show($"{Resources.VncConnectErrorMessage} {ex.Message}", Resources.ErrorTitle);
                 }
             }
             else
             {
-                MessageBox.Show(Resources.Vncnomachine, Resources.Information);
+                MessageBox.Show(Resources.VncNoAddressMessage, Resources.InformationTitle);
             }
         }
 
@@ -537,7 +540,7 @@ namespace Universalscada
             }
             else
             {
-                lblStatusLiveEvents.Text = Resources.Livelogsee; // YENÝ: Alarmlar temizlendiðinde varsayýlan metne dön
+                lblStatusLiveEvents.Text = Resources.ViewLiveEventStreamButton;
                 lblStatusLiveEvents.BackColor = System.Drawing.SystemColors.Control;
                 lblStatusLiveEvents.ForeColor = System.Drawing.SystemColors.ControlText;
             }
@@ -577,7 +580,7 @@ namespace Universalscada
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"{Resources.Closeandvnc} {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"{Resources.CloseVNCErrorMessage} {ex.Message}");
                 }
             }
         }

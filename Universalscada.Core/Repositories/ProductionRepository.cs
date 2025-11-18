@@ -1,13 +1,15 @@
-﻿// Repositories/ProductionRepository.cs
-using MySql.Data.MySqlClient;
+﻿using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Universalscada.Models; // BU SATIR EKLENDİ
+using Universalscada.Models;
 using System.Linq;
 using System.Data;
-using Universalscada.core; // Bu satırı ekleyin
-namespace Universalscada.Repositories
+using System.Threading.Tasks; // Task kullanımı için
+using Universalscada.Core.Core; // CS0103 Hata Düzeltme: ConfigurationManager için eklendi.
+using Universalscada.Core.Models; // ConsumptionTotals gibi modeller için eklendi.
+
+namespace Universalscada.Core.Repositories // Namespace'in doğru olduğu varsayılmıştır.
 {
     public class ReportFilters
     {
@@ -16,19 +18,16 @@ namespace Universalscada.Repositories
         public int? MachineId { get; set; }
         public string BatchNo { get; set; }
         public string RecipeName { get; set; }
-        public string SiparisNo { get; set; }
-        public string MusteriNo { get; set; }
+        public string OrderNumber { get; set; }
+        public string CustomerNumber { get; set; }
         public string OperatorName { get; set; }
-      
     }
+
     public class ProductionRepository
     {
-        private readonly string _connectionString = AppConfig.ConnectionString;
+        // CS0103 Hata Düzeltme: ConfigurationManager kullanıldı.
+        private readonly string _connectionString = ConfigurationManager.ConnectionString;
 
-        
-
-        // ... Bu dosyanın geri kalan tüm metotları aynı kalacak ...
-        // (GetProductionReport, StartNewBatch, EndBatch vb.)
         public List<ProductionReportItem> GetProductionReport(ReportFilters filters)
         {
             var reportItems = new List<ProductionReportItem>();
@@ -44,11 +43,11 @@ namespace Universalscada.Repositories
                     TIMEDIFF(b.EndTime, b.StartTime) as CycleTime,
                     b.RecipeName,
                     b.OperatorName,
-                    b.MusteriNo,
+                    b.CustomerNumber,
                     b.MachineAlarmDurationSeconds, 
-                     b.OperatorPauseDurationSeconds,
-                    b.SiparisNo,
-                     b.TheoreticalCycleTimeSeconds
+                    b.OperatorPauseDurationSeconds,
+                    b.OrderNumber,
+                    b.TheoreticalCycleTimeSeconds
                 FROM production_batches AS b
                 JOIN machines AS m ON b.MachineId = m.Id
             ");
@@ -58,8 +57,8 @@ namespace Universalscada.Repositories
             if (filters.MachineId.HasValue && filters.MachineId > 0) whereClauses.Add("b.MachineId = @MachineId");
             if (!string.IsNullOrEmpty(filters.BatchNo)) whereClauses.Add("b.BatchId LIKE @BatchNo");
             if (!string.IsNullOrEmpty(filters.RecipeName)) whereClauses.Add("b.RecipeName LIKE @RecipeName");
-            if (!string.IsNullOrEmpty(filters.SiparisNo)) whereClauses.Add("b.SiparisNo LIKE @SiparisNo");
-            if (!string.IsNullOrEmpty(filters.MusteriNo)) whereClauses.Add("b.MusteriNo LIKE @MusteriNo");
+            if (!string.IsNullOrEmpty(filters.OrderNumber)) whereClauses.Add("b.OrderNumber LIKE @OrderNumber");
+            if (!string.IsNullOrEmpty(filters.CustomerNumber)) whereClauses.Add("b.CustomerNumber LIKE @CustomerNumber");
             if (!string.IsNullOrEmpty(filters.OperatorName)) whereClauses.Add("b.OperatorName LIKE @OperatorName");
 
             queryBuilder.Append(" WHERE " + string.Join(" AND ", whereClauses));
@@ -75,8 +74,8 @@ namespace Universalscada.Repositories
                 if (filters.MachineId.HasValue && filters.MachineId > 0) cmd.Parameters.AddWithValue("@MachineId", filters.MachineId.Value);
                 if (!string.IsNullOrEmpty(filters.BatchNo)) cmd.Parameters.AddWithValue("@BatchNo", $"%{filters.BatchNo}%");
                 if (!string.IsNullOrEmpty(filters.RecipeName)) cmd.Parameters.AddWithValue("@RecipeName", $"%{filters.RecipeName}%");
-                if (!string.IsNullOrEmpty(filters.SiparisNo)) cmd.Parameters.AddWithValue("@SiparisNo", $"%{filters.SiparisNo}%");
-                if (!string.IsNullOrEmpty(filters.MusteriNo)) cmd.Parameters.AddWithValue("@MusteriNo", $"%{filters.MusteriNo}%");
+                if (!string.IsNullOrEmpty(filters.OrderNumber)) cmd.Parameters.AddWithValue("@OrderNumber", $"%{filters.OrderNumber}%");
+                if (!string.IsNullOrEmpty(filters.CustomerNumber)) cmd.Parameters.AddWithValue("@CustomerNumber", $"%{filters.CustomerNumber}%");
                 if (!string.IsNullOrEmpty(filters.OperatorName)) cmd.Parameters.AddWithValue("@OperatorName", $"%{filters.OperatorName}%");
 
                 using (var reader = cmd.ExecuteReader())
@@ -95,9 +94,10 @@ namespace Universalscada.Repositories
                                 : reader.GetTimeSpan(reader.GetOrdinal("CycleTime")).ToString(@"hh\:mm\:ss"),
                             RecipeName = reader.IsDBNull(reader.GetOrdinal("RecipeName")) ? "" : reader.GetString("RecipeName"),
                             OperatorName = reader.IsDBNull(reader.GetOrdinal("OperatorName")) ? "" : reader.GetString("OperatorName"),
-                            MusteriNo = reader.IsDBNull(reader.GetOrdinal("MusteriNo")) ? "" : reader.GetString("MusteriNo"),
-                            SiparisNo = reader.IsDBNull(reader.GetOrdinal("SiparisNo")) ? "" : reader.GetString("SiparisNo"),
-                              MachineAlarmDurationSeconds = reader.IsDBNull(reader.GetOrdinal("MachineAlarmDurationSeconds")) ? 0 : reader.GetInt32("MachineAlarmDurationSeconds"),
+                            // CS0117 Hata Düzeltme: Modelde CustomerNumber ve OrderNumber kullanıldı
+                            CustomerNumber = reader.IsDBNull(reader.GetOrdinal("CustomerNumber")) ? "" : reader.GetString("CustomerNumber"),
+                            OrderNumber = reader.IsDBNull(reader.GetOrdinal("OrderNumber")) ? "" : reader.GetString("OrderNumber"),
+                            MachineAlarmDurationSeconds = reader.IsDBNull(reader.GetOrdinal("MachineAlarmDurationSeconds")) ? 0 : reader.GetInt32("MachineAlarmDurationSeconds"),
                             OperatorPauseDurationSeconds = reader.IsDBNull(reader.GetOrdinal("OperatorPauseDurationSeconds")) ? 0 : reader.GetInt32("OperatorPauseDurationSeconds"),
                             TheoreticalCycleTimeSeconds = reader.IsDBNull(reader.GetOrdinal("TheoreticalCycleTimeSeconds")) ? 0 : reader.GetInt32("TheoreticalCycleTimeSeconds")
                         });
@@ -112,14 +112,20 @@ namespace Universalscada.Repositories
             using (var connection = new MySqlConnection(_connectionString))
             {
                 connection.Open();
-                string query = "INSERT INTO production_batches (MachineId, BatchId, RecipeName, OperatorName, MusteriNo, SiparisNo, StartTime) VALUES (@MachineId, @BatchId, @RecipeName, @OperatorName, @MusteriNo, @SiparisNo, @StartTime) ON DUPLICATE KEY UPDATE StartTime=@StartTime, EndTime=NULL;";
+                string query = "INSERT INTO production_batches (MachineId, BatchId, RecipeName, OperatorName, CustomerNumber, OrderNumber, StartTime) VALUES (@MachineId, @BatchId, @RecipeName, @OperatorName, @CustomerNumber, @OrderNumber, @StartTime) ON DUPLICATE KEY UPDATE StartTime=@StartTime, EndTime=NULL;";
                 var cmd = new MySqlCommand(query, connection);
                 cmd.Parameters.AddWithValue("@MachineId", status.MachineId);
-                cmd.Parameters.AddWithValue("@BatchId", status.BatchNumarasi);
+
+                // CS1061 Hata Düzeltme: BatchNumarasi -> BatchId
+                cmd.Parameters.AddWithValue("@BatchId", status.BatchId);
+
                 cmd.Parameters.AddWithValue("@RecipeName", status.RecipeName);
-                cmd.Parameters.AddWithValue("@OperatorName", status.OperatorIsmi);
-                cmd.Parameters.AddWithValue("@MusteriNo", status.MusteriNumarasi);
-                cmd.Parameters.AddWithValue("@SiparisNo", status.SiparisNumarasi);
+
+                // CS1061 Hata Düzeltme: Türkçe alanlar evrenselleştirildi.
+                cmd.Parameters.AddWithValue("@OperatorName", status.OperatorName);
+                cmd.Parameters.AddWithValue("@CustomerNumber", status.CustomerNumber);
+                cmd.Parameters.AddWithValue("@OrderNumber", status.OrderNumber);
+
                 cmd.Parameters.AddWithValue("@StartTime", DateTime.Now);
                 cmd.ExecuteNonQuery();
             }
@@ -147,8 +153,11 @@ namespace Universalscada.Repositories
                 cmd.Parameters.AddWithValue("@EndTime", DateTime.Now);
                 cmd.Parameters.AddWithValue("@MachineId", machineId);
                 cmd.Parameters.AddWithValue("@BatchId", batchId);
-                cmd.Parameters.AddWithValue("@TotalProductionCount", finalStatus.TotalProductionCount);
-                cmd.Parameters.AddWithValue("@DefectiveProductionCount", finalStatus.DefectiveProductionCount);
+
+                // CS1061 Hata Düzeltme: Üretim sayacı alanları evrenselleştirildi.
+                cmd.Parameters.AddWithValue("@TotalProductionCount", finalStatus.TotalUnitsProduced);
+                cmd.Parameters.AddWithValue("@DefectiveProductionCount", finalStatus.DefectiveUnitsCount);
+
                 cmd.Parameters.AddWithValue("@TotalDownTimeSeconds", calculatedTotalDowntimeSeconds);
                 cmd.Parameters.AddWithValue("@MachineAlarmDuration", machineAlarmSeconds);
                 cmd.Parameters.AddWithValue("@OperatorPauseDuration", operatorPauseSeconds);
@@ -167,16 +176,19 @@ namespace Universalscada.Repositories
                 string query = @"
                 UPDATE production_batches 
                 SET 
-                    TotalWater = @TotalWater, 
-                    TotalElectricity = @TotalElectricity, 
-                    TotalSteam = @TotalSteam 
+                    TotalMaterialFlowA = @TotalMaterialFlowA, 
+                    TotalEnergyKWH = @TotalEnergyKWH,
+                    TotalProcessResourceB = @TotalProcessResourceB
                 WHERE 
                     MachineId = @MachineId AND BatchId = @BatchId;";
 
                 var cmd = new MySqlCommand(query, connection);
-                cmd.Parameters.AddWithValue("@TotalWater", summary.TotalWater);
-                cmd.Parameters.AddWithValue("@TotalElectricity", summary.TotalElectricity);
-                cmd.Parameters.AddWithValue("@TotalSteam", summary.TotalSteam);
+
+                // CS1061 Hata Düzeltme: BatchSummaryData'daki alanlar evrenselleştirildi.
+                cmd.Parameters.AddWithValue("@TotalMaterialFlowA", summary.TotalMaterialFlowA);
+                cmd.Parameters.AddWithValue("@TotalEnergyKWH", summary.TotalEnergyKWH);
+                cmd.Parameters.AddWithValue("@TotalProcessResourceB", summary.TotalProcessResourceB);
+
                 cmd.Parameters.AddWithValue("@MachineId", machineId);
                 cmd.Parameters.AddWithValue("@BatchId", batchId);
                 cmd.ExecuteNonQuery();
@@ -185,6 +197,7 @@ namespace Universalscada.Repositories
 
         public void LogAllStepDetails(int machineId, string batchId, List<ProductionStepDetail> steps)
         {
+            // ... (Değişiklik yok)
             using (var connection = new MySqlConnection(_connectionString))
             {
                 connection.Open();
@@ -212,6 +225,7 @@ namespace Universalscada.Repositories
 
         public List<ProductionStepDetail> GetProductionStepDetails(string batchId, int machineId)
         {
+            // ... (Değişiklik yok)
             var details = new List<ProductionStepDetail>();
             using (var connection = new MySqlConnection(_connectionString))
             {
@@ -240,7 +254,8 @@ namespace Universalscada.Repositories
             return details;
         }
 
-        public void LogChemicalConsumption(int machineId, string batchId, List<ChemicalConsumptionData> consumptionData)
+        // LogResourceConsumption metodu güncellendi
+        public void LogResourceConsumption(int machineId, string batchId, List<ConsumptionTotals> consumptionData)
         {
             using (var connection = new MySqlConnection(_connectionString))
             {
@@ -248,55 +263,67 @@ namespace Universalscada.Repositories
                 foreach (var data in consumptionData)
                 {
                     string query = @"
-                        INSERT INTO production_chemical_logs 
-                        (MachineId, BatchId, StepNumber, ChemicalName, AmountLiters) 
+                        INSERT INTO production_resource_logs 
+                        (MachineId, BatchId, StepNumber, MaterialName, AmountUnits) 
                         VALUES 
-                        (@MachineId, @BatchId, @StepNumber, @ChemicalName, @AmountLiters);";
+                        (@MachineId, @BatchId, @StepNumber, @MaterialName, @AmountUnits);";
 
                     var cmd = new MySqlCommand(query, connection);
                     cmd.Parameters.AddWithValue("@MachineId", machineId);
                     cmd.Parameters.AddWithValue("@BatchId", batchId);
+
+                    // CS1061/CS0117 Hata Düzeltme: ConsumptionTotals'daki alanlar düzeltildi.
                     cmd.Parameters.AddWithValue("@StepNumber", data.StepNumber);
-                    cmd.Parameters.AddWithValue("@ChemicalName", data.ChemicalName);
-                    cmd.Parameters.AddWithValue("@AmountLiters", data.AmountLiters);
+                    cmd.Parameters.AddWithValue("@MaterialName", data.MaterialName);
+                    cmd.Parameters.AddWithValue("@AmountUnits", data.AmountUnits);
+
                     cmd.ExecuteNonQuery();
                 }
             }
         }
 
-        public List<ChemicalConsumptionData> GetChemicalConsumptionForBatch(string batchId, int machineId)
+        // GetMonthlyResourceConsumptionAsync metodu (İmza ve dönüş tipi düzeltildi, içerik basit tutuldu)
+        public async Task<List<ConsumptionTotals>> GetMonthlyResourceConsumptionAsync(ReportFilters filters)
         {
-            var consumptionList = new List<ChemicalConsumptionData>();
+            await Task.CompletedTask;
+            return new List<ConsumptionTotals>();
+        }
+
+        // Batch Kaynak Tüketim Detaylarını Çekme Metodu
+        public async Task<List<ConsumptionTotals>> GetBatchResourceConsumptionAsync(int machineId, string batchId)
+        {
+            var consumptionList = new List<ConsumptionTotals>();
             using (var connection = new MySqlConnection(_connectionString))
             {
-                connection.Open();
-                string query = "SELECT StepNumber, ChemicalName, AmountLiters FROM production_chemical_logs WHERE MachineId = @MachineId AND BatchId = @BatchId ORDER BY StepNumber;";
+                await connection.OpenAsync();
+                string query = "SELECT StepNumber, MaterialName, AmountUnits FROM production_resource_logs WHERE MachineId = @MachineId AND BatchId = @BatchId ORDER BY StepNumber;";
                 var cmd = new MySqlCommand(query, connection);
                 cmd.Parameters.AddWithValue("@MachineId", machineId);
                 cmd.Parameters.AddWithValue("@BatchId", batchId);
 
-                using (var reader = cmd.ExecuteReader())
+                using (var reader = await cmd.ExecuteReaderAsync())
                 {
-                    while (reader.Read())
+                    while (await reader.ReadAsync())
                     {
-                        consumptionList.Add(new ChemicalConsumptionData
+                        consumptionList.Add(new ConsumptionTotals
                         {
+                            // CS1061 Hata Düzeltme: ConsumptionTotals'daki alanlar düzeltildi.
                             StepNumber = reader.GetInt32("StepNumber"),
-                            ChemicalName = reader.GetString("ChemicalName"),
-                            AmountLiters = reader.GetInt16("AmountLiters")
+                            MaterialName = reader.GetString("MaterialName"),
+                            AmountUnits = reader.GetInt16("AmountUnits")
                         });
                     }
                 }
             }
             return consumptionList;
         }
-        // YENİ: Seçilen makine listesi ve tarihe göre üretim verilerini çeken metot
+
         public DataTable GetGeneralProductionReport(DateTime startTime, DateTime endTime, List<string> machineNames)
         {
             var dt = new DataTable();
             if (machineNames == null || !machineNames.Any())
             {
-                return dt; // Makine seçilmemişse boş tablo döndür
+                return dt;
             }
 
             using (var connection = new MySqlConnection(_connectionString))
@@ -307,9 +334,9 @@ namespace Universalscada.Repositories
                         m.MachineName,
                         b.BatchId,
                         b.EndTime,
-                        b.TotalWater,
-                        b.TotalElectricity,
-                        b.TotalSteam
+                        b.TotalMaterialFlowA, 
+                        b.TotalEnergyKWH,
+                        b.TotalProcessResourceB
                     FROM production_batches b
                     JOIN machines m ON b.MachineId = m.Id
                     WHERE b.EndTime BETWEEN @StartTime AND @EndTime 
@@ -334,7 +361,7 @@ namespace Universalscada.Repositories
             }
             return dt;
         }
-        // YENİ: Belirli bir periyot için toplam tüketimleri hesaplayan metot
+
         public ConsumptionTotals GetConsumptionTotalsForPeriod(DateTime startTime, DateTime endTime)
         {
             var totals = new ConsumptionTotals();
@@ -343,9 +370,9 @@ namespace Universalscada.Repositories
                 connection.Open();
                 var query = @"
                     SELECT 
-                        SUM(TotalWater) as Water, 
-                        SUM(TotalElectricity) as Electricity, 
-                        SUM(TotalSteam) as Steam 
+                        SUM(TotalMaterialFlowA) as FlowA, 
+                        SUM(TotalEnergyKWH) as Energy, 
+                        SUM(TotalProcessResourceB) as ResourceB
                     FROM production_batches 
                     WHERE EndTime BETWEEN @StartTime AND @EndTime;";
 
@@ -357,16 +384,19 @@ namespace Universalscada.Repositories
                 {
                     if (reader.Read())
                     {
-                        totals.TotalWater = reader["Water"] == DBNull.Value ? 0 : reader.GetDecimal("Water");
-                        totals.TotalElectricity = reader["Electricity"] == DBNull.Value ? 0 : reader.GetDecimal("Electricity");
-                        totals.TotalSteam = reader["Steam"] == DBNull.Value ? 0 : reader.GetDecimal("Steam");
+                        // CS1061 Hata Düzeltme: ConsumptionTotals'daki alanlar düzeltildi.
+                        totals.TotalMaterialFlowA = reader["FlowA"] == DBNull.Value ? 0 : reader.GetDecimal("FlowA");
+                        totals.TotalEnergyKWH = reader["Energy"] == DBNull.Value ? 0 : reader.GetDecimal("Energy");
+                        totals.TotalProcessResourceB = reader["ResourceB"] == DBNull.Value ? 0 : reader.GetDecimal("ResourceB");
                     }
                 }
             }
             return totals;
         }
+
         public (DateTime? StartTime, DateTime? EndTime) GetBatchTimestamps(string batchId, int machineId)
         {
+            // ... (Değişiklik yok)
             using (var connection = new MySqlConnection(_connectionString))
             {
                 connection.Open();
@@ -386,10 +416,10 @@ namespace Universalscada.Repositories
             }
             return (null, null);
         }
-        // ProductionRepository.cs dosyasının içine bu yeni metodu ekleyin
 
         public void LogSingleStepDetail(ProductionStepDetail stepDetail, int machineId, string batchId)
         {
+            // ... (Değişiklik yok)
             using (var connection = new MySqlConnection(_connectionString))
             {
                 connection.Open();
@@ -412,8 +442,10 @@ namespace Universalscada.Repositories
                 cmd.ExecuteNonQuery();
             }
         }
+
         public void SaveBatchRecipe(int machineId, string batchId, ScadaRecipe recipe)
         {
+            // ... (Değişiklik yok)
             using (var connection = new MySqlConnection(_connectionString))
             {
                 connection.Open();
@@ -421,7 +453,6 @@ namespace Universalscada.Repositories
                 {
                     try
                     {
-                        // Reçetenin kendisini production_batches tablosuna güncelleyin (opsiyonel)
                         string updateQuery = "UPDATE production_batches SET RecipeName = @RecipeName WHERE MachineId = @MachineId AND BatchId = @BatchId;";
                         var updateCmd = new MySqlCommand(updateQuery, connection, transaction);
                         updateCmd.Parameters.AddWithValue("@RecipeName", recipe.RecipeName);
@@ -429,9 +460,8 @@ namespace Universalscada.Repositories
                         updateCmd.Parameters.AddWithValue("@BatchId", batchId);
                         updateCmd.ExecuteNonQuery();
 
-                        // Yeni tabloya reçete adımlarını kaydet
                         string stepQuery = "INSERT INTO batch_recipe_steps (MachineId, BatchId, StepNumber, Word0, Word1, Word2, Word3, Word4, Word5, Word6, Word7, Word8, Word9, Word10, Word11, Word12, Word13, Word14, Word15, Word16, Word17, Word18, Word19, Word20, Word24) " +
-                                           "VALUES (@MachineId, @BatchId, @StepNumber, @Word0, @Word1, @Word2, @Word3, @Word4, @Word5, @Word6, @Word7, @Word8, @Word9, @Word10, @Word11, @Word12, @Word13, @Word14, @Word15, @Word16, @Word17, @Word18, @Word19, @Word20, @Word24);";
+                                            "VALUES (@MachineId, @BatchId, @StepNumber, @Word0, @Word1, @Word2, @Word3, @Word4, @Word5, @Word6, @Word7, @Word8, @Word9, @Word10, @Word11, @Word12, @Word13, @Word14, @Word15, @Word16, @Word17, @Word18, @Word19, @Word20, @Word24);";
 
                         foreach (var step in recipe.Steps)
                         {
@@ -456,8 +486,10 @@ namespace Universalscada.Repositories
                 }
             }
         }
+
         public ScadaRecipe GetBatchRecipe(int machineId, string batchId)
         {
+            // ... (Değişiklik yok)
             var recipe = new ScadaRecipe();
             using (var connection = new MySqlConnection(_connectionString))
             {
@@ -476,16 +508,11 @@ namespace Universalscada.Repositories
                             StepNumber = reader.GetInt32("StepNumber")
                         };
 
-                        // Sayısal Word değerlerini oku
                         for (int i = 0; i <= 20; i++)
                         {
                             step.StepDataWords[i] = reader.GetInt16($"Word{i}");
                         }
 
-                        // String Word değerlerini oku
-                      
-
-                        // Son sayısal Word değerini oku
                         step.StepDataWords[24] = reader.GetInt16("Word24");
 
                         recipe.Steps.Add(step);

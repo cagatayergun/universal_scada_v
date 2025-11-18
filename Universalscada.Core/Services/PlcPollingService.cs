@@ -1,5 +1,4 @@
-﻿// Universalscada.Core/Services/PlcPollingService.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -24,6 +23,10 @@ namespace Universalscada.Core.Services
         private readonly LiveStepAnalyzer _stepAnalyzer;
         private readonly LiveEventAggregator _eventAggregator; // Durum güncellemelerini UI/API'a iletmek için
 
+        // YENİ: Makine ID'sine göre IPlcManager'ları tutacak sözlük
+        private readonly Dictionary<int, IPlcManager> _plcManagers = new Dictionary<int, IPlcManager>();
+        private readonly object _lock = new object(); // Sözlük erişimi için kilit
+
         public PlcPollingService(
             IPlcManagerFactory plcManagerFactory,
             IMachineRepository machineRepository,
@@ -34,6 +37,18 @@ namespace Universalscada.Core.Services
             _machineRepository = machineRepository;
             _stepAnalyzer = stepAnalyzer;
             _eventAggregator = eventAggregator;
+        }
+
+        /// <summary>
+        /// CS1061 Hatasını Çözer: FtpTransferService'in kullanması için PLC yöneticilerinin listesini sağlar.
+        /// </summary>
+        public IReadOnlyDictionary<int, IPlcManager> GetPlcManagers()
+        {
+            // Dictionary'nin anlık salt okunur bir kopyasını döndürmek, harici erişimi güvence altına alır.
+            lock (_lock)
+            {
+                return new Dictionary<int, IPlcManager>(_plcManagers);
+            }
         }
 
         // Ana Polling Döngüsü
@@ -66,11 +81,24 @@ namespace Universalscada.Core.Services
             try
             {
                 // 1. Makineye özel PLC Manager'ı fabrika ile oluştur/al
-                plcManager = _plcManagerFactory.CreatePlcManager(machine); //
+                plcManager = _plcManagerFactory.CreatePlcManager(machine);
+
+                // 1.5. YENİ: Manager'ı sözlüğe kaydet veya güncelle
+                lock (_lock)
+                {
+                    if (_plcManagers.ContainsKey(machine.Id))
+                    {
+                        _plcManagers[machine.Id] = plcManager;
+                    }
+                    else
+                    {
+                        _plcManagers.Add(machine.Id, plcManager);
+                    }
+                }
 
                 // 2. Jenerik metot ile ham data block'u oku
                 // Bu metot, IPlcManager'ın tek jenerik veri okuma yöntemidir.
-                var readResult = await plcManager.ReadDataWordsAsync(LIVE_DATA_START_ADDRESS, LIVE_DATA_LENGTH); //
+                var readResult = await plcManager.ReadDataWordsAsync(LIVE_DATA_START_ADDRESS, LIVE_DATA_LENGTH);
 
                 if (readResult.IsSuccess)
                 {

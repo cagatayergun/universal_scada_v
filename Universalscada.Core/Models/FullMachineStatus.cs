@@ -31,7 +31,8 @@ namespace Universalscada.Models
         public bool HasActiveAlarm { get; set; }
         public int ActiveAlarmNumber { get; set; }
         public string ActiveAlarmText { get; set; }
-
+        public bool IsInRecipeMode { get; set; }
+        public string BatchNumarasi { get; set; }
         // Temel Operasyonel Durumlar - Çoğu SCADA için ortaktır.
         public bool IsMachineInProduction { get; set; }
         public bool IsPaused { get; set; }

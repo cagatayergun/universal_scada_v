@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 using Universalscada.core;
 using Universalscada.Models;
 using Universalscada.Repositories;
-
+using Universalscada.Core.Services;
 namespace Universalscada.Services
 {
     public enum TransferType { Send, Receive }

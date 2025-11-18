@@ -14,7 +14,7 @@ namespace Universalscada.Core.Repositories
         /// Tanımlı ve etkinleştirilmiş tüm makineleri getirir.
         /// </summary>
         IEnumerable<Machine> GetAllMachines();
-
+        List<Machine> GetAllEnabledMachines();
         /// <summary>
         /// Belirli bir ID'ye sahip makineyi getirir.
         /// </summary>

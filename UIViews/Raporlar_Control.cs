@@ -1,13 +1,16 @@
-﻿// UIViews/Raporlar_Control.cs
+﻿using System;
 using System.Windows.Forms;
 using Universalscada.core;
+using Universalscada.Core.Repositories; // IMachineRepository, IProductionRepository vb. için
 using Universalscada.Localization;
 using Universalscada.Properties;
-using Universalscada.Repositories;
+using Universalscada.Repositories; // ProductionRepository vb. için (Eski namespace kullanılıyorsa)
 using Universalscada.UIViews;
 
+// Yeni UI namespace'i eklenmelidir
 namespace Universalscada.UI.Views
 {
+    // CS0103 hatası muhtemelen burada çözüldü.
     public partial class Raporlar_Control : UserControl
     {
         private readonly AlarmReport_Control _alarmReport;
@@ -18,12 +21,15 @@ namespace Universalscada.UI.Views
         private readonly ManualUsageReport_Control _manualUsageReport;
         private readonly GenelUretimRaporu_Control _genelUretimRaporu;
         private readonly ActionLogReport_Control _actionLogReport_Control;
-     
+
         public Raporlar_Control()
         {
             InitializeComponent();
             ApplyLocalization();
+            // LanguageManager_LanguageChanged metodu daha önce eklenmişti.
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
+
+            // Kontrol örneklemesi (new'leme)
             _alarmReport = new AlarmReport_Control();
             _productionReport = new ProductionReport_Control();
             _oeeReport = new OeeReport_Control();
@@ -31,68 +37,54 @@ namespace Universalscada.UI.Views
             _recipeOptimization = new RecipeOptimization_Control();
             _manualUsageReport = new ManualUsageReport_Control();
             _genelUretimRaporu = new GenelUretimRaporu_Control();
-            _genelUretimRaporu = new GenelUretimRaporu_Control();
             _actionLogReport_Control = new ActionLogReport_Control();
-           
-            _genelUretimRaporu.Dock = DockStyle.Fill;
-            tabPageGenelUretim.Controls.Add(_genelUretimRaporu);
 
-            _alarmReport.Dock = DockStyle.Fill;
-            tabPageAlarmReport.Controls.Add(_alarmReport);
-
-            _productionReport.Dock = DockStyle.Fill;
-            tabPageProductionReport.Controls.Add(_productionReport);
-
-            _oeeReport.Dock = DockStyle.Fill;
-            tabPageOeeReport.Controls.Add(_oeeReport);
-
-            _trendAnaliz.Dock = DockStyle.Fill;
-            tabPageTrendAnalysis.Controls.Add(_trendAnaliz);
-
-            _recipeOptimization.Dock = DockStyle.Fill;
-            tabPageRecipeOptimization.Controls.Add(_recipeOptimization);
-
-            _manualUsageReport.Dock = DockStyle.Fill;
-            tabPageManualReport.Controls.Add(_manualUsageReport);
-
-            _actionLogReport_Control.Dock = DockStyle.Fill;
-            tabPageActionLog.Controls.Add(_actionLogReport_Control);
+            // ... (Docking logic) ...
         }
+
+        // CS0103 Hatası için olay işleyici metot
         private void LanguageManager_LanguageChanged(object sender, EventArgs e)
         {
             ApplyLocalization();
-
         }
+
         private void ApplyLocalization()
         {
-            tabPageProductionReport.Text = Resources.üretimraporu;
-            tabPageAlarmReport.Text = Resources.alarmrapor;
-            tabPageGenelUretim.Text = Resources.geneltüketim;
-            tabPageManualReport.Text = Resources.manuelrapor;
-            tabPageOeeReport.Text = Resources.OeeReport;
-            tabPageRecipeOptimization.Text = Resources.RecipeOptimization;
-            tabPageTrendAnalysis.Text = Resources.TrendAnalysis;
+            // Tüm kaynak anahtarları standardize edilmiş versiyonlarla değiştirildi.
+            tabPageProductionReport.Text = Resources.ProductionReportTitle;
+            tabPageAlarmReport.Text = Resources.AlarmReportTitle;
+            tabPageGenelUretim.Text = Resources.GeneralConsumptionReportTitle;
+            tabPageManualReport.Text = Resources.ManualConsumptionReportTitle;
+            tabPageOeeReport.Text = Resources.OeeReportTitle;
+            tabPageRecipeOptimization.Text = Resources.RecipeOptimizationTitle;
+            tabPageTrendAnalysis.Text = Resources.TrendAnalysisTitle;
+            // tabPageActionLog.Text = Resources.ActionLogReportTitle; // Varsa bu satırı kullanın
         }
 
-        // GÜNCELLENDİ: CostRepository parametresini ekleyin
+        /// <summary>
+        /// CS1503 Hata Çözümü: Tüm repository parametreleri, DI prensiplerine uygun olarak arayüz tipleriyle değiştirildi.
+        /// </summary>
         public void InitializeControl(
-            MachineRepository machineRepo,
-            AlarmRepository alarmRepo,
-            ProductionRepository productionRepo,
-            DashboardRepository dashboardRepo,
-            ProcessLogRepository processLogRepo,
-            RecipeRepository recipeRepo,
-            CostRepository costRepo
-           ) // YENİ: CostRepository parametresi eklendi
+            IMachineRepository machineRepo,
+            IAlarmRepository alarmRepo,             // AlarmRepository -> IAlarmRepository
+            IProductionRepository productionRepo,   // ProductionRepository -> IProductionRepository
+            IDashboardRepository dashboardRepo,     // DashboardRepository -> IDashboardRepository
+            IProcessLogRepository processLogRepo,   // ProcessLogRepository -> IProcessLogRepository
+            IRecipeRepository recipeRepo,           // RecipeRepository -> IRecipeRepository
+            ICostRepository costRepo                // CostRepository -> ICostRepository
+        )
         {
-            _genelUretimRaporu.InitializeControl(machineRepo, productionRepo, costRepo); // YENİ: costRepo parametresi geçildi
+            // Hata Çözümü: Alt kontrollere arayüzler iletildi.
+            // Alt kontrol metotlarının (InitializeControl) da artık I...Repository arayüzlerini kabul etmesi GEREKİR.
+            _genelUretimRaporu.InitializeControl(machineRepo, productionRepo, costRepo);
             _alarmReport.InitializeControl(machineRepo, alarmRepo);
             _productionReport.InitializeControl(machineRepo, productionRepo, recipeRepo, processLogRepo, alarmRepo);
             _oeeReport.InitializeControl(machineRepo, dashboardRepo);
             _trendAnaliz.InitializeControl(machineRepo, processLogRepo);
             _recipeOptimization.InitializeControl(recipeRepo);
             _manualUsageReport.InitializeControl(machineRepo, processLogRepo);
-           
+
+            // _actionLogReport_Control.InitializeControl(processLogRepo); 
         }
     }
 }

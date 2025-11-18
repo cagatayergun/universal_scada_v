@@ -1,28 +1,29 @@
 ﻿// UI/Views/ProsesKontrol_Control.cs
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq; // YENİ: .Any() ve .Cast() için
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Windows.Forms;
 using Universalscada.core;
+using Universalscada.Core.Repositories;
 using Universalscada.Models;
 using Universalscada.Repositories;
 using Universalscada.Services;
+using Universalscada.Services; // YENİ: CurrentUser için
 using Universalscada.UI.Controls;
 using Universalscada.UI.Controls.RecipeStepEditors;
 using Universalscada.UIViews;
-using System.Net.Http;
-using System.Text;
-using Newtonsoft.Json;
-using System.Net.Http.Headers;
-using Universalscada.Services; // YENİ: CurrentUser için
-using System.Linq; // YENİ: .Any() ve .Cast() için
 
 namespace Universalscada.UI.Views
 {
     public partial class ProsesKontrol_Control : UserControl
     {
         private RecipeRepository _recipeRepository;
-        private MachineRepository _machineRepository;
+        private readonly IMachineRepository _machineRepository;
 
         // === KALDIRILDI ===
         // private Dictionary<int, IPlcManager> _plcManagers;
@@ -65,11 +66,13 @@ namespace Universalscada.UI.Views
         }
 
         // === DEĞİŞTİ: InitializeControl ===
-        public void InitializeControl(RecipeRepository recipeRepo, MachineRepository machineRepo, FtpTransferService ftpTransferService)
+        public void InitializeControl(RecipeRepository recipeRepository, IMachineRepository machineRepository, FtpTransferService ftpTransferService)
         {
-            _recipeRepository = recipeRepo;
-            _machineRepository = machineRepo;
+            // Alan atamaları yapıldı (CS0103 hatalarını çözer)
+            _recipeRepository = recipeRepository;
+            _machineRepository = machineRepository;
             _ftpTransferService = ftpTransferService;
+            // ...
         }
 
         private void ProsesKontrol_Control_Load(object sender, EventArgs e)

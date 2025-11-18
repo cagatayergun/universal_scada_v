@@ -6,7 +6,15 @@ namespace Universalscada.Models
         public int Id { get; set; }
         public int RecipeId { get; set; }
         public int StepNumber { get; set; }
+        // Reçete adımı için özelleştirilmiş isim
+        public string CustomName { get; set; }
 
+        // Adım içindeki dinamik parametreler (JSON olarak saklanabilir)
+        // Örn: [{"TagName": "Sicaklik_SP", "Value": 120.0}, {"TagName": "Bekleme_Suresi", "Value": 30}]
+        public string StepParametersJson { get; set; }
+
+        // Reçete adımı ile ilgili özel dökümantasyon/notlar
+        public string StepDocumentContent { get; set; }
         /// <summary>
         /// Adım verilerini ham olarak tutar. Boyutu, kullanılan adım tipine ve
         /// makineye göre dinamik olarak belirlenir.

@@ -8,10 +8,10 @@ namespace Universalscada.Models
     {
         public int Id { get; set; }
         public string RecipeName { get; set; }
-
+        public string RecipeDocumentTemplate { get; set; }
         // TargetMachineType yerine CompatibilityTags kullanın veya ProcessArea ekleyin
         // public string TargetMachineType { get; set; } // ESKİ SATIR
-
+        public string TargetMachineType { get; set; } // Örn: "DryingMachine", "ByMachineGroup"
         /// <summary>
         /// YENİ: Bu reçetenin hangi genel proses alanına ait olduğunu belirtir (örn. Isıtma, Karıştırma, Paketleme).
         /// </summary>

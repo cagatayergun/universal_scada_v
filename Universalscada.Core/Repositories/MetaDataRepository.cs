@@ -1,9 +1,11 @@
-﻿// Universalscada.Core/Repositories/MetaDataRepository.cs
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks; // Task için gerekli
+using System; // NotImplementedException için
 using Universalscada.Core.Core; // ScadaDbContext için
 using Universalscada.Core.Meta;
-using Microsoft.EntityFrameworkCore;
+using Universalscada.Core.Models;
 
 namespace Universalscada.Core.Repositories
 {
@@ -45,6 +47,27 @@ namespace Universalscada.Core.Repositories
             }
 
             return defaultValue;
+        }
+
+        /// <summary>
+        /// Task<List<PlcTagDefinition>> dönüş tipini uygulamak için önceki düzeltme.
+        /// </summary>
+        public Task<List<PlcTagDefinition>> GetPlcTagDefinitionsAsync(int machineId, string machineType)
+        {
+            // Gerçek sorgulama mantığı buraya eklenecektir.
+            return Task.FromResult(new List<PlcTagDefinition>());
+        }
+
+        /// <summary>
+        /// CS0738 Hata Düzeltme: Dönüş tipi Task<PlcTagDefinition> olarak düzeltildi.
+        /// </summary>
+        public Task<PlcTagDefinition> SavePlcTagDefinitionAsync(PlcTagDefinition tagDefinition)
+        {
+            // Bu metot için PLC Tag Tanımlarını kaydetme/güncelleme mantığı uygulanmalıdır.
+            // Örneğin: _context.PlcTagDefinitions.Update(tagDefinition); await _context.SaveChangesAsync();
+
+            // Arayüzün beklediği Task<PlcTagDefinition> tipini döndürmek için
+            return Task.FromResult(tagDefinition);
         }
     }
 }

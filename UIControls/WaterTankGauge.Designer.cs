@@ -1,7 +1,8 @@
-﻿// WaterTankGauge.Designer.cs
+﻿// WaterTankGauge.Designer.cs -> ResourceGauge.Designer.cs
 namespace Universalscada.UI.Controls
 {
-    partial class WaterTankGauge
+    // CLASS NAME DEĞİŞTİ
+    partial class ResourceGauge
     {
         /// <summary> 
         /// Required designer variable.
@@ -27,15 +28,15 @@ namespace Universalscada.UI.Controls
         /// Required method for Designer support - do not modify 
         /// the contents of this method with the code editor.
         /// </summary>
-        private void InitializeComponent()
+        private void  InitializeComponent()
         {
             this.SuspendLayout();
             // 
-            // WaterTankGauge
+            // ResourceGauge // İsim güncellendi
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.Name = "WaterTankGauge";
+            this.Name = "ResourceGauge"; // İsim güncellendi
             this.Size = new System.Drawing.Size(150, 150);
             this.ResumeLayout(false);
         }

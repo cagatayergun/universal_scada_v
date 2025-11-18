@@ -15,9 +15,17 @@ namespace Universalscada.Core.Repositories
             _context = context;
         }
 
+        // GÜNCELLEME: Tüm makineleri getirir (Lisans kontrolü ve silme için gereklidir)
+        // Hata CS0738'i çözmek için: IEnumerable<Machine> döndürmesi sağlanır.
         public IEnumerable<Machine> GetAllMachines()
         {
-            // Yalnızca etkinleştirilmiş makineleri getirir
+            // Lisans kontrolü için tüm makineleri getirir (Enabled veya Disabled)
+            return _context.Machines.ToList();
+        }
+
+        // ... (Mevcut metot: Bu metodun List<Machine> döndürmesi gereklidir)
+        public List<Machine> GetAllEnabledMachines()
+        {
             return _context.Machines.Where(m => m.IsEnabled).ToList();
         }
 
