@@ -2,52 +2,86 @@
 @using Microsoft.AspNetCore.Components.Forms
 
 <div class="modal fade show" style="display:block; background-color: rgba(0,0,0,0.5);" role="dialog">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
+        @* modal-lg ile pencereyi genişlettik *@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">@(Machine.Id == 0 ? "Yeni Makine Ekle" : "Makine Düzenle")</h5>
                 <button type="button" class="btn-close" @onclick="Close"></button>
             </div>
-            @* EditForm EKLENDİ: Input bileşenleri bunun içinde olmalı *@
             <EditForm Model="@Machine" OnValidSubmit="SaveChanges">
+                <DataAnnotationsValidator />
                 <div class="modal-body">
-                    @* Veri doğrulama hatalarını göstermek için (Opsiyonel) *@
-                    <DataAnnotationsValidator />
-                    <ValidationSummary />
 
-                    <div class="mb-3">
-                        <label class="form-label">Makine Adı:</label>
-                        <InputText @bind-Value="Machine.MachineName" class="form-control" />
+                    <h6 class="text-primary border-bottom pb-2 mb-3">Genel Bilgiler</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Makine Adı:</label>
+                            <InputText @bind-Value="Machine.MachineName" class="form-control" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Makine ID (Kısa Kod):</label>
+                            <InputText @bind-Value="Machine.MachineUserDefinedId" class="form-control" />
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Makine ID (Kullanıcı Tanımlı):</label>
-                        <InputText @bind-Value="Machine.MachineUserDefinedId" class="form-control" />
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Makine Tipi:</label>
+                            <InputSelect @bind-Value="Machine.MachineType" class="form-select">
+                                <option value="">Seçiniz...</option>
+                                <option value="BYMakinesi">Boya Makinesi</option>
+                                <option value="Kurutma Makinesi">Kurutma Makinesi</option>
+                            </InputSelect>
+                        </div>
+                        @* --- YENİ ALAN: MAKİNE ALT TİPİ --- *@
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Makine Alt Tipi (Reçete Tasarımı İçin):</label>
+                            <InputText @bind-Value="Machine.MachineSubType" class="form-control" placeholder="Örn: Yilmak_100kg" />
+                            <small class="text-muted">Bu alan reçete tasarım ekranında filtreleme için kullanılır.</small>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">IP Adresi:</label>
-                        <InputText @bind-Value="Machine.IpAddress" class="form-control" />
+
+                    <h6 class="text-primary border-bottom pb-2 mb-3 mt-3">Bağlantı Ayarları</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">IP Adresi:</label>
+                            <InputText @bind-Value="Machine.IpAddress" class="form-control" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Port:</label>
+                            <InputNumber @bind-Value="Machine.Port" class="form-control" />
+                        </div>
                     </div>
-                    @* Port alanı eklendi *@
-                    <div class="mb-3">
-                        <label class="form-label">Port:</label>
-                        <InputNumber @bind-Value="Machine.Port" class="form-control" />
+
+                    <h6 class="text-primary border-bottom pb-2 mb-3 mt-3">FTP & VNC Ayarları</h6>
+                    <div class="row">
+                        @* --- YENİ ALANLAR: FTP BİLGİLERİ --- *@
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">FTP Kullanıcı Adı:</label>
+                            <InputText @bind-Value="Machine.FtpUsername" class="form-control" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">FTP Şifresi:</label>
+                            <InputText @bind-Value="Machine.FtpPassword" type="password" class="form-control" />
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Makine Tipi:</label>
-                        <InputSelect @bind-Value="Machine.MachineType" class="form-select">
-                            <option value="">Seçiniz...</option>
-                            <option value="BYMakinesi">Boya Makinesi</option>
-                            <option value="Kurutma Makinesi">Kurutma Makinesi</option>
-                        </InputSelect>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">VNC Adresi (Opsiyonel):</label>
+                            <InputText @bind-Value="Machine.VncAddress" class="form-control" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">VNC Şifresi:</label>
+                            <InputText @bind-Value="Machine.VncPassword" type="password" class="form-control" />
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">VNC Adresi (Opsiyonel):</label>
-                        <InputText @bind-Value="Machine.VncAddress" class="form-control" />
-                    </div>
-                    <div class="form-check mb-3">
+
+                    <div class="form-check mt-2">
                         <InputCheckbox @bind-Value="Machine.IsEnabled" class="form-check-input" />
-                        <label class="form-check-label">Aktif</label>
+                        <label class="form-check-label">Makine Aktif</label>
                     </div>
+
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="Close">İptal</button>
@@ -57,18 +91,12 @@
         </div>
     </div>
 </div>
-@* Arka plan karartması *@
 <div class="modal-backdrop fade show"></div>
 
 @code {
-    [Parameter]
-    public Machine Machine { get; set; } = new();
-
-    [Parameter]
-    public EventCallback OnClose { get; set; }
-
-    [Parameter]
-    public EventCallback<Machine> OnSave { get; set; }
+    [Parameter] public Machine Machine { get; set; } = new();
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<Machine> OnSave { get; set; }
 
     private async Task Close() => await OnClose.InvokeAsync();
     private async Task SaveChanges() => await OnSave.InvokeAsync(Machine);

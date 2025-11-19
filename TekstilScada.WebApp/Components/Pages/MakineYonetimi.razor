@@ -100,26 +100,37 @@ else
 
     private void AddNewMachine()
     {
-        machineToEdit = new Machine { IsEnabled = true, Port = 502 }; // Varsayılan değerler
+        machineToEdit = new Machine
+        {
+            IsEnabled = true,
+            Port = 502,
+            FtpUsername = "cagatay", // Örnek varsayılan
+            FtpPassword = "cagatay"    // Örnek varsayılan
+        };
         showEditModal = true;
     }
 
     private void EditMachine(Machine machine)
     {
-        // DÜZELTME: Tüm alanları kopyalıyoruz, aksi halde Port 0 olur.
+        // Düzenleme sırasında orijinal veriyi bozmamak için kopyasını oluşturuyoruz.
+        // EKSİK ALANLAR BURAYA EKLENDİ:
         machineToEdit = new Machine
         {
             Id = machine.Id,
             MachineName = machine.MachineName,
             MachineUserDefinedId = machine.MachineUserDefinedId,
             IpAddress = machine.IpAddress,
-            Port = machine.Port, // EKLENDİ
-            IsEnabled = machine.IsEnabled,
+            Port = machine.Port,
             MachineType = machine.MachineType,
-            VncAddress = machine.VncAddress, // EKLENDİ
-            VncPassword = machine.VncPassword,
+            IsEnabled = machine.IsEnabled,
+
+            // --- EKLENEN ALANLAR ---
+            MachineSubType = machine.MachineSubType, // Reçete tasarımı için kritik
             FtpUsername = machine.FtpUsername,
-            FtpPassword = machine.FtpPassword
+            FtpPassword = machine.FtpPassword,
+
+            VncAddress = machine.VncAddress,
+            VncPassword = machine.VncPassword
         };
         showEditModal = true;
     }

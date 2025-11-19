@@ -4,6 +4,7 @@
 @using TekstilScada.Models
 @using TekstilScada.Repositories
 @inject IJSRuntime JSRuntime
+@using System.Text.RegularExpressions
 @* --- DEĞİŞİKLİK 1: ESKİSİNİ SİLİN --- *@
 @* @inject RecipeConfigurationRepository ConfigRepo *@
 
@@ -53,15 +54,53 @@
                     <div class="card mb-3" style="border: 1px solid #ccc; background-color: @StepColorMap[stepInfo.Id];">
                         <div class="card-header" style="font-weight: bold;">@stepInfo.Name.ToUpper()</div>
                         <div class="card-body">
-                            
-                            @* Adıma ait dinamik kontrolleri filtrele ve render et *@
-                            @foreach (var data in _activeControlsMetadata.Where(d => d.ParentStepId == stepInfo.Id))
-                            {
-                                <div class="mb-2">
-                                    <label class="form-label me-2">@data.Text</label>
-                                    @RenderControl(data, stepInfo.Id)
-                                </div>
-                            }
+
+                            <div class="card-body" style="position: relative; height: 500px; overflow: hidden;">
+
+                                @foreach (var data in _activeControlsMetadata.Where(d => d.ParentStepId == stepInfo.Id))
+                                {
+                                    @* GÜNCELLEME: 
+           1. 'width' yerine 'min-width' kullandık. (Kutu yazıya göre uzayabilsin diye)
+           2. 'overflow: hidden' kaldırıldı. (Yazı kesilmesin diye)
+           3. 'z-index: 10' eklendi. (Yazı uzarsa diğer kontrollerin üstünde görünsün, altında kalmasın)
+        *@
+                                    <div title="@data.Text"
+                                         style="position: absolute;
+                                left: @(GetLeft(data.Location))px;
+                                top: @(GetTop(data.Location))px;
+                                min-width: @(GetWidth(data.Size))px;
+                                height: @(GetHeight(data.Size))px;
+                                white-space: nowrap;
+                                z-index: 10;">
+
+                                        @if ((data.ControlType ?? "").Contains("Label"))
+                                        {
+                                            @* Label için kesme komutlarını (ellipsis) kaldırdık *@
+                                            <span class="fw-bold" style="display: block;">
+                                                @data.Text
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            @if ((data.ControlType ?? "").Contains("Check"))
+                                            {
+                                                <div class="d-flex align-items-center" style="height: 100%;">
+                                                    @RenderControl(data, stepInfo.Id)
+                                                    @* Checkbox yazısı için kesme komutlarını kaldırdık *@
+                                                    <span class="ms-2 small">
+                                                        @data.Text
+                                                    </span>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                @* Numeric veya Textbox (Genişliği kendi boyutunda kalsın istersek style eklenebilir ama şimdilik standart) *@
+                                                @RenderControl(data, stepInfo.Id)
+                                            }
+                                        }
+                                    </div>
+                                }
+                            </div>
                         </div>
                     </div>
                 }
@@ -215,6 +254,8 @@
                                     ControlType = control.ControlType,
                                     Name = control.Name,
                                     Text = control.Text,
+                                    Location = control.Location,  // <--- BUNU EKLEYİN (Konum için)
+                                    Size = control.Size,
                                     PLC_WordIndex = control.PLC_WordIndex,
                                     PLC_BitIndex = control.PLC_BitIndex,
                                     DecimalPlaces = control.DecimalPlaces,
@@ -404,4 +445,57 @@
             }
         };
     }
+    private int GetLeft(string? location)
+    {
+        return ExtractFirstNumber(location, 0); // X, ilk sayıdır
+    }
+
+    private int GetTop(string? location)
+    {
+        return ExtractSecondNumber(location, 0); // Y, ikinci sayıdır
+    }
+
+    private int GetWidth(string? size)
+    {
+        return ExtractFirstNumber(size, 100); // Genişlik, ilk sayıdır (Varsayılan 100)
+    }
+
+    private int GetHeight(string? size)
+    {
+        return ExtractSecondNumber(size, 25); // Yükseklik, ikinci sayıdır (Varsayılan 25)
+    }
+
+    // Yardımcı: Metin içindeki (Örn: "20, 50" veya "{X=20,Y=50}") sayıları bulur
+    private int ExtractFirstNumber(string? input, int defaultValue)
+    {
+        if (string.IsNullOrEmpty(input)) return defaultValue;
+        try
+        {
+            // Metindeki tüm sayıları bul
+            var matches = System.Text.RegularExpressions.Regex.Matches(input, @"-?\d+");
+            if (matches.Count > 0 && int.TryParse(matches[0].Value, out int val))
+            {
+                return val;
+            }
+        }
+        catch { }
+        return defaultValue;
+    }
+
+    private int ExtractSecondNumber(string? input, int defaultValue)
+    {
+        if (string.IsNullOrEmpty(input)) return defaultValue;
+        try
+        {
+            // Metindeki tüm sayıları bul
+            var matches = System.Text.RegularExpressions.Regex.Matches(input, @"-?\d+");
+            if (matches.Count > 1 && int.TryParse(matches[1].Value, out int val))
+            {
+                return val;
+            }
+        }
+        catch { }
+        return defaultValue;
+    }
+    
 }

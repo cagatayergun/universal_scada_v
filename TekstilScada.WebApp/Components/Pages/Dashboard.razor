@@ -38,7 +38,7 @@
                     {
                         <div class="machine-group-box" style="--group-color: @GetGroupColor(group.Key)">
                             <div class="group-title">@group.Key</div>
-                            <div class="group-inner-panel">
+                            <div class="group-inner-panel" style="display: flex; flex-wrap: wrap; gap: 10px;">
                                 @foreach (var machineStatus in group)
                                 {
                                     @* KRİTİK GÜNCELLEME: MachineCard yerine DashboardMachineCard kullanılıyor *@
