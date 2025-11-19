@@ -1,0 +1,119 @@
+﻿@using TekstilScada.Models
+@using TekstilScada.WebApp.Services
+@inject ScadaDataService DataService
+@inject IJSRuntime JSRuntime
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Maliyet Parametreleri</h4>
+    <button class="btn btn-primary" @onclick="SaveChanges">
+        <i class="bi bi-save me-1"></i> Değişiklikleri Kaydet
+    </button>
+</div>
+
+@if (costs == null)
+{
+    <div class="text-center mt-4"><div class="spinner-border text-info"></div><p>Veriler yükleniyor...</p></div>
+}
+else
+{
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body bg-light">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <label class="fw-bold col-form-label">Sistem Para Birimi:</label>
+                </div>
+                <div class="col-auto">
+                    <input type="text" class="form-control" style="width: 100px;"
+                           @bind="globalCurrency" placeholder="TL, USD..." />
+                </div>
+                <div class="col">
+                    <small class="text-muted"><i class="bi bi-info-circle"></i> Bu para birimi tüm raporlarda kullanılacaktır.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Parametre Adı</th>
+                    <th style="width: 200px;">Birim Maliyet</th>
+                    <th style="width: 150px;">Birim</th>
+                    <th style="width: 200px;">Çarpan (Katsayı)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in costs)
+                {
+                    <tr>
+                        <td class="fw-bold">@item.ParameterName</td>
+                        <td>
+                            <div class="input-group input-group-sm">
+                                <input type="number" step="0.01" class="form-control" @bind="item.CostValue" />
+                                <span class="input-group-text">@globalCurrency</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">@item.Unit</span>
+                        </td>
+                        <td>
+                            <input type="number" step="0.01" class="form-control form-control-sm" @bind="item.Multiplier" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<CostParameter>? costs;
+    private string globalCurrency = "TL";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            costs = await DataService.GetCostsAsync();
+
+            // Repository mantığına göre para birimi ilk kayıtta tutuluyor veya varsayılan geliyor.
+            if (costs != null && costs.Count > 0)
+            {
+                globalCurrency = costs.First().CurrencySymbol ?? "TL";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Hata: {ex.Message}");
+        }
+    }
+
+    private async Task SaveChanges()
+    {
+        if (costs == null) return;
+
+        try
+        {
+            // Kullanıcının girdiği para birimini listeye (ilk kayda) uyguluyoruz
+            // Repository bunu alıp Id=1 olan kayda yazacak.
+            foreach (var item in costs)
+            {
+                item.CurrencySymbol = globalCurrency;
+            }
+
+            await DataService.UpdateCostsAsync(costs);
+            await JSRuntime.InvokeVoidAsync("alert", "Maliyet ayarları başarıyla kaydedildi.");
+            await LoadData(); // Verileri tazeleyelim
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Kaydetme hatası: {ex.Message}");
+        }
+    }
+}

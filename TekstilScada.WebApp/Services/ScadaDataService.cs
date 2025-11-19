@@ -1,12 +1,14 @@
 ﻿// Dosya: TekstilScada.WebApp/Services/ScadaDataService.cs (SON KARARLI SÜRÜM)
 
 using Microsoft.AspNetCore.SignalR.Client;
+using System;
 using System.Collections.Concurrent;
 using System.Net.Http.Json;
+using System.Threading.Tasks;
 using TekstilScada.Models;
 using TekstilScada.Repositories;
-using System;
-using System.Threading.Tasks;
+using TekstilScada.WebApp.Models;
+
 
 // DTO'lar, global namespace'de kalmalı4
 // 1. TrendDataPoint (CS0234 hatasını çözmek için)
@@ -572,16 +574,16 @@ namespace TekstilScada.WebApp.Services
 
         // --- BİR REÇETE TASARIM EKRANI İÇİN GEREKLİ YENİ METOTLAR ---
 
-        public async Task<List<StepTypeDto>> GetStepTypesAsync()
+        public async Task<List<StepTypeDtoDesign>> GetStepTypesAsync()
         {
             try
             {
-                return await _httpClient.GetFromJsonAsync<List<StepTypeDto>>("api/Json/config/steptypes");
+                return await _httpClient.GetFromJsonAsync<List<StepTypeDtoDesign>>("api/Json/config/steptypes");
             }
             catch (Exception ex)
             {
            
-                return new List<StepTypeDto>(); // Hata durumunda boş liste dön
+                return new List<StepTypeDtoDesign>(); // Hata durumunda boş liste dön
             }
         }
 
@@ -612,5 +614,156 @@ namespace TekstilScada.WebApp.Services
                 return false;
             }
         }
+        // --- ALARM YÖNETİMİ METOTLARI ---
+        // Not: Backend tarafında AlarmsController oluşturulması gerekir (Aşağıda verdim).
+        public async Task<List<AlarmDefinition>> GetAlarmsAsync()
+        {
+            return await _httpClient.GetFromJsonAsync<List<AlarmDefinition>>("api/alarms");
+        }
+
+        public async Task AddAlarmAsync(AlarmDefinition alarm)
+        {
+            await _httpClient.PostAsJsonAsync("api/alarms", alarm);
+        }
+
+        public async Task UpdateAlarmAsync(AlarmDefinition alarm)
+        {
+            await _httpClient.PutAsJsonAsync($"api/alarms/{alarm.Id}", alarm);
+        }
+
+        public async Task DeleteAlarmAsync(int id)
+        {
+            await _httpClient.DeleteAsync($"api/alarms/{id}");
+        }
+        // --- KULLANICI YÖNETİMİ (BU KISIM EKSİKTİ) ---
+
+    
+
+        public async Task AddUserAsync(User user)
+        {
+            await _httpClient.PostAsJsonAsync("api/users", user);
+        }
+
+        public async Task UpdateUserAsync(User user)
+        {
+            await _httpClient.PutAsJsonAsync($"api/users/{user.Id}", user);
+        }
+
+        public async Task DeleteUserAsync(int id)
+        {
+            await _httpClient.DeleteAsync($"api/users/{id}");
+        }
+
+        // --- ALARM YÖNETİMİ (İLERİSİ İÇİN HAZIRLIK) ---
+
+        // --- KULLANICI İŞLEMLERİ ---
+       
+
+        // Rolleri çekmek için yeni metod
+        public async Task<List<Role>> GetRolesAsync()
+        {
+            return await _httpClient.GetFromJsonAsync<List<Role>>("api/users/roles");
+        }
+
+        // Artık User değil, UserViewModel gönderiyoruz
+        public async Task AddUserAsync(UserViewModel userVm)
+        {
+            await _httpClient.PostAsJsonAsync("api/users", userVm);
+        }
+
+        public async Task UpdateUserAsync(UserViewModel userVm)
+        {
+            await _httpClient.PutAsJsonAsync($"api/users/{userVm.Id}", userVm);
+        }
+
+        // --- MALİYET YÖNETİMİ ---
+        public async Task<List<CostParameter>> GetCostsAsync()
+        {
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<List<CostParameter>>("api/costs");
+            }
+            catch
+            {
+                return new List<CostParameter>();
+            }
+        }
+
+        public async Task UpdateCostsAsync(List<CostParameter> costs)
+        {
+            await _httpClient.PostAsJsonAsync("api/costs", costs);
+        }
+        // --- PLC OPERATÖR YÖNETİMİ ---
+        public async Task<List<PlcOperator>> GetPlcOperatorsAsync()
+        {
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<List<PlcOperator>>("api/plcoperators");
+            }
+            catch
+            {
+                return new List<PlcOperator>();
+            }
+        }
+
+        public async Task SavePlcOperatorAsync(PlcOperator op)
+        {
+            await _httpClient.PostAsJsonAsync("api/plcoperators", op);
+        }
+
+        public async Task AddDefaultPlcOperatorAsync()
+        {
+            await _httpClient.PostAsync("api/plcoperators/default", null);
+        }
+
+        public async Task DeletePlcOperatorAsync(int id)
+        {
+            await _httpClient.DeleteAsync($"api/plcoperators/{id}");
+        }
+        // --- REÇETE TASARIMCISI ---
+        public async Task<List<string>> GetMachineSubTypesAsyncDesign()
+        {
+            try { return await _httpClient.GetFromJsonAsync<List<string>>("api/recipeconfigurations/subtypes"); }
+            catch { return new List<string>(); }
+        }
+
+        public async Task<List<StepTypeDtoDesign>> GetStepTypesAsyncDesign()
+        {
+            try { return await _httpClient.GetFromJsonAsync<List<StepTypeDtoDesign>>("api/recipeconfigurations/steptypes"); }
+            catch { return new List<StepTypeDtoDesign>(); }
+        }
+
+        public async Task<List<ControlMetadata>> GetLayoutAsync(string subType, int stepTypeId)
+        {
+            try
+            {
+                var jsonString = await _httpClient.GetStringAsync($"api/recipeconfigurations/layout?subType={subType}&stepTypeId={stepTypeId}");
+
+                if (string.IsNullOrEmpty(jsonString)) return new List<ControlMetadata>();
+
+                // --- KRİTİK DÜZELTME BAŞLANGICI ---
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true // Büyük/Küçük harf farkını görmezden gel
+                };
+                return System.Text.Json.JsonSerializer.Deserialize<List<ControlMetadata>>(jsonString, options);
+                // --- KRİTİK DÜZELTME BİTİŞİ ---
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Tasarım yüklenirken hata: {ex.Message}");
+                return new List<ControlMetadata>();
+            }
+        }
+
+        public async Task SaveLayoutAsync(string subType, int stepTypeId, List<ControlMetadata> layout)
+        {
+            await _httpClient.PostAsJsonAsync($"api/recipeconfigurations/layout?subType={subType}&stepTypeId={stepTypeId}", layout);
+        }
+
+
+
+
+
     }
 }

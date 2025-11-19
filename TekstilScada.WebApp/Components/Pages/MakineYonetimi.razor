@@ -1,10 +1,10 @@
-﻿
-
-
-@using TekstilScada.Models
+﻿@using TekstilScada.Models
 @using TekstilScada.WebApp.Services
 @inject ScadaDataService ScadaDataService
 @inject IJSRuntime JSRuntime
+
+@* Yetkilendirme kontrolü eklenebilir *@
+@* @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")] *@
 
 @if (showEditModal && machineToEdit != null)
 {
@@ -13,37 +13,65 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4>Makine Yönetimi</h4>
-    <button class="btn btn-success" @onclick="AddNewMachine">Yeni Makine Ekle</button>
+    <button class="btn btn-success" @onclick="AddNewMachine">
+        <i class="bi bi-plus-circle me-1"></i> Yeni Makine Ekle
+    </button>
 </div>
-
 
 @if (machines == null)
 {
-    <p><em>Yükleniyor...</em></p>
+    <div class="text-center mt-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2">Makineler yükleniyor...</p>
+    </div>
 }
 else
 {
-    <table class="table table-striped table-hover">
-        <thead>
-            <tr><th>ID</th><th>Makine Adı</th><th>IP Adresi</th><th>Tipi</th><th>Aktif</th><th></th></tr>
-        </thead>
-        <tbody>
-            @foreach (var machine in machines)
-            {
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead class="table-dark">
                 <tr>
-                    <td>@machine.MachineUserDefinedId</td>
-                    <td>@machine.MachineName</td>
-                    <td>@machine.IpAddress</td>
-                    <td>@machine.MachineType</td>
-                    <td><input type="checkbox" checked="@machine.IsEnabled" disabled /></td>
-                    <td>
-                        <button class="btn btn-sm btn-primary" @onclick="() => EditMachine(machine)">Düzenle</button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteMachine(machine)">Sil</button>
-                    </td>
+                    <th>ID</th>
+                    <th>Makine Adı</th>
+                    <th>IP Adresi</th>
+                    <th>Port</th>
+                    <th>Tipi</th>
+                    <th>Durum</th>
+                    <th class="text-end">İşlemler</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var machine in machines)
+                {
+                    <tr>
+                        <td><span class="badge bg-secondary">@machine.MachineUserDefinedId</span></td>
+                        <td class="fw-bold">@machine.MachineName</td>
+                        <td>@machine.IpAddress</td>
+                        <td>@machine.Port</td>
+                        <td>@machine.MachineType</td>
+                        <td>
+                            @if (machine.IsEnabled)
+                            {
+                                <span class="badge bg-success">Aktif</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Pasif</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-primary me-1" @onclick="() => EditMachine(machine)">
+                                <i class="bi bi-pencil"></i> Düzenle
+                            </button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteMachine(machine)">
+                                <i class="bi bi-trash"></i> Sil
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 }
 
 @code {
@@ -58,43 +86,63 @@ else
 
     private async Task LoadMachines()
     {
-        machines = await ScadaDataService.GetMachinesAsync();
+        try
+        {
+            machines = await ScadaDataService.GetMachinesAsync();
+        }
+        catch (Exception ex)
+        {
+            // Hata olursa konsola yaz veya kullanıcıya bildir
+            Console.WriteLine($"Veri yükleme hatası: {ex.Message}");
+            machines = new List<Machine>(); // Null referans hatasını önlemek için boş liste
+        }
     }
 
     private void AddNewMachine()
     {
-        machineToEdit = new Machine(); // Boş bir makine nesnesi oluştur
+        machineToEdit = new Machine { IsEnabled = true, Port = 502 }; // Varsayılan değerler
         showEditModal = true;
     }
 
     private void EditMachine(Machine machine)
     {
-        // Düzenlenecek makinenin bir kopyasını oluşturuyoruz ki
-        // kullanıcı "iptal" derse orijinal veri bozulmasın.
+        // DÜZELTME: Tüm alanları kopyalıyoruz, aksi halde Port 0 olur.
         machineToEdit = new Machine
         {
             Id = machine.Id,
             MachineName = machine.MachineName,
             MachineUserDefinedId = machine.MachineUserDefinedId,
             IpAddress = machine.IpAddress,
+            Port = machine.Port, // EKLENDİ
             IsEnabled = machine.IsEnabled,
-            MachineType = machine.MachineType
+            MachineType = machine.MachineType,
+            VncAddress = machine.VncAddress, // EKLENDİ
+            VncPassword = machine.VncPassword,
+            FtpUsername = machine.FtpUsername,
+            FtpPassword = machine.FtpPassword
         };
         showEditModal = true;
     }
 
     private async Task HandleSave(Machine machine)
     {
-        if (machine.Id == 0) // ID 0 ise bu yeni bir makinedir
+        try
         {
-            await ScadaDataService.AddMachineAsync(machine);
+            if (machine.Id == 0)
+            {
+                await ScadaDataService.AddMachineAsync(machine);
+            }
+            else
+            {
+                await ScadaDataService.UpdateMachineAsync(machine);
+            }
+            showEditModal = false;
+            await LoadMachines();
         }
-        else // ID varsa mevcut bir makine güncelleniyordur
+        catch (Exception ex)
         {
-            await ScadaDataService.UpdateMachineAsync(machine);
+            await JSRuntime.InvokeVoidAsync("alert", $"Kaydetme hatası: {ex.Message}");
         }
-        showEditModal = false;
-        await LoadMachines(); // Değişiklikten sonra listeyi yenile
     }
 
     private async Task DeleteMachine(Machine machine)
@@ -102,8 +150,15 @@ else
         bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"'{machine.MachineName}' makinesini silmek istediğinizden emin misiniz?");
         if (confirmed)
         {
-            await ScadaDataService.DeleteMachineAsync(machine.Id);
-            await LoadMachines(); // Listeyi yenile
+            try
+            {
+                await ScadaDataService.DeleteMachineAsync(machine.Id);
+                await LoadMachines();
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Silme hatası: {ex.Message}");
+            }
         }
     }
 }

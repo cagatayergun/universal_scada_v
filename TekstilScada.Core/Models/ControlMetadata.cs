@@ -18,7 +18,7 @@ namespace TekstilScada.Models
     // JSON'da saklanacak kontrol bilgilerini temsil eden sınıf
     public class ControlMetadata
     {
-        public string ControlType { get; set; }
+        public string ControlType { get; set; } = "";
         public string Name { get; set; }
         public string Text { get; set; }
         public string Location { get; set; } // "X, Y" formatında
@@ -46,5 +46,10 @@ namespace TekstilScada.Models
         public int WordIndex { get; set; }
         public int BitIndex { get; set; }
         public int StringWordLength { get; set; } // YENİ
+    }
+    public class StepTypeDtoDesign
+    {
+        public int Id { get; set; }
+        public string StepName { get; set; }
     }
 }

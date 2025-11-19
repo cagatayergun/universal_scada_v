@@ -1,0 +1,353 @@
+﻿@using TekstilScada.Models
+@using TekstilScada.WebApp.Services
+@inject ScadaDataService DataService
+@inject IJSRuntime JSRuntime
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Reçete Adım Tasarımcısı</h4>
+    <div>
+        <button class="btn btn-primary" @onclick="SaveLayout" disabled="@(selectedStepTypeId == 0)">
+            <i class="bi bi-save me-1"></i> Tasarımı Kaydet
+        </button>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <label class="form-label">Makine Alt Tipi:</label>
+        <select class="form-select" @onchange="OnSubTypeChanged">
+            @foreach (var type in subTypes)
+            {
+                <option value="@type">@type</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Adım Tipi:</label>
+        <select class="form-select" @onchange="OnStepTypeChanged">
+            <option value="0">Seçiniz...</option>
+            @foreach (var step in stepTypes)
+            {
+                <option value="@step.Id">@step.StepName</option>
+            }
+        </select>
+    </div>
+</div>
+
+@if (selectedStepTypeId > 0)
+{
+    <div class="row">
+        <div class="col-md-7">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Kontroller</h6>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-success dropdown-toggle" type="button" id="addControlDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-plus-lg"></i> Ekle
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="addControlDropdown">
+                            <li><a class="dropdown-item" href="javascript:void(0)" @onclick='() => AddControl("System.Windows.Forms.Label")'>Etiket (Label)</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" @onclick='() => AddControl("System.Windows.Forms.NumericUpDown")'>Sayısal (Numeric)</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" @onclick='() => AddControl("System.Windows.Forms.CheckBox")'>Onay Kutusu (Checkbox)</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" @onclick='() => AddControl("System.Windows.Forms.TextBox")'>Metin Kutusu (TextBox)</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body p-0" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tür</th>
+                                <th>Metin / İsim</th>
+                                <th>Konum (X,Y)</th>
+                                <th>PLC Adres</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ctrl in controls)
+                            {
+                                <tr class="@(editingControl == ctrl ? "table-active" : "")" @onclick="() => EditControl(ctrl)" style="cursor:pointer;">
+                                    @* TÜR: Bilinmeyen yazısını engellemek için güvenli okuma *@
+                                    <td>
+                                        <span class="badge bg-light text-dark border">
+                                            @GetShortTypeName(ctrl.ControlType ?? "Bilinmeyen")
+                                        </span>
+                                    </td>
+
+                                    @* METİN *@
+                                    <td>@ctrl.Text</td>
+
+                                    @* KONUM *@
+                                    <td>@ctrl.Location</td>
+
+                                    @* ADRES: İstenilen W20 ve W15.0 formatı *@
+                                    <td>
+                                        @if ((ctrl.ControlType ?? "").Contains("CheckBox"))
+                                        {
+                                            @* Bit ise: W15.0 *@
+                                            <span class="badge bg-warning text-dark" style="font-family: monospace; font-size: 0.9em;">
+                                                W@(ctrl.PLC_WordIndex).@(ctrl.PLC_BitIndex)
+                                            </span>
+                                        }
+                                        else if ((ctrl.ControlType ?? "").Contains("TextBox"))
+                                        {
+                                            @* String ise: W20 (Uzunluk bilgisiyle) *@
+                                            <span class="badge bg-info text-dark" style="font-family: monospace; font-size: 0.9em;">
+                                                W@(ctrl.PLC_WordIndex) [Len:@ctrl.StringWordLength]
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            @* Normal değer ise: W20 *@
+                                            <span class="badge bg-info text-dark" style="font-family: monospace; font-size: 0.9em;">
+                                                W@(ctrl.PLC_WordIndex)
+                                            </span>
+                                        }
+                                    </td>
+
+                                    @* İŞLEM *@
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveControl(ctrl)" @onclick:stopPropagation="true">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            @if (editingControl != null)
+            {
+                <div class="card shadow-sm border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0">Özellikler: @GetShortTypeName(editingControl.ControlType)</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold">Görünen Metin (Text):</label>
+                            <input type="text" class="form-control form-control-sm" @bind="editingControl.Text" />
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col">
+                                <label class="form-label small">X Konumu:</label>
+                                <input type="number" class="form-control form-control-sm"
+                                       value="@GetX(editingControl.Location)"
+                                       @onchange="@(e => UpdateLocationX(editingControl, e.Value))" />
+                            </div>
+                            <div class="col">
+                                <label class="form-label small">Y Konumu:</label>
+                                <input type="number" class="form-control form-control-sm"
+                                       value="@GetY(editingControl.Location)"
+                                       @onchange="@(e => UpdateLocationY(editingControl, e.Value))" />
+                            </div>
+                        </div>
+
+                        <hr />
+                        <h6 class="small fw-bold text-muted">PLC Ayarları</h6>
+
+                        <div class="row mb-2">
+                            <div class="col">
+                                <label class="form-label small">Adres (Word):</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">W</span>
+                                    <input type="number" class="form-control" @bind="editingControl.PLC_WordIndex" />
+                                </div>
+                            </div>
+                            @if (editingControl.ControlType.Contains("CheckBox"))
+                            {
+                                <div class="col">
+                                    <label class="form-label small">Bit (0-15):</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">.</span>
+                                        <input type="number" class="form-control" @bind="editingControl.PLC_BitIndex" max="15" min="0" />
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        @if (editingControl.ControlType.Contains("NumericUpDown"))
+                        {
+                            <div class="row mb-2 border-top pt-2 mt-2">
+                                <div class="col">
+                                    <label class="form-label small">Max Değer:</label>
+                                    <input type="number" class="form-control form-control-sm" @bind="editingControl.Maximum" />
+                                </div>
+                                <div class="col">
+                                    <label class="form-label small">Ondalık (Virgül):</label>
+                                    <input type="number" class="form-control form-control-sm" @bind="editingControl.DecimalPlaces" />
+                                </div>
+                            </div>
+                        }
+                        @if (editingControl.ControlType.Contains("TextBox"))
+                        {
+                            <div class="row mb-2 border-top pt-2 mt-2">
+                                <div class="col">
+                                    <label class="form-label small">Uzunluk (Word):</label>
+                                    <input type="number" class="form-control form-control-sm" @bind="editingControl.StringWordLength" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="card mt-3 shadow-sm">
+                    <div class="card-header"><small>Görsel Önizleme</small></div>
+                    <div class="card-body position-relative bg-light" style="height: 300px; overflow: hidden; border: 1px solid #ddd;">
+                        @foreach (var ctrl in controls)
+                        {
+                            <div style="position: absolute; left: @(GetX(ctrl.Location))px; top: @(GetY(ctrl.Location))px; border: 1px solid #999; padding: 2px; background: white; white-space: nowrap; cursor: pointer;"
+                                 class="@(editingControl == ctrl ? "border-primary border-2 shadow" : "")"
+                                 @onclick="() => EditControl(ctrl)">
+
+                                @if (ctrl.ControlType.Contains("Numeric"))
+                                {
+                                    <span>[000]</span>
+                                }
+                                else if (ctrl.ControlType.Contains("Check"))
+                                {
+
+                                    <input type="checkbox" disabled />
+                                }
+
+                                <small>@ctrl.Text</small>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info">Düzenlemek için listeden bir kontrol seçin.</div>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning text-center p-5">Lütfen düzenlemek için bir Adım Tipi seçin.</div>
+}
+
+@code {
+    // ... (Değişkenler aynı) ...
+    private List<string> subTypes = new();
+    private List<StepTypeDtoDesign> stepTypes = new();
+    private List<ControlMetadata> controls = new();
+    private ControlMetadata? editingControl;
+
+    private string selectedSubType = "DEFAULT";
+    private int selectedStepTypeId = 0;
+
+    // ... (OnInitializedAsync, OnChange metodları aynı) ...
+
+    protected override async Task OnInitializedAsync()
+    {
+        subTypes = await DataService.GetMachineSubTypesAsyncDesign();
+        stepTypes = await DataService.GetStepTypesAsyncDesign();
+        if (subTypes.Any()) selectedSubType = subTypes.First();
+    }
+
+    private async Task OnSubTypeChanged(ChangeEventArgs e)
+    {
+        selectedSubType = e.Value?.ToString() ?? "DEFAULT";
+        await LoadLayout();
+    }
+
+    private async Task OnStepTypeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int id))
+        {
+            selectedStepTypeId = id;
+            await LoadLayout();
+        }
+    }
+
+    private async Task LoadLayout()
+    {
+        if (selectedStepTypeId == 0) return;
+        controls = await DataService.GetLayoutAsync(selectedSubType, selectedStepTypeId);
+        editingControl = null;
+    }
+
+    private void AddControl(string type)
+    {
+        var newCtrl = new ControlMetadata
+        {
+            ControlType = type,
+            Text = type.Contains(".") ? type.Split('.').Last() : type,
+            Location = "20, 20", // Varsayılan konum
+            Size = "100, 25",
+            PLC_WordIndex = 0
+        };
+
+        // Kontrol tipine göre özel varsayılanlar
+        if (type.Contains("TextBox")) newCtrl.StringWordLength = 5;
+        if (type.Contains("Numeric")) newCtrl.Maximum = 1000;
+        if (type.Contains("Label")) newCtrl.Text = "Etiket";
+
+        controls.Add(newCtrl);
+        editingControl = newCtrl;
+    }
+
+    private void EditControl(ControlMetadata ctrl) { editingControl = ctrl; }
+
+    private void RemoveControl(ControlMetadata ctrl)
+    {
+        controls.Remove(ctrl);
+        if (editingControl == ctrl) editingControl = null;
+    }
+
+    private async Task SaveLayout()
+    {
+        try
+        {
+            await DataService.SaveLayoutAsync(selectedSubType, selectedStepTypeId, controls);
+            await JSRuntime.InvokeVoidAsync("alert", "Başarıyla kaydedildi!");
+        }
+        catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", "Hata: " + ex.Message); }
+    }
+
+    // DÜZELTİLMİŞ YARDIMCI METOTLAR
+    private string GetShortTypeName(string fullName)
+    {
+        if (string.IsNullOrEmpty(fullName)) return "Bilinmeyen";
+        return fullName.Replace("System.Windows.Forms.", "");
+    }
+
+    private int GetX(string location)
+    {
+        if (string.IsNullOrEmpty(location)) return 0;
+        var parts = location.Split(',');
+        return parts.Length > 0 && int.TryParse(parts[0].Trim(), out int x) ? x : 0;
+    }
+
+    private int GetY(string location)
+    {
+        if (string.IsNullOrEmpty(location)) return 0;
+        var parts = location.Split(',');
+        return parts.Length > 1 && int.TryParse(parts[1].Trim(), out int y) ? y : 0;
+    }
+
+    private void UpdateLocationX(ControlMetadata ctrl, object value)
+    {
+        if (int.TryParse(value?.ToString(), out int x))
+        {
+            int y = GetY(ctrl.Location);
+            ctrl.Location = $"{x}, {y}";
+        }
+    }
+
+    private void UpdateLocationY(ControlMetadata ctrl, object value)
+    {
+        if (int.TryParse(value?.ToString(), out int y))
+        {
+            int x = GetX(ctrl.Location);
+            ctrl.Location = $"{x}, {y}";
+        }
+    }
+}
