@@ -5,52 +5,80 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.Extensions.Logging;
-// using Microsoft.AspNetCore.Authentication.Cookies; // --- GEREKLÝ DEÐÝL
-// using Microsoft.AspNetCore.Authentication; // --- GEREKLÝ DEÐÝL
 using System.Text.Json;
 using TekstilScada.WebApp.Components;
 using TekstilScada.WebApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. BU BLOKU GERÝ EKLEYÝN (YORUMLARI KALDIRIN) ---
+// --- 1. ÇEKÝRDEK KÝMLÝK DOÐRULAMA SERVÝSLERÝ EKLENDÝ ---
+// Servislerin kayýtlý olmasý, "IAuthenticationService" ve "No scheme"
+// hatalarýný engeller.
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        // Login yolu doðru belirtilmiþti, kalsýn
         options.LoginPath = "/login";
+
+        // --- YÖNLENDÝRME DÖNGÜSÜ ÝÇÝN DÜZELTME ---
+        options.Events.OnRedirectToLogin = context =>
+        {
+            // KRÝTÝK KONTROL: Eðer istek ZATEN /login sayfasýna
+            // gidiyorsa, ASLA tekrar yönlendirme yapma.
+            // Bu, "boþ sayfa" ve "manuel giriþ" sorunlarýný
+            // (sonsuz döngüyü) çözecektir.
+            if (context.Request.Path == options.LoginPath)
+            {
+                // Sadece olayýn tamamlanmasýna izin ver,
+                // sayfanýn (Login.razor) yüklenmesini engelleme.
+                return Task.CompletedTask;
+            }
+
+            // Eðer istek /login dýþýnda bir sayfaya (örn: '/')
+            // yapýlýyorsa, normal þekilde /login'e yönlendir.
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+        // --- DÜZELTMENÝN SONU ---
     });
+
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddCircuitOptions(options => { options.DetailedErrors = true; });
 
-// 1. Blazored Local Storage'ý ekle
+// 1. Blazored Local Storage'ý ekle (Bu DOÐRU)
 builder.Services.AddBlazoredLocalStorage();
 
-// --- 2. ADDSERVICES.ADDAUTHORIZATION() YERÝNE DAHA TEMEL OLANI KULLAN ---
-// Bu, Blazor'un [Authorize] özniteliklerini tanýmasý için yeterlidir.
+// 2. AuthorizationCore (Bu DOÐRU, Blazor'un [Authorize] özniteliðini tanýmasý için bu kalmalý)
 builder.Services.AddAuthorizationCore();
 
-// 3. CustomAuthStateProvider kaydý (Bu doðru)
+// 3. CustomAuthStateProvider kaydý (Bu DOÐRU)
 builder.Services.AddScoped<CustomAuthStateProvider>(sp =>
 {
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
     var httpClient = httpClientFactory.CreateClient("WebApiClient");
     var localStorage = sp.GetRequiredService<ILocalStorageService>();
-    return new CustomAuthStateProvider(httpClient, localStorage);
+
+    // YENÝ: Logger'ý da servisten alýp provider'a iletiyoruz
+    var logger = sp.GetRequiredService<ILogger<CustomAuthStateProvider>>();
+
+    return new CustomAuthStateProvider(httpClient, localStorage, logger); // <-- logger'ý buraya ekleyin
 });
 
-// 4. CustomAuthStateProvider'ý ana kimlik doðrulama saðlayýcýsý olarak ata (Bu doðru)
+// 4. CustomAuthStateProvider'ý ana kimlik doðrulama saðlayýcýsý olarak ata (Bu DOÐRU)
 builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
     provider.GetRequiredService<CustomAuthStateProvider>());
 
 
 // HttpClient yapýlandýrmasý (Bu doðru)
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:7039";
+
+// HttpClient yapýlandýrmasý (Bu doðru)
 builder.Services.AddHttpClient("WebApiClient", client =>
 {
-    client.BaseAddress = new Uri("http://localhost:7039");
+    // client.BaseAddress = new Uri("http://localhost:7039"); // ESKÝ SATIR
+    client.BaseAddress = new Uri(apiBaseUrl); // YENÝ SATIR
 })
 .ConfigurePrimaryHttpMessageHandler(() =>
 {
@@ -78,18 +106,24 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    app.UseHsts();
+    // app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-app.UseAuthentication();
-app.UseAuthorization();
+// --- BU ÝKÝ SATIR YORUMDA KALMALI ---
+// Bu middleware'ler, F5'te /login yönlendirmesine neden olan
+// çerez (Cookie) tabanlý sistemi tetikler.
+// app.UseAuthentication();
+// app.UseAuthorization();
 
+// --- SON ÇÖZÜM: ÖN YÜKLEMEYÝ (PRERENDERING) KAPAT ---
+// Prerendering ayarý App.razor dosyasýnda zaten (prerender: false) olarak yapýldý.
+// Buradaki satýrýn parametresiz olmasý gerekiyor.
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode(); // <-- HATA DÜZELTÝLDÝ: Parametre kaldýrýldý
 
 
 
@@ -119,3 +153,4 @@ app.Use(async (context, next) =>
     }
 });
 app.Run();
+

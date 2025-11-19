@@ -1,0 +1,110 @@
+﻿@using TekstilScada.Models
+@using TekstilScada.WebApp.Models
+@using TekstilScada.WebApp.Services
+@using Microsoft.AspNetCore.Components.Forms
+
+@if (Model != null)
+{
+    <div class="modal fade show" style="display:block; background-color: rgba(0,0,0,0.5);" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(Model.Id == 0 ? "Yeni Kullanıcı" : "Kullanıcı Düzenle")</h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+                <EditForm Model="@Model" OnValidSubmit="SaveChanges">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Ad Soyad:</label>
+                            <InputText @bind-Value="Model.FullName" class="form-control" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Kullanıcı Adı:</label>
+                            <InputText @bind-Value="Model.Username" class="form-control" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Şifre @(Model.Id > 0 ? "(Değişmeyecekse boş bırakın)" : ""):</label>
+                            <InputText @bind-Value="Model.Password" type="password" class="form-control" />
+                        </div>
+
+                        @* --- ÇOKLU ROL SEÇİMİ ALANI --- *@
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Roller:</label>
+                            <div class="card p-2" style="max-height: 150px; overflow-y: auto;">
+                                @if (Roles != null)
+                                {
+                                    foreach (var role in Roles)
+                                    {
+                                        <div class="form-check">
+                                            @* Checkbox değişimini özel bir metoda bağlıyoruz *@
+                                            <input class="form-check-input" type="checkbox"
+                                                   id="role_@role.Id"
+                                                   checked="@IsRoleSelected(role.Id)"
+                                                   @onchange="@(e => UpdateRoleSelection(role.Id, e.Value))">
+                                            <label class="form-check-label" for="role_@role.Id">
+                                                @role.RoleName
+                                            </label>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <p class="text-muted">Roller yüklenemedi.</p>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <InputCheckbox @bind-Value="Model.IsActive" class="form-check-input" />
+                            <label class="form-check-label">Aktif Kullanıcı</label>
+                        </div>
+
+                        <ValidationSummary />
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="Close">İptal</button>
+                        <button type="submit" class="btn btn-primary">Kaydet</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public UserViewModel Model { get; set; }
+    [Parameter] public List<Role> Roles { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<UserViewModel> OnSave { get; set; }
+
+    private async Task Close() => await OnClose.InvokeAsync();
+    private async Task SaveChanges() => await OnSave.InvokeAsync(Model);
+
+    // Rolün seçili olup olmadığını kontrol eder
+    private bool IsRoleSelected(int roleId)
+    {
+        return Model.SelectedRoleIds.Contains(roleId);
+    }
+
+    // Checkbox tıklandığında listeyi günceller
+    private void UpdateRoleSelection(int roleId, object checkedValue)
+    {
+        bool isChecked = (bool)checkedValue;
+        if (isChecked)
+        {
+            if (!Model.SelectedRoleIds.Contains(roleId))
+            {
+                Model.SelectedRoleIds.Add(roleId);
+            }
+        }
+        else
+        {
+            if (Model.SelectedRoleIds.Contains(roleId))
+            {
+                Model.SelectedRoleIds.Remove(roleId);
+            }
+        }
+    }
+}
