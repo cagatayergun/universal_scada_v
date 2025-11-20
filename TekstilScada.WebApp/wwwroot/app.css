@@ -716,6 +716,7 @@ html, body {
         padding-bottom: 10px;
         border-bottom: 1px solid #ddd;
     }
+
     .card-header-tabs {
         flex-wrap: nowrap; /* Sekmelerin alt satýra geçmesini engelle */
         overflow-x: auto; /* Yatay kaydýrmayý etkinleþtir */
@@ -765,6 +766,7 @@ html, body {
         max-height: 35vh !important; /* Mobil için daha düþük bir maksimum yükseklik */
         margin-bottom: 15px; /* Detay panelinden ayýr */
     }
+
     .card-header-tabs {
         flex-wrap: nowrap;
         overflow-x: auto;
@@ -792,4 +794,63 @@ html, body {
     #topAlarmsChartContainer {
         max-height: 160px;
         height: 160px; /* Veya sadece height kullanýn */
+    }
+    /* --- MASAÜSTÜ AYARLARI (Varsayýlan) --- */
+
+    /* Grafiklerin bulunduðu sað sütunu biraz daha orantýlý yapalým (Sabit 500px yerine %25) */
+    .sidebar-charts-column {
+        flex: 0 0 30%; /* Ekranýn %30'unu kaplasýn */
+        min-width: 320px; /* Ama çok da küçülmesin */
+        max-width: 450px; /* Çok da büyümesin (Dev ekranlarda yayýlmasýn) */
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    /* Grafik Kutusu */
+    .chart-box {
+        background-color: #34495e;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 5px; /* Ýç boþluðu azalttýk */
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        /* Yükseklik artýk JS'den deðil, buradan belirlenecek */
+        height: 240px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chart-title {
+        font-size: 0.85rem; /* Baþlýk fontunu biraz küçülttük */
+        font-weight: bold;
+        color: #bdc3c7;
+        margin-bottom: 2px;
+        text-align: center;
+        flex-shrink: 0; /* Baþlýk sýkýþmasýn */
+    }
+
+    /* Grafiðin oturacaðý alan (Kutunun kalanýný kaplasýn) */
+    .chart-wrapper {
+        flex-grow: 1;
+        width: 100%;
+        min-height: 0; /* Flex içinde taþmayý engeller */
+    }
+
+
+    /* --- MOBÝL AYARLARI (Responsive) --- */
+    @media (max-width: 768px) {
+
+        .sidebar-charts-column {
+            width: 100%; /* Tam geniþlik */
+            max-width: none;
+            flex: none;
+            order: 1; /* Mobilde grafikler üstte dursun isterseniz 1 yapýn, altta ise 2 */
+        }
+
+        .chart-box {
+            /* Mobilde "kocaman" görünmemesi için yüksekliði azaltýyoruz */
+            height: 180px;
+        }
+
+        /* Mobilde grafik içindeki fontlarý ve kenar boþluklarýný JS tarafýnda da kýsacaðýz */
     }

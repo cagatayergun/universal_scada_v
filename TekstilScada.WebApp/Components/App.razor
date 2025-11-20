@@ -7,377 +7,186 @@
     <base href="/" />
     <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="app.css" />
-
     <link rel="stylesheet" href="TekstilScada.WebApp.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
-    <script src="https://cdn.plot.ly/plotly-2.31.1.min.js"></script>
-</head>
-<script>
-    // Blazor'dan gelen veriyi alan ve Plotly ile grafiği çizen fonksiyon
-    // TekstilScada.WebApp/Components/App.razor - <script> bloğu içinde
-
-     // TekstilScada.WebApp/Components/App.razor - <script> bloğu içinde
-
-    function plotTrendChart(chartId, dataPoints, selectedData) {
-        if (!dataPoints || dataPoints.length === 0) {
-            console.log("Grafik çizmek için veri yok.");
-            Plotly.purge(chartId);
-            return;
-        }
-
-        // KRİTİK DÜZELTME: Tüm özellikler camelCase (küçük harfle başlayan) olarak erişilmelidir.
-        const timestamps = dataPoints.map(p => p.timestamp);
-        let values;
-        let yaxisTitle;
-
-        switch (selectedData) {
-            case 'Temperature':
-                // C# (Temperature) -> JS (temperature)
-                values = dataPoints.map(p => p.temperature / 10.0);
-                yaxisTitle = 'Sıcaklık (°C)';
-                break;
-            case 'WaterLevel':
-                // C# (WaterLevel) -> JS (waterLevel)
-                values = dataPoints.map(p => p.waterLevel);
-                yaxisTitle = 'Su Seviyesi';
-                break;
-            case 'Rpm':
-                // C# (Rpm) -> JS (rpm)
-                values = dataPoints.map(p => p.rpm);
-                yaxisTitle = 'Devir (Rpm)';
-                break;
-            default:
-                console.error("Geçersiz veri tipi.");
-                return;
-        }
-
-        // TANI: Değerlerin gerçekten gelip gelmediğini kontrol eder.
-        console.log(`Plotly çizim verisi kontrolü: Times (${timestamps.length} adet), Values (${values.length} adet)`);
-
-        if (values.every(v => v === undefined || v === null)) {
-             console.error("HATA: Değer dizisi boş veya tanımsız. JSON serileştirme hatası devam ediyor.");
-             Plotly.purge(chartId);
-             return;
-        }
-
-
-        const trace = {
-            x: timestamps,
-            y: values,
-            mode: 'lines',
-            type: 'scatter',
-            name: selectedData
-        };
-
-        const layout = {
-            title: `Trend Analizi: ${yaxisTitle} - Makine ${dataPoints[0].machineId}`,
-            xaxis: {
-                title: 'Zaman Damgası',
-                type: 'date'
-            },
-            yaxis: {
-                title: yaxisTitle
-            }
-        };
-
-        Plotly.newPlot(chartId, [trace], layout, { responsive: true });
-    }
-</script>
-<script>
-   
-
-    // Blazor'dan gelen ÜÇ SERİLİ veriyi alan ve Plotly ile grafiği çizen fonksiyon
-    function plotTrendChart1(chartId, dataPoints, title) {
-        if (!dataPoints || dataPoints.length === 0) {
-            console.log("Grafik çizmek için veri yok.");
-            Plotly.purge(chartId);
-            return;
-        }
-         const timestamps = dataPoints.map(p => p.timestamp);
     
-        // 1. Veri Hazırlama: TimestampOADate'i Date objesine çeviriyoruz.
-        const xTime = timestamps;
-        const yTemp = dataPoints.map(d => d.temperature);
-        const yRpm = dataPoints.map(d => d.rpm);
-        const yWater = dataPoints.map(d => d.waterLevel);
-
-        // 2. Grafik Serileri (Traces)
-        const traceTemp = {
-            x: xTime,
-            y: yTemp,
-            name: 'Sıcaklık (°C)',
-            type: 'scatter',
-            mode: 'lines',
-            line: { color: 'red' },
-            yaxis: 'y1'
-        };
-
-        const traceRpm = {
-            x: xTime,
-            y: yRpm,
-            name: 'Devir (RPM)',
-            type: 'scatter',
-            mode: 'lines',
-            line: { color: 'blue' },
-            yaxis: 'y2'
-        };
-
-        const traceWater = {
-            x: xTime,
-            y: yWater,
-            name: 'Su Seviyesi',
-            type: 'scatter',
-            mode: 'lines',
-            line: { color: 'green' },
-            yaxis: 'y3'
-        };
-
-        // 3. Grafik Düzeni (Layout)
-        const layout = {
-            title: title || 'Canlı Proses Trend Grafiği',
-            xaxis: {
-                title: 'Zaman Damgası',
-                type: 'timestamps', // Artık Plotly'ye Date objeleri gönderdiğimiz için bu doğru çalışacaktır.
-                tickformat: '%Y-%m-%d\n%H:%M:%S' // Zaman formatını göster
-            },
-            yaxis: {
-                title: 'Sıcaklık (°C)',
-                showgrid: true,
-                zeroline: true,
-                side: 'left',
-                automargin: true,
-            },
-            yaxis2: {
-                title: 'Devir (RPM)',
-                overlaying: 'y',
-                side: 'right',
-                showgrid: false,
-                zeroline: false,
-                automargin: true,
-                position: 0.98, // Devir ekseni pozisyonu (sağdan 2%)
-            },
-            yaxis3: {
-                title: 'Su Seviyesi',
-                overlaying: 'y',
-                side: 'right',
-                position: 0.90, // Su seviyesi ekseni pozisyonu (sağdan 10%)
-                showgrid: false,
-                zeroline: false,
-                automargin: true,
-            },
-            margin: { r: 0, b: 0 } // Sağ ve alt kenar boşluklarını artır
-        };
-
-        Plotly.newPlot(chartId, [traceTemp, traceRpm, traceWater], layout, { responsive: true });
-    }
-        
-    function plotDashboardCharts(hourlyOeeData, hourlyConsumptionData, topAlarmsData) {
-        if (!Plotly) {
-            console.error("Plotly kütüphanesi yüklenmedi.");
-return;
-        }
-
-        const isMobile = window.innerWidth <= 768;
-
-        // 1. OEE Grafiği - AYARLI
-        const plotOee = () => {
-const containerId = 'oeeChartContainer';
-            const data = hourlyOeeData.map(d => ({ hour: d.saat, oee: d.averageOEE }));
-            if (data.length === 0) return Plotly.purge(containerId);
-const trace = {
-                x: data.map(d => `${d.hour}:00`),
-                y: data.map(d => d.oee),
-                type: 'bar',
-marker: { color: 'rgba(46, 204, 113, 0.8)' },
-                name: 'Ortalama OEE (%)'
-            };
-            
-            // YENİ: Mobil ve Masaüstü için ayrı ayarlar
-            const layout = {
-                // Mobilde etiket açısını (tickangle) kaldır, masaüstünde kullan (45)
-xaxis: { title: 'Saat', tickangle: isMobile ? 0 : 45, automargin: true },
-                yaxis: { title: 'OEE (%)', range: [0, 100], automargin: true },
-                // Mobilde (175px) alt boşluk 40, Masaüstünde (300px) eğik etiket için 70
-                margin: { t: 30, b: isMobile ? 40 : 70, l: 40, r: 10 },
-                // YENİ: CSS ile senkronize yükseklik
-height: isMobile ? 160 : 250 
-            };
-            
-            // YENİ: Mobilde 'responsive: false' (titremeyi durdurur), 
-            // Masaüstünde 'responsive: true' (yeniden boyutlandırmaya izin verir).
-Plotly.newPlot(containerId, [trace], layout, { displayModeBar: false, responsive: !isMobile });
-        };
-
-        // 2. Tüketim Grafikleri - AYARLI
-const plotConsumption = (containerId, consumptionKey, title, unit, color) => {
-const data = hourlyConsumptionData;
-            if (data.length === 0) return Plotly.purge(containerId);
-const values = data.map(d => d[consumptionKey]);
-            const trace = {
-                x: data.map(d => `${d.hour}:00`),
-                y: values,
-                type: 'bar',
-marker: { color: color },
-                name: title
-            };
-            const layout = {
-                title: title,
-                // Mobilde etiket açısını kaldır, masaüstünde kullan
-                xaxis: { title: 'Saat', tickangle: isMobile ? 0 : 45, automargin: true },
-                yaxis: { title: unit, automargin: true },
-                margin: { t: 30, b: isMobile ? 40 : 70, l: 40, r: 10 },
-                // YENİ: CSS ile senkronize yükseklik
-height: isMobile ? 160 : 250 
-            };
-            // YENİ: Mobilde 'responsive: false'
-Plotly.newPlot(containerId, [trace], layout, { displayModeBar: false, responsive: !isMobile });
-        };
-
-        // 3. En Sık Alarmlar Grafiği - AYARLI
-const plotTopAlarms = () => {
-const containerId = 'topAlarmsChartContainer';
-            const data = topAlarmsData.sort((a, b) => a.count - b.count).slice(-5);
-            if (data.length === 0) return Plotly.purge(containerId);
-const trace = {
-                x: data.map(d => d.count),
-                y: data.map(d => d.alarmText.length > 20 ? d.alarmText.substring(0, 17) + '...' : d.alarmText),
-                type: 'bar',
-orientation: 'h',
-                marker: { color: 'rgba(231, 76, 60, 0.8)' },
-                name: 'Tekrar Sayısı'
-            };
-const layout = {
-                xaxis: { title: 'Tekrar Sayısı', automargin: true },
-                yaxis: { automargin: true },
-                // Mobilde (175px) 'automargin' sol boşluğu kendi ayarlar,
-                // Masaüstünde (300px) alarm metni için 'l: 150' kullanırız.
-                margin: { t: 30, b: 40, l: isMobile ? 10 : 150, r: 10 },
-                // YENİ: CSS ile senkronize yükseklik
-height: isMobile ? 160 : 250 
-            };
-            // YENİ: Mobilde 'responsive: false'
-Plotly.newPlot(containerId, [trace], layout, { displayModeBar: false, responsive: !isMobile });
-        };
-
-        // Tüm grafikleri çağır
-plotOee();
-        plotConsumption('electricChartContainer', 'toplamElektrik', '', 'kWh', '#3498db');
-plotConsumption('waterChartContainer', 'toplamSu', '', 'Litre', '#2c3e50');
-        plotConsumption('steamChartContainer', 'toplamBuhar', '', 'kg', '#9b59b6');
-        plotTopAlarms();
-}
-       function drawPieChart(elementId, chartData) {
-        if (!chartData || chartData.length === 0) {
-            Plotly.purge(elementId);
-            return;
-        }
-
-        const labels = chartData.map(d => d.label);
-        const values = chartData.map(d => d.value);
-        const colors = chartData.map(d => d.color);
-
-        const data = [{
-            values: values,
-            labels: labels,
-            type: 'pie',
-            marker: {
-                colors: colors
-            },
-            hoverinfo: 'label+percent+text',
-            text: values.map(v => {
-                // Saniyeyi hh:mm:ss formatına çevir
-                const hours = Math.floor(v / 3600);
-                const minutes = Math.floor((v % 3600) / 60);
-                const seconds = Math.floor(v % 60);
-                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            }),
-            textinfo: 'percent',
-            hole: .4
-        }];
-
-        const layout = {
-            height: 300,
-            showlegend: true,
-            margin: { t: 10, b: 10, l: 10, r: 10 }
-        };
-
-        Plotly.newPlot(elementId, data, layout, { responsive: true, displayModeBar: false });
-    }
-
-    // Production Detail - Zaman Çizgisi/Sıcaklık Grafiği
-    function drawTimelineChart(elementId, chartData) {
-        if (!chartData || chartData.length === 0) {
-            Plotly.purge(elementId);
-            return;
-        }
-
-        // X ekseninde Adım Numarası ve Açıklaması
-        const steps = chartData.map(d => `Adım ${d.stepNumber} - ${d.description}`);
-        // Y ekseninde Sıcaklık
-        const temperatures = chartData.map(d => d.temperature);
-
-        const trace = {
-            x: steps,
-            y: temperatures,
-            mode: 'lines+markers',
-            type: 'scatter',
-            name: 'Sıcaklık (°C)',
-            line: { color: '#e74c3c' } // Kırmızımsı renk
-        };
-
-        const layout = {
-            title: 'Adım Sıcaklık Trendi',
-            xaxis: {
-                title: 'Reçete Adımı',
-                automargin: true,
-                tickangle: 45 // X ekseni etiketlerini eğerek okunabilirliği artırır
-            },
-            yaxis: {
-                title: 'Sıcaklık (°C)'
-            },
-            margin: { t: 40, b: 120, l: 40, r: 20 }
-        };
-
-        Plotly.newPlot(elementId, [trace], layout, { responsive: true });
-    }
-    // 1. Base64 string'i Blob nesnesine dönüştüren yardımcı fonksiyon
-    window.base64ToBlob = function (base64) {
-        const binary = atob(base64);
-        const array = [];
-        for (let i = 0; i < binary.length; i++) {
-            array.push(binary.charCodeAt(i));
-        }
-        // XLSX dosyası için doğru MIME tipi
-        return new Blob([new Uint8Array(array)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    };
-
-    // 2. C# kodundan çağrılan ana indirme fonksiyonu
-    window.saveAsFile = function (filename, bytesBase64) {
-        const data = base64ToBlob(bytesBase64);
-
-        // Bir URL oluştur
-        const url = URL.createObjectURL(data);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-
-        // İndirme işlemini tetikle
-        document.body.appendChild(link);
-        link.click();
-
-        // Belleği temizle
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    };
-</script>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    
+    <HeadOutlet @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
+</head>
 
 <body>
-    @* Sadece bir <Routes /> olmalı ve CascadingAuthenticationState'in içinde kalmalı *@
     <CascadingAuthenticationState>
-        <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+        <Routes @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
     </CascadingAuthenticationState>
     
     <script src="_framework/blazor.web.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    <script src="_content/Blazor-ApexCharts/js/apex-charts.min.js"></script>
+    <script src="_content/Blazor-ApexCharts/js/blazor-apex-charts.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.31.1.min.js"></script>
+
+    <script>
+        // --- 1. ORTAK AYARLAR ---
+        function getCommonLayout(title, yTitle, isMobile) {
+            return {
+                title: {
+                    text: title,
+                    font: { size: isMobile ? 12 : 14, color: '#e0e0e0' },
+                    y: 0.95
+                },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { size: isMobile ? 9 : 11, color: '#b0b0b0' },
+                margin: { t: 30, b: isMobile ? 25 : 40, l: isMobile ? 30 : 40, r: 10 },
+                autosize: true,
+                xaxis: { 
+                    tickcolor: '#9e9e9e', gridcolor: '#333', gridwidth: 0.5,
+                    tickangle: isMobile ? 0 : -45, automargin: true 
+                },
+                yaxis: { 
+                    title: { text: yTitle }, tickcolor: '#9e9e9e',
+                    gridcolor: '#333', gridwidth: 0.5, zeroline: false, automargin: true 
+                },
+                showlegend: false
+            };
+        }
+
+        // --- 2. DASHBOARD GRAFİKLERİ ---
+        function plotDashboardCharts(hourlyOeeData, hourlyConsumptionData, topAlarmsData) {
+            if (typeof Plotly === 'undefined') {
+                setTimeout(() => plotDashboardCharts(hourlyOeeData, hourlyConsumptionData, topAlarmsData), 500);
+                return;
+            }
+            const isMobile = window.innerWidth <= 768;
+            const config = { displayModeBar: false, responsive: true };
+
+            // OEE
+            const oeeContainer = document.getElementById('oeeChartContainer');
+            if (oeeContainer) {
+                const data = hourlyOeeData.length > 0 ? hourlyOeeData.map(d => ({ hour: d.saat, oee: d.averageOEE })) : [{ hour: 0, oee: 0 }];
+                const trace = { x: data.map(d => `${d.hour}:00`), y: data.map(d => d.oee), type: 'bar', marker: { color: data.map(d => d.oee < 50 ? '#e74c3c' : '#2ecc71') } };
+                const layout = getCommonLayout('', 'OEE (%)', isMobile);
+                layout.yaxis.range = [0, 100];
+                Plotly.newPlot(oeeContainer, [trace], layout, config);
+            }
+
+            // Tüketimler
+            const plotCons = (id, key, unit, color) => {
+                const container = document.getElementById(id);
+                if (!container) return;
+                const values = hourlyConsumptionData.map(d => d[key]);
+                const trace = { x: hourlyConsumptionData.map(d => `${d.hour}:00`), y: values, type: 'scatter', mode: 'lines+markers', fill: 'tozeroy', line: { color: color, width: 2 } };
+                Plotly.newPlot(container, [trace], getCommonLayout('', unit, isMobile), config);
+            };
+            plotCons('electricChartContainer', 'toplamElektrik', 'kWh', '#00bcd4');
+            plotCons('waterChartContainer', 'toplamSu', 'Litre', '#2196f3');
+            plotCons('steamChartContainer', 'toplamBuhar', 'kg', '#9c27b0');
+
+            // Alarmlar
+            const alarmContainer = document.getElementById('topAlarmsChartContainer');
+            if (alarmContainer) {
+                const data = topAlarmsData.slice(0, 5);
+                const trace = { x: data.map(d => d.count), y: data.map(d => d.alarmText.substring(0, isMobile ? 15 : 25) + '...'), type: 'bar', orientation: 'h', marker: { color: '#ff5722' } };
+                const layout = getCommonLayout('', '', isMobile);
+                layout.margin.l = isMobile ? 80 : 150;
+                Plotly.newPlot(alarmContainer, [trace], layout, config);
+            }
+        }
+
+        // --- 3. PASTA GRAFİK (EKSİK OLAN BU İDİ) ---
+        function drawPieChart(elementId, chartData) {
+            if (!document.getElementById(elementId)) return;
+            if (!chartData || chartData.length === 0) { Plotly.purge(elementId); return; }
+
+            const data = [{
+                values: chartData.map(d => d.value),
+                labels: chartData.map(d => d.label),
+                type: 'pie',
+                marker: { colors: chartData.map(d => d.color) },
+                hoverinfo: 'label+percent+text',
+                text: chartData.map(d => {
+                    const v = d.value;
+                    const h = Math.floor(v / 3600).toString().padStart(2,'0');
+                    const m = Math.floor((v % 3600) / 60).toString().padStart(2,'0');
+                    return `${h}:${m}`;
+                }),
+                textinfo: 'percent',
+                hole: .4
+            }];
+
+            const layout = {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#e0e0e0' },
+                height: 250,
+                margin: { t: 10, b: 10, l: 10, r: 10 },
+                showlegend: true,
+                legend: { font: { color: '#b0b0b0' } }
+            };
+            Plotly.newPlot(elementId, data, layout, { responsive: true, displayModeBar: false });
+        }
+
+        // --- 4. ZAMAN ÇİZGİSİ (EKSİK OLAN) ---
+        function drawTimelineChart(elementId, chartData) {
+             if (!document.getElementById(elementId)) return;
+             if (!chartData || chartData.length === 0) { Plotly.purge(elementId); return; }
+
+             const steps = chartData.map(d => `Adım ${d.stepNumber}\n${d.description.substring(0,10)}`);
+             const trace = {
+                 x: steps, y: chartData.map(d => d.temperature),
+                 mode: 'lines+markers', type: 'scatter', name: 'Sıcaklık', line: { color: '#e74c3c', width: 2 }
+             };
+             
+             const layout = getCommonLayout('Adım Sıcaklık Trendi', 'Sıcaklık (°C)', window.innerWidth <= 768);
+             layout.xaxis.tickangle = 45;
+             Plotly.newPlot(elementId, [trace], layout, { responsive: true });
+        }
+
+        // --- 5. DETAY VE TREND GRAFİKLERİ ---
+        function plotTrendChart(chartId, dataPoints, selectedData) {
+            if (!document.getElementById(chartId)) return;
+            if (!dataPoints) dataPoints = [];
+            const x = dataPoints.map(p => p.timestamp);
+            let y, title, color;
+            switch (selectedData) {
+                case 'Temperature': y = dataPoints.map(p => p.temperature/10.0); title='Sıcaklık'; color='#f44336'; break;
+                case 'WaterLevel': y = dataPoints.map(p => p.waterLevel); title='Seviye'; color='#2196f3'; break;
+                case 'Rpm': y = dataPoints.map(p => p.rpm); title='Devir'; color='#4caf50'; break;
+                default: return;
+            }
+            const trace = { x: x, y: y, mode: 'lines', line: { color: color, width: 2 } };
+            Plotly.newPlot(chartId, [trace], getCommonLayout(title, title, false), { responsive: true, displayModeBar: false });
+        }
+
+        function plotTrendChart1(chartId, dataPoints, title) {
+            if (!document.getElementById(chartId)) return;
+            if (!dataPoints) dataPoints = [];
+            const x = dataPoints.map(p => p.timestamp);
+            
+            const t1 = { x:x, y:dataPoints.map(d=>d.temperature), name:'Sıcaklık', type:'scatter', line:{color:'#e74c3c'}, yaxis:'y1' };
+            const t2 = { x:x, y:dataPoints.map(d=>d.rpm), name:'Devir', type:'scatter', line:{color:'#3498db'}, yaxis:'y2' };
+            const t3 = { x:x, y:dataPoints.map(d=>d.waterLevel), name:'Seviye', type:'scatter', line:{color:'#2ecc71'}, yaxis:'y3' };
+
+            const layout = getCommonLayout(title||'Canlı Trend', 'Sıcaklık', false);
+            layout.yaxis.gridcolor='#444';
+            layout.yaxis2={ title:'Devir', overlaying:'y', side:'right', position:0.98, showgrid:false, tickfont:{color:'#3498db'} };
+            layout.yaxis3={ title:'Seviye', overlaying:'y', side:'right', position:0.90, showgrid:false, tickfont:{color:'#2ecc71'} };
+            layout.showlegend=true;
+            layout.legend={ x:0, y:1.1, orientation:'h', font:{color:'#ccc'} };
+
+            Plotly.newPlot(chartId, [t1, t2, t3], layout, { responsive: true });
+        }
+
+        // --- 6. EXCEL İNDİRME ---
+        window.saveAsFile = function (filename, bytesBase64) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = "data:application/octet-stream;base64," + bytesBase64;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+    </script>
 </body>
 </html>

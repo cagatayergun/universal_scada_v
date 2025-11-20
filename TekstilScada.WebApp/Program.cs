@@ -1,5 +1,5 @@
 // Dosya: TekstilScada.WebApp/Program.cs (TEMÝZLENMÝÞ VE DÜZELTÝLMÝÞ)
-
+using MudBlazor.Services; // Ekle
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -10,7 +10,7 @@ using TekstilScada.WebApp.Components;
 using TekstilScada.WebApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-
+builder.Services.AddMudServices();
 // --- 1. ÇEKÝRDEK KÝMLÝK DOÐRULAMA SERVÝSLERÝ EKLENDÝ ---
 // Servislerin kayýtlý olmasý, "IAuthenticationService" ve "No scheme"
 // hatalarýný engeller.

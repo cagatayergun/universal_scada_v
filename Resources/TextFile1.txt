@@ -4,31 +4,31 @@
     <value>text/microsoft-resx</value>
   </resheader>
   <data name="DatabaseConnectionError" xml:space="preserve">
-    <value>Veritabaný baðlantýsý kurulamadý.</value>
+    <value>Veritabanï¿½ baï¿½lantï¿½sï¿½ kurulamadï¿½.</value>
   </data>
   <data name="CriticalError" xml:space="preserve">
     <value>Kritik Hata</value>
   </data>
   <data name="VncConnectionActive" xml:space="preserve">
-    <value>Zaten bir VNC baðlantýsý aktif. Lütfen mevcut pencereyi kapatýn.</value>
+    <value>Zaten bir VNC baï¿½lantï¿½sï¿½ aktif. Lï¿½tfen mevcut pencereyi kapatï¿½n.</value>
   </data>
   <data name="Warning" xml:space="preserve">
-    <value>Uyarý</value>
+    <value>Uyarï¿½</value>
   </data>
   <data name="VncAddressNotDefined" xml:space="preserve">
-    <value>Bu makine için bir VNC adresi tanýmlanmamýþ.</value>
+    <value>Bu makine iï¿½in bir VNC adresi tanï¿½mlanmamï¿½ï¿½.</value>
   </data>
   <data name="Information" xml:space="preserve">
     <value>Bilgi</value>
   </data>
   <data name="VncWindowError" xml:space="preserve">
-    <value>VNC penceresi açýlýrken bir hata oluþtu: {0}</value>
+    <value>VNC penceresi aï¿½ï¿½lï¿½rken bir hata oluï¿½tu: {0}</value>
   </data>
   <data name="Error" xml:space="preserve">
     <value>Hata</value>
   </data>
   <data name="AccessDenied" xml:space="preserve">
-    <value>Bu alana eriþim yetkiniz bulunmamaktadýr.</value>
+    <value>Bu alana eriï¿½im yetkiniz bulunmamaktadï¿½r.</value>
   </data>
   <data name="PermissionDenied" xml:space="preserve">
     <value>Yetki Reddedildi</value>

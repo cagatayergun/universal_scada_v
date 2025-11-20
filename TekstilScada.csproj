@@ -23,23 +23,47 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="Img\**" />
 	  <Compile Remove="TekstilScada.Api\**" />
+	  <Compile Remove="TekstilScada.Core1\**" />
 	  <Compile Remove="TekstilScada.Core\**" />
+	  <Compile Remove="TekstilScada.WebAPI1\**" />
 	  <Compile Remove="TekstilScada.WebAPI\**" />
+	  <Compile Remove="TekstilScada.WebApp1\**" />
 	  <Compile Remove="TekstilScada.WebApp\**" />
 	  <Compile Remove="TekstilScada.Web\**" />
+	  <Compile Remove="Universalscada.Core\**" />
+	  <Compile Remove="Universalscada.Module.Textile\**" />
+	  <Compile Remove="Universalscada.WebAPI\**" />
+	  <Compile Remove="Universalscada.WebApp\**" />
 	  <Compile Remove="yilmak_scada_setup\**" />
+	  <EmbeddedResource Remove="Img\**" />
 	  <EmbeddedResource Remove="TekstilScada.Api\**" />
+	  <EmbeddedResource Remove="TekstilScada.Core1\**" />
 	  <EmbeddedResource Remove="TekstilScada.Core\**" />
+	  <EmbeddedResource Remove="TekstilScada.WebAPI1\**" />
 	  <EmbeddedResource Remove="TekstilScada.WebAPI\**" />
+	  <EmbeddedResource Remove="TekstilScada.WebApp1\**" />
 	  <EmbeddedResource Remove="TekstilScada.WebApp\**" />
 	  <EmbeddedResource Remove="TekstilScada.Web\**" />
+	  <EmbeddedResource Remove="Universalscada.Core\**" />
+	  <EmbeddedResource Remove="Universalscada.Module.Textile\**" />
+	  <EmbeddedResource Remove="Universalscada.WebAPI\**" />
+	  <EmbeddedResource Remove="Universalscada.WebApp\**" />
 	  <EmbeddedResource Remove="yilmak_scada_setup\**" />
+	  <None Remove="Img\**" />
 	  <None Remove="TekstilScada.Api\**" />
+	  <None Remove="TekstilScada.Core1\**" />
 	  <None Remove="TekstilScada.Core\**" />
+	  <None Remove="TekstilScada.WebAPI1\**" />
 	  <None Remove="TekstilScada.WebAPI\**" />
+	  <None Remove="TekstilScada.WebApp1\**" />
 	  <None Remove="TekstilScada.WebApp\**" />
 	  <None Remove="TekstilScada.Web\**" />
+	  <None Remove="Universalscada.Core\**" />
+	  <None Remove="Universalscada.Module.Textile\**" />
+	  <None Remove="Universalscada.WebAPI\**" />
+	  <None Remove="Universalscada.WebApp\**" />
 	  <None Remove="yilmak_scada_setup\**" />
 	</ItemGroup>
 
@@ -105,7 +129,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="Img\" />
 		<Folder Include="Resources\" />
 	</ItemGroup>
 

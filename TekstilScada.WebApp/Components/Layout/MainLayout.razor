@@ -1,42 +1,56 @@
 ﻿@inherits LayoutComponentBase
 @using TekstilScada.WebApp.Services
-@using Microsoft.AspNetCore.Components.Authorization @* <-- BU SATIRI EKLEYİN *@
+@using Microsoft.AspNetCore.Components.Authorization
+@using MudBlazor
 @inject CustomAuthStateProvider AuthProvider
 @inject NavigationManager NavigationManager
 
-<div class="page">
-    <div class="sidebar">
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="MudBlazor.Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudText Typo="Typo.h5" Class="ml-3">Universal Scada</MudText>
+        <MudSpacer />
+
+        <AuthorizeView>
+            <Authorized>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudText Typo="Typo.body2"><b>@context.User.Identity?.Name</b></MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="MudBlazor.Color.Inherit" OnClick="HandleLogout" Title="Çıkış Yap" />
+                </MudStack>
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Secondary" Link="/login">Giriş Yap</MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
         <NavMenu />
-    </div>
-    <main>
-        <div class="top-row px-4">
+    </MudDrawer>
 
-            <AuthorizeView>
-                <Authorized>
-                    @* Kullanıcı adını göstermek için span kullanın. Bootstrap'te mr-auto ile sağa kaydırılabilir. *@
-                    <a class="text-black-60 mr-auto">
-                        Hoş geldiniz, <strong>@context.User.Identity.Name</strong>
-                    </a>
-                </Authorized>
-            </AuthorizeView>
-
-            <button class="btn btn-link nav-link" @onclick="HandleLogout">Çıkış Yap</button>
-            
-        </div>
-        <article class="content px-4">
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
             @Body
-        </article>
-    </main>
-</div>
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
 
 @code {
-    // Bu, kimlik durumunu yükler
+    bool _drawerOpen = true;
 
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
 
-    // Bu, çıkış yap butonu için
     private async Task HandleLogout()
     {
         await AuthProvider.LogoutAsync();
-        NavigationManager.NavigateTo("/login");
+        NavigationManager.NavigateTo("/login", forceLoad: true);
     }
 }

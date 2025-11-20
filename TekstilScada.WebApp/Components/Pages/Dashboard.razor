@@ -1,6 +1,6 @@
 ﻿@page "/dashboard"
 @page "/"
-
+@rendermode InteractiveServer
 @using TekstilScada.WebApp.Services
 @using TekstilScada.Models
 @using TekstilScada.WebApp.Components.Shared
@@ -44,7 +44,7 @@
                                     @* KRİTİK GÜNCELLEME: MachineCard yerine DashboardMachineCard kullanılıyor *@
                                     <DashboardMachineCard MachineStatus="machineStatus"
                                                           @key="machineStatus.MachineId"
-                                                          @onclick="() => NavigateToDetail(machineStatus.MachineId)" />
+                                                          MouseClick="() => NavigateToDetail(machineStatus.MachineId)" />
                                 }
                             </div>
                         </div>
@@ -52,62 +52,32 @@
                 }
             </div>
 
-            <div class="sidebar-charts-column">
+            <div class="sidebar-charts-column pl-2" style="min-width: 300px;">
 
-             
-                <div class="chart-box">
-                    <div class="chart-title">24 SAATLİK OEE GRAFİĞİ</div>
-                    <div id="oeeChartContainer" class="chart-wrapper">
-                        @if (!HourlyOeeData.Any())
-                        {
-                            <span>Veri yok veya yükleniyor.</span>
-                        }
-                    </div>
-                </div>
+                <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
+                    <div id="oeeChartContainer" style="width:100%; height:250px;"></div>
+                    @if (!HourlyOeeData.Any())
+                    {
+                        <MudText Typo="Typo.caption" Align="MudBlazor.Align.Center" Class="d-block text-muted">Veri bekleniyor...</MudText>
+                    }
+                </MudPaper>
 
-           
-                <div class="chart-box">
-                    <div class="chart-title">SAATLİK ELEKTRİK TÜKETİMİ</div>
-                    <div id="electricChartContainer" class="chart-wrapper">
-                        @if (!HourlyConsumptionData.Any())
-                        {
-                            <span>Veri yok veya yükleniyor.</span>
-                        }
-                    </div>
-                </div>
+                <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
+                    <div id="electricChartContainer" style="width:100%; height:250px;"></div>
+                </MudPaper>
 
-               
-                <div class="chart-box">
-                    <div class="chart-title">SAATLİK SU TÜKETİMİ</div>
-                    <div id="waterChartContainer" class="chart-wrapper">
-                        @if (!HourlyConsumptionData.Any())
-                        {
-                            <span>Veri yok veya yükleniyor.</span>
-                        }
-                    </div>
-                </div>
+                <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
+                    <div id="waterChartContainer" style="width:100%; height:250px;"></div>
+                </MudPaper>
 
-          
-                <div class="chart-box">
-                    <div class="chart-title">SAATLİK BUHAR TÜKETİMİ</div>
-                    <div id="steamChartContainer" class="chart-wrapper">
-                        @if (!HourlyConsumptionData.Any())
-                        {
-                            <span>Veri yok veya yükleniyor.</span>
-                        }
-                    </div>
-                </div>
+                <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
+                    <div id="steamChartContainer" style="width:100%; height:250px;"></div>
+                </MudPaper>
 
-               
-                <div class="chart-box">
-                    <div class="chart-title">EN SIK ALARMLAR</div>
-                    <div id="topAlarmsChartContainer" class="chart-wrapper">
-                        @if (!TopAlarms.Any())
-                        {
-                            <span>Son 24 saatte alarm yok.</span>
-                        }
-                    </div>
-                </div>
+                <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
+                    <div id="topAlarmsChartContainer" style="width:100%; height:250px;"></div>
+                </MudPaper>
+
             </div>
         </div>
     }

@@ -56,7 +56,8 @@ namespace TekstilScada.Models
         public int CalismaSuresiDakika { get; set; }
 
         public int ActualQuantityProduction { get; set; }
-        
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped] // Veritabanına yazmaya çalışmasın
+        public string MachineType { get; set; }
     }
 
     public enum ConnectionStatus
