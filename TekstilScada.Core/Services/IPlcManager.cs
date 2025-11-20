@@ -1,9 +1,8 @@
-﻿// Services/IPlcManager.cs
-using HslCommunication;
+﻿using HslCommunication;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using TekstilScada.Models;
-using TekstilScada.Models; // BU SATIR EKLENDİ
+
 namespace TekstilScada.Services
 {
     /// <summary>
@@ -13,27 +12,35 @@ namespace TekstilScada.Services
     public interface IPlcManager
     {
         string IpAddress { get; }
-        Task<OperateResult<ScadaRecipe>> ReadFullRecipeDataAsync(); // Bu satırı ekleyin
-        Task<OperateResult<Dictionary<int, string>>> ReadRecipeNamesFromPlcAsync(); // YENİ EKLENEN SATIR
+
+        // --- Bağlantı Yönetimi ---
         OperateResult Connect();
         OperateResult Disconnect();
-        Task<OperateResult> WriteRecipeNameAsync(int recipeNumber, string recipeName);
-        // Canlı veri okuma
+
+        // YENİ: Asenkron Bağlantı
+        Task<OperateResult> ConnectAsync();
+
+        // --- Canlı Veri Okuma ---
         OperateResult<FullMachineStatus> ReadLiveStatusData();
 
-        // Reçete işlemleri
-        
+        // YENİ: Asenkron Canlı Veri Okuma
+        Task<OperateResult<FullMachineStatus>> ReadLiveStatusDataAsync();
+
+
+        // --- Reçete İşlemleri ---
+        Task<OperateResult<ScadaRecipe>> ReadFullRecipeDataAsync();
+        Task<OperateResult<Dictionary<int, string>>> ReadRecipeNamesFromPlcAsync();
+        Task<OperateResult> WriteRecipeNameAsync(int recipeNumber, string recipeName);
         Task<OperateResult<short[]>> ReadRecipeFromPlcAsync();
         Task<OperateResult> WriteRecipeToPlcAsync(ScadaRecipe recipe, int? recipeSlot = null);
-        // Operatör işlemleri
+
+        // --- Operatör İşlemleri ---
         Task<OperateResult<List<PlcOperator>>> ReadPlcOperatorsAsync();
         Task<OperateResult> WritePlcOperatorAsync(PlcOperator plcOperator);
         Task<OperateResult<PlcOperator>> ReadSinglePlcOperatorAsync(int slotIndex);
 
-        // Üretim sonu rapor verilerini okuma
+        // --- Diğer İşlemler ---
         Task<OperateResult<BatchSummaryData>> ReadBatchSummaryDataAsync();
-       // Task<OperateResult<List<ChemicalConsumptionData>>> ReadChemicalConsumptionDataAsync();
-      //  Task<OperateResult<List<ProductionStepDetail>>> ReadStepAnalysisDataAsync();
         Task<OperateResult> AcknowledgeAlarm();
         Task<OperateResult> ResetOeeCountersAsync();
         Task<OperateResult> IncrementProductionCounterAsync();

@@ -69,7 +69,12 @@ namespace TekstilScada.Services
             { }
             return result;
         }
-
+        public async Task<OperateResult> ConnectAsync()
+        {
+            // Mevcut senkron Connect metodunu bir Task (iş parçacığı) içinde çalıştırıyoruz.
+            // Bu sayede bağlantı kurulurken arayüz veya diğer makineler donmaz.
+            return await Task.Run(() => Connect());
+        }
         public OperateResult Disconnect()
         {
             return _plcClient.ConnectClose();
@@ -232,7 +237,12 @@ namespace TekstilScada.Services
                 return new OperateResult<FullMachineStatus>($"An exception occurred during read operation: {ex.Message}");
             }
         }
-
+        public async Task<OperateResult<FullMachineStatus>> ReadLiveStatusDataAsync()
+        {
+            // Mevcut veri okuma işlemini asenkron hale getiriyoruz.
+            // PLC'den cevap beklerken işlemci boşa çıkar ve diğer işlere bakar.
+            return await Task.Run(() => ReadLiveStatusData());
+        }
         public Task<OperateResult> AcknowledgeAlarm()
         {
             throw new NotImplementedException("Alarm acknowledgment is not yet implemented for BYMakinesi.");

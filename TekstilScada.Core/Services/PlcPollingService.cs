@@ -149,15 +149,24 @@ namespace TekstilScada.Services
                 {
                     try
                     {
-                        if (!MachineDataCache.TryGetValue(machine.Id, out var status)) return;
+                        if (!MachineDataCache.TryGetValue(machine.Id, out var status))
+                        {
+                            // Cache'te veri yoksa biraz bekle ve devam et
+                            await Task.Delay(1000, token);
+                            continue;
+                        }
 
                         if (status.ConnectionState != ConnectionStatus.Connected)
                         {
-                            HandleReconnection(machine.Id, manager);
+                            // YENİ: Asenkron yeniden bağlanma (UI donmaz)
+                            await HandleReconnectionAsync(machine.Id, manager);
                         }
                         else
                         {
-                            var readResult = manager.ReadLiveStatusData();
+                            // YENİ: PLC verisini ASENKRON oku
+                            // Bu satırda thread serbest kalır, PLC cevabı gelene kadar işlemci başka işlere bakar.
+                            var readResult = await manager.ReadLiveStatusDataAsync();
+
                             if (readResult.IsSuccess)
                             {
                                 var newStatus = readResult.Content;
@@ -168,6 +177,8 @@ namespace TekstilScada.Services
                                 newStatus.AktifAdimAdi = GetStepTypeName(newStatus.AktifAdimTipiWordu);
 
                                 var analyzer = _liveAnalyzers.TryGetValue(machine.Id, out var a) ? a : null;
+
+                                // --- Hesaplama Mantığı (Değişmedi) ---
                                 if (newStatus.IsInRecipeMode && analyzer != null && _batchTotalTheoreticalTimes.TryGetValue(machine.Id, out double totalTheoreticalTime) && totalTheoreticalTime > 0)
                                 {
                                     double timeInCurrentStep = (DateTime.Now - analyzer.CurrentStepStartTime).TotalSeconds;
@@ -182,17 +193,19 @@ namespace TekstilScada.Services
                                 {
                                     newStatus.ProsesYuzdesi = 0;
                                 }
+                                // -------------------------------------
 
                                 ProcessLiveStepAnalysis(machine.Id, newStatus);
                                 CheckAndLogBatchStartAndEnd(machine.Id, newStatus);
                                 CheckAndLogAlarms(machine.Id, newStatus);
+
                                 status = newStatus;
 
+                                // OEE / Süre Sayaçları
                                 if (_currentBatches.TryGetValue(machine.Id, out var activeBatch) && activeBatch != null)
                                 {
                                     if (_liveAlarmCounters.TryGetValue(machine.Id, out var counters))
                                     {
-                                        // The alarm state takes precedence over the paused state.
                                         if (newStatus.HasActiveAlarm)
                                         {
                                             counters.machineAlarmSeconds += _pollingIntervalMs / 1000;
@@ -212,6 +225,8 @@ namespace TekstilScada.Services
                                     status = MachineDataCache[machine.Id];
                             }
                         }
+
+                        // Cache'i güncelle ve arayüze haber ver
                         if (MachineDataCache.ContainsKey(machine.Id))
                         {
                             MachineDataCache[machine.Id] = status;
@@ -224,18 +239,17 @@ namespace TekstilScada.Services
                         Console.WriteLine($"Error in polling loop for machine {machine.Id}: {ex.Message}");
                     }
 
-                    // Task.Delay, token iptal edildiğinde OperationCanceledException fırlatır.
+                    // YENİ: Asenkron Bekleme
+                    // Thread.Sleep yerine Task.Delay kullanılır. Bu, işlemciyi %0 yorar.
                     await Task.Delay(_pollingIntervalMs, token);
                 }
             }
             catch (OperationCanceledException)
             {
-                // KRİTİK: Görev iptal edildiğinde fırlatılan BEKLENEN istisnayı burada yakalıyoruz.
-                // Bu, sunucu durdurulduğunda log kirliliğini ve WinForms uygulamasının çökmesini engeller.
+                // Görev iptal edildiğinde fırlatılan BEKLENEN istisna.
             }
             catch (Exception ex)
             {
-                // Diğer, nadir görülen kritik hataları yakalar.
                 Console.WriteLine($"FATAL error in polling loop for machine {machine.Id}: {ex.Message}");
             }
         }
@@ -397,53 +411,104 @@ namespace TekstilScada.Services
                 }
             }
         }
-        private void HandleReconnection(int machineId, IPlcManager manager)
+        private async Task HandleReconnectionAsync(int machineId, IPlcManager manager)
         {
+            // Eğer son 10 saniye içinde deneme yapıldıysa tekrar deneme (Gereksiz yükü önler)
             if (!_reconnectAttempts.ContainsKey(machineId) || (DateTime.UtcNow - _reconnectAttempts[machineId]).TotalSeconds > 10)
             {
                 _reconnectAttempts[machineId] = DateTime.UtcNow;
+
                 if (!MachineDataCache.TryGetValue(machineId, out var status)) return;
+
+                // Durumu "Bağlanıyor..." olarak güncelle
                 status.ConnectionState = ConnectionStatus.Connecting;
                 status.ProsesYuzdesi = 0;
                 _connectionStates[machineId] = ConnectionStatus.Connecting;
                 OnMachineConnectionStateChanged?.Invoke(machineId, status);
-                var connectResult = manager.Connect();
+
+                // YENİ: Asenkron Bağlantı Denemesi (CPU bloklanmaz)
+                var connectResult = await manager.ConnectAsync();
+
                 if (connectResult.IsSuccess)
                 {
                     status.ConnectionState = ConnectionStatus.Connected;
                     _connectionStates[machineId] = ConnectionStatus.Connected;
                     _reconnectAttempts.TryRemove(machineId, out _);
                     OnMachineConnectionStateChanged?.Invoke(machineId, status);
-                    LiveEventAggregator.Instance.Publish(new LiveEvent { Timestamp = DateTime.Now, Source = status.MachineName, Message = "Connection re-established.", Type = EventType.SystemSuccess });
+
+                    LiveEventAggregator.Instance.Publish(new LiveEvent
+                    {
+                        Timestamp = DateTime.Now,
+                        Source = status.MachineName,
+                        Message = "Connection re-established.",
+                        Type = EventType.SystemSuccess
+                    });
                 }
                 else
                 {
                     _connectionStates[machineId] = ConnectionStatus.Disconnected;
+                    // Bağlantı başarısızsa durumu disconnected olarak işaretle
+                    // (Eski kodda burası eksikti, eklemek daha güvenli)
+                    if (status.ConnectionState != ConnectionStatus.Disconnected)
+                    {
+                        status.ConnectionState = ConnectionStatus.Disconnected;
+                        OnMachineConnectionStateChanged?.Invoke(machineId, status);
+                    }
                 }
             }
         }
         private void LoggingTimer_Tick(object state)
         {
-            if (_cancellationTokenSource.IsCancellationRequested) return;
+            if (_cancellationTokenSource == null || _cancellationTokenSource.IsCancellationRequested) return;
+
+            // 1. Geçici listeleri oluştur
+            var batchLogList = new List<FullMachineStatus>();
+            var manualLogList = new List<FullMachineStatus>();
+
+            // 2. Cache'teki tüm makineleri tara ve listelere ayır
             foreach (var machineStatus in MachineDataCache.Values)
             {
+                // Sadece bağlı olan makineleri al
                 if (machineStatus.ConnectionState == ConnectionStatus.Connected)
                 {
-                    try
+                    if (machineStatus.IsInRecipeMode)
                     {
-                        if (machineStatus.IsInRecipeMode)
-                        {
-                            _processLogRepository.LogData(machineStatus);
-                        }
-                        else
-                        {
-                            _processLogRepository.LogManualData(machineStatus);
-                        }
+                        // Reçete modundaysa batch listesine ekle
+                        batchLogList.Add(machineStatus);
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Console.WriteLine($"Data logging error for machine {machineStatus.MachineId}: {ex.Message}");
+                        // Değilse manuel listesine ekle
+                        manualLogList.Add(machineStatus);
                     }
+                }
+            }
+
+            // 3. Verileri TOPLU olarak gönder (Sadece 2 kez veritabanına gidilir)
+
+            // a) Reçete Verilerini Gönder
+            if (batchLogList.Count > 0)
+            {
+                try
+                {
+                    _processLogRepository.LogBulkData(batchLogList);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Toplu Log Hatası (Reçete): {ex.Message}");
+                }
+            }
+
+            // b) Manuel Mod Verilerini Gönder
+            if (manualLogList.Count > 0)
+            {
+                try
+                {
+                    _processLogRepository.LogBulkManualData(manualLogList);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Toplu Log Hatası (Manuel): {ex.Message}");
                 }
             }
         }

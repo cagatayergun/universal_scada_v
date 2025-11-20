@@ -335,6 +335,136 @@ namespace TekstilScada.Repositories
             }
             return dataPoints;
         }
+        public void LogBulkData(List<FullMachineStatus> statusList)
+        {
+            // Eğer liste boşsa hiç işlem yapma
+            if (statusList == null || !statusList.Any())
+                return;
+
+            try
+            {
+                using (var connection = new MySqlConnection(_connectionString))
+                {
+                    connection.Open();
+
+                    // Transaction (İşlem Bütünlüğü) başlatıyoruz. 
+                    // Bu, 300 kayıt atarken yarıda elektrik kesilirse yarım yamalak kayıt oluşmasını engeller.
+                    using (var transaction = connection.BeginTransaction())
+                    {
+                        try
+                        {
+                            var queryBuilder = new StringBuilder();
+                            queryBuilder.Append("INSERT INTO process_data_log (MachineId, BatchId, LogTimestamp, LiveTemperature, LiveWaterLevel, LiveRpm) VALUES ");
+
+                            var parameters = new List<MySqlParameter>();
+                            var rows = new List<string>();
+
+                            for (int i = 0; i < statusList.Count; i++)
+                            {
+                                var status = statusList[i];
+
+                                // Her satır için parametre isimlerini benzersiz yapıyoruz (p0_MachineId, p1_MachineId gibi)
+                                // Bu sayede SQL Injection korumasından ödün vermiyoruz.
+                                rows.Add($"(@MId{i}, @BId{i}, @Time{i}, @Temp{i}, @WLevel{i}, @Rpm{i})");
+
+                                parameters.Add(new MySqlParameter($"@MId{i}", status.MachineId));
+                                parameters.Add(new MySqlParameter($"@BId{i}", status.BatchNumarasi));
+                                parameters.Add(new MySqlParameter($"@Time{i}", DateTime.Now));
+                                parameters.Add(new MySqlParameter($"@Temp{i}", status.AnlikSicaklik));
+                                parameters.Add(new MySqlParameter($"@WLevel{i}", status.AnlikSuSeviyesi));
+                                parameters.Add(new MySqlParameter($"@Rpm{i}", status.AnlikDevirRpm));
+                            }
+
+                            // Tüm değerleri virgülle birleştirip sorguya ekle
+                            queryBuilder.Append(string.Join(",", rows));
+                            queryBuilder.Append(";");
+
+                            using (var cmd = new MySqlCommand(queryBuilder.ToString(), connection, transaction))
+                            {
+                                // Parametreleri komuta ekle
+                                cmd.Parameters.AddRange(parameters.ToArray());
+
+                                // Tek seferde çalıştır!
+                                cmd.ExecuteNonQuery();
+                            }
+
+                            // Her şey yolundaysa onayla
+                            transaction.Commit();
+                        }
+                        catch (Exception)
+                        {
+                            // Hata varsa işlemi geri al (Rollback)
+                            transaction.Rollback();
+                            throw; // Hatayı yukarı fırlat ki loglayabilelim
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Burada hatayı konsola veya bir dosyaya yazabilirsiniz
+                Console.WriteLine($"Bulk Insert Hatası: {ex.Message}");
+            }
+        }
+        public void LogBulkManualData(List<FullMachineStatus> statusList)
+        {
+            if (statusList == null || !statusList.Any()) return;
+
+            try
+            {
+                using (var connection = new MySqlConnection(_connectionString))
+                {
+                    connection.Open();
+                    using (var transaction = connection.BeginTransaction())
+                    {
+                        try
+                        {
+                            var queryBuilder = new StringBuilder();
+                            // Manuel mod tablosuna toplu insert sorgusu
+                            queryBuilder.Append("INSERT INTO manual_mode_log (MachineId, LogTimestamp, LiveTemperature, TotalWater, LiveWaterLevel, LiveRpm, LiveElectricity, LiveSteam) VALUES ");
+
+                            var parameters = new List<MySqlParameter>();
+                            var rows = new List<string>();
+
+                            for (int i = 0; i < statusList.Count; i++)
+                            {
+                                var status = statusList[i];
+                                // Parametre isimlendirmesinde çakışma olmasın diye m_ ön eki kullandık
+                                rows.Add($"(@m_MId{i}, @m_Time{i}, @m_Temp{i}, @m_TWater{i}, @m_WLevel{i}, @m_Rpm{i}, @m_Elec{i}, @m_Steam{i})");
+
+                                parameters.Add(new MySqlParameter($"@m_MId{i}", status.MachineId));
+                                parameters.Add(new MySqlParameter($"@m_Time{i}", DateTime.Now));
+                                parameters.Add(new MySqlParameter($"@m_Temp{i}", status.AnlikSicaklik));
+                                parameters.Add(new MySqlParameter($"@m_TWater{i}", status.SuMiktari));
+                                parameters.Add(new MySqlParameter($"@m_WLevel{i}", status.AnlikSuSeviyesi));
+                                parameters.Add(new MySqlParameter($"@m_Rpm{i}", status.AnlikDevirRpm));
+                                parameters.Add(new MySqlParameter($"@m_Elec{i}", status.ElektrikHarcama));
+                                parameters.Add(new MySqlParameter($"@m_Steam{i}", status.BuharHarcama));
+                            }
+
+                            queryBuilder.Append(string.Join(",", rows));
+                            queryBuilder.Append(";");
+
+                            using (var cmd = new MySqlCommand(queryBuilder.ToString(), connection, transaction))
+                            {
+                                cmd.Parameters.AddRange(parameters.ToArray());
+                                cmd.ExecuteNonQuery();
+                            }
+                            transaction.Commit();
+                        }
+                        catch (Exception)
+                        {
+                            transaction.Rollback();
+                            throw;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Bulk Manual Insert Hatası: {ex.Message}");
+            }
+        }
     }
 
     
