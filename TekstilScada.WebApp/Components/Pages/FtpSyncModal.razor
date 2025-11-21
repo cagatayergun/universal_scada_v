@@ -98,29 +98,31 @@
                         <MudDivider Class="mb-3" />
                         @if (_activeJobs.Any())
                         {
-                            <div class="flex-grow-1 overflow-auto" style="min-height: 0;">
-                            <MudList T="string" Dense="true" Class="flex-grow-1 overflow-auto">
-                                @foreach (var job in _activeJobs)
-                                {
-                                    <MudListItem T="string">
-                                        <div class="d-flex flex-column w-100">
-                                            <div class="d-flex justify-space-between">
-                                                <MudText Typo="Typo.body2"><b>@job.RecipeName</b> <span class="mud-text-secondary">-></span> <b>@job.MachineName</b></MudText>
+                            <div style="max-height: 600px; overflow-y: auto;">
+                                <MudList T="string" Dense="true">
+                                    @foreach (var job in _activeJobs)
+                                    {
+                                        if (job == null) continue; // KRİTİK DÜZELTME: Null referansı atla
+
+                                        <MudListItem T="string">
+                                            <div class="d-flex flex-column w-100">
+                                                <div class="d-flex justify-space-between">
+                                                    <MudText Typo="Typo.body2"><b>@job.RecipeName</b> <span class="mud-text-secondary">-></span> <b>@job.MachineName</b></MudText>
+                                                </div>
+                                                <MudProgressLinear Color="@GetJobColor(job)" Value="@job.Progress" Class="my-1" Striped="true" />
+                                                <div class="d-flex justify-space-between">
+                                                    <MudText Typo="Typo.caption" Color="@GetJobColor(job)">@job.Status</MudText>
+                                                    <MudText Typo="Typo.caption">@job.Progress%</MudText>
+                                                </div>
+                                                @if (!string.IsNullOrEmpty(job.ErrorMessage))
+                                                {
+                                                    <MudText Typo="Typo.caption" Color="MudBlazor.Color.Error">@job.ErrorMessage</MudText>
+                                                }
                                             </div>
-                                            <MudProgressLinear Color="@GetJobColor(job)" Value="@job.Progress" Class="my-1" Striped="true" />
-                                            <div class="d-flex justify-space-between">
-                                                <MudText Typo="Typo.caption" Color="@GetJobColor(job)">@job.Status</MudText>
-                                                <MudText Typo="Typo.caption">@job.Progress%</MudText>
-                                            </div>
-                                            @if (!string.IsNullOrEmpty(job.ErrorMessage))
-                                            {
-                                                <MudText Typo="Typo.caption" Color="MudBlazor.Color.Error">@job.ErrorMessage</MudText>
-                                            }
-                                        </div>
-                                    </MudListItem>
-                                    <MudDivider />
-                                }
-                            </MudList>
+                                        </MudListItem>
+                                        <MudDivider />
+                                    }
+                                </MudList>
                             </div>
                         }
                         else
@@ -289,6 +291,13 @@
 
     private MudBlazor.Color GetJobColor(TransferJob job)
     {
+        // KRİTİK DÜZELTME: job null ise varsayılan rengi döndür
+        if (job == null)
+        {
+            return MudBlazor.Color.Default;
+        }
+
+        // job null değilse Status değerine göre renk ataması yap
         return job.Status switch
         {
             TransferStatus.Successful => MudBlazor.Color.Success,

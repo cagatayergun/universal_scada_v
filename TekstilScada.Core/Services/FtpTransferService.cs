@@ -119,18 +119,7 @@ namespace TekstilScada.Services
 
         public void QueueSendJobs(List<ScadaRecipe> recipes, Machine machine)
         {
-            foreach (var recipe in recipes)
-            {
-                if (!Jobs.Any(j => j.Machine.Id == machine.Id && j.LocalRecipe?.Id == recipe.Id && j.OperationType == TransferType.Send))
-                {
-                    Jobs.Add(new TransferJob { Machine = machine, LocalRecipe = recipe, OperationType = TransferType.Send });
-                }
-            }
-            StartProcessingIfNotRunning();
-        }
-        public void QueueSendJobs(List<ScadaRecipe> recipes, List<Machine> machines)
-        {
-            foreach (var machine in machines)
+            lock (_jobsLock) // EKLE
             {
                 foreach (var recipe in recipes)
                 {
@@ -139,7 +128,26 @@ namespace TekstilScada.Services
                         Jobs.Add(new TransferJob { Machine = machine, LocalRecipe = recipe, OperationType = TransferType.Send });
                     }
                 }
-            }
+            } // EKLE
+
+            StartProcessingIfNotRunning();
+        }
+        public void QueueSendJobs(List<ScadaRecipe> recipes, List<Machine> machines)
+        {
+            lock (_jobsLock) // EKLE
+            {
+                foreach (var machine in machines)
+                {
+                    foreach (var recipe in recipes)
+                    {
+                        if (!Jobs.Any(j => j.Machine.Id == machine.Id && j.LocalRecipe?.Id == recipe.Id && j.OperationType == TransferType.Send))
+                        {
+                            Jobs.Add(new TransferJob { Machine = machine, LocalRecipe = recipe, OperationType = TransferType.Send });
+                        }
+                    }
+                }
+            } // EKLE
+
             StartProcessingIfNotRunning();
         }
         public void QueueReceiveJobs(List<string> fileNames, Machine machine)
@@ -235,22 +243,38 @@ namespace TekstilScada.Services
             return finalName;
         }
         public event Action<TransferJob>? OnJobProgressChanged;
+        // FtpTransferService.cs (Düzeltilmiş Kod)
         private async Task ProcessQueue(RecipeRepository recipeRepo)
         {
             _isProcessing = true;
 
-            while (Jobs.Any(j => j.Status == TransferStatus.Pending))
+            while (true) // Yeni döngü yapısı: Kilit altında iş bitene kadar bekle
             {
-                var job = Jobs.FirstOrDefault(j => j.Status == TransferStatus.Pending);
-                if (job == null) continue;
+                TransferJob job;
 
+                // KRİTİK: İş çekme ve durum güncelleme işlemini atomik hale getir.
+                lock (_jobsLock)
+                {
+                    job = Jobs.FirstOrDefault(j => j.Status == TransferStatus.Pending);
+
+                    if (job == null)
+                    {
+                        _isProcessing = false;
+                        break; // Kuyrukta bekleyen iş yoksa döngüden çık
+                    }
+
+                    // İş bulunduktan hemen sonra durumunu "Transferring" olarak ayarla
+                    job.Status = TransferStatus.Transferring;
+                }
+
+                // Kilit dışında uzun süren işlemleri yap (FTP/PLC iletişimi)
                 try
                 {
                     OnJobProgressChanged?.Invoke(job);
-                    job.Status = TransferStatus.Transferring;
+
                     var ftpService = new FtpService(job.Machine.VncAddress, job.Machine.FtpUsername, job.Machine.FtpPassword);
                     job.Progress = 20;
-
+                    OnJobProgressChanged?.Invoke(job);
                     if (job.OperationType == TransferType.Send)
                     {
                         var fullRecipe = recipeRepo.GetRecipeById(job.LocalRecipe.Id);
@@ -303,11 +327,11 @@ namespace TekstilScada.Services
                         }
 
                         job.Progress = 50;
-
+                        OnJobProgressChanged?.Invoke(job);
                         string csvContent = RecipeCsvConverter.ToCsv(fullRecipe);
                         await ftpService.UploadFileAsync(job.TargetFileName, csvContent);
                     }
-                    else
+                    else // TransferType.Receive
                     {
                         var csvContent = await ftpService.DownloadFileAsync(job.RemoteFileName);
                         job.Progress = 50;
@@ -320,8 +344,9 @@ namespace TekstilScada.Services
                     }
 
                     job.Progress = 100;
+                    OnJobProgressChanged?.Invoke(job);
                     job.Status = TransferStatus.Successful;
-
+                    OnJobProgressChanged?.Invoke(job);
                 }
                 catch (Exception ex)
                 {
@@ -333,7 +358,6 @@ namespace TekstilScada.Services
                     _syncContext?.Post(_ => { }, null);
                 }
             }
-            _isProcessing = false;
         }
 
         public void QueueSequentiallyNamedSendJobs(List<ScadaRecipe> recipes, List<Machine> machines, int startNumber)

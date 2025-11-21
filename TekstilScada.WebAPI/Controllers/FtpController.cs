@@ -161,5 +161,6 @@ namespace TekstilScada.WebAPI.Controllers
                 return StatusCode(500, $"Alma işleri kuyruğa alınırken hata: {ex.Message}");
             }
         }
+
     }
 }
