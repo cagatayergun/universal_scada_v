@@ -42,7 +42,7 @@ namespace TekstilScada.Services
         private int _progress = 0;
         private string _errorMessage = string.Empty;
 
-        public Guid Id { get; } = Guid.NewGuid();
+        public Guid Id { get; set; } = Guid.NewGuid();
         public Machine Machine { get; set; }
         public ScadaRecipe? LocalRecipe { get; set; }
         public string? RemoteFileName { get; set; }
@@ -96,9 +96,10 @@ namespace TekstilScada.Services
         public event EventHandler RecipeListChanged;
         public BindingList<TransferJob> Jobs { get; } = new BindingList<TransferJob>();
         private bool _isProcessing = false;
+        
         private SynchronizationContext _syncContext;
         private PlcPollingService _plcPollingService;
-
+        private readonly object _jobsLock = new object();
         // NEW: The constructor method takes PlcPollingService as a parameter.
         public FtpTransferService(PlcPollingService plcPollingService)
         {
@@ -143,9 +144,24 @@ namespace TekstilScada.Services
         }
         public void QueueReceiveJobs(List<string> fileNames, Machine machine)
         {
-            foreach (var file in fileNames)
+            lock (_jobsLock)
             {
-                Jobs.Add(new TransferJob { Machine = machine, RemoteFileName = file, OperationType = TransferType.Receive });
+                foreach (var file in fileNames)
+                {
+                    var newJob = new TransferJob
+                    {
+                        Machine = machine,
+                        RemoteFileName = file,
+                        OperationType = TransferType.Receive,
+                        Status = TransferStatus.Pending,
+                        Progress = 0
+                    };
+
+                    Jobs.Add(newJob);
+
+                    // YENİ: Bildirim gönder
+                    OnJobProgressChanged?.Invoke(newJob);
+                }
             }
             StartProcessingIfNotRunning();
         }
@@ -323,27 +339,37 @@ namespace TekstilScada.Services
         public void QueueSequentiallyNamedSendJobs(List<ScadaRecipe> recipes, List<Machine> machines, int startNumber)
         {
             int currentRecipeNumber = startNumber;
-            foreach (var recipe in recipes)
+
+            lock (_jobsLock)
             {
-                string targetFileName = $"XPR{currentRecipeNumber:D5}.csv";
-                foreach (var machine in machines)
+                foreach (var recipe in recipes)
                 {
-                    // CORRECTION: Check only for pending jobs.
-                    // If there is no pending job for the same machine and recipe, add a new one.
-                    if (!Jobs.Any(j => j.Machine.Id == machine.Id && j.LocalRecipe?.Id == recipe.Id && j.TargetFileName == targetFileName && j.Status == TransferStatus.Pending))
+                    string targetFileName = $"XPR{currentRecipeNumber:D5}.csv";
+                    foreach (var machine in machines)
                     {
-                        Jobs.Add(new TransferJob
+                        if (!Jobs.Any(j => j.Machine.Id == machine.Id && j.LocalRecipe?.Id == recipe.Id && j.TargetFileName == targetFileName && j.Status == TransferStatus.Pending))
                         {
-                            Machine = machine,
-                            LocalRecipe = recipe,
-                            OperationType = TransferType.Send,
-                            TargetFileName = targetFileName,
-                            RecipeNumber = currentRecipeNumber
-                        });
+                            var newJob = new TransferJob
+                            {
+                                Machine = machine,
+                                LocalRecipe = recipe,
+                                OperationType = TransferType.Send,
+                                TargetFileName = targetFileName,
+                                RecipeNumber = currentRecipeNumber,
+                                Status = TransferStatus.Pending,
+                                Progress = 0
+                            };
+
+                            Jobs.Add(newJob);
+
+                            // YENİ: İş eklendiği anda arayüze "Ben geldim, sıradayım" de.
+                            OnJobProgressChanged?.Invoke(newJob);
+                        }
                     }
+                    currentRecipeNumber++;
                 }
-                currentRecipeNumber++;
             }
+
             StartProcessingIfNotRunning();
         }
     }

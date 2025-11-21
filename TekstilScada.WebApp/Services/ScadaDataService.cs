@@ -135,15 +135,28 @@ namespace TekstilScada.WebApp.Services
                 .WithUrl(hubUrl)
                 .WithAutomaticReconnect()
                 .Build();
+
+            // --- DEĞİŞİKLİK BURADA ---
             _hubConnection.On<TransferJob>("ReceiveFtpProgress", (job) =>
             {
-                OnFtpProgressReceived?.Invoke(job);
+                // Eğer job null ise eventi tetikleme, böylece UI çökmez.
+                if (job != null)
+                {
+                    OnFtpProgressReceived?.Invoke(job);
+                }
             });
+            // -------------------------
+
             _hubConnection.On<FullMachineStatus>("ReceiveMachineUpdate", (status) =>
             {
-                MachineData[status.MachineId] = status;
-                OnDataUpdated?.Invoke();
+                // Benzer bir korumayı buraya da eklemek iyi bir pratiktir
+                if (status != null)
+                {
+                    MachineData[status.MachineId] = status;
+                    OnDataUpdated?.Invoke();
+                }
             });
+
             try
             {
                 await _hubConnection.StartAsync();

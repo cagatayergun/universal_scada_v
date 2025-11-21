@@ -2,10 +2,13 @@
 @using TekstilScada.Services
 @using TekstilScada.WebApp.Services
 @using System.Collections.Concurrent
+@using MudBlazor  @* <-- BU SATIR ÇOK ÖNEMLİ (CS0246 Çözümü) *@
 
 @inject ScadaDataService ScadaDataService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JSRuntime
+
+
 
 <MudDialog DisableSidePadding="true" MaxWidth="MaxWidth.False" Style="width:95vw; height:90vh;">
     <DialogContent>
@@ -95,6 +98,7 @@
                         <MudDivider Class="mb-3" />
                         @if (_activeJobs.Any())
                         {
+                            <div class="flex-grow-1 overflow-auto" style="min-height: 0;">
                             <MudList T="string" Dense="true" Class="flex-grow-1 overflow-auto">
                                 @foreach (var job in _activeJobs)
                                 {
@@ -117,6 +121,7 @@
                                     <MudDivider />
                                 }
                             </MudList>
+                            </div>
                         }
                         else
                         {
@@ -141,10 +146,8 @@
 </MudDialog>
 
 @code {
-    // 1. Dialog Instance (YENİ - Pencere kontrolü için şart)
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
 
-    // 2. Parametreler (YENİ - OnClose kaldırıldı)
     [Parameter] public List<ScadaRecipe>? LocalRecipes { get; set; }
     [Parameter] public List<Machine>? AllMachines { get; set; }
     [Parameter] public string InitialTargetType { get; set; } = "";
@@ -160,10 +163,13 @@
     // Değişkenler
     private List<string> _availableTypes = new();
     private string _filterType = "";
+
     private List<ScadaRecipe> _filteredRecipes = new();
     private HashSet<ScadaRecipe> _selectedRecipes = new();
+
     private List<MachineSelectionModel> _machineSelectionList = new();
     private HashSet<MachineSelectionModel> _selectedMachines = new();
+
     private int _globalTargetSlot = 1;
     private List<TransferJob> _activeJobs = new();
     private bool isBusy = false;
@@ -185,19 +191,21 @@
         UpdateMachineStatuses();
     }
 
-    // ... (OnFilterTypeChanged, FilterRecipes, LoadMachinesForType, UpdateMachineStatuses, OnGlobalSlotChanged, StartTransferProcess vb. AYNI KALSIN) ...
-    private void OnFilterTypeChanged(string value)
+    // DÜZELTME: Metot imzası IEnumerable<string> olarak güncellendi (CS1503 Çözümü)
+    private void OnFilterTypeChanged(IEnumerable<string> values)
     {
-        _filterType = value;
+        _filterType = values.FirstOrDefault(); // İlk seçilen değeri al
         FilterRecipes();
         LoadMachinesForType();
     }
+
     private void FilterRecipes()
     {
         if (LocalRecipes == null) return;
         _filteredRecipes = LocalRecipes.Where(r => r.TargetMachineType == _filterType).ToList();
         _selectedRecipes.Clear();
     }
+
     private void LoadMachinesForType()
     {
         if (AllMachines == null) return;
@@ -208,6 +216,7 @@
         _selectedMachines.Clear();
         UpdateMachineStatuses();
     }
+
     private void UpdateMachineStatuses()
     {
         foreach (var item in _machineSelectionList)
@@ -216,10 +225,12 @@
                 item.IsOnline = status.ConnectionState == ConnectionStatus.Connected;
         }
     }
+
     private void OnGlobalSlotChanged()
     {
         foreach (var m in _machineSelectionList) m.TargetStartSlot = _globalTargetSlot;
     }
+
     private async Task StartTransferProcess()
     {
         if (!_selectedRecipes.Any() || !_selectedMachines.Any()) return;
@@ -256,7 +267,12 @@
 
     private void OnFtpProgress(TransferJob job)
     {
-        var existing = _activeJobs.FirstOrDefault(j => j.Id == job.Id);
+        // 1. KORUMA: Gelen job null ise hiçbir şey yapma.
+        if (job == null) return;
+
+        // 2. KORUMA: Liste içinde null kayıt varsa (önceden eklenmişse) hatayı önlemek için 'j != null' kontrolü ekle.
+        var existing = _activeJobs.FirstOrDefault(j => j != null && j.Id == job.Id);
+
         if (existing != null)
         {
             existing.Progress = job.Progress;
@@ -265,6 +281,7 @@
         }
         else
         {
+            // Listeye eklerken de null olmadığından eminiz (yukarıdaki if sayesinde)
             _activeJobs.Insert(0, job);
         }
         InvokeAsync(StateHasChanged);
