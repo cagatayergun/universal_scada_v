@@ -218,10 +218,11 @@ namespace TekstilScada.Services
 
             return finalName;
         }
-
+        public event Action<TransferJob>? OnJobProgressChanged;
         private async Task ProcessQueue(RecipeRepository recipeRepo)
         {
             _isProcessing = true;
+
             while (Jobs.Any(j => j.Status == TransferStatus.Pending))
             {
                 var job = Jobs.FirstOrDefault(j => j.Status == TransferStatus.Pending);
@@ -229,6 +230,7 @@ namespace TekstilScada.Services
 
                 try
                 {
+                    OnJobProgressChanged?.Invoke(job);
                     job.Status = TransferStatus.Transferring;
                     var ftpService = new FtpService(job.Machine.VncAddress, job.Machine.FtpUsername, job.Machine.FtpPassword);
                     job.Progress = 20;

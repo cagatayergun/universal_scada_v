@@ -1,372 +1,293 @@
 ﻿@using TekstilScada.Models
+@using TekstilScada.Services
 @using TekstilScada.WebApp.Services
-@using System.Text
+@using System.Collections.Concurrent
+
 @inject ScadaDataService ScadaDataService
+@inject ISnackbar Snackbar
 @inject IJSRuntime JSRuntime
-@if (Machine == null) { return; }
 
-<div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,.5);">
-    <div class="modal-dialog modal-xl" role="document">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">FTP Senkronizasyon | Hedef Makine: @Machine.MachineName (@GetMachineFilterType(Machine))</h5>
-                <button type="button" class="btn-close" @onclick="() => OnClose.InvokeAsync()" disabled="@isBusy"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    
-                    @* 1. Yerel Reçeteler (lstLocalRecipes) *@
-                    <div class="col-md-4">
-                        <h6 class="text-center">Yerel Reçeteler (@filteredLocalRecipes.Count)</h6>
-                        <div class="list-group recipe-list-height">
-                            @foreach (var recipe in filteredLocalRecipes)
+<MudDialog DisableSidePadding="true" MaxWidth="MaxWidth.False" Style="width:95vw; height:90vh;">
+    <DialogContent>
+        <MudContainer Style="height: 100%; overflow: hidden;" Class="pa-2">
+            <MudGrid Style="height: 100%;">
+
+                <MudItem xs="12" md="3" Class="d-flex flex-column" Style="height: 100%;">
+                    <MudPaper Elevation="3" Class="pa-3 flex-grow-1 d-flex flex-column">
+                        <MudText Typo="Typo.h6" Color="MudBlazor.Color.Primary" Class="mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Description" Class="mr-2" /> Yerel Reçeteler
+                        </MudText>
+                        <MudDivider Class="mb-3" />
+
+                        <MudSelect T="string" Label="Reçete Tipi" @bind-Value="_filterType" SelectedValuesChanged="OnFilterTypeChanged" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2">
+                            @foreach (var type in _availableTypes)
                             {
-                                <button type="button" class="list-group-item list-group-item-action @(selectedLocalRecipe?.Id == recipe.Id ? "active" : "")"
-                                        @onclick="() => selectedLocalRecipe = recipe">
-                                    @recipe.RecipeName
-                                </button>
+                                <MudSelectItem Value="@type">@type</MudSelectItem>
                             }
-                        </div>
-                    </div>
+                        </MudSelect>
 
-                   
-                    <div class="col-md-4 d-flex flex-column justify-content-between">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Gönderim Başlangıç No (1-98):</label>
-                            <input type="number" class="form-control" @bind-value="startRecipeNumber" min="1" max="98" disabled="@isBusy" />
-                            <div class="form-text text-muted">Çoklu gönderimde reçeteler sırayla atanır.</div>
-                        </div>
+                        <MudDataGrid T="ScadaRecipe"
+                                     Items="@_filteredRecipes"
+                                     MultiSelection="true"
+                                     @bind-SelectedItems="_selectedRecipes"
+                                     Dense="true" Hover="true" Bordered="true"
+                                     Class="flex-grow-1 overflow-auto" FixedHeader="true" Height="100%">
+                            <Columns>
+                                <SelectColumn T="ScadaRecipe" />
+                                <PropertyColumn Property="x => x.RecipeName" Title="Reçete Adı" />
+                            </Columns>
+                        </MudDataGrid>
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">@(_selectedRecipes.Count) reçete seçildi.</MudAlert>
+                    </MudPaper>
+                </MudItem>
 
-                        <div class="d-grid gap-2 mb-3">
-                            <button class="btn btn-success" @onclick="SendSelectedRecipes" disabled="@(isBusy || selectedLocalRecipe == null)">
-                                <i class="oi oi-arrow-right"></i> Seçiliyi HMI'a Gönder
-                            </button>
-                            <button class="btn btn-info" @onclick="ReceiveSelectedRecipes" disabled="@(isBusy || selectedHmiRecipe == null)">
-                                <i class="oi oi-arrow-left"></i> Seçiliyi Yerel'e İndir
-                            </button>
-                            <button class="btn btn-secondary" @onclick="LoadHmiRecipes" disabled="@isBusy">
-                                <i class="oi oi-reload"></i> HMI Listesini Yenile
-                            </button>
-                        </div>
-                        
-                        <div class="alert @(isBusy ? "alert-info" : "alert-secondary") mt-auto">
-                            @statusMessage
-                        </div>
-                    </div>
+                <MudItem xs="12" md="5" Class="d-flex flex-column" Style="height: 100%;">
+                    <MudPaper Elevation="3" Class="pa-3 flex-grow-1 d-flex flex-column">
+                        <MudText Typo="Typo.h6" Color="MudBlazor.Color.Secondary" Class="mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.PrecisionManufacturing" Class="mr-2" /> Hedef Makineler
+                        </MudText>
+                        <MudDivider Class="mb-3" />
 
-                
-                    <div class="col-md-4">
-                        <h6 class="text-center">HMI/PLC Reçeteleri (@hmiRecipeNames.Count)</h6>
-                        <div class="list-group recipe-list-height">
-                            @foreach (var recipe in hmiRecipeNames)
-                            {
-                                <button type="button" class="list-group-item list-group-item-action @(selectedHmiRecipe?.SlotNumber == recipe.SlotNumber ? "active" : "")"
-                                        @onclick="() => SelectHmiRecipe(recipe)">
-                                    @recipe.DisplayName
-                                </button>
-                            }
-                            @if (!hmiRecipeNames.Any() && !isBusy)
-                            {
-                                <p class="p-2 text-muted text-center">Makine bağlı değil veya reçete bulunamadı.</p>
-                            }
+                        <MudDataGrid T="MachineSelectionModel"
+                                     Items="@_machineSelectionList"
+                                     MultiSelection="true"
+                                     @bind-SelectedItems="_selectedMachines"
+                                     Dense="true" Hover="true" Bordered="true"
+                                     Class="flex-grow-1 overflow-auto" FixedHeader="true" Height="100%">
+                            <Columns>
+                                <SelectColumn T="MachineSelectionModel" />
+                                <TemplateColumn Title="Durum" CellClass="d-flex justify-center">
+                                    <CellTemplate>
+                                        @if (context.Item.IsOnline)
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Wifi" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Small" />
+                                        }
+                                        else
+                                        {
+
+                                            <MudIcon Icon="@Icons.Material.Filled.WifiOff" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" />
+                                        }
+                                    </CellTemplate>
+                                </TemplateColumn>
+                                <PropertyColumn Property="x => x.Machine.MachineName" Title="Makine Adı" />
+                                <TemplateColumn Title="Hedef No">
+                                    <CellTemplate>
+                                        <MudNumericField @bind-Value="context.Item.TargetStartSlot" Min="1" Max="98" Margin="Margin.Dense" Variant="Variant.Text" HideSpinButtons="true" Style="width: 50px;" />
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            </Columns>
+                        </MudDataGrid>
+
+                        <div class="d-flex gap-2 mt-3 align-center">
+                            <MudText Typo="Typo.caption" Align="MudBlazor.Align.Center">Toplu Hedef No:</MudText>
+                            <MudNumericField @bind-Value="_globalTargetSlot" Min="1" Max="98" Variant="Variant.Outlined" Margin="Margin.Dense" Style="width: 80px;" TextChanged="OnGlobalSlotChanged" />
+                            <MudSpacer />
+                            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Success" StartIcon="@Icons.Material.Filled.CloudUpload" OnClick="StartTransferProcess" Disabled="@(_selectedRecipes.Count == 0 || _selectedMachines.Count == 0 || isBusy)">
+                                GÖNDERİMİ BAŞLAT
+                            </MudButton>
                         </div>
-                    </div>
-                </div>
+                    </MudPaper>
+                </MudItem>
 
-                <hr />
-
-            
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header">
-                                Reçete Ön İzleme: @(previewRecipe?.RecipeName ?? "Seçim Yapılmadı")
-                            </div>
-                            <div class="card-body preview-area-height" style="max-height: 400px; overflow-y: auto;">
-                                @if (isBusy)
+                <MudItem xs="12" md="4" Class="d-flex flex-column" Style="height: 100%;">
+                    <MudPaper Elevation="4" Class="pa-3 flex-grow-1 d-flex flex-column" Style="background-color: #f8f9fa;">
+                        <MudText Typo="Typo.h6" Class="mb-2"><MudIcon Icon="@Icons.Material.Filled.History" Class="mr-2" /> Transfer Kuyruğu</MudText>
+                        <MudDivider Class="mb-3" />
+                        @if (_activeJobs.Any())
+                        {
+                            <MudList T="string" Dense="true" Class="flex-grow-1 overflow-auto">
+                                @foreach (var job in _activeJobs)
                                 {
-                                    <p class="text-center">@statusMessage</p>
-                                }
-                                else if (previewRecipe == null)
-                                {
-                                    <p class="text-center text-muted">Ön izleme için HMI listesinden bir reçete seçin.</p>
-                                }
-                                else
-                                {
-                                    <h6>Adım Detayları (Sadece Okunur)</h6>
-                                    @foreach (var step in previewRecipe.Steps.OrderBy(s => s.StepNumber))
-                                    {
-                                        <div class="p-1 mb-1 border rounded">
-                                            Adım @step.StepNumber: @GetStepTypeName(step)
+                                    <MudListItem T="string">
+                                        <div class="d-flex flex-column w-100">
+                                            <div class="d-flex justify-space-between">
+                                                <MudText Typo="Typo.body2"><b>@job.RecipeName</b> <span class="mud-text-secondary">-></span> <b>@job.MachineName</b></MudText>
+                                            </div>
+                                            <MudProgressLinear Color="@GetJobColor(job)" Value="@job.Progress" Class="my-1" Striped="true" />
+                                            <div class="d-flex justify-space-between">
+                                                <MudText Typo="Typo.caption" Color="@GetJobColor(job)">@job.Status</MudText>
+                                                <MudText Typo="Typo.caption">@job.Progress%</MudText>
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(job.ErrorMessage))
+                                            {
+                                                <MudText Typo="Typo.caption" Color="MudBlazor.Color.Error">@job.ErrorMessage</MudText>
+                                            }
                                         </div>
-                                    }
+                                    </MudListItem>
+                                    <MudDivider />
                                 }
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-         
-        </div>
-    </div>
-</div>
+                            </MudList>
+                        }
+                        else
+                        {
 
-<style>
-    .recipe-list-height {
-        max-height: 400px;
-        overflow-y: auto;
-    }
-</style>
+                            <div class="d-flex flex-column align-center justify-center flex-grow-1" style="opacity:0.5"><MudText>Kuyruk boş</MudText></div>
+                        }
 
+                        @if (isBusy)
+                        {
+                            <MudProgressLinear Color="MudBlazor.Color.Info" Indeterminate="true" Class="mt-2" />
+                            <MudText Align="MudBlazor.Align.Center" Typo="Typo.caption">İşlemler sürüyor...</MudText>
+                        }
+                    </MudPaper>
+                </MudItem>
+
+            </MudGrid>
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Cancel()" Color="MudBlazor.Color.Default">Kapat</MudButton>
+    </DialogActions>
+</MudDialog>
 
 @code {
-    [Parameter] public Machine Machine { get; set; }
+    // 1. Dialog Instance (YENİ - Pencere kontrolü için şart)
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    // 2. Parametreler (YENİ - OnClose kaldırıldı)
     [Parameter] public List<ScadaRecipe>? LocalRecipes { get; set; }
-    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public List<Machine>? AllMachines { get; set; }
+    [Parameter] public string InitialTargetType { get; set; } = "";
 
-    private List<ScadaRecipe> filteredLocalRecipes = new();
-    private List<HmiRecipeInfo> hmiRecipeNames = new();
-    private HmiRecipeInfo? selectedHmiRecipe;
-    private ScadaRecipe? selectedLocalRecipe;
-    private ScadaRecipe? previewRecipe; // Ön izleme için indirilen reçete
-    private bool isBusy = false;
-    private string statusMessage = string.Empty;
-    private int startRecipeNumber = 1;
-
-    // WinForms'taki LoadHmiRecipes çıktısını tutmak için model
-    public class HmiRecipeInfo
+    // Modeller
+    public class MachineSelectionModel
     {
-        public int SlotNumber { get; set; }
-        public string DisplayName { get; set; }
-        public string RemoteFileName => $"XPR{SlotNumber:D5}.csv";
+        public Machine Machine { get; set; }
+        public bool IsOnline { get; set; } = false;
+        public int TargetStartSlot { get; set; } = 1;
     }
+
+    // Değişkenler
+    private List<string> _availableTypes = new();
+    private string _filterType = "";
+    private List<ScadaRecipe> _filteredRecipes = new();
+    private HashSet<ScadaRecipe> _selectedRecipes = new();
+    private List<MachineSelectionModel> _machineSelectionList = new();
+    private HashSet<MachineSelectionModel> _selectedMachines = new();
+    private int _globalTargetSlot = 1;
+    private List<TransferJob> _activeJobs = new();
+    private bool isBusy = false;
 
     protected override void OnInitialized()
     {
-        // WinForms'taki LoadLocalRecipes mantığı: Makine tipine göre filtrele
-        string filterType = GetMachineFilterType(Machine);
-        filteredLocalRecipes = LocalRecipes?.Where(r => r.TargetMachineType == filterType).ToList() ?? new();
+        if (LocalRecipes != null)
+            _availableTypes = LocalRecipes.Select(r => r.TargetMachineType).Distinct().ToList();
 
-        // WinForms'taki FtpSync_Form_Load içinde LoadMachines çağrılıp HMI listesi yükleniyordu.
-        InvokeAsync(LoadHmiRecipes);
+        if (!string.IsNullOrEmpty(InitialTargetType) && _availableTypes.Contains(InitialTargetType))
+            _filterType = InitialTargetType;
+        else if (_availableTypes.Any())
+            _filterType = _availableTypes.First();
+
+        FilterRecipes();
+        LoadMachinesForType();
+
+        ScadaDataService.OnFtpProgressReceived += OnFtpProgress;
+        UpdateMachineStatuses();
     }
-    
-    // WinForms'taki GetMachineFilterType mantığı
+
+    // ... (OnFilterTypeChanged, FilterRecipes, LoadMachinesForType, UpdateMachineStatuses, OnGlobalSlotChanged, StartTransferProcess vb. AYNI KALSIN) ...
+    private void OnFilterTypeChanged(string value)
+    {
+        _filterType = value;
+        FilterRecipes();
+        LoadMachinesForType();
+    }
+    private void FilterRecipes()
+    {
+        if (LocalRecipes == null) return;
+        _filteredRecipes = LocalRecipes.Where(r => r.TargetMachineType == _filterType).ToList();
+        _selectedRecipes.Clear();
+    }
+    private void LoadMachinesForType()
+    {
+        if (AllMachines == null) return;
+        _machineSelectionList = AllMachines
+            .Where(m => !string.IsNullOrEmpty(m.FtpUsername) && m.MachineType != "Kurutma Makinesi" && GetMachineFilterType(m) == _filterType)
+            .Select(m => new MachineSelectionModel { Machine = m, TargetStartSlot = 1 })
+            .ToList();
+        _selectedMachines.Clear();
+        UpdateMachineStatuses();
+    }
+    private void UpdateMachineStatuses()
+    {
+        foreach (var item in _machineSelectionList)
+        {
+            if (ScadaDataService.MachineData.TryGetValue(item.Machine.Id, out var status))
+                item.IsOnline = status.ConnectionState == ConnectionStatus.Connected;
+        }
+    }
+    private void OnGlobalSlotChanged()
+    {
+        foreach (var m in _machineSelectionList) m.TargetStartSlot = _globalTargetSlot;
+    }
+    private async Task StartTransferProcess()
+    {
+        if (!_selectedRecipes.Any() || !_selectedMachines.Any()) return;
+
+        var offlineMachines = _selectedMachines.Where(m => !m.IsOnline).ToList();
+        if (offlineMachines.Any())
+        {
+            var confirm = await JSRuntime.InvokeAsync<bool>("confirm", $"{offlineMachines.Count} makine OFFLINE. Yine de eklensin mi?");
+            if (!confirm) return;
+        }
+
+        isBusy = true;
+        StateHasChanged();
+        try
+        {
+            foreach (var machineItem in _selectedMachines)
+            {
+                var recipeIds = _selectedRecipes.Select(r => r.Id).ToList();
+                var machineIds = new List<int> { machineItem.Machine.Id };
+                int startSlot = machineItem.TargetStartSlot;
+
+                if (startSlot + recipeIds.Count - 1 > 98)
+                {
+                    Snackbar.Add($"{machineItem.Machine.MachineName} limit aşıldı!", Severity.Warning);
+                    continue;
+                }
+                await ScadaDataService.QueueSequentiallyNamedSendJobsAsync(recipeIds, machineIds, startSlot);
+                Snackbar.Add($"{machineItem.Machine.MachineName}: Kuyruğa alındı.", Severity.Success);
+            }
+        }
+        catch (Exception ex) { Snackbar.Add($"Hata: {ex.Message}", Severity.Error); }
+        finally { isBusy = false; StateHasChanged(); }
+    }
+
+    private void OnFtpProgress(TransferJob job)
+    {
+        var existing = _activeJobs.FirstOrDefault(j => j.Id == job.Id);
+        if (existing != null)
+        {
+            existing.Progress = job.Progress;
+            existing.Status = job.Status;
+            existing.ErrorMessage = job.ErrorMessage;
+        }
+        else
+        {
+            _activeJobs.Insert(0, job);
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private MudBlazor.Color GetJobColor(TransferJob job)
+    {
+        return job.Status switch
+        {
+            TransferStatus.Successful => MudBlazor.Color.Success,
+            TransferStatus.Failed => MudBlazor.Color.Error,
+            TransferStatus.Transferring => MudBlazor.Color.Info,
+            _ => MudBlazor.Color.Default
+        };
+    }
+
     private string GetMachineFilterType(Machine machine)
     {
         return string.IsNullOrEmpty(machine.MachineSubType) ? machine.MachineType : machine.MachineSubType;
     }
 
-    // WinForms'taki LoadHmiRecipes metodunun karşılığı
-    private async Task LoadHmiRecipes()
+    public void Dispose()
     {
-        if (Machine == null || isBusy) return;
-
-        isBusy = true;
-        hmiRecipeNames.Clear();
-        selectedHmiRecipe = null;
-        previewRecipe = null;
-        statusMessage = "HMI reçete isimleri okunuyor (PLC/FTP üzerinden)...";
-        StateHasChanged();
-        
-        try
-        {
-            // WebAPI çağrısı: plcManager.ReadRecipeNamesFromPlcAsync() mantığını taklit eder
-            // Makinenin bağlantı durumu kontrolü (WinForms'taki LoadMachines içindeki Cache kontrolü) API tarafında yapılır.
-            var recipeNamesFromPlc = await ScadaDataService.GetHmiRecipeNamesAsync(Machine.Id); // Dictionary<int, string> beklenir
-
-            if (recipeNamesFromPlc != null && recipeNamesFromPlc.Any())
-            {
-                hmiRecipeNames = recipeNamesFromPlc
-                    .Select(kvp => new HmiRecipeInfo 
-                    { 
-                     
-                        SlotNumber = kvp.Key, 
-                        // WinForms'taki gibi Key (Slot) ve Value (Name) birleştirilir.
-                        DisplayName = $"{kvp.Key:D2} - {kvp.Value.Replace('\0', ' ').Trim()}"
-                    })
-                    .OrderBy(r => r.SlotNumber)
-                    .ToList();
-                
-                statusMessage = $"{hmiRecipeNames.Count} adet HMI reçetesi bulundu.";
-            }
-            else
-            {
-                statusMessage = "PLC'de kayıtlı reçete adı bulunamadı veya makine bağlantısı yok.";
-            }
-        }
-        catch (Exception ex)
-        {
-            statusMessage = $"HMI reçeteleri okunurken hata oluştu: {ex.Message}";
-        }
-        finally
-        {
-            isBusy = false;
-            StateHasChanged();
-        }
-    }
-    
-    // WinForms'taki lstHmiRecipes_SelectedIndexChanged mantığının iki aşaması: 1. Seçim 2. Önizleme
-    private async Task SelectHmiRecipe(HmiRecipeInfo recipe)
-    {
-        selectedHmiRecipe = recipe;
-        await LoadHmiRecipePreview(recipe);
-    }
-    
-    private async Task LoadHmiRecipePreview(HmiRecipeInfo recipe)
-    {
-        if (Machine == null) return;
-
-        isBusy = true;
-        previewRecipe = null;
-        statusMessage = $"'{recipe.RemoteFileName}' dosyasının ön izlemesi yükleniyor...";
-        StateHasChanged();
-
-        try
-        {
-            // WebAPI çağrısı: WinForms'taki FtpService.DownloadFileAsync() ve RecipeCsvConverter.ToRecipe() işlemlerini soyutlar.
-            // API, FTP üzerinden CSV'yi indirir, reçeteye çevirir ve geri döndürür.
-            previewRecipe = await ScadaDataService.GetHmiRecipePreviewAsync(Machine.Id, recipe.RemoteFileName);
-
-            if (previewRecipe != null)
-            {
-                // WinForms'ta GeneratePreviewRecipeName metodu karmaşık bir isim oluşturuyordu.
-                // Burada basitçe HMI'dan okunan adı kullanıyoruz.
-                previewRecipe.RecipeName = recipe.DisplayName;
-                statusMessage = "Ön izleme başarıyla yüklendi.";
-            }
-            else
-            {
-                statusMessage = "Ön izleme yüklenirken hata: Reçete boş döndü.";
-            }
-        }
-        catch (Exception ex)
-        {
-            statusMessage = $"Ön izleme yüklenemedi: {ex.Message}";
-        }
-        finally
-        {
-            isBusy = false;
-            StateHasChanged();
-        }
-    }
-
-
-    // WinForms'taki btnSend_Click metodunun karşılığı
-    public async Task SendSelectedRecipes()
-    {
-        if (selectedLocalRecipe == null || Machine == null)
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "Lütfen en az bir yerel reçete ve hedef makine seçin.");
-            return;
-        }
-
-        // WinForms'taki slot limit kontrolü
-        if (startRecipeNumber < 1 || startRecipeNumber > 98)
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "Başlangıç reçete numarası 1 ile 98 arasında olmalıdır.");
-            return;
-        }
-        
-        // WinForms çoklu seçime izin verdiği için burada sadece tek seçili reçete üzerinden kontrol yapıyoruz.
-        if (startRecipeNumber > 98) 
-        {
-            await JSRuntime.InvokeVoidAsync("alert", $"Başlangıç numarası ({startRecipeNumber}) 98 limitini aşıyor.");
-            return;
-        }
-
-        isBusy = true;
-        statusMessage = "Gönderim kuyruğa alınıyor...";
-        StateHasChanged();
-
-        try
-        {
-            // WebAPI çağrısı: WinForms'taki _transferService.QueueSequentiallyNamedSendJobs yerine geçer
-            // Tek bir reçete için:
-            bool success = await ScadaDataService.QueueSequentiallyNamedSendJobsAsync(
-                new List<int> { selectedLocalRecipe.Id }, 
-                new List<int> { Machine.Id }, 
-                startRecipeNumber
-            );
-
-            if (success)
-            {
-                statusMessage = "Gönderim işi başarıyla kuyruğa alındı.";
-                await JSRuntime.InvokeVoidAsync("alert", statusMessage);
-            }
-            else
-            {
-                statusMessage = "Gönderim işi kuyruğa alınamadı.";
-            }
-        }
-        catch (Exception ex)
-        {
-            statusMessage = $"Gönderme sırasında hata: {ex.Message}";
-        }
-        finally
-        {
-            isBusy = false;
-            StateHasChanged();
-        }
-    }
-
-    // WinForms'taki btnReceive_Click metodunun karşılığı
-    public async Task ReceiveSelectedRecipes()
-    {
-        if (selectedHmiRecipe == null || Machine == null)
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "Lütfen indirilecek bir HMI reçetesi seçin.");
-            return;
-        }
-
-        // WinForms'ta çoklu alma destekleniyordu, burada tek seçime göre devam ediyoruz.
-        var filesToReceive = new List<string> { selectedHmiRecipe.RemoteFileName };
-        
-        isBusy = true;
-        statusMessage = "Alma işi kuyruğa alınıyor...";
-        StateHasChanged();
-        
-        try
-        {
-            // WebAPI çağrısı: WinForms'taki _transferService.QueueReceiveJobs yerine geçer
-            bool success = await ScadaDataService.QueueReceiveJobsAsync(filesToReceive, Machine.Id);
-            
-            if (success)
-            {
-                // WinForms'ta LoadLocalRecipes çağrılıyordu. Başarılı olursa listeyi yenile.
-                await OnClose.InvokeAsync(); // Modalı kapat ve ana sayfayı yenile (ProsesKontrol'de bu beklenir)
-                statusMessage = "Alma işi başarıyla kuyruğa alındı ve ana listeye yansıtılacak.";
-            }
-            else
-            {
-                statusMessage = "Alma işi kuyruğa alınamadı.";
-            }
-        }
-        catch (Exception ex)
-        {
-            statusMessage = $"Alma sırasında hata: {ex.Message}";
-        }
-        finally
-        {
-            isBusy = false;
-            StateHasChanged();
-        }
-    }
-    
-    // WinForms'taki GetStepTypeName mantığı
-    private string GetStepTypeName(ScadaRecipeStep step)
-    {
-        var stepTypes = new List<string>();
-        if (step.StepDataWords.Length > 24)
-        {
-            short controlWord = step.StepDataWords[24];
-            if ((controlWord & 1) != 0) stepTypes.Add("Su Alma");
-            if ((controlWord & 2) != 0) stepTypes.Add("Isıtma");
-            if ((controlWord & 4) != 0) stepTypes.Add("Çalışma");
-            if ((controlWord & 8) != 0) stepTypes.Add("Dozaj");
-            if ((controlWord & 16) != 0) stepTypes.Add("Boşaltma");
-            if ((controlWord & 32) != 0) stepTypes.Add("Sıkma");
-        }
-        return stepTypes.Any() ? string.Join(" + ", stepTypes) : "Tanımsız Adım";
+        ScadaDataService.OnFtpProgressReceived -= OnFtpProgress;
     }
 }

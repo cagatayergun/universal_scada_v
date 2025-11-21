@@ -63,9 +63,11 @@ builder.Services.AddSingleton<DashboardRepository>();
 builder.Services.AddSingleton<PlcPollingService>();
 builder.Services.AddSingleton<SignalRBridgeService>();
 builder.Services.AddSingleton<FtpTransferService>();
+
 builder.Services.AddSingleton<RecipeConfigurationRepository>();
 // PLC Polling servisini arka planda çalýþacak bir hizmet olarak ekliyoruz.
 builder.Services.AddHostedService<PlcPollingBackgroundService>();
+builder.Services.AddHostedService<FtpProgressBroadcaster>();
 //builder.Services.AddScoped<FtpService>();
 builder.Services.AddCors(options =>
 {

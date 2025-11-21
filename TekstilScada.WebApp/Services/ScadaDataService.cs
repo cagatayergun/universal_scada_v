@@ -5,10 +5,11 @@ using System;
 using System.Collections.Concurrent;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using TekstilScada.Models;
 using TekstilScada.Repositories;
-using System.Text.Json;
+using TekstilScada.Services;
 using TekstilScada.WebApp.Models;
 // DTO'lar, global namespace'de kalmalı4
 // 1. TrendDataPoint (CS0234 hatasını çözmek için)
@@ -119,7 +120,7 @@ namespace TekstilScada.WebApp.Services
         public ConcurrentDictionary<int, Machine> MachineDetailsCache { get; private set; } = new();
 
         public event Action? OnDataUpdated;
-
+        public event Action<TransferJob> OnFtpProgressReceived;
         public ScadaDataService(HttpClient httpClient)
         {
             _httpClient = httpClient;
@@ -134,6 +135,10 @@ namespace TekstilScada.WebApp.Services
                 .WithUrl(hubUrl)
                 .WithAutomaticReconnect()
                 .Build();
+            _hubConnection.On<TransferJob>("ReceiveFtpProgress", (job) =>
+            {
+                OnFtpProgressReceived?.Invoke(job);
+            });
             _hubConnection.On<FullMachineStatus>("ReceiveMachineUpdate", (status) =>
             {
                 MachineData[status.MachineId] = status;
