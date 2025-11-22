@@ -402,19 +402,19 @@ namespace TekstilScada.WebApp.Services
             return await response.Content.ReadFromJsonAsync<List<ProductionReportItem>>();
         }
 
-        public async Task<List<TekstilScada.Core.Models.ActionLogEntry>?> GetActionLogsAsync(ActionLogFilters filters)
-        {
-            var response = await _httpClient.PostAsJsonAsync("api/reports/action-logs", filters);
+        //public async Task<List<TekstilScada.Core.Models.ActionLogEntry>?> GetActionLogsAsync(ActionLogFilters filters)
+      //  {
+         //   var response = await _httpClient.PostAsJsonAsync("api/reports/action-logs", filters);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"API Hatası (Eylem Kayıtları): {response.StatusCode}");
-                return new List<TekstilScada.Core.Models.ActionLogEntry>();
-            }
+         //   if (!response.IsSuccessStatusCode)
+         //   {
+         //       var errorContent = await response.Content.ReadAsStringAsync();
+         //       Console.WriteLine($"API Hatası (Eylem Kayıtları): {response.StatusCode}");
+         //       return new List<TekstilScada.Core.Models.ActionLogEntry>();
+         //   }
 
-            return await response.Content.ReadFromJsonAsync<List<TekstilScada.Core.Models.ActionLogEntry>>();
-        }
+        //    return await response.Content.ReadFromJsonAsync<List<TekstilScada.Core.Models.ActionLogEntry>>();
+       // }
 
         public async Task<List<HourlyConsumptionData>?> GetHourlyConsumptionAsync()
         {
@@ -902,6 +902,45 @@ namespace TekstilScada.WebApp.Services
         {
             await _httpClient.PostAsJsonAsync($"api/recipeconfigurations/layout?subType={subType}&stepTypeId={stepTypeId}", layout);
         }
+       
 
+        // GÜNCELLENMİŞ LOGLAMA METODU (UserId parametresi eklendi)
+        public async Task LogUserActionAsync(int userId, string actionType, string details)
+        {
+           
+
+            try
+            {
+                var entry = new TekstilScada.Core.Models.ActionLogEntry
+                {
+                    UserId = userId,
+                    ActionType = actionType,
+                    Details = details,
+                    Timestamp = DateTime.Now,
+                    Username = "" // <-- Bunu eklerseniz de hata düzelir
+                };
+
+                await _httpClient.PostAsJsonAsync("api/actionlogs", entry);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Log gönderilemedi: {ex.Message}");
+            }
+        }
+
+        // RAPOR ÇEKME METODU (Zaten eklemiştik, endpoint yolunu güncelliyoruz)
+        public async Task<List<TekstilScada.Core.Models.ActionLogEntry>?> GetActionLogsAsync(ActionLogFilters filters)
+        {
+            // Endpoint yolunu Controller'daki "report" action'ına yönlendiriyoruz
+            var response = await _httpClient.PostAsJsonAsync("api/actionlogs/report", filters);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"API Hatası (Eylem Kayıtları): {response.StatusCode}");
+                return new List<TekstilScada.Core.Models.ActionLogEntry>();
+            }
+
+            return await response.Content.ReadFromJsonAsync<List<TekstilScada.Core.Models.ActionLogEntry>>();
+        }
     }
 }

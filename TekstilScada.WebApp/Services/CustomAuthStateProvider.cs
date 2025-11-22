@@ -278,27 +278,51 @@ namespace TekstilScada.WebApp.Services
             var jsonBytes = Convert.FromBase64String(payload);
             var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
 
-            keyValuePairs.TryGetValue(ClaimTypes.Name, out object username);
-            if (username != null)
+            // --- DEBUG: Token İçeriğini Konsola Yazdır ---
+            Console.WriteLine("--- TOKEN İÇERİĞİ BAŞLANGIÇ ---");
+            foreach (var kvp in keyValuePairs)
             {
-                claims.Add(new Claim(ClaimTypes.Name, username.ToString()));
+                Console.WriteLine($"Anahtar: {kvp.Key}, Değer: {kvp.Value}");
             }
+            Console.WriteLine("--- TOKEN İÇERİĞİ BİTİŞ ---");
+            // ---------------------------------------------
+
+            // 1. İsim
+            keyValuePairs.TryGetValue(ClaimTypes.Name, out object username);
+            if (username != null) claims.Add(new Claim(ClaimTypes.Name, username.ToString()));
+
+            // 2. Rol
             keyValuePairs.TryGetValue(ClaimTypes.Role, out object roles);
             if (roles != null)
             {
                 if (roles.ToString().Trim().StartsWith("["))
                 {
                     var parsedRoles = JsonSerializer.Deserialize<string[]>(roles.ToString());
-                    foreach (var parsedRole in parsedRoles)
-                    {
-                        claims.Add(new Claim(ClaimTypes.Role, parsedRole));
-                    }
+                    foreach (var parsedRole in parsedRoles) claims.Add(new Claim(ClaimTypes.Role, parsedRole));
                 }
                 else
                 {
                     claims.Add(new Claim(ClaimTypes.Role, roles.ToString()));
                 }
             }
+
+            // 3. ID OKUMA (Genişletilmiş Kontrol)
+            object idValue = null;
+
+            // Farklı ihtimalleri dene: "nameid", "sub", "id", "NameIdentifier"
+            if (keyValuePairs.TryGetValue("nameid", out idValue) ||
+                keyValuePairs.TryGetValue("sub", out idValue) ||
+                keyValuePairs.TryGetValue("id", out idValue) ||
+                keyValuePairs.TryGetValue(ClaimTypes.NameIdentifier, out idValue))
+            {
+                Console.WriteLine($"ID BULUNDU: {idValue}"); // Konsolda bunu görmelisiniz
+                claims.Add(new Claim(ClaimTypes.NameIdentifier, idValue.ToString()));
+            }
+            else
+            {
+                Console.WriteLine("!!! ID BULUNAMADI !!!");
+            }
+
             return new ClaimsIdentity(claims, "jwt");
         }
     }

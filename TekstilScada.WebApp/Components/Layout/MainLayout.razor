@@ -1,9 +1,15 @@
 ﻿@inherits LayoutComponentBase
 @using TekstilScada.WebApp.Services
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
 @using MudBlazor
+@using System.Security.Claims
+
 @inject CustomAuthStateProvider AuthProvider
 @inject NavigationManager NavigationManager
+@inject ScadaDataService ScadaService
+@inject AuthenticationStateProvider AuthStateProvider
+@implements IDisposable
 
 <MudThemeProvider />
 <MudPopoverProvider />
@@ -42,6 +48,22 @@
 
 @code {
     bool _drawerOpen = true;
+    private bool _isInitialized = false;
+    private int _currentUserId = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Sayfa ilk açıldığında bir kere çalışır
+        if (!_isInitialized)
+        {
+            // 1. Kullanıcıyı bul (Eğer F5 yapıldıysa state'den çek)
+            await GetCurrentUserAsync();
+
+            // 2. Sayfa her değiştiğinde tetiklenecek olayı bağla
+            NavigationManager.LocationChanged += HandleLocationChanged;
+            _isInitialized = true;
+        }
+    }
 
     void DrawerToggle()
     {
@@ -50,7 +72,71 @@
 
     private async Task HandleLogout()
     {
+        // Çıkış logu (İsteğe bağlı)
+        if (_currentUserId > 0)
+        {
+            await ScadaService.LogUserActionAsync(_currentUserId, "Oturum Kapatma", "Kullanıcı çıkış yaptı.");
+        }
+
         await AuthProvider.LogoutAsync();
         NavigationManager.NavigateTo("/login", forceLoad: true);
+    }
+
+    // --- LOGLAMA MANTIĞI ---
+
+    private async Task GetCurrentUserAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity != null && user.Identity.IsAuthenticated)
+        {
+            // Konsola yazdırıp kontrol edelim
+            Console.WriteLine($"Kullanıcı: {user.Identity.Name}, Auth: {user.Identity.IsAuthenticated}");
+
+            var idClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+            if (idClaim != null)
+            {
+                Console.WriteLine($"Claim ID Bulundu: {idClaim.Value}");
+                if (int.TryParse(idClaim.Value, out int id))
+                {
+                    _currentUserId = id;
+                    Console.WriteLine($"CurrentUserId atandı: {_currentUserId}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("UYARI: NameIdentifier Claim'i bulunamadı!");
+            }
+        }
+        else
+        {
+            _currentUserId = 0;
+        }
+    }
+
+    // Bu metot, kullanıcı her sayfa değiştirdiğinde OTOMATİK çalışır
+    private async void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        // Kullanıcı durumu değişmiş olabilir (örn: timeout), tekrar kontrol et
+        await GetCurrentUserAsync();
+
+        if (_currentUserId > 0)
+        {
+            // URL'den sayfa ismini al (Örn: "http://.../machines" -> "machines")
+            var relativePath = NavigationManager.ToBaseRelativePath(e.Location);
+
+            // Eğer ana sayfadaysa boş gelir, onu düzeltelim
+            if (string.IsNullOrEmpty(relativePath)) relativePath = "Ana Sayfa";
+
+            // LOG ATMA (Await kullanmıyoruz, sayfa geçişi yavaşlamasın)
+            _ = ScadaService.LogUserActionAsync(_currentUserId, "Sayfa Ziyareti", $"Görüntülenen Sayfa: {relativePath}");
+        }
+    }
+
+    // Sayfa kapatıldığında veya refresh olduğunda event aboneliğini iptal et (Memory Leak önleme)
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= HandleLocationChanged;
     }
 }
