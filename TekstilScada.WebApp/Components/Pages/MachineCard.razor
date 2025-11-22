@@ -4,25 +4,34 @@
 @using Microsoft.AspNetCore.Components.Web
 @inject NavigationManager NavigationManager
 
-<div class="card machine-card-web @GetConnectionCssClass()" @onclick="@NavigateToDetail">
+<div class="card machine-card-web @GetConnectionCssClass()">
     <div class="card-header-web">
         <span class="machine-number" style="color: black;">@MachineStatus.MachineId.</span>
         <span class="machine-name-web" style="color: black;">@MachineStatus.MachineName</span>
-        <div class="icons">
-           
 
+        <div class="icons">
             <button type="button"
                     class="btn btn-sm btn-link icon info-icon"
                     style="color: black; text-decoration: none; padding: 0 10px;"
-                    @onclick="HandleInfoButtonClick"
+                    @onclick="NavigateToDetail"
                     @onclick:stopPropagation="true">
                 i
             </button>
 
-
+            <span @onclick:stopPropagation="true">
+                <MudTooltip Text="Ekranı İzle (VNC)">
+                    <MudIconButton Icon="@Icons.Material.Filled.ScreenShare"
+                                   Size="MudBlazor.Size.Large"
+                                   Color="MudBlazor.Color.Info"
+                                   Href="@($"/vnc/{MachineStatus.MachineId}")"
+                                   Target="_blank"
+                                   Disabled="@(MachineStatus.ConnectionState != ConnectionStatus.Connected)" />
+                </MudTooltip>
+            </span>
             <span class="icon status-icon @GetConnectionCssClass()">@GetConnectionStatusIconText()</span>
         </div>
     </div>
+
     <div class="card-body-web">
         <div class="status-line">
             <span class="status-text @GetStatusCssClass()">@GetStatusText()</span>
@@ -42,32 +51,27 @@
             <span style="color: black;">ADIM:</span> <span style="color: black;">@($"{MachineStatus.AktifAdimNo} - {MachineStatus.AktifAdimAdi}")</span>
             <span style="color: black;">OPERATÖR:</span> <span style="color: black;">@MachineStatus.OperatorIsmi </span>
         </div>
+
     </div>
 </div>
 
-
 @code {
-    [Parameter] public Action<int>? OnInfoClickAction { get; set; } // Yeni parametre
+    [Parameter] public Action<int>? OnInfoClickAction { get; set; }
 
-    private void HandleInfoButtonClick()
-    {
-        OnInfoClickAction?.Invoke(MachineStatus.MachineId); // Invoke ile doğrudan çağır.
-    }
     [Parameter]
     public FullMachineStatus MachineStatus { get; set; } = new();
 
-    // DÜZELTME: OnClick artık MouseEventArgs almalıdır (HTML uyumluluğu için).
     [Parameter]
     public EventCallback<MouseEventArgs> OnClick { get; set; }
 
-    // DÜZELTME: OnInfoClick MachineId (int) argümanını bekler.
     [Parameter]
     public EventCallback<int> OnInfoClick { get; set; }
 
-    // YENİ METOT: 'i' butonuna tıklama olayını yakalar ve MachineId ile dışarı yollar.
+    // Kodunuzda iki tane HandleInfoButtonClick vardı, ikisini birleştirmek daha sağlıklı olur:
     private async Task HandleInfoButtonClick(MouseEventArgs args)
     {
-        // OnInfoClick'i MachineId ile invoke eder.
+        // Hem Action'ı hem EventCallback'i tetikler
+        OnInfoClickAction?.Invoke(MachineStatus.MachineId);
         await OnInfoClick.InvokeAsync(MachineStatus.MachineId);
     }
 
@@ -101,18 +105,21 @@
     {
         return (MachineStatus.AnlikSicaklik / 10.0m).ToString("F1");
     }
+
+    // Bu metod artık kart tıklanmasıyla çalışmıyor.
+    // Eğer detay sayfasına gitmek istiyorsanız yukarıdaki HTML'e yeni bir buton ekleyip bu metodu ona bağlayın.
     private void NavigateToDetail()
     {
-        // Makine detay sayfasına yönlendirme
         NavigationManager.NavigateTo($"/makine-detay/{MachineStatus.MachineId}");
     }
+
     private string GetConnectionStatusIconText()
     {
         return MachineStatus.ConnectionState switch
         {
-            ConnectionStatus.Connected => "C", // Bağlantı varsa
-            ConnectionStatus.Connecting => "R", // Deneniyorsa
-            ConnectionStatus.Disconnected => "D" // Bağlantı yoksa
+            ConnectionStatus.Connected => "C",
+            ConnectionStatus.Connecting => "R",
+            ConnectionStatus.Disconnected => "D"
         };
     }
 }

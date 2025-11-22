@@ -1,0 +1,66 @@
+﻿@page "/vnc/{MachineId:int}"
+@using TekstilScada.Models
+@using TekstilScada.WebApp.Services
+@inject ScadaDataService ScadaService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+    <div class="d-flex justify-space-between align-center mb-4">
+        <MudText Typo="Typo.h5">Uzaktan Erişim: @(machine?.MachineName ?? "Yükleniyor...")</MudText>
+        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Error" OnClick="CloseConnection">Bağlantıyı Kes</MudButton>
+    </div>
+
+    @if (machine != null)
+    {
+        <div id="vnc-container" style="width: 100%; height: 80vh; background-color: #000; border: 2px solid #333;">
+        </div>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info">Makine bilgileri yükleniyor...</MudAlert>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public int MachineId { get; set; }
+    private Machine? machine;
+    private bool isConnected = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var machines = await ScadaService.GetMachinesAsync();
+        machine = machines?.FirstOrDefault(m => m.Id == MachineId);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (machine != null && !isConnected)
+        {
+            isConnected = true;
+            // API Base URL'i al (http -> ws dönüşümü)
+            // Not: Bu URL'i appsettings veya NavigationManager'dan dinamik almalısınız.
+            // Örnek: http://localhost:7039 -> ws://localhost:7039
+            var baseUri = new Uri("http://localhost:7039"); // API ADRESİNİZİ BURAYA YAZIN
+            var wsScheme = baseUri.Scheme == "https" ? "wss" : "ws";
+            var wsUrl = $"{wsScheme}://{baseUri.Authority}/api/vnc/connect/{MachineId}";
+
+            // JS fonksiyonunu çağır
+            await JSRuntime.InvokeVoidAsync("startVnc", "vnc-container", wsUrl, machine.VncPassword);
+        }
+    }
+
+    private void CloseConnection()
+    {
+        NavigationManager.NavigateTo("/machines");
+    }
+
+    public async void Dispose()
+    {
+        if (isConnected)
+        {
+            try { await JSRuntime.InvokeVoidAsync("stopVnc", "vnc-container"); } catch { }
+        }
+    }
+}

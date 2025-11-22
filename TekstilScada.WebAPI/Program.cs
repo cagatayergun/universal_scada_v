@@ -79,6 +79,7 @@ builder.Services.AddCors(options =>
                    .AllowAnyHeader();
         });
 });
+
 // === Servis Ekleme Sonu ===
 
 var app = builder.Build();
@@ -91,6 +92,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
+app.UseWebSockets();
 // KRÝTÝK SIRALAMA: Kimlik doðrulama, Yetkilendirmeden önce gelmelidir.
 app.UseAuthentication(); // JWT doðrulamasýný etkinleþtir
 app.UseAuthorization(); // Yetkilendirme kurallarýný etkinleþtir
