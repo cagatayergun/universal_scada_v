@@ -2,103 +2,196 @@
 
 @using TekstilScada.Models
 @using Microsoft.AspNetCore.Components.Web
+@using MudBlazor
 @inject NavigationManager NavigationManager
 
-<div class="card machine-card-web @GetConnectionCssClass()">
-    <div class="card-header-web">
-        <span class="machine-number" style="color: black;">@MachineStatus.MachineId.</span>
-        <span class="machine-name-web" style="color: black;">@MachineStatus.MachineName</span>
+<MudCard Elevation="4" Class="ma-2 machine-card-hover" Style="@GetCardBorderStyle()">
+    <MudCardHeader>
+        <CardHeaderAvatar>
+            <MudAvatar Color="@GetConnectionColor()" Variant="Variant.Filled" Size="Size.Medium">
+                <MudText Typo="Typo.subtitle1"><b>@MachineStatus.MachineId</b></MudText>
+            </MudAvatar>
+        </CardHeaderAvatar>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6" Color="Color.Primary"><b>@MachineStatus.MachineName</b></MudText>
+            <MudText Typo="Typo.caption">@MachineStatus.MachineId</MudText>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudTooltip Text="Detaylar">
+                <MudIconButton Icon="@Icons.Material.Filled.Info"
+                               Color="Color.Default"
+                               OnClick="NavigateToDetail" 
+                               Disabled="@(MachineStatus.ConnectionState != ConnectionStatus.Connected)" />
+            </MudTooltip>
 
-        <div class="icons">
-            <button type="button"
-                    class="btn btn-sm btn-link icon info-icon"
-                    style="color: black; text-decoration: none; padding: 0 10px;"
-                    @onclick="NavigateToDetail"
-                    @onclick:stopPropagation="true">
-                i
-            </button>
+            <MudTooltip Text="Ekranı İzle (VNC)">
+                <MudIconButton Icon="@Icons.Material.Filled.ScreenShare"
+                               Color="Color.Info"
+                               Href="@($"/vnc/{MachineStatus.MachineId}")"
+                               Target="_blank"
+                               Disabled="@(MachineStatus.ConnectionState != ConnectionStatus.Connected)" />
+            </MudTooltip>
 
-            <span @onclick:stopPropagation="true">
-                <MudTooltip Text="Ekranı İzle (VNC)">
-                    <MudIconButton Icon="@Icons.Material.Filled.ScreenShare"
-                                   Size="MudBlazor.Size.Large"
-                                   Color="MudBlazor.Color.Info"
-                                   Href="@($"/vnc/{MachineStatus.MachineId}")"
-                                   Target="_blank"
-                                   Disabled="@(MachineStatus.ConnectionState != ConnectionStatus.Connected)" />
-                </MudTooltip>
-            </span>
-            <span class="icon status-icon @GetConnectionCssClass()">@GetConnectionStatusIconText()</span>
+            <MudTooltip Text="@GetConnectionStatusText()">
+                <MudIcon Icon="@Icons.Material.Filled.Wifi"
+                         Color="@GetConnectionColor()"
+                         Class="ml-2" />
+            </MudTooltip>
+        </CardHeaderActions>
+    </MudCardHeader>
+
+    <MudDivider />
+
+    <MudCardContent>
+        <div class="d-flex justify-center mb-3">
+            <MudChip T="string" Color="@GetStatusColor()" Variant="Variant.Filled" Class="w-100 justify-center">
+                <MudIcon Icon="@GetStatusIcon()" Class="mr-2" />
+                @GetStatusText()
+            </MudChip>
         </div>
-    </div>
 
-    <div class="card-body-web">
-        <div class="status-line">
-            <span class="status-text @GetStatusCssClass()">@GetStatusText()</span>
-            @if (MachineStatus.IsInRecipeMode)
-            {
-                <div class="progress-container">
-                    <div class="progress-bar-web" style="width: @(MachineStatus.ProsesYuzdesi)%"></div>
+        @if (MachineStatus.IsInRecipeMode)
+        {
+            <div class="mb-4">
+                <div class="d-flex justify-space-between">
+                    <MudText Typo="Typo.caption">İlerleme</MudText>
+                    <MudText Typo="Typo.caption"><b>%@MachineStatus.ProsesYuzdesi</b></MudText>
                 </div>
-                <span style="color: black;">@MachineStatus.ProsesYuzdesi%</span>
-            }
-        </div>
-        <div class="details-grid">
-            <span style="color: black;">REÇETE ADI:</span> <span style="color: black;">@MachineStatus.RecipeName </span>
-            <span style="color: black;">PARTİ NO:</span> <span style="color: black;">@MachineStatus.BatchNumarasi </span>
-            <span style="color: black;">SICAKLIK:</span> <span style="color: black;">@GetFormattedTemperature()°C</span>
-            <span style="color: black;">DEVİR (RPM):</span> <span style="color: black;">@MachineStatus.AnlikDevirRpm</span>
-            <span style="color: black;">ADIM:</span> <span style="color: black;">@($"{MachineStatus.AktifAdimNo} - {MachineStatus.AktifAdimAdi}")</span>
-            <span style="color: black;">OPERATÖR:</span> <span style="color: black;">@MachineStatus.OperatorIsmi </span>
-        </div>
+                <MudProgressLinear Color="Color.Success"
+                                   Value="@Convert.ToDouble(MachineStatus.ProsesYuzdesi)"
+                                   Striped="true"
+                                   Size="Size.Large"
+                                   Class="rounded-lg" />
+            </div>
+        }
 
-    </div>
-</div>
+        <MudGrid Spacing="1">
+            <MudItem xs="12">
+                <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Size="Size.Small" Color="Color.Default" />
+                    <MudText Typo="Typo.body2" Style="font-weight:bold;">Reçete:</MudText>
+                    <MudText Typo="Typo.body2" Class="ml-auto text-truncate">@MachineStatus.RecipeName</MudText>
+                </MudStack>
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.QrCode" Size="Size.Small" Color="Color.Default" />
+                    <MudText Typo="Typo.caption">Parti:</MudText>
+                    <MudText Typo="Typo.body2" Class="ml-auto"><b>@MachineStatus.BatchNumarasi</b></MudText>
+                </MudStack>
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.FormatListNumbered" Size="Size.Small" Color="Color.Default" />
+                    <MudText Typo="Typo.caption">Adım:</MudText>
+                    <MudText Typo="Typo.body2" Class="ml-auto"><b>@MachineStatus.AktifAdimNo</b></MudText>
+                </MudStack>
+            </MudItem>
+
+            <MudItem xs="12"><MudDivider Class="my-1" /></MudItem>
+
+            <MudItem xs="6">
+                <div class="d-flex align-center justify-center flex-column pa-2 rounded mud-theme-primary-hover">
+                    <MudIcon Icon="@Icons.Material.Filled.Thermostat" Color="Color.Error" />
+                    <MudText Typo="Typo.h6">@GetFormattedTemperature()°C</MudText>
+                    <MudText Typo="Typo.caption">Sıcaklık</MudText>
+                </div>
+            </MudItem>
+
+            <MudItem xs="6">
+                <div class="d-flex align-center justify-center flex-column pa-2 rounded mud-theme-primary-hover">
+                    <MudIcon Icon="@Icons.Material.Filled.Speed" Color="Color.Warning" />
+                    <MudText Typo="Typo.h6">@MachineStatus.AnlikDevirRpm</MudText>
+                    <MudText Typo="Typo.caption">Devir (RPM)</MudText>
+                </div>
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex justify-end mt-1">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-1" style="vertical-align:middle" />
+                    @MachineStatus.OperatorIsmi
+                </MudText>
+            </MudItem>
+
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+<style>
+    /* Hafif bir hover efekti ekleyelim */
+    .machine-card-hover {
+        transition: all 0.3s ease;
+    }
+
+        .machine-card-hover:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15) !important;
+        }
+</style>
 
 @code {
     [Parameter] public Action<int>? OnInfoClickAction { get; set; }
+    [Parameter] public FullMachineStatus MachineStatus { get; set; } = new();
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+    [Parameter] public EventCallback<int> OnInfoClick { get; set; }
 
-    [Parameter]
-    public FullMachineStatus MachineStatus { get; set; } = new();
+    // Eski CSS class string metodları yerine MudBlazor Color Enum dönen metodlar:
 
-    [Parameter]
-    public EventCallback<MouseEventArgs> OnClick { get; set; }
-
-    [Parameter]
-    public EventCallback<int> OnInfoClick { get; set; }
-
-    // Kodunuzda iki tane HandleInfoButtonClick vardı, ikisini birleştirmek daha sağlıklı olur:
-    private async Task HandleInfoButtonClick(MouseEventArgs args)
-    {
-        // Hem Action'ı hem EventCallback'i tetikler
-        OnInfoClickAction?.Invoke(MachineStatus.MachineId);
-        await OnInfoClick.InvokeAsync(MachineStatus.MachineId);
-    }
-
-    private string GetConnectionCssClass()
+    private Color GetConnectionColor()
     {
         return MachineStatus.ConnectionState switch
         {
-            ConnectionStatus.Connected => "connected",
-            ConnectionStatus.Connecting => "connecting",
-            _ => "disconnected"
+            ConnectionStatus.Connected => Color.Success,
+            ConnectionStatus.Connecting => Color.Warning,
+            _ => Color.Error
+        };
+    }
+
+    private string GetConnectionStatusText()
+    {
+        return MachineStatus.ConnectionState switch
+        {
+            ConnectionStatus.Connected => "Bağlı",
+            ConnectionStatus.Connecting => "Bağlanıyor...",
+            _ => "Bağlantı Yok"
         };
     }
 
     private string GetStatusText()
     {
-        if (MachineStatus.ConnectionState != ConnectionStatus.Connected) return "BAĞLANTI YOK";
+        if (MachineStatus.ConnectionState != ConnectionStatus.Connected) return "BAĞLANTI KOPTU";
         if (MachineStatus.HasActiveAlarm) return $"ALARM: {MachineStatus.ActiveAlarmNumber}";
         if (MachineStatus.IsPaused) return "DURAKLATILDI";
-        if (MachineStatus.IsInRecipeMode) return $"ÇALIŞIYOR - ADIM {MachineStatus.AktifAdimNo}";
-        return "DURUYOR";
+        if (MachineStatus.IsInRecipeMode) return $"ÇALIŞIYOR - {MachineStatus.AktifAdimAdi}";
+        return "HAZIR / DURUYOR";
     }
 
-    private string GetStatusCssClass()
+    private Color GetStatusColor()
     {
-        if (MachineStatus.HasActiveAlarm) return "status-alarm-text";
-        if (MachineStatus.IsInRecipeMode) return "status-running-text";
-        return "status-stopped-text";
+        if (MachineStatus.ConnectionState != ConnectionStatus.Connected) return Color.Dark;
+        if (MachineStatus.HasActiveAlarm) return Color.Error;
+        if (MachineStatus.IsPaused) return Color.Warning;
+        if (MachineStatus.IsInRecipeMode) return Color.Success;
+        return Color.Info;
+    }
+
+    private string GetStatusIcon()
+    {
+        if (MachineStatus.ConnectionState != ConnectionStatus.Connected) return Icons.Material.Filled.WifiOff;
+        if (MachineStatus.HasActiveAlarm) return Icons.Material.Filled.NotificationImportant;
+        if (MachineStatus.IsPaused) return Icons.Material.Filled.PauseCircle;
+        if (MachineStatus.IsInRecipeMode) return Icons.Material.Filled.PlayCircle;
+        return Icons.Material.Filled.StopCircle;
+    }
+
+    // Alarm durumunda kartın kenarlığını kırmızı yapmak için stil
+    private string GetCardBorderStyle()
+    {
+        if (MachineStatus.HasActiveAlarm)
+            return "border: 2px solid var(--mud-palette-error); animation: pulse-red 2s infinite;";
+        return "";
     }
 
     private string GetFormattedTemperature()
@@ -106,20 +199,14 @@
         return (MachineStatus.AnlikSicaklik / 10.0m).ToString("F1");
     }
 
-    // Bu metod artık kart tıklanmasıyla çalışmıyor.
-    // Eğer detay sayfasına gitmek istiyorsanız yukarıdaki HTML'e yeni bir buton ekleyip bu metodu ona bağlayın.
+    private async Task HandleInfoButtonClick(MouseEventArgs args)
+    {
+        OnInfoClickAction?.Invoke(MachineStatus.MachineId);
+        await OnInfoClick.InvokeAsync(MachineStatus.MachineId);
+    }
+
     private void NavigateToDetail()
     {
         NavigationManager.NavigateTo($"/makine-detay/{MachineStatus.MachineId}");
-    }
-
-    private string GetConnectionStatusIconText()
-    {
-        return MachineStatus.ConnectionState switch
-        {
-            ConnectionStatus.Connected => "C",
-            ConnectionStatus.Connecting => "R",
-            ConnectionStatus.Disconnected => "D"
-        };
     }
 }

@@ -5,11 +5,16 @@
 @using TekstilScada.WebApp.Services
 @using TekstilScada.Models
 @using TekstilScada.WebApp.Components.Shared
+@using TekstilScada.WebApp.Components.Layout
+@using MudBlazor
 @inject ScadaDataService ScadaService
 @inject NavigationManager NavManager
-@using TekstilScada.WebApp.Components.Layout
 
 @implements IDisposable
+
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
 
 <div class="dashboard-container">
 
@@ -28,61 +33,56 @@
             <KpiCard Title="BEKLEYEN MAKİNE" Value="@IdleMachines.ToString()" CssClass="kpi-warning" />
         </div>
 
-        @* YENİ EKLEME: Makine Seçim Paneli *@
-        <div class="machine-selection-panel mb-4 p-3 border rounded shadow-sm">
-            <button class="btn btn-sm btn-outline-secondary" @onclick="ToggleFilterVisibility">
-                @(_isFilterVisible ? "Filtreyi Gizle" : "Filtreyi Göster")
-                <h10> </h10>
-            </button>
-            @if (_isFilterVisible)
-            {
-            <div class="d-flex justify-content-between align-items-center">
-                <h10>Makine Filtreleme</h10>
-                
+        <MudPaper Elevation="3" Class="pa-4 mb-4 rounded-lg" Style="background-color: #1e1e2d; color: #f0f0f0; border: 1px solid #333;">
+            <div class="d-flex align-center justify-space-between" @onclick="ToggleFilterVisibility" style="cursor: pointer;">
+                <MudText Typo="Typo.h6" Color="Color.Info">
+                    <MudIcon Icon="@Icons.Material.Filled.FilterList" Class="mr-2" /> Makine Filtreleme
+                </MudText>
+                <MudIconButton Icon="@(_isFilterVisible? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)"
+                               Color="Color.Inherit" />
             </div>
 
-          
-                <div class="filter-content mt-3">
-                    <div class="row">
-                        @if (AllMachines.Any())
+            @if (_isFilterVisible)
+            {
+                <MudDivider Class="my-2" Style="border-color: #444;" />
+                <div class="row mt-2">
+                    @if (AllMachines.Any())
+                    {
+                        @foreach (var machine in AllMachines)
                         {
-                            @foreach (var machine in AllMachines)
-                            {
-                                <div class="col-auto mb-2">
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="checkbox"
-                                               id="machine_@machine.MachineId"
-                                               checked="@SelectedMachineIds.Contains(machine.MachineId)"
-                                               @onchange="@((e) => ToggleMachineSelection(machine.MachineId, (bool)e.Value))">
-                                        <label class="form-check-label" for="machine_@machine.MachineId">
-                                            @machine.MachineName
-                                        </label>
-                                    </div>
-                                </div>
-                            }
+                            <div class="col-auto mb-2">
+                                <MudCheckBox T="bool"
+                                             Value="@SelectedMachineIds.Contains(machine.MachineId)"
+                                             ValueChanged="@((val) => ToggleMachineSelection(machine.MachineId, val))"
+                                             Label="@machine.MachineName"
+                                             Color="Color.Info"
+                                             Dense="true"
+                                             Class="filter-checkbox" />
+                            </div>
                         }
-                        else
-                        {
-                            <p class="text-muted">Makine listesi yüklenemedi.</p>
-                        }
-                    </div>
-                    <button class="btn btn-sm btn-primary mt-2" @onclick="ApplyFilter">Filtrele</button>
-                    <button class="btn btn-sm btn-secondary mt-2" @onclick="SelectAllMachines">Tümünü Seç</button>
-                    <button class="btn btn-sm btn-outline-danger mt-2" @onclick="ClearSelection">Seçimi Temizle</button>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Inherit">Makine listesi yüklenemedi.</MudText>
+                    }
+                </div>
+                <div class="d-flex gap-2 mt-3">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="ApplyFilter">Filtrele</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small" OnClick="SelectAllMachines">Tümünü Seç</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="ClearSelection">Seçimi Temizle</MudButton>
                 </div>
             }
-        </div>
-        @* YENİ EKLEME SONU *@
+        </MudPaper>
 
         <div class="main-content-area">
             <div class="machine-groups-column">
                 @if (GroupedMachines.Count == 0 && TotalMachines > 0)
                 {
-                    <p>Filtreleme sonucunda gösterilecek makine bulunamadı.</p>
+                    <MudAlert Severity="Severity.Info" Class="my-2">Filtreleme sonucunda gösterilecek makine bulunamadı.</MudAlert>
                 }
                 else if (TotalMachines == 0)
                 {
-                    <p>Sistemde henüz makine tanımlanmamıştır.</p>
+                    <MudAlert Severity="Severity.Warning" Class="my-2">Sistemde henüz makine tanımlanmamıştır.</MudAlert>
                 }
                 else
                 {
@@ -93,9 +93,9 @@
                             <div class="group-inner-panel" style="display: flex; flex-wrap: wrap; gap: 10px;">
                                 @foreach (var machineStatus in group)
                                 {
-                                    @* KRİTİK GÜNCELLEME: MachineCard yerine DashboardMachineCard kullanılıyor *@
                                     <DashboardMachineCard MachineStatus="machineStatus"
-                                                          @key="machineStatus.MachineId" />
+                                                          @key="machineStatus.MachineId"
+                                                          MouseClick="() => NavigateToDetail(machineStatus.MachineId)" />
                                 }
                             </div>
                         </div>
@@ -103,91 +103,76 @@
                 }
             </div>
 
-            <div class="sidebar-charts-column">
-                @* Mevcut grafik kutuları (chart-box) buradadır. *@
-                @* ... (Grafik kodları değişmedi) ... *@
+            <div class="sidebar-charts-column pl-2" style="min-width: 300px;">
+                <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
+                    <div id="oeeChartContainer" style="width:100%; height:250px;"></div>
+                    @if (!HourlyOeeData.Any())
+                    {
+                        <MudText Typo="Typo.caption" Align="Align.Center" Class="d-block text-muted">OEE Verisi Yok...</MudText>
+                    }
+                </MudPaper>
 
-                <div class="chart-box">
-                    <div class="chart-title">24 SAATLİK OEE GRAFİĞİ</div>
-                    <div id="oeeChartContainer" class="chart-wrapper">
-                        @if (!HourlyOeeData.Any())
-                        {
-                            <span>Veri yok veya yükleniyor.</span>
-                        }
-                    </div>
-                </div>
+                <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
+                    <div id="electricChartContainer" style="width:100%; height:250px;"></div>
+                </MudPaper>
 
-                <div class="chart-box">
-                    <div class="chart-title">SAATLİK ELEKTRİK TÜKETİMİ</div>
-                    <div id="electricChartContainer" class="chart-wrapper">
-                        @if (!HourlyConsumptionData.Any())
-                        {
-                            <span>Veri yok veya yükleniyor.</span>
-                        }
-                    </div>
-                </div>
+                <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
+                    <div id="waterChartContainer" style="width:100%; height:250px;"></div>
+                </MudPaper>
 
-                <div class="chart-box">
-                    <div class="chart-title">SAATLİK SU TÜKETİMİ</div>
-                    <div id="waterChartContainer" class="chart-wrapper">
-                        @if (!HourlyConsumptionData.Any())
-                        {
-                            <span>Veri yok veya yükleniyor.</span>
-                        }
-                    </div>
-                </div>
+                <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
+                    <div id="steamChartContainer" style="width:100%; height:250px;"></div>
+                </MudPaper>
 
-                <div class="chart-box">
-                    <div class="chart-title">SAATLİK BUHAR TÜKETİMİ</div>
-                    <div id="steamChartContainer" class="chart-wrapper">
-                        @if (!HourlyConsumptionData.Any())
-                        {
-                            <span>Veri yok veya yükleniyor.</span>
-                        }
-                    </div>
-                </div>
-
-                <div class="chart-box">
-                    <div class="chart-title">EN SIK ALARMLAR</div>
-                    <div id="topAlarmsChartContainer" class="chart-wrapper">
-                        @if (!TopAlarms.Any())
-                        {
-                            <span>Son 24 saatte alarm yok.</span>
-                        }
-                    </div>
-                </div>
+                <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
+                    <div id="topAlarmsChartContainer" style="width:100%; height:250px;"></div>
+                </MudPaper>
             </div>
         </div>
     }
 </div>
 
+@* STİLLER *@
+<style>
+    /* Filtre checkbox yazılarının koyu zeminde okunması için */
+    .filter-checkbox .mud-checkbox-label {
+        color: #e0e0e0 !important;
+    }
+
+    /* Kartların BEYAZ arka plana sahip olmasını zorla */
+    /* ::deep kullanımı, alt bileşenlerdeki (DashboardMachineCard) stilleri ezmemizi sağlar */
+    ::deep .machine-card-hover {
+        background-color: #ffffff !important; /* Arka plan kesinlikle beyaz */
+        color: rgba(0,0,0, 0.87) !important; /* Yazılar siyah */
+    }
+</style>
+
 @code {
-    [Inject]
-    public IJSRuntime JSRuntime { get; set; }
+    [Inject] public IJSRuntime JSRuntime { get; set; }
 
     private List<IGrouping<string, FullMachineStatus>> GroupedMachines = new();
     private bool _isLoading = true;
     private bool _isDisposed = false;
     private bool _shouldRenderCharts = false;
 
-    // YENİ ALAN: Filtreleme kutucuğunun görünürlük durumu
-    private bool _isFilterVisible = true;
+    // Filtreleme Durumu
+    private bool _isFilterVisible = false;
 
-    // YENİ ALANLAR: Filtreleme için gerekli (Mevcut)
     public class MachineSelectionModel
     {
         public int MachineId { get; set; }
         public string MachineName { get; set; }
     }
+
     private List<MachineSelectionModel> AllMachines = new();
     private HashSet<int> SelectedMachineIds = new HashSet<int>();
 
-    // Sidebar verileri için alanlar (Mevcut)
+    // Grafik Verileri
     private List<HourlyConsumptionData> HourlyConsumptionData = new();
     private List<HourlyOeeData> HourlyOeeData = new();
     private List<TopAlarmData> TopAlarms = new();
 
-    // KPI Alanları (Mevcut)
+    // KPI Alanları
     private int TotalMachines = 0;
     private int RunningMachines = 0;
     private int AlarmMachines = 0;
@@ -209,9 +194,7 @@
             await ScadaService.GetMachinesAsync();
             ScadaService.OnDataUpdated += HandleDataUpdate;
 
-            // YENİ: Tüm makinelerin ID ve ismini çek ve seçimi ayarla
             await LoadAllMachinesForSelection();
-
             await LoadSidebarDataAsync();
             UpdateDashboardData();
 
@@ -219,29 +202,25 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Dashboard Yükleme Hatası: {ex.Message}");
+            Console.WriteLine($"Grup İzleme Hatası: {ex.Message}");
             _isLoading = false;
         }
 
         await base.OnInitializedAsync();
     }
-    // YENİ METOT: Filtre panelinin görünürlüğünü değiştirir
+
     private void ToggleFilterVisibility()
     {
         _isFilterVisible = !_isFilterVisible;
-        // Görünürlük değişince UI'ı yeniden çiz
-        StateHasChanged();
     }
+
     private async Task LoadAllMachinesForSelection()
     {
-        // ScadaService.MachineData.Values, FullMachineStatus listesidir.
-        // ID ve İsimleri alarak seçim listesini oluşturuyoruz.
         AllMachines = ScadaService.MachineData.Values
             .Select(s => new MachineSelectionModel { MachineId = s.MachineId, MachineName = s.MachineName })
             .OrderBy(m => m.MachineName)
             .ToList();
 
-        // Başlangıçta tüm makineler seçili olsun.
         SelectedMachineIds = new HashSet<int>(AllMachines.Select(m => m.MachineId));
     }
 
@@ -250,7 +229,6 @@
         if (_shouldRenderCharts)
         {
             _shouldRenderCharts = false;
-
             try
             {
                 await JSRuntime.InvokeVoidAsync("plotDashboardCharts",
@@ -260,42 +238,31 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"JS Grafik Çizimi Hatası: {ex.Message}");
+                Console.WriteLine($"JS Grafik Hatası: {ex.Message}");
             }
         }
     }
 
     private async Task LoadSidebarDataAsync()
     {
-        // Mevcut metot (değişmedi)
         HourlyConsumptionData = await ScadaService.GetHourlyConsumptionAsync() ?? new();
         HourlyOeeData = await ScadaService.GetHourlyOeeAsync() ?? new();
         TopAlarms = await ScadaService.GetTopAlarmsAsync() ?? new();
-
         _shouldRenderCharts = true;
     }
 
-    // YENİ METOT: Checkbox durumunu günceller
     private void ToggleMachineSelection(int machineId, bool isSelected)
     {
-        if (isSelected)
-        {
-            SelectedMachineIds.Add(machineId);
-        }
-        else
-        {
-            SelectedMachineIds.Remove(machineId);
-        }
+        if (isSelected) SelectedMachineIds.Add(machineId);
+        else SelectedMachineIds.Remove(machineId);
     }
 
-    // YENİ METOT: Filtreyi uygular ve dashboard'u günceller
     private void ApplyFilter()
     {
         UpdateDashboardData();
         StateHasChanged();
     }
 
-    // YENİ METOT: Tümünü seç
     private void SelectAllMachines()
     {
         SelectedMachineIds = new HashSet<int>(AllMachines.Select(m => m.MachineId));
@@ -303,7 +270,6 @@
         StateHasChanged();
     }
 
-    // YENİ METOT: Seçimi temizle
     private void ClearSelection()
     {
         SelectedMachineIds.Clear();
@@ -311,15 +277,17 @@
         StateHasChanged();
     }
 
+    private void NavigateToDetail(int machineId)
+    {
+        NavManager.NavigateTo($"/proseskontrol/{machineId}");
+    }
 
     private void UpdateDashboardData()
     {
-        // KRİTİK DEĞİŞİKLİK: Sadece SelectedMachineIds'de olan durumları al.
         var filteredStatuses = ScadaService.MachineData.Values
             .Where(s => SelectedMachineIds.Contains(s.MachineId))
             .ToList();
 
-        // Makine tipi detaylarını ekle (Mevcut mantık)
         foreach (var status in filteredStatuses)
         {
             if (ScadaService.MachineDetailsCache.TryGetValue(status.MachineId, out var machineDetails))
@@ -328,28 +296,22 @@
             }
         }
 
-        // --- KPI Hesaplamaları ---
-        // KPI'lar artık sadece filtrelenmiş makineler üzerinden hesaplanacak.
         TotalMachines = filteredStatuses.Count;
         RunningMachines = filteredStatuses.Count(s => s.IsInRecipeMode && !s.HasActiveAlarm);
         AlarmMachines = filteredStatuses.Count(s => s.HasActiveAlarm);
         IdleMachines = TotalMachines - RunningMachines - AlarmMachines;
 
-
-        // --- Makine Gruplama ve Sıralama ---
-        // İsteğinizdeki sıralama kuralına uyun: Alarm veya Aktif olanlar ilk sırada.
         var sortedMachines = filteredStatuses
-            .OrderByDescending(m => m.HasActiveAlarm) // 1. Sıralama: Alarmda olanlar öne (true=alarm, false=alarm yok, Descending ile true öne gelir)
-            .ThenByDescending(m => m.IsInRecipeMode) // 2. Sıralama: Aktif çalışanlar (IsInRecipeMode=true) öne
-            .ThenBy(m => m.MachineName);             // 3. Sıralama: İsim
+            .OrderByDescending(m => m.HasActiveAlarm)
+            .ThenByDescending(m => m.IsInRecipeMode)
+            .ThenBy(m => m.MachineName);
 
         GroupedMachines = sortedMachines
             .GroupBy(m => string.IsNullOrEmpty(m.MakineTipi) ? "Diğer" : m.MakineTipi)
-            .OrderByDescending(g => g.Any(m => m.IsInRecipeMode || m.HasActiveAlarm)) // Grup başlıklarını da aktif duruma göre sırala
+            .OrderByDescending(g => g.Any(m => m.IsInRecipeMode || m.HasActiveAlarm))
             .ThenBy(g => g.Key)
             .ToList();
 
-        // Gruplara renk ataması (Mevcut mantık)
         if (GroupColors.Count != GroupedMachines.Count)
         {
             _colorIndex = 0;
@@ -367,15 +329,13 @@
         try
         {
             if (_isDisposed) return;
-
-            // Sadece seçili olanlar güncellenir
             UpdateDashboardData();
             _shouldRenderCharts = true;
             InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"!!! KRİTİK VERİ GÜNCELLEME HATASI: {ex.Message}");
+            Console.WriteLine($"Grup İzleme Update Hatası: {ex.Message}");
         }
     }
 
