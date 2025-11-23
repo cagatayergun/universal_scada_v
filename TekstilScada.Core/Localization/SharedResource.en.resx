@@ -1238,4 +1238,47 @@
 	<data name="Ingilizce" xml:space="preserve">
     <value>English</value>
   </data>
+	<!-- Makine Alt Tipleri İçin Örnek -->
+	<data name="Yilmak_100kg" xml:space="preserve">
+    <value>Yılmak 100KG (Standart)</value>
+  </data>
+	<data name="Dozaj" xml:space="preserve">
+    <value>Dosage</value>
+  </data>
+	<data name="Isıtma" xml:space="preserve">
+    <value>Heating</value>
+  </data>
+	<data name="Su Alma" xml:space="preserve">
+    <value>Take Water</value>
+  </data>
+	<data name="Boşaltma" xml:space="preserve">
+    <value>Drain</value>
+  </data>
+	<data name="Çalışma" xml:space="preserve">
+    <value>Working</value>
+  </data>
+	<data name="Sıkma" xml:space="preserve">
+    <value>Squeezing</value>
+  </data>
+	<data name="Yilmak_100kg" xml:space="preserve">
+    <value>Yilmak 100KG (Standard)</value>
+  </data>
+	<data name="VncBaglantiReddedildi" xml:space="preserve">
+    <value>Connection Refused</value>
+  </data>
+	<data name="VncBaskasiIzliyor" xml:space="preserve">
+    <value>This machine is currently being viewed by '{0}'. For safety and performance, only one operator can connect at a time.</value>
+  </data>
+	<data name="GeriDon" xml:space="preserve">
+    <value>Go Back</value>
+  </data>
+	<data name="AktifAlarmBaslikBanner" xml:space="preserve">
+    <value>ACTIVE ALARM</value>
+  </data>
+	<data name="AlarmBalonMesaji" xml:space="preserve">
+    <value>Alarm occurred on machine {0}! Code: {1}</value>
+  </data>
+	<data name="AlarmGiderildiMesaji" xml:space="preserve">
+    <value>Alarm cleared on machine {0}.</value>
+  </data>
 </root>

@@ -13,23 +13,30 @@
 @inject ScadaDataService ScadaService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IStringLocalizer<SharedResource> Loc
+@inject ISnackbar Snackbar
 @implements IDisposable
 
 <MudThemeProvider />
 <MudPopoverProvider />
 <MudDialogProvider />
+@* Snackbar Ayarları: Sağ üst köşe, görünürlük süresi vb. *@
 <MudSnackbarProvider />
 
 <MudLayout>
+
+    <!-- ALARM BANNERINI BURAYA EKLİYORUZ (AppBar'ın üstüne) -->
+    <AlarmBanner />
+    <!-- =================================================== -->
+
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="MudBlazor.Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h5" Class="ml-3">YILMAK TELEMETRY</MudText>
+        <MudText Typo="Typo.h5" Class="ml-3">Universal Scada</MudText>
 
         <MudSpacer />
 
-        <!-- DİL SEÇİM BUTONU BURAYA EKLENDİ -->
+        <!-- DİL SEÇİM BUTONU -->
         <LanguageSwitcher />
-        <!-- ================================ -->
+        <!-- ================= -->
 
         <AuthorizeView>
             <Authorized>
@@ -60,14 +67,59 @@
     private bool _isInitialized = false;
     private int _currentUserId = 0;
 
+    // Alarm Takibi İçin (Hangi makinelerde alarm olduğunu hatırlar)
+    private HashSet<int> _machinesWithAlarm = new();
+
     protected override async Task OnInitializedAsync()
     {
         if (!_isInitialized)
         {
             await GetCurrentUserAsync();
             NavigationManager.LocationChanged += HandleLocationChanged;
+
+            // Alarm Takibini Başlat
+            ScadaService.OnDataUpdated += CheckAlarms;
+
             _isInitialized = true;
         }
+    }
+
+    // YENİ METOT: Alarm Balonu (Snackbar) Kontrolü
+    private void CheckAlarms()
+    {
+        foreach (var machine in ScadaService.MachineData.Values)
+        {
+            // Yeni bir alarm başladı mı?
+            if (machine.HasActiveAlarm && !_machinesWithAlarm.Contains(machine.MachineId))
+            {
+                _machinesWithAlarm.Add(machine.MachineId);
+
+                // Balon Göster (Kırmızı)
+                // Not: .resx dosyanızda "AlarmBalonMesaji" anahtarı "{0} makinesinde alarm oluştu! Kod: {1}" şeklinde olmalıdır.
+                string msg = string.Format(Loc["AlarmBalonMesaji"], machine.MachineName, machine.ActiveAlarmNumber);
+
+                Snackbar.Add(msg, Severity.Error, config =>
+                {
+                    config.Icon = Icons.Material.Filled.Warning;
+                    config.ShowCloseIcon = true;
+                    config.VisibleStateDuration = 10000; // 10 saniye ekranda kalsın
+                });
+
+                // İsterseniz burada sesli uyarı JS interop çağrısı da yapabilirsiniz.
+            }
+            // Alarm bitti mi? (Daha önce alarmdaydı ama şimdi değil)
+            else if (!machine.HasActiveAlarm && _machinesWithAlarm.Contains(machine.MachineId))
+            {
+                _machinesWithAlarm.Remove(machine.MachineId);
+
+                // Balon Göster (Yeşil - Bilgi)
+                // Not: .resx dosyanızda "AlarmGiderildiMesaji" anahtarı "{0} makinesindeki alarm giderildi." şeklinde olmalıdır.
+                string msg = string.Format(Loc["AlarmGiderildiMesaji"], machine.MachineName);
+                Snackbar.Add(msg, Severity.Success);
+            }
+        }
+
+        // Bu metot sadece bildirim gösterir, StateHasChanged çağırmaya gerek yoktur (Banner kendi içinde hallediyor)
     }
 
     void DrawerToggle()
@@ -120,5 +172,6 @@
     public void Dispose()
     {
         NavigationManager.LocationChanged -= HandleLocationChanged;
+        ScadaService.OnDataUpdated -= CheckAlarms; // Memory leak önlemek için aboneliği kaldır
     }
 }

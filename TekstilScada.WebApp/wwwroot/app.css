@@ -338,7 +338,6 @@ html, body {
     padding: 10px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     height: 300px; /* Grafik yüksekliði */
-
 }
 
 .chart-title {
@@ -614,6 +613,7 @@ html, body {
     width: 100%;
     height: 100%;
 }
+
 .chart-box1 {
     background-color: #34495e; /* Grup iç paneli ile ayný renk */
     border: 1px solid #ddd;
@@ -623,6 +623,7 @@ html, body {
     height: 100px; /* Grafik yüksekliði */
     width: 100px;
 }
+
 @media (max-width: 768px) {
 
     /* Genel dashboard dolgusunu mobil cihazlarda azaltabiliriz */
@@ -854,3 +855,38 @@ html, body {
 
         /* Mobilde grafik içindeki fontlarý ve kenar boþluklarýný JS tarafýnda da kýsacaðýz */
     }
+}
+
+/* ---------------------------------------------------------
+   GLOBAL MODAL DÜZELTMELERÝ (ZORLAYICI)
+--------------------------------------------------------- */
+/* Modal arka planýný ve hizalamayý zorla */
+.modal.fade.show {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding-top: 0 !important;
+}
+
+/* Modal penceresini (dialog) ekranýn ortasýna zorla */
+.modal-dialog {
+    margin: auto !important; /* Flex container içinde ortalar */
+    max-height: 90vh !important; /* Ekranýn %90'ýndan uzun olmasýn */
+    display: flex !important;
+    flex-direction: column !important;
+    /* Geniþlik ayarlarý Bootstrap sýnýflarýna (modal-lg vb.) býrakýlýr */
+}
+
+/* Modal içeriði (beyaz kutu) için flex yapýsý */
+.modal-content {
+    max-height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important; /* Taþmalarý gizle */
+}
+
+/* Sadece modal gövdesi kaydýrýlsýn (Header ve Footer sabit kalsýn) */
+.modal-body {
+    overflow-y: auto !important;
+    flex-grow: 1 !important; /* Kalan boþluðu doldur */
+}

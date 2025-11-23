@@ -1,0 +1,75 @@
+﻿@using TekstilScada.WebApp.Services
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
+@inject ScadaDataService ScadaService
+@inject IStringLocalizer<SharedResource> Loc
+@implements IDisposable
+
+@if (HasActiveAlarms)
+{
+    <div class="alarm-banner">
+        <div class="alarm-content">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Inherit" Class="mr-2" />
+            <span class="fw-bold mr-2">@Loc["AktifAlarmBaslikBanner"]:</span>
+            <span class="scrolling-text">
+                @GetAlarmSummary()
+            </span>
+        </div>
+    </div>
+}
+
+<style>
+    .alarm-banner {
+        background-color: #d32f2f; /* Koyu Kırmızı */
+        color: white;
+        padding: 8px;
+        text-align: center;
+        width: 100%;
+        z-index: 2000; /* En üstte görünsün */
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .alarm-content {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1rem;
+    }
+
+    /* Kayan yazı efekti için basit animasyon */
+    .scrolling-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 80%;
+    }
+</style>
+
+@code {
+    private bool HasActiveAlarms => ScadaService.MachineData.Values.Any(m => m.HasActiveAlarm);
+
+    protected override void OnInitialized()
+    {
+        ScadaService.OnDataUpdated += HandleDataUpdate;
+    }
+
+    private void HandleDataUpdate()
+    {
+        // Sadece alarm durumu değiştiğinde render et
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetAlarmSummary()
+    {
+        var alarms = ScadaService.MachineData.Values
+            .Where(m => m.HasActiveAlarm)
+            .Select(m => $"{m.MachineName} (#{m.ActiveAlarmNumber}: {m.ActiveAlarmText})");
+
+        return string.Join("  |  ", alarms);
+    }
+
+    public void Dispose()
+    {
+        ScadaService.OnDataUpdated -= HandleDataUpdate;
+    }
+}

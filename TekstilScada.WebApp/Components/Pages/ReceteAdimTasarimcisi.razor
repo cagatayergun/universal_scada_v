@@ -21,7 +21,8 @@
         <select class="form-select" @onchange="OnSubTypeChanged">
             @foreach (var type in subTypes)
             {
-                <option value="@type">@type</option>
+                @* DEĞİŞİKLİK: Veritabanından gelen 'type' değerini çevir *@
+                <option value="@type">@Loc[type]</option>
             }
         </select>
     </div>
@@ -31,7 +32,8 @@
             <option value="0">@Loc["Seciniz"]</option>
             @foreach (var step in stepTypes)
             {
-                <option value="@step.Id">@step.StepName</option>
+                @* DEĞİŞİKLİK: DB'den gelen 'Dosage' gibi değeri çevir *@
+                <option value="@step.Id">@Loc[step.StepName]</option>
             }
         </select>
     </div>
@@ -45,19 +47,11 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">@Loc["Kontroller"]</h6>
 
-                    <!-- DÜZELTME BAŞLANGICI: Dropdown Menüsü C# Kontrolüne Alındı -->
                     <div class="dropdown">
-                        <!--
-                             data-bs-toggle="dropdown" kaldırıldı.
-                             Yerine @onclick="ToggleDropdown" ile C# tarafında kontrol ediyoruz.
-                        -->
                         <button class="btn btn-sm btn-success dropdown-toggle" type="button" @onclick="ToggleDropdown">
                             <i class="bi bi-plus-lg"></i> @Loc["Ekle"]
                         </button>
 
-                        <!--
-                             'show' class'ını ve 'display:block' stilini isDropdownOpen değişkenine göre dinamik ekliyoruz.
-                        -->
                         <ul class="dropdown-menu @(isDropdownOpen ? "show" : "")"
                             style="@(isDropdownOpen ? "display:block; right:0; left:auto;" : "")">
 
@@ -67,7 +61,6 @@
                             <li><a class="dropdown-item" href="javascript:void(0)" @onclick='() => AddControl("System.Windows.Forms.TextBox")'>@Loc["MetinKutusuTextBox"]</a></li>
                         </ul>
                     </div>
-                    <!-- DÜZELTME SONU -->
 
                 </div>
                 <div class="card-body p-0" style="max-height: 500px; overflow-y: auto;">
@@ -114,7 +107,6 @@
                                     </td>
                                     <td>
                                         <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveControl(ctrl)" @onclick:stopPropagation="true">
-                                            @* İkonun yanına 'me-1' (margin-end 1) ekleyerek boşluk bıraktık *@
                                             <i class="bi bi-trash me-1"></i> @Loc["Sil"]
                                         </button>
                                     </td>
@@ -241,15 +233,12 @@ else
 
 @code {
     private List<string> subTypes = new();
-    // StepTypeDtoDesign modelinin Core katmanında olduğundan emin olun
     private List<StepTypeDtoDesign> stepTypes = new();
     private List<ControlMetadata> controls = new();
     private ControlMetadata? editingControl;
 
     private string selectedSubType = "DEFAULT";
     private int selectedStepTypeId = 0;
-
-    // DÜZELTME: Dropdown durumunu tutan değişken
     private bool isDropdownOpen = false;
 
     protected override async Task OnInitializedAsync()
@@ -259,7 +248,6 @@ else
         if (subTypes.Any()) selectedSubType = subTypes.First();
     }
 
-    // DÜZELTME: Dropdown aç/kapa metodu
     private void ToggleDropdown()
     {
         isDropdownOpen = !isDropdownOpen;
@@ -305,9 +293,8 @@ else
         controls.Add(newCtrl);
         editingControl = newCtrl;
 
-        // DÜZELTME: Kontrol eklendikten sonra menüyü kapat
         isDropdownOpen = false;
-        StateHasChanged(); // UI Güncellemesini garantiye al
+        StateHasChanged();
     }
 
     private void EditControl(ControlMetadata ctrl) { editingControl = ctrl; }
@@ -331,12 +318,7 @@ else
     private string GetShortTypeName(string fullName)
     {
         if (string.IsNullOrEmpty(fullName)) return "Bilinmeyen";
-
-        // 1. Adım: Virgülden sonrasını (Version=8.0.0.0 vs.) kesip at
         string simpleName = fullName.Split(',')[0];
-
-        // 2. Adım: Noktalara göre ayır ve en sondaki parça (Sınıf Adı) al
-        // Örn: "System.Windows.Forms.CheckBox" -> "CheckBox"
         return simpleName.Split('.').Last();
     }
 

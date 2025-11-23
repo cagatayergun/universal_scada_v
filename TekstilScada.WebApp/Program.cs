@@ -82,13 +82,16 @@ builder.Services.AddSingleton(sp =>
     return new ScadaDataService(httpClient);
 });
 
+// *** YENÝ EKLENEN SERVÝS (Singleton olmalý ki herkes ayný listeyi görsün) ***
+builder.Services.AddSingleton<VncSessionService>();
+
 builder.Services.AddScoped<CircuitHandler, UnhandledCircuitExceptionHandler>();
 builder.Services.AddLogging();
 
 var app = builder.Build();
 
 // =================================================================
-// MIDDLEWARE (AKIÞ) SIRALAMASI - BURASI KRÝTÝK
+// MIDDLEWARE (AKIÞ) SIRALAMASI
 // =================================================================
 
 if (!app.Environment.IsDevelopment())
@@ -99,7 +102,7 @@ if (!app.Environment.IsDevelopment())
 // 1. Statik Dosyalar
 app.UseStaticFiles();
 
-// 2. Dil Desteði (Routing'den önce olabilir, RequestLocalization routing'den baðýmsýz çalýþabilir)
+// 2. Dil Desteði
 var supportedCultures = new[] { "tr-TR", "en-US" };
 var localizationOptions = new RequestLocalizationOptions()
     .SetDefaultCulture("tr-TR")
@@ -107,22 +110,20 @@ var localizationOptions = new RequestLocalizationOptions()
     .AddSupportedUICultures(supportedCultures);
 app.UseRequestLocalization(localizationOptions);
 
-// 3. Routing (Yönlendirme Mekanizmasý Baþlar)
+// 3. Routing
 app.UseRouting();
 
-// 4. Güvenlik (Authentication & Authorization)
-// UseRouting ile UseEndpoints (veya Map...) ARASINDA OLMAK ZORUNDA
-app.UseAuthentication(); // Kimlik Doðrulama (Ben kimim?) - YORUMU KALDIRDIK
-app.UseAuthorization();  // Yetkilendirme (Buraya girebilir miyim?) - YORUMU KALDIRDIK
+// 4. Güvenlik
+app.UseAuthentication();
+app.UseAuthorization();
 
-// 5. Antiforgery (Genellikle Auth'dan sonra gelir)
+// 5. Antiforgery
 app.UseAntiforgery();
 
 // 6. Endpoint Tanýmlarý
-app.MapControllers(); // Dil deðiþimi ve API controller'larý için
+app.MapControllers();
 
 // Blazor Endpoint'i
-// Prerendering kapalý (Auth state sorunlarýný önlemek için)
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

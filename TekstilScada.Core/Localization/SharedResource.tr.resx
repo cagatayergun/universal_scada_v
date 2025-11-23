@@ -1413,47 +1413,41 @@
     <value>İngilizce</value>
   </data>
 	<!-- DB'den Gelen Değerler İçin Çeviriler -->
-	<data name="Dosage" xml:space="preserve">
+	<data name="Dozaj" xml:space="preserve">
     <value>Dozaj</value>
   </data>
-	<data name="Heating" xml:space="preserve">
+	<data name="Isıtma" xml:space="preserve">
     <value>Isıtma</value>
   </data>
-	<data name="Filling" xml:space="preserve">
+	<data name="Su alma" xml:space="preserve">
     <value>Su Alma</value>
   </data>
-	<data name="Drain" xml:space="preserve">
+	<data name="Boşaltma" xml:space="preserve">
     <value>Boşaltma</value>
   </data>
-	<data name="Circulation" xml:space="preserve">
-    <value>Çalışma (Devirdaim)</value>
+	<data name="Çalışma" xml:space="preserve">
+    <value>Çalışma</value>
   </data>
-	<data name="Spin" xml:space="preserve">
+	<data name="Sıkma" xml:space="preserve">
     <value>Sıkma</value>
   </data>
-	<!-- Makine Alt Tipleri İçin Örnek -->
-	<data name="Yilmak_100kg" xml:space="preserve">
-    <value>Yılmak 100KG (Standart)</value>
+	<data name="VncBaglantiReddedildi" xml:space="preserve">
+    <value>Bağlantı Reddedildi</value>
   </data>
-	<data name="Dosage" xml:space="preserve">
-    <value>Dosage</value>
+	<data name="VncBaskasiIzliyor" xml:space="preserve">
+    <value>Bu makine şu an '{0}' tarafından izleniyor. Güvenlik ve performans nedeniyle aynı anda sadece bir operatör bağlanabilir.</value>
   </data>
-	<data name="Heating" xml:space="preserve">
-    <value>Heating</value>
+	<data name="GeriDon" xml:space="preserve">
+    <value>Geri Dön</value>
   </data>
-	<data name="Filling" xml:space="preserve">
-    <value>Filling</value>
+	<data name="AktifAlarmBaslikBanner" xml:space="preserve">
+    <value>AKTİF ALARM</value>
   </data>
-	<data name="Drain" xml:space="preserve">
-    <value>Drain</value>
+	<data name="AlarmBalonMesaji" xml:space="preserve">
+    <value>{0} makinesinde alarm oluştu! Kod: {1}</value>
   </data>
-	<data name="Circulation" xml:space="preserve">
-    <value>Circulation</value>
+	<data name="AlarmGiderildiMesaji" xml:space="preserve">
+    <value>{0} makinesindeki alarm giderildi.</value>
   </data>
-	<data name="Spin" xml:space="preserve">
-    <value>Spin</value>
-  </data>
-	<data name="Yilmak_100kg" xml:space="preserve">
-    <value>Yilmak 100KG (Standard)</value>
-  </data>
+	
 </root>

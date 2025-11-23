@@ -3,27 +3,47 @@
 @using TekstilScada.WebApp.Services
 @using TekstilScada.Core.Localization
 @using Microsoft.Extensions.Localization
+@using Microsoft.AspNetCore.Components.Authorization
+
 @inject ScadaDataService ScadaService
+@inject VncSessionService VncSessionService
+@inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @inject IStringLocalizer<SharedResource> Loc
 @implements IDisposable
 
 <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
-    <div class="d-flex justify-space-between align-center mb-4">
-        <MudText Typo="Typo.h5">@Loc["UzaktanErisim"] @(machine?.MachineName ?? Loc["Yükleniyor"].Value)</MudText>
-        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Error" OnClick="CloseConnection">@Loc["BaglantiyiKes"]</MudButton>
-    </div>
 
-    @if (machine != null)
+    @if (isAccessDenied)
     {
-        <div id="vnc-container" style="width: 100%; height: 80vh; background-color: #000; border: 2px solid #333;">
-        </div>
+        @* --- SENARYO 1: BAĞLANTI REDDEDİLDİ (BAŞKASI İZLİYOR) --- *@
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mb-4">
+            <MudText Typo="Typo.h6">@Loc["VncBaglantiReddedildi"]</MudText>
+            <MudText>@string.Format(Loc["VncBaskasiIzliyor"], currentViewerName)</MudText>
+        </MudAlert>
+
+        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="CloseConnection">@Loc["GeriDon"]</MudButton>
     }
     else
     {
-        <MudAlert Severity="Severity.Info">@Loc["MakineBilgileriYukleniyor"]</MudAlert>
+        @* --- SENARYO 2: NORMAL BAĞLANTI (KİLİT ALINDI) --- *@
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h5">@Loc["UzaktanErisim"] @(machine?.MachineName ?? Loc["MakineBilgileriYukleniyor"].Value)</MudText>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Error" OnClick="CloseConnection">@Loc["BaglantiyiKes"]</MudButton>
+        </div>
+
+        @if (machine != null)
+        {
+            <div id="vnc-container" style="width: 100%; height: 80vh; background-color: #000; border: 2px solid #333;">
+            </div>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info">@Loc["MakineBilgileriYukleniyor"]</MudAlert>
+        }
     }
+
 </MudContainer>
 
 @code {
@@ -31,40 +51,88 @@
     private Machine? machine;
     private bool isConnected = false;
 
+    // Oturum Yönetimi Değişkenleri
+    private bool isAccessDenied = false;
+    private string? currentViewerName;
+    private string myUserName = "Anonymous";
+
     protected override async Task OnInitializedAsync()
     {
+        // 1. Aktif Kullanıcı Adını Al
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            myUserName = authState.User.Identity.Name ?? "Unknown";
+        }
+
+        // 2. Makine Bilgisini Çek
         var machines = await ScadaService.GetMachinesAsync();
         machine = machines?.FirstOrDefault(m => m.Id == MachineId);
+
+        // 3. OTURUM KİLİDİ KONTROLÜ (LOCK CHECK)
+        // Servise "Ben bu makineye girmek istiyorum" diyoruz.
+        var result = VncSessionService.TryEnterSession(MachineId, myUserName);
+
+        if (!result.Success)
+        {
+            // Başarısız: Başkası (currentViewerName) şu an izliyor.
+            isAccessDenied = true;
+            currentViewerName = result.CurrentUser;
+        }
+        else
+        {
+            // Başarılı: Kilit bize verildi, bağlantı başlatılabilir.
+            isAccessDenied = false;
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // Eğer erişim reddedildiyse VNC'yi asla başlatma
+        if (isAccessDenied) return;
+
         if (machine != null && !isConnected)
         {
             isConnected = true;
-            // API Base URL'i al (http -> ws dönüşümü)
-            // Not: Bu URL'i appsettings veya NavigationManager'dan dinamik almalısınız.
-            // Örnek: http://localhost:7039 -> ws://localhost:7039
-            var baseUri = new Uri("http://localhost:7039"); // API ADRESİNİZİ BURAYA YAZIN
+
+            // API WebSocket URL'ini oluştur
+            // Canlı ortamda bu adresi appsettings'den veya NavigationManager.BaseUri'den almak daha doğrudur.
+            // Şimdilik manuel:
+            var baseUri = new Uri("http://localhost:7039"); // API ADRESİNİZ
             var wsScheme = baseUri.Scheme == "https" ? "wss" : "ws";
             var wsUrl = $"{wsScheme}://{baseUri.Authority}/api/vnc/connect/{MachineId}";
 
-            // JS fonksiyonunu çağır
-            await JSRuntime.InvokeVoidAsync("startVnc", "vnc-container", wsUrl, machine.VncPassword);
+            // JS fonksiyonunu çağırarak noVNC'yi başlat
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("startVnc", "vnc-container", wsUrl, machine.VncPassword);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"VNC Başlatma Hatası: {ex.Message}");
+            }
         }
     }
 
     private void CloseConnection()
     {
-        // Geri dönülecek sayfayı belirleyebilirsiniz, şimdilik anasayfaya veya makine listesine
+        // Bağlantıyı kes ve geri dön
         NavigationManager.NavigateTo("/");
     }
 
     public async void Dispose()
     {
+        // 1. VNC JS bağlantısını kes (Tarayıcı tarafı)
         if (isConnected)
         {
             try { await JSRuntime.InvokeVoidAsync("stopVnc", "vnc-container"); } catch { }
+        }
+
+        // 2. OTURUM KİLİDİNİ KALDIR (Server tarafı)
+        // Sadece kilit bizdeyse kaldırabiliriz (ExitSession içinde kontrol ediliyor)
+        if (!isAccessDenied)
+        {
+            VncSessionService.ExitSession(MachineId, myUserName);
         }
     }
 }
