@@ -1,20 +1,23 @@
 ﻿@using TekstilScada.Models
 @using TekstilScada.WebApp.Services
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
 @inject ScadaDataService DataService
 @inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResource> Loc
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4>Reçete Adım Tasarımcısı</h4>
+    <h4>@Loc["ReceteAdimTasarimcisiBaslik"]</h4>
     <div>
         <button class="btn btn-primary" @onclick="SaveLayout" disabled="@(selectedStepTypeId == 0)">
-            <i class="bi bi-save me-1"></i> Tasarımı Kaydet
+            <i class="bi bi-save me-1"></i> @Loc["TasarimiKaydet"]
         </button>
     </div>
 </div>
 
 <div class="row mb-3">
     <div class="col-md-4">
-        <label class="form-label">Makine Alt Tipi:</label>
+        <label class="form-label">@Loc["MakineAltTipi"]</label>
         <select class="form-select" @onchange="OnSubTypeChanged">
             @foreach (var type in subTypes)
             {
@@ -23,9 +26,9 @@
         </select>
     </div>
     <div class="col-md-4">
-        <label class="form-label">Adım Tipi:</label>
+        <label class="form-label">@Loc["AdimTipi"]</label>
         <select class="form-select" @onchange="OnStepTypeChanged">
-            <option value="0">Seçiniz...</option>
+            <option value="0">@Loc["Seciniz"]</option>
             @foreach (var step in stepTypes)
             {
                 <option value="@step.Id">@step.StepName</option>
@@ -40,7 +43,7 @@
         <div class="col-md-7">
             <div class="card shadow-sm">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">Kontroller</h6>
+                    <h6 class="mb-0">@Loc["Kontroller"]</h6>
 
                     <!-- DÜZELTME BAŞLANGICI: Dropdown Menüsü C# Kontrolüne Alındı -->
                     <div class="dropdown">
@@ -49,7 +52,7 @@
                              Yerine @onclick="ToggleDropdown" ile C# tarafında kontrol ediyoruz.
                         -->
                         <button class="btn btn-sm btn-success dropdown-toggle" type="button" @onclick="ToggleDropdown">
-                            <i class="bi bi-plus-lg"></i> Ekle
+                            <i class="bi bi-plus-lg"></i> @Loc["Ekle"]
                         </button>
 
                         <!--
@@ -58,10 +61,10 @@
                         <ul class="dropdown-menu @(isDropdownOpen ? "show" : "")"
                             style="@(isDropdownOpen ? "display:block; right:0; left:auto;" : "")">
 
-                            <li><a class="dropdown-item" href="javascript:void(0)" @onclick='() => AddControl("System.Windows.Forms.Label")'>Etiket (Label)</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" @onclick='() => AddControl("System.Windows.Forms.NumericUpDown")'>Sayısal (Numeric)</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" @onclick='() => AddControl("System.Windows.Forms.CheckBox")'>Onay Kutusu (Checkbox)</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)" @onclick='() => AddControl("System.Windows.Forms.TextBox")'>Metin Kutusu (TextBox)</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" @onclick='() => AddControl("System.Windows.Forms.Label")'>@Loc["EtiketLabel"]</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" @onclick='() => AddControl("System.Windows.Forms.NumericUpDown")'>@Loc["SayisalNumeric"]</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" @onclick='() => AddControl("System.Windows.Forms.CheckBox")'>@Loc["OnayKutusuCheckbox"]</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" @onclick='() => AddControl("System.Windows.Forms.TextBox")'>@Loc["MetinKutusuTextBox"]</a></li>
                         </ul>
                     </div>
                     <!-- DÜZELTME SONU -->
@@ -71,11 +74,11 @@
                     <table class="table table-hover mb-0 align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th>Tür</th>
-                                <th>Metin / İsim</th>
-                                <th>Konum (X,Y)</th>
-                                <th>PLC Adres</th>
-                                <th>İşlem</th>
+                                <th>@Loc["Tur"]</th>
+                                <th>@Loc["MetinIsim"]</th>
+                                <th>@Loc["KonumXY"]</th>
+                                <th>@Loc["PlcAdres"]</th>
+                                <th>@Loc["Islem"]</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -112,7 +115,7 @@
                                     <td>
                                         <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveControl(ctrl)" @onclick:stopPropagation="true">
                                             @* İkonun yanına 'me-1' (margin-end 1) ekleyerek boşluk bıraktık *@
-                                            <i class="bi bi-trash me-1"></i> Sil
+                                            <i class="bi bi-trash me-1"></i> @Loc["Sil"]
                                         </button>
                                     </td>
                                 </tr>
@@ -128,23 +131,23 @@
             {
                 <div class="card shadow-sm border-primary">
                     <div class="card-header bg-primary text-white">
-                        <h6 class="mb-0">Özellikler: @GetShortTypeName(editingControl.ControlType)</h6>
+                        <h6 class="mb-0">@Loc["Ozellikler"]: @GetShortTypeName(editingControl.ControlType)</h6>
                     </div>
                     <div class="card-body">
                         <div class="mb-2">
-                            <label class="form-label small fw-bold">Görünen Metin (Text):</label>
+                            <label class="form-label small fw-bold">@Loc["GorunenMetin"]</label>
                             <input type="text" class="form-control form-control-sm" @bind="editingControl.Text" />
                         </div>
 
                         <div class="row mb-2">
                             <div class="col">
-                                <label class="form-label small">X Konumu:</label>
+                                <label class="form-label small">@Loc["XKonumu"]</label>
                                 <input type="number" class="form-control form-control-sm"
                                        value="@GetX(editingControl.Location)"
                                        @onchange="@(e => UpdateLocationX(editingControl, e.Value))" />
                             </div>
                             <div class="col">
-                                <label class="form-label small">Y Konumu:</label>
+                                <label class="form-label small">@Loc["YKonumu"]</label>
                                 <input type="number" class="form-control form-control-sm"
                                        value="@GetY(editingControl.Location)"
                                        @onchange="@(e => UpdateLocationY(editingControl, e.Value))" />
@@ -152,11 +155,11 @@
                         </div>
 
                         <hr />
-                        <h6 class="small fw-bold text-muted">PLC Ayarları</h6>
+                        <h6 class="small fw-bold text-muted">@Loc["PlcAyarlari"]</h6>
 
                         <div class="row mb-2">
                             <div class="col">
-                                <label class="form-label small">Adres (Word):</label>
+                                <label class="form-label small">@Loc["AdresWord"]</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">W</span>
                                     <input type="number" class="form-control" @bind="editingControl.PLC_WordIndex" />
@@ -165,7 +168,7 @@
                             @if (editingControl.ControlType.Contains("CheckBox"))
                             {
                                 <div class="col">
-                                    <label class="form-label small">Bit (0-15):</label>
+                                    <label class="form-label small">@Loc["Bit015"]</label>
                                     <div class="input-group input-group-sm">
                                         <span class="input-group-text">.</span>
                                         <input type="number" class="form-control" @bind="editingControl.PLC_BitIndex" max="15" min="0" />
@@ -178,11 +181,11 @@
                         {
                             <div class="row mb-2 border-top pt-2 mt-2">
                                 <div class="col">
-                                    <label class="form-label small">Max Değer:</label>
+                                    <label class="form-label small">@Loc["MaxDeger"]</label>
                                     <input type="number" class="form-control form-control-sm" @bind="editingControl.Maximum" />
                                 </div>
                                 <div class="col">
-                                    <label class="form-label small">Ondalık (Virgül):</label>
+                                    <label class="form-label small">@Loc["OndalikVirgul"]</label>
                                     <input type="number" class="form-control form-control-sm" @bind="editingControl.DecimalPlaces" />
                                 </div>
                             </div>
@@ -191,7 +194,7 @@
                         {
                             <div class="row mb-2 border-top pt-2 mt-2">
                                 <div class="col">
-                                    <label class="form-label small">Uzunluk (Word):</label>
+                                    <label class="form-label small">@Loc["UzunlukWord"]</label>
                                     <input type="number" class="form-control form-control-sm" @bind="editingControl.StringWordLength" />
                                 </div>
                             </div>
@@ -200,7 +203,7 @@
                 </div>
 
                 <div class="card mt-3 shadow-sm">
-                    <div class="card-header"><small>Görsel Önizleme</small></div>
+                    <div class="card-header"><small>@Loc["GorselOnizleme"]</small></div>
                     <div class="card-body position-relative bg-light" style="height: 300px; overflow: hidden; border: 1px solid #ddd;">
                         @foreach (var ctrl in controls)
                         {
@@ -226,14 +229,14 @@
             }
             else
             {
-                <div class="alert alert-info">Düzenlemek için listeden bir kontrol seçin.</div>
+                <div class="alert alert-info">@Loc["DuzenlemekIcinKontrolSec"]</div>
             }
         </div>
     </div>
 }
 else
 {
-    <div class="alert alert-warning text-center p-5">Lütfen düzenlemek için bir Adım Tipi seçin.</div>
+    <div class="alert alert-warning text-center p-5">@Loc["DuzenlemekIcinAdimTipiSec"]</div>
 }
 
 @code {
@@ -320,9 +323,9 @@ else
         try
         {
             await DataService.SaveLayoutAsync(selectedSubType, selectedStepTypeId, controls);
-            await JSRuntime.InvokeVoidAsync("alert", "Başarıyla kaydedildi!");
+            await JSRuntime.InvokeVoidAsync("alert", Loc["BasariylaKaydedildi"].Value);
         }
-        catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", "Hata: " + ex.Message); }
+        catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", $"{Loc["Hata"]}: {ex.Message}"); }
     }
 
     private string GetShortTypeName(string fullName)

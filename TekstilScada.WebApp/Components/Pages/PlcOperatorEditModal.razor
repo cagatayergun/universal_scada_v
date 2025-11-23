@@ -1,38 +1,41 @@
 ﻿@using TekstilScada.Models
 @using Microsoft.AspNetCore.Components.Forms
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SharedResource> Loc
 
 <div class="modal fade show" style="display:block; background-color: rgba(0,0,0,0.5);" role="dialog">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Operatör Düzenle</h5>
+                <h5 class="modal-title">@Loc["OperatorDuzenleBaslik"]</h5>
                 <button type="button" class="btn-close" @onclick="Close"></button>
             </div>
             <EditForm Model="@Operator" OnValidSubmit="SaveChanges">
                 <DataAnnotationsValidator />
                 <div class="modal-body">
                     <div class="alert alert-warning py-2">
-                        <small><i class="bi bi-exclamation-triangle me-1"></i> Bu ayarlar doğrudan PLC'ye yazılacak şablonlardır.</small>
+                        <small><i class="bi bi-exclamation-triangle me-1"></i> @Loc["PlcKoduBilgi"]</small>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Operatör Adı:</label>
+                        <label class="form-label">@Loc["OperatorAdi"]</label>
                         <InputText @bind-Value="Operator.Name" class="form-control" />
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Kullanıcı ID (Sayısal):</label>
+                            <label class="form-label">@Loc["KullaniciIdSayisal"]</label>
                             <InputNumber @bind-Value="Operator.UserId" class="form-control" />
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Şifre (Sayısal):</label>
+                            <label class="form-label">@Loc["SifreSayisal"]</label>
                             <InputNumber @bind-Value="Operator.Password" class="form-control" />
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="Close">İptal</button>
-                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                    <button type="button" class="btn btn-secondary" @onclick="Close">@Loc["Iptal"]</button>
+                    <button type="submit" class="btn btn-primary">@Loc["Kaydet"]</button>
                 </div>
             </EditForm>
         </div>

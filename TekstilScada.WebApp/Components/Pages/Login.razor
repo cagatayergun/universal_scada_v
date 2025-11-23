@@ -12,21 +12,25 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using TekstilScada.WebApp.Components.Layout
 @using TekstilScada.WebApp.Services
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
 @inject CustomAuthStateProvider AuthProvider
 @inject NavigationManager NavManager
+@inject IStringLocalizer<SharedResource> Loc
+
 <div class="login-container">
     <div class="card p-4 shadow-lg">
-        <h3 class="card-title text-center mb-4">Giriş Yap</h3>
+        <h3 class="card-title text-center mb-4">@Loc["GirisYapBaslik"]</h3>
         @* KRİTİK DÜZELTME: Benzersiz bir FormName atıyoruz *@
         <EditForm Model="loginModel" OnValidSubmit="HandleLogin" FormName="loginForm">
             <DataAnnotationsValidator />
             <div class="mb-3">
-                <label for="username" class="form-label">Kullanıcı Adı</label>
+                <label for="username" class="form-label">@Loc["KullaniciAdiLabel"]</label>
                 <InputText id="username" class="form-control" @bind-Value="loginModel.Username" />
                 <ValidationMessage For="@(() => loginModel.Username)" />
             </div>
             <div class="mb-3">
-                <label for="password" class="form-label">Şifre</label>
+                <label for="password" class="form-label">@Loc["SifreLabel"]</label>
                 <InputText id="password" type="password" class="form-control" @bind-Value="loginModel.Password" />
                 <ValidationMessage For="@(() => loginModel.Password)" />
             </div>
@@ -42,11 +46,10 @@
                 @if (isProcessing)
                 {
                     <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-
                 }
                 else
                 {
-                    <span>Giriş Yap</span>
+                    <span>@Loc["GirisButon"]</span>
                 }
             </button>
         </EditForm>
@@ -75,12 +78,14 @@
     private bool isProcessing = false;
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
+
     private class LoginModel
     {
         // DataAnnotations eklemedim, ancak production ortamı için eklemenizi öneririm (örneğin [Required])
         public string Username { get; set; }
         public string Password { get; set; }
     }
+
     protected override async Task OnInitializedAsync()
     {
         // Auth provider'dan mevcut oturum durumunu al
@@ -93,6 +98,7 @@
             NavManager.NavigateTo(ReturnUrl ?? "/");
         }
     }
+
     private async Task HandleLogin()
     {
         isProcessing = true;
@@ -107,7 +113,7 @@
         }
         else
         {
-            errorMessage = "Giriş başarısız. Lütfen kullanıcı adı ve şifrenizi kontrol edin.";
+            errorMessage = Loc["GirisBasarisizHata"];
             isProcessing = false; // Sadece hata durumunda isProcessing'i false yap
             StateHasChanged(); // Hata mesajının görünmesi için UI'yı güncelle
         }

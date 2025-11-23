@@ -1,6 +1,9 @@
 ﻿@using TekstilScada.Models
 @using TekstilScada.Core.Models
 @using MudBlazor
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SharedResource> Loc
 
 <MudCard Elevation="3" Class="ma-2 machine-card-hover pa-1" Style="@GetCardStyle()" @onclick="OnClickCallback">
 
@@ -18,7 +21,7 @@
             @if (MachineStatus.HasActiveAlarm)
             {
                 <MudTooltip Text="@MachineStatus.ActiveAlarmText">
-                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Error" Icon="@Icons.Material.Filled.Warning">ALARM</MudChip>
+                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Error" Icon="@Icons.Material.Filled.Warning">@Loc["Alarm"]</MudChip>
                 </MudTooltip>
             }
             else
@@ -34,7 +37,7 @@
         {
             <div class="d-flex flex-column align-center justify-center py-4" style="opacity:0.6">
                 <MudIcon Icon="@Icons.Material.Filled.WifiOff" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Large" />
-                <MudText Typo="Typo.body2" Color="MudBlazor.Color.Error" Class="mt-1">Bağlantı Yok</MudText>
+                <MudText Typo="Typo.body2" Color="MudBlazor.Color.Error" Class="mt-1">@Loc["BaglantiYokKisa"]</MudText>
             </div>
         }
         else
@@ -43,8 +46,8 @@
             {
                 <div class="mb-2 px-2 py-1 rounded" style="background-color:var(--mud-palette-background-grey);">
                     <div class="d-flex justify-space-between">
-                        <MudText Typo="Typo.caption"><b>Batch:</b> @MachineStatus.BatchNumarasi</MudText>
-                        <MudText Typo="Typo.caption"><b>Adım:</b> @MachineStatus.AktifAdimNo</MudText>
+                        <MudText Typo="Typo.caption"><b>@Loc["BatchLabel"]</b> @MachineStatus.BatchNumarasi</MudText>
+                        <MudText Typo="Typo.caption"><b>@Loc["AdimLabel"]</b> @MachineStatus.AktifAdimNo</MudText>
                     </div>
                     <MudText Typo="Typo.caption" Class="d-block text-truncate">@MachineStatus.AktifAdimAdi</MudText>
                 </div>
@@ -52,7 +55,7 @@
             else
             {
                 <div class="mb-2 px-2 py-2 rounded d-flex align-center justify-center" style="background-color:var(--mud-palette-background-grey); height:46px;">
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Makine iş emri bekliyor</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@Loc["IsEmriBekliyor"]</MudText>
                 </div>
             }
 
@@ -79,7 +82,7 @@
             {
                 <div class="mt-3">
                     <div class="d-flex justify-space-between mb-1">
-                        <MudText Typo="Typo.caption">İlerleme</MudText>
+                        <MudText Typo="Typo.caption">@Loc["Ilerleme"]</MudText>
                         <MudText Typo="Typo.caption"><b>%@MachineStatus.ProsesYuzdesi</b></MudText>
                     </div>
                     <MudProgressLinear Color="MudBlazor.Color.Primary" Value="@MachineStatus.ProsesYuzdesi" Height="6px" Class="rounded-lg" Striped="true" />
@@ -113,7 +116,7 @@
 
     private async Task OnClickCallback()
     {
-       
+        await MouseClick.InvokeAsync();
     }
 
     private MudBlazor.Color GetStatusColor()
@@ -127,11 +130,11 @@
 
     private string GetStatusText()
     {
-        if (MachineStatus.ConnectionState != ConnectionStatus.Connected) return "KOPUK";
-        if (MachineStatus.HasActiveAlarm) return "ALARM";
-        if (MachineStatus.IsPaused) return "DURAKLADI";
-        if (MachineStatus.IsInRecipeMode) return "ÇALIŞIYOR";
-        return "BOŞTA";
+        if (MachineStatus.ConnectionState != ConnectionStatus.Connected) return Loc["BaglantiKoptu"];
+        if (MachineStatus.HasActiveAlarm) return Loc["Alarm"];
+        if (MachineStatus.IsPaused) return Loc["Duraklatildi"];
+        if (MachineStatus.IsInRecipeMode) return Loc["Calisiyor"];
+        return Loc["Bosta"];
     }
 
     private string GetCardStyle()

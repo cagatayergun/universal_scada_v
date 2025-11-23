@@ -1,15 +1,18 @@
 ﻿@page "/vnc/{MachineId:int}"
 @using TekstilScada.Models
 @using TekstilScada.WebApp.Services
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
 @inject ScadaDataService ScadaService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
+@inject IStringLocalizer<SharedResource> Loc
 @implements IDisposable
 
 <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
     <div class="d-flex justify-space-between align-center mb-4">
-        <MudText Typo="Typo.h5">Uzaktan Erişim: @(machine?.MachineName ?? "Yükleniyor...")</MudText>
-        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Error" OnClick="CloseConnection">Bağlantıyı Kes</MudButton>
+        <MudText Typo="Typo.h5">@Loc["UzaktanErisim"] @(machine?.MachineName ?? Loc["Yükleniyor"].Value)</MudText>
+        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Error" OnClick="CloseConnection">@Loc["BaglantiyiKes"]</MudButton>
     </div>
 
     @if (machine != null)
@@ -19,7 +22,7 @@
     }
     else
     {
-        <MudAlert Severity="Severity.Info">Makine bilgileri yükleniyor...</MudAlert>
+        <MudAlert Severity="Severity.Info">@Loc["MakineBilgileriYukleniyor"]</MudAlert>
     }
 </MudContainer>
 
@@ -53,7 +56,8 @@
 
     private void CloseConnection()
     {
-        NavigationManager.NavigateTo("/machines");
+        // Geri dönülecek sayfayı belirleyebilirsiniz, şimdilik anasayfaya veya makine listesine
+        NavigationManager.NavigateTo("/");
     }
 
     public async void Dispose()

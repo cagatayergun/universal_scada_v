@@ -1,0 +1,1459 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+	<!-- 
+		Microsoft ResX Schema
+
+		Version 1.3
+
+		The primary goals of this format is to allow a simple XML format 
+		that is mostly human readable. The generation and parsing of the 
+		various data types are done through the TypeConverter classes 
+		associated with the data types.
+
+		Example:
+
+		... ado.net/XML headers & schema ...
+		<resheader name="resmimetype">text/microsoft-resx</resheader>
+		<resheader name="version">1.3</resheader>
+		<resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+		<resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+		<data name="Name1">this is my long string</data>
+		<data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+		<data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+			[base64 mime encoded serialized .NET Framework object]
+		</data>
+		<data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+			[base64 mime encoded string representing a byte array form of the .NET Framework object]
+		</data>
+
+		There are any number of "resheader" rows that contain simple 
+		name/value pairs.
+
+		Each data row contains a name, and value. The row also contains a 
+		type or mimetype. Type corresponds to a .NET class that support 
+		text/value conversion through the TypeConverter architecture. 
+		Classes that don't support this are serialized and stored with the 
+		mimetype set.
+
+		The mimetype is used for serialized objects, and tells the 
+		ResXResourceReader how to depersist the object. This is currently not 
+		extensible. For a given mimetype the value must be set accordingly:
+
+		Note - application/x-microsoft.net.object.binary.base64 is the format 
+		that the ResXResourceWriter will generate, however the reader can 
+		read any of the formats listed below.
+
+		mimetype: application/x-microsoft.net.object.binary.base64
+		value   : The object must be serialized with 
+			: System.Serialization.Formatters.Binary.BinaryFormatter
+			: and then encoded with base64 encoding.
+
+		mimetype: application/x-microsoft.net.object.soap.base64
+		value   : The object must be serialized with 
+			: System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+			: and then encoded with base64 encoding.
+
+		mimetype: application/x-microsoft.net.object.bytearray.base64
+		value   : The object must be serialized into a byte array 
+			: using a System.ComponentModel.TypeConverter
+			: and then encoded with base64 encoding.
+	-->
+	
+	<xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+		<xsd:element name="root" msdata:IsDataSet="true">
+			<xsd:complexType>
+				<xsd:choice maxOccurs="unbounded">
+					<xsd:element name="data">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+								<xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+							</xsd:sequence>
+							<xsd:attribute name="name" type="xsd:string" msdata:Ordinal="1" />
+							<xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+							<xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+						</xsd:complexType>
+					</xsd:element>
+					<xsd:element name="resheader">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+							</xsd:sequence>
+							<xsd:attribute name="name" type="xsd:string" use="required" />
+						</xsd:complexType>
+					</xsd:element>
+				</xsd:choice>
+			</xsd:complexType>
+		</xsd:element>
+	</xsd:schema>
+	<resheader name="resmimetype">
+		<value>text/microsoft-resx</value>
+	</resheader>
+	<resheader name="version">
+		<value>1.3</value>
+	</resheader>
+	<resheader name="reader">
+		<value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.3500.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+	</resheader>
+	<resheader name="writer">
+		<value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.3500.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+	</resheader>
+	<data name="AlarmDuzenleBaslik" xml:space="preserve">
+    <value>Alarm Düzenle</value>
+  </data>
+	<data name="YeniAlarmBaslik" xml:space="preserve">
+    <value>Yeni Alarm Ekle</value>
+  </data>
+	<data name="AlarmNo" xml:space="preserve">
+    <value>Alarm Numarası</value>
+  </data>
+	<data name="AlarmMetni" xml:space="preserve">
+    <value>Alarm Metni</value>
+  </data>
+	<data name="MakineTipi" xml:space="preserve">
+    <value>Makine Tipi</value>
+  </data>
+	<data name="Kaydet" xml:space="preserve">
+    <value>Kaydet</value>
+  </data>
+	<data name="Iptal" xml:space="preserve">
+    <value>İptal</value>
+  </data>
+	<data name="Sil" xml:space="preserve">
+    <value>Sil</value>
+  </data>
+	<data name="AlarmSilOnay" xml:space="preserve">
+    <value>Bu alarmı silmek istediğinize emin misiniz?</value>
+  </data>
+	<data name="AlarmTanimlariBaslik" xml:space="preserve">
+    <value>Alarm Tanımları</value>
+  </data>
+	<data name="YeniAlarmEkle" xml:space="preserve">
+    <value>Yeni Alarm Ekle</value>
+  </data>
+	<data name="AlarmlarYukleniyor" xml:space="preserve">
+    <value>Alarmlar yükleniyor...</value>
+  </data>
+	<data name="No" xml:space="preserve">
+    <value>No</value>
+  </data>
+	<data name="AlarmMesaji" xml:space="preserve">
+    <value>Alarm Mesajı</value>
+  </data>
+	<data name="Onem" xml:space="preserve">
+    <value>Önem</value>
+  </data>
+	<data name="Islemler" xml:space="preserve">
+    <value>İşlemler</value>
+  </data>
+	<data name="Duzenle" xml:space="preserve">
+    <value>Düzenle</value>
+  </data>
+	<data name="AlarmSilSoru" xml:space="preserve">
+    <value>Alarm No: {0} silinsin mi?</value>
+  </data>
+	<data name="Hata" xml:space="preserve">
+    <value>Hata</value>
+  </data>
+	<data name="SistemAyarlari" xml:space="preserve">
+    <value>Sistem Ayarları</value>
+  </data>
+	<data name="MakineYonetimi" xml:space="preserve">
+    <value>Makine Yönetimi</value>
+  </data>
+	<data name="KullaniciYonetimi" xml:space="preserve">
+    <value>Kullanıcı Yönetimi</value>
+  </data>
+	<data name="AlarmTanimlari" xml:space="preserve">
+    <value>Alarm Tanımları</value>
+  </data>
+	<data name="MaliyetYonetimi" xml:space="preserve">
+    <value>Maliyet Yönetimi</value>
+  </data>
+	<data name="PlcOperatorleri" xml:space="preserve">
+    <value>PLC Operatörleri</value>
+  </data>
+	<data name="ReceteTasarimcisi" xml:space="preserve">
+    <value>Reçete Tasarımcısı</value>
+  </data>
+	<data name="VerilerYukleniyor" xml:space="preserve">
+    <value>Veriler yükleniyor ve SignalR bağlantısı kuruluyor...</value>
+  </data>
+	<data name="ToplamMakine" xml:space="preserve">
+    <value>TOPLAM MAKİNE</value>
+  </data>
+	<data name="AktifMakine" xml:space="preserve">
+    <value>AKTİF MAKİNE</value>
+  </data>
+	<data name="AlarmdakiMakine" xml:space="preserve">
+    <value>ALARMDAKİ MAKİNE</value>
+  </data>
+	<data name="BekleyenMakine" xml:space="preserve">
+    <value>BEKLEYEN MAKİNE</value>
+  </data>
+	<data name="MakineTanimlanmamis" xml:space="preserve">
+    <value>Sistemde henüz makine tanımlanmamıştır.</value>
+  </data>
+	<data name="VeriBekleniyor" xml:space="preserve">
+    <value>Veri bekleniyor...</value>
+  </data>
+	<data name="ReceteGonderBaslik" xml:space="preserve">
+    <value>Reçete Gönder (PC -> Makine)</value>
+  </data>
+	<data name="Adim1ReceteSecimi" xml:space="preserve">
+    <value>1. Adım: Reçete Seçimi</value>
+  </data>
+	<data name="ReceteTipi" xml:space="preserve">
+    <value>Reçete Tipi</value>
+  </data>
+	<data name="ReceteSecildiCount" xml:space="preserve">
+    <value>{0} reçete seçildi.</value>
+  </data>
+	<data name="Adim2HedefSecimi" xml:space="preserve">
+    <value>2. Adım: Hedef Seçimi</value>
+  </data>
+	<data name="Online" xml:space="preserve">
+    <value>Online</value>
+  </data>
+	<data name="MakineAdi" xml:space="preserve">
+    <value>Makine Adı</value>
+  </data>
+	<data name="HedefNo" xml:space="preserve">
+    <value>Hedef No</value>
+  </data>
+	<data name="HedefBaslangicNo" xml:space="preserve">
+    <value>Hedef Başlangıç No:</value>
+  </data>
+	<data name="GonderimiBaslat" xml:space="preserve">
+    <value>GÖNDERİMİ BAŞLAT</value>
+  </data>
+	<data name="ReceteAlBaslik" xml:space="preserve">
+    <value>Reçete Al (Makine -> PC)</value>
+  </data>
+	<data name="KaynakSecimi" xml:space="preserve">
+    <value>Kaynak Seçimi</value>
+  </data>
+	<data name="MakineSeciniz" xml:space="preserve">
+    <value>Makine Seçiniz</value>
+  </data>
+	<data name="HafizaOkunuyor" xml:space="preserve">
+    <value>Hafıza okunuyor...</value>
+  </data>
+	<data name="HmiReceteleri" xml:space="preserve">
+    <value>HMI Reçeteleri (PLC)</value>
+  </data>
+	<data name="ReceteAdi" xml:space="preserve">
+    <value>Reçete Adı</value>
+  </data>
+	<data name="Secilen" xml:space="preserve">
+    <value>Seçilen</value>
+  </data>
+	<data name="Adet" xml:space="preserve">
+    <value>adet</value>
+  </data>
+	<data name="Indir" xml:space="preserve">
+    <value>İNDİR</value>
+  </data>
+	<data name="IslemKuyrugu" xml:space="preserve">
+    <value>İşlem Kuyruğu</value>
+  </data>
+	<data name="KuyrukBos" xml:space="preserve">
+    <value>Kuyruk boş</value>
+  </data>
+	<data name="IslemlerSuruyor" xml:space="preserve">
+    <value>İşlemler sürüyor...</value>
+  </data>
+	<data name="Kapat" xml:space="preserve">
+    <value>Kapat</value>
+  </data>
+	<data name="PlcReceteBulunamadi" xml:space="preserve">
+    <value>PLC'de kayıtlı reçete ismi bulunamadı.</value>
+  </data>
+	<data name="ReceteListesiAlinamadi" xml:space="preserve">
+    <value>Reçete listesi alınamadı</value>
+  </data>
+	<data name="ReceteIndirmeKuyrugaEklendi" xml:space="preserve">
+    <value>reçete indirme kuyruğuna eklendi.</value>
+  </data>
+	<data name="MakineOfflineOnay" xml:space="preserve">
+    <value>{0} makine OFFLINE. Yine de eklensin mi?</value>
+  </data>
+	<data name="LimitAsildi" xml:space="preserve">
+    <value>limit aşıldı!</value>
+  </data>
+	<data name="KuyrugaAlindi" xml:space="preserve">
+    <value>Kuyruğa alındı.</value>
+  </data>
+	<data name="MakineFiltreleme" xml:space="preserve">
+    <value>Makine Filtreleme</value>
+  </data>
+	<data name="MakineListesiYuklenemedi" xml:space="preserve">
+    <value>Makine listesi yüklenemedi.</value>
+  </data>
+	<data name="Filtrele" xml:space="preserve">
+    <value>Filtrele</value>
+  </data>
+	<data name="TumunuSec" xml:space="preserve">
+    <value>Tümünü Seç</value>
+  </data>
+	<data name="SecimiTemizle" xml:space="preserve">
+    <value>Seçimi Temizle</value>
+  </data>
+	<data name="FiltreSonucuYok" xml:space="preserve">
+    <value>Filtreleme sonucunda gösterilecek makine bulunamadı.</value>
+  </data>
+	<data name="OeeVerisiYok" xml:space="preserve">
+    <value>OEE Verisi Yok...</value>
+  </data>
+	<data name="GenelBakis" xml:space="preserve">
+    <value>Genel Bakış</value>
+  </data>
+	<data name="GenelMakineDurumu" xml:space="preserve">
+    <value>Genel Makine Durumu</value>
+  </data>
+	<data name="VeriBekleniyorDetay" xml:space="preserve">
+    <value>Makinelerden veri bekleniyor... (WebAPI projesinin çalıştığından emin olun)</value>
+  </data>
+	<data name="YeniKullanici" xml:space="preserve">
+    <value>Yeni Kullanıcı</value>
+  </data>
+	<data name="AdSoyad" xml:space="preserve">
+    <value>Ad Soyad</value>
+  </data>
+	<data name="KullaniciAdi" xml:space="preserve">
+    <value>Kullanıcı Adı</value>
+  </data>
+	<data name="Durum" xml:space="preserve">
+    <value>Durum</value>
+  </data>
+	<data name="Aktif" xml:space="preserve">
+    <value>Aktif</value>
+  </data>
+	<data name="Pasif" xml:space="preserve">
+    <value>Pasif</value>
+  </data>
+	<data name="Yukleniyor" xml:space="preserve">
+    <value>Yükleniyor...</value>
+  </data>
+	<data name="KullaniciSilOnay" xml:space="preserve">
+    <value>{0} silinsin mi?</value>
+  </data>
+	<data name="KurutmaParametreleri" xml:space="preserve">
+    <value>Kurutma Parametreleri</value>
+  </data>
+	<data name="SicaklikC" xml:space="preserve">
+    <value>Sıcaklık (°C):</value>
+  </data>
+	<data name="NemYuzde" xml:space="preserve">
+    <value>Nem (%):</value>
+  </data>
+	<data name="SureDk" xml:space="preserve">
+    <value>Süre (dk):</value>
+  </data>
+	<data name="CalismaDevriRpm" xml:space="preserve">
+    <value>Çalışma Devri (rpm):</value>
+  </data>
+	<data name="SogutmaSuresiDk" xml:space="preserve">
+    <value>Soğutma Süresi (dk):</value>
+  </data>
+	<data name="GirisYapBaslik" xml:space="preserve">
+    <value>Giriş Yap</value>
+  </data>
+	<data name="KullaniciAdiLabel" xml:space="preserve">
+    <value>Kullanıcı Adı</value>
+  </data>
+	<data name="SifreLabel" xml:space="preserve">
+    <value>Şifre</value>
+  </data>
+	<data name="GirisBasarisizHata" xml:space="preserve">
+    <value>Giriş başarısız. Lütfen kullanıcı adı ve şifrenizi kontrol edin.</value>
+  </data>
+	<data name="GirisButon" xml:space="preserve">
+    <value>Giriş Yap</value>
+  </data>
+	<data name="Detaylar" xml:space="preserve">
+    <value>Detaylar</value>
+  </data>
+	<data name="VncIzle" xml:space="preserve">
+    <value>Ekranı İzle (VNC)</value>
+  </data>
+	<data name="Bagli" xml:space="preserve">
+    <value>Bağlı</value>
+  </data>
+	<data name="Baglaniyor" xml:space="preserve">
+    <value>Bağlanıyor...</value>
+  </data>
+	<data name="BaglantiYok" xml:space="preserve">
+    <value>Bağlantı Yok</value>
+  </data>
+	<data name="BaglantiKoptu" xml:space="preserve">
+    <value>KOPUK</value>
+  </data>
+	<data name="Alarm" xml:space="preserve">
+    <value>ALARM</value>
+  </data>
+	<data name="Durakladi" xml:space="preserve">
+    <value>DURAKLADI</value>
+  </data>
+	<data name="Calisiyor" xml:space="preserve">
+    <value>ÇALIŞIYOR</value>
+  </data>
+	<data name="Bosta" xml:space="preserve">
+    <value>BOŞTA</value>
+  </data>
+	<data name="Ilerleme" xml:space="preserve">
+    <value>İlerleme</value>
+  </data>
+	<data name="Recete" xml:space="preserve">
+    <value>Reçete:</value>
+  </data>
+	<data name="Parti" xml:space="preserve">
+    <value>Parti:</value>
+  </data>
+	<data name="Adim" xml:space="preserve">
+    <value>Adım:</value>
+  </data>
+	<data name="Sicaklik" xml:space="preserve">
+    <value>Sıcaklık</value>
+  </data>
+	<data name="Devir" xml:space="preserve">
+    <value>Devir (RPM)</value>
+  </data>
+	<data name="YeniMakineEkleBaslik" xml:space="preserve">
+    <value>Yeni Makine Ekle</value>
+  </data>
+	<data name="MakineDuzenleBaslik" xml:space="preserve">
+    <value>Makine Düzenle</value>
+  </data>
+	<data name="GenelBilgiler" xml:space="preserve">
+    <value>Genel Bilgiler</value>
+  </data>
+	<data name="MakineAdiLabel" xml:space="preserve">
+    <value>Makine Adı:</value>
+  </data>
+	<data name="MakineIdLabel" xml:space="preserve">
+    <value>Makine ID (Kısa Kod):</value>
+  </data>
+	<data name="MakineTipiLabel" xml:space="preserve">
+    <value>Makine Tipi:</value>
+  </data>
+	<data name="Seciniz" xml:space="preserve">
+    <value>Seçiniz...</value>
+  </data>
+	<data name="BoyaMakinesi" xml:space="preserve">
+    <value>Boya Makinesi</value>
+  </data>
+	<data name="KurutmaMakinesi" xml:space="preserve">
+    <value>Kurutma Makinesi</value>
+  </data>
+	<data name="MakineAltTipiLabel" xml:space="preserve">
+    <value>Makine Alt Tipi (Reçete Tasarımı İçin):</value>
+  </data>
+	<data name="MakineAltTipiPlaceholder" xml:space="preserve">
+    <value>Örn: Yilmak_100kg</value>
+  </data>
+	<data name="MakineAltTipiInfo" xml:space="preserve">
+    <value>Bu alan reçete tasarım ekranında filtreleme için kullanılır.</value>
+  </data>
+	<data name="BaglantiAyarlari" xml:space="preserve">
+    <value>Bağlantı Ayarları</value>
+  </data>
+	<data name="IpAdresiLabel" xml:space="preserve">
+    <value>IP Adresi:</value>
+  </data>
+	<data name="PortLabel" xml:space="preserve">
+    <value>Port:</value>
+  </data>
+	<data name="FtpVncAyarlari" xml:space="preserve">
+    <value>FTP &amp; VNC Ayarları</value>
+  </data>
+	<data name="FtpKullaniciAdiLabel" xml:space="preserve">
+    <value>FTP Kullanıcı Adı:</value>
+  </data>
+	<data name="FtpSifresiLabel" xml:space="preserve">
+    <value>FTP Şifresi:</value>
+  </data>
+	<data name="VncAdresiLabel" xml:space="preserve">
+    <value>VNC Adresi (Opsiyonel):</value>
+  </data>
+	<data name="VncSifresiLabel" xml:space="preserve">
+    <value>VNC Şifresi:</value>
+  </data>
+	<data name="MakineAktifLabel" xml:space="preserve">
+    <value>Makine Aktif</value>
+  </data>
+	<data name="MakineDetayPageTitle" xml:space="preserve">
+    <value>Makine Detay: {0} - {1}</value>
+  </data>
+	<data name="MakineDurumuYukleniyor" xml:space="preserve">
+    <value>Makine durumu yükleniyor veya Makine ID: {0} bulunamadı...</value>
+  </data>
+	<data name="MakineDetayiBaslik" xml:space="preserve">
+    <value>{0} ({1}) Detayı</value>
+  </data>
+	<data name="BaglantiDurumu" xml:space="preserve">
+    <value>Bağlantı Durumu</value>
+  </data>
+	<data name="UretimDurumu" xml:space="preserve">
+    <value>Üretim Durumu</value>
+  </data>
+	<data name="ProsesYuzdesi" xml:space="preserve">
+    <value>Proses Yüzdesi</value>
+  </data>
+	<data name="AktifAlarmBaslik" xml:space="preserve">
+    <value>Aktif Alarm</value>
+  </data>
+	<data name="AlarmNoFormat" xml:space="preserve">
+    <value>ALARM NO: {0}</value>
+  </data>
+	<data name="AlarmYok" xml:space="preserve">
+    <value>Alarm Yok</value>
+  </data>
+	<data name="AnlikDegerler" xml:space="preserve">
+    <value>Anlık Değerler</value>
+  </data>
+	<data name="OperatorLabel" xml:space="preserve">
+    <value>OPERATÖR</value>
+  </data>
+	<data name="MusteriNoLabel" xml:space="preserve">
+    <value>MÜŞTERİ NO</value>
+  </data>
+	<data name="SiparisNoLabel" xml:space="preserve">
+    <value>SİPARİŞ NO</value>
+  </data>
+	<data name="SuSeviyesiLabel" xml:space="preserve">
+    <value>SU SEVİYESİ</value>
+  </data>
+	<data name="AktifAdimLabel" xml:space="preserve">
+    <value>AKTİF ADIM</value>
+  </data>
+	<data name="PlcReceteAdimlari" xml:space="preserve">
+    <value>PLC'den Okunan Reçete Adımları</value>
+  </data>
+	<data name="ReceteAdimlariOkunuyor" xml:space="preserve">
+    <value>Reçete adımları PLC'den okunuyor...</value>
+  </data>
+	<data name="AktifAdimBulunamadi" xml:space="preserve">
+    <value>Makinede aktif reçete adımı bulunamadı veya tanımlı adım mevcut değil.</value>
+  </data>
+	<data name="AdimSutun" xml:space="preserve">
+    <value>Adım</value>
+  </data>
+	<data name="AciklamaSutun" xml:space="preserve">
+    <value>Açıklama</value>
+  </data>
+	<data name="TanimsizAdim" xml:space="preserve">
+    <value>Tanımsız Adım</value>
+  </data>
+	<data name="AlarmGecmisiTab" xml:space="preserve">
+    <value>Alarm Geçmişi</value>
+  </data>
+	<data name="TrendAnaliziTab" xml:space="preserve">
+    <value>Trend Analizi (Sıcaklık/Su/Devir)</value>
+  </data>
+	<data name="AktifAlarmDurumu" xml:space="preserve">
+    <value>Aktif Alarm Durumu</value>
+  </data>
+	<data name="AktifAlarmLabel" xml:space="preserve">
+    <value>Aktif Alarm:</value>
+  </data>
+	<data name="AktifAlarmYok" xml:space="preserve">
+    <value>Aktif Alarm Yok.</value>
+  </data>
+	<data name="BaglantiBekleniyorAlarm" xml:space="preserve">
+    <value>Bağlantı bekleniyor... Aktif alarm durumu kontrol edilemiyor.</value>
+  </data>
+	<data name="AlarmGecmisiBaslik" xml:space="preserve">
+    <value>Alarm Geçmişi (Son 30 Gün)</value>
+  </data>
+	<data name="AlarmGecmisiYukleniyor" xml:space="preserve">
+    <value>Alarm geçmişi yükleniyor...</value>
+  </data>
+	<data name="GecmisAlarmYok" xml:space="preserve">
+    <value>Bu makine için geçmiş alarm kaydı bulunamadı.</value>
+  </data>
+	<data name="BaslangicZamani" xml:space="preserve">
+    <value>Başlangıç Zamanı</value>
+  </data>
+	<data name="AlarmKodu" xml:space="preserve">
+    <value>Alarm Kodu</value>
+  </data>
+	<data name="Aciklama" xml:space="preserve">
+    <value>Açıklama</value>
+  </data>
+	<data name="Sure" xml:space="preserve">
+    <value>Süre</value>
+  </data>
+	<data name="TrendVerileriYukleniyor" xml:space="preserve">
+    <value>Trend verileri yükleniyor...</value>
+  </data>
+	<data name="TrendVerisiYok" xml:space="preserve">
+    <value>Son 100 dakika için trend verisi bulunamadı.</value>
+  </data>
+	<data name="CanliTrendGrafigi" xml:space="preserve">
+    <value>Canlı Proses Trend Grafiği</value>
+  </data>
+	<data name="CanliTrendAnalizi" xml:space="preserve">
+    <value>Canlı Proses Trend Analizi</value>
+  </data>
+	<data name="AdimTipi_SuAlma" xml:space="preserve">
+    <value>Su Alma</value>
+  </data>
+	<data name="AdimTipi_Isitma" xml:space="preserve">
+    <value>Isıtma</value>
+  </data>
+	<data name="AdimTipi_Calisma" xml:space="preserve">
+    <value>Çalışma</value>
+  </data>
+	<data name="AdimTipi_Dozaj" xml:space="preserve">
+    <value>Dozaj</value>
+  </data>
+	<data name="AdimTipi_Bosaltma" xml:space="preserve">
+    <value>Boşaltma</value>
+  </data>
+	<data name="AdimTipi_Sikma" xml:space="preserve">
+    <value>Sıkma</value>
+  </data>
+	<data name="MakineYonetimiBaslik" xml:space="preserve">
+    <value>Makine Yönetimi</value>
+  </data>
+	<data name="YeniMakineEkleButon" xml:space="preserve">
+    <value>Yeni Makine Ekle</value>
+  </data>
+	<data name="MakinelerYukleniyor" xml:space="preserve">
+    <value>Makineler yükleniyor...</value>
+  </data>
+	<data name="ID" xml:space="preserve">
+    <value>ID</value>
+  </data>
+	<data name="MakineAdi" xml:space="preserve">
+    <value>Makine Adı</value>
+  </data>
+	<data name="IpAdresi" xml:space="preserve">
+    <value>IP Adresi</value>
+  </data>
+	<data name="Port" xml:space="preserve">
+    <value>Port</value>
+  </data>
+	<data name="Tipi" xml:space="preserve">
+    <value>Tipi</value>
+  </data>
+	<data name="Durum" xml:space="preserve">
+    <value>Durum</value>
+  </data>
+	<data name="Islemler" xml:space="preserve">
+    <value>İşlemler</value>
+  </data>
+	<data name="Aktif" xml:space="preserve">
+    <value>Aktif</value>
+  </data>
+	<data name="Pasif" xml:space="preserve">
+    <value>Pasif</value>
+  </data>
+	<data name="Duzenle" xml:space="preserve">
+    <value>Düzenle</value>
+  </data>
+	<data name="Sil" xml:space="preserve">
+    <value>Sil</value>
+  </data>
+	<data name="VeriYuklemeHatasi" xml:space="preserve">
+    <value>Veri yükleme hatası</value>
+  </data>
+	<data name="KaydetmeHatasi" xml:space="preserve">
+    <value>Kaydetme hatası</value>
+  </data>
+	<data name="MakineSilOnay" xml:space="preserve">
+    <value>'{0}' makinesini silmek istediğinizden emin misiniz?</value>
+  </data>
+	<data name="SilmeHatasi" xml:space="preserve">
+    <value>Silme hatası</value>
+  </data>
+	<data name="MaliyetParametreleriBaslik" xml:space="preserve">
+    <value>Maliyet Parametreleri</value>
+  </data>
+	<data name="DegisiklikleriKaydet" xml:space="preserve">
+    <value>Değişiklikleri Kaydet</value>
+  </data>
+	<data name="SistemParaBirimi" xml:space="preserve">
+    <value>Sistem Para Birimi:</value>
+  </data>
+	<data name="SistemParaBirimiInfo" xml:space="preserve">
+    <value>Bu para birimi tüm raporlarda kullanılacaktır.</value>
+  </data>
+	<data name="ParametreAdi" xml:space="preserve">
+    <value>Parametre Adı</value>
+  </data>
+	<data name="BirimMaliyet" xml:space="preserve">
+    <value>Birim Maliyet</value>
+  </data>
+	<data name="Birim" xml:space="preserve">
+    <value>Birim</value>
+  </data>
+	<data name="CarpanKatsayi" xml:space="preserve">
+    <value>Çarpan (Katsayı)</value>
+  </data>
+	<data name="MaliyetAyarlariKaydedildi" xml:space="preserve">
+    <value>Maliyet ayarları başarıyla kaydedildi.</value>
+  </data>
+	<data name="OperatorDuzenleBaslik" xml:space="preserve">
+    <value>Operatör Düzenle</value>
+  </data>
+	<data name="PlcKoduBilgi" xml:space="preserve">
+    <value>Bu ayarlar doğrudan PLC'ye yazılacak şablonlardır.</value>
+  </data>
+	<data name="OperatorAdi" xml:space="preserve">
+    <value>Operatör Adı:</value>
+  </data>
+	<data name="KullaniciIdSayisal" xml:space="preserve">
+    <value>Kullanıcı ID (Sayısal):</value>
+  </data>
+	<data name="SifreSayisal" xml:space="preserve">
+    <value>Şifre (Sayısal):</value>
+  </data>
+	<data name="PlcOperatorYonetimiBaslik" xml:space="preserve">
+    <value>PLC Operatör Yönetimi</value>
+  </data>
+	<data name="VarsayilanEkle" xml:space="preserve">
+    <value>Varsayılan Ekle</value>
+  </data>
+	<data name="OperatorAdi" xml:space="preserve">
+    <value>Operatör Adı</value>
+  </data>
+	<data name="KullaniciId" xml:space="preserve">
+    <value>Kullanıcı ID</value>
+  </data>
+	<data name="Sifre" xml:space="preserve">
+    <value>Şifre</value>
+  </data>
+	<data name="OperatorSilOnay" xml:space="preserve">
+    <value>'{0}' operatörü silinsin mi?</value>
+  </data>
+	<data name="UretimDetayiBaslik" xml:space="preserve">
+    <value>Üretim Detayı</value>
+  </data>
+	<data name="UretimDetayiBulunamadi" xml:space="preserve">
+    <value>Üretim detayı bulunamadı.</value>
+  </data>
+	<data name="UretimDetayRaporuBaslik" xml:space="preserve">
+    <value>Üretim Detay Raporu</value>
+  </data>
+	<data name="ReceteAdiLabel" xml:space="preserve">
+    <value>Reçete Adı</value>
+  </data>
+	<data name="BitisZamani" xml:space="preserve">
+    <value>Bitiş</value>
+  </data>
+	<data name="ToplamSure" xml:space="preserve">
+    <value>Toplam Süre</value>
+  </data>
+	<data name="ExceleAktar" xml:space="preserve">
+    <value>Excel'e Aktar</value>
+  </data>
+	<data name="ProsesZamanCizgisiBaslik" xml:space="preserve">
+    <value>Proses Zaman Çizgisi/Sıcaklık</value>
+  </data>
+	<data name="ZamanCizgisiPlaceholder" xml:space="preserve">
+    <value>Zaman Çizgisi Grafiği burada gösterilecektir.</value>
+  </data>
+	<data name="SureDagilimiBaslik" xml:space="preserve">
+    <value>Süre Dağılımı (Pasta Grafik)</value>
+  </data>
+	<data name="PastaGrafikPlaceholder" xml:space="preserve">
+    <value>Pasta Grafik burada gösterilecektir.</value>
+  </data>
+	<data name="AdimDetaylariBaslik" xml:space="preserve">
+    <value>Adım Detayları</value>
+  </data>
+	<data name="AdimNo" xml:space="preserve">
+    <value>Adım No</value>
+  </data>
+	<data name="TeorikSure" xml:space="preserve">
+    <value>Teorik Süre</value>
+  </data>
+	<data name="GerceklesenSure" xml:space="preserve">
+    <value>Gerçekleşen Süre</value>
+  </data>
+	<data name="Tarih" xml:space="preserve">
+    <value>Tarih</value>
+  </data>
+	<data name="Tip" xml:space="preserve">
+    <value>Tip</value>
+  </data>
+	<data name="UretimDetaylariYukleniyor" xml:space="preserve">
+    <value>Üretim detayları yükleniyor...</value>
+  </data>
+	<data name="HataMakineBatchEksik" xml:space="preserve">
+    <value>Hata: Makine veya Batch ID eksik.</value>
+  </data>
+	<data name="DetaylarBos" xml:space="preserve">
+    <value>Detaylar boş döndü.</value>
+  </data>
+	<data name="VeriYuklemeHatasiMesaj" xml:space="preserve">
+    <value>Veri yüklenirken hata oluştu</value>
+  </data>
+	<data name="ExcelHazirlaniyor" xml:space="preserve">
+    <value>Excel dosyası hazırlanıyor...</value>
+  </data>
+	<data name="ExcelBasarili" xml:space="preserve">
+    <value>Rapor Excel olarak başarıyla dışa aktarıldı (İndirme başlatıldı).</value>
+  </data>
+	<data name="ExcelBos" xml:space="preserve">
+    <value>Excel dosyası boş döndü. (Sunucu hatası)</value>
+  </data>
+	<data name="DisaAktarmaHatasi" xml:space="preserve">
+    <value>Dışa aktarma hatası</value>
+  </data>
+	<data name="AktifCalisma" xml:space="preserve">
+    <value>Aktif Çalışma</value>
+  </data>
+	<data name="MakineAlarm" xml:space="preserve">
+    <value>Makine Alarm</value>
+  </data>
+	<data name="OperatorDuraklama" xml:space="preserve">
+    <value>Operatör Duraklama</value>
+  </data>
+	<data name="VeriYok" xml:space="preserve">
+    <value>Veri Yok</value>
+  </data>
+	<data name="UretimDetayiBaslik" xml:space="preserve">
+    <value>Production Detail</value>
+  </data>
+	<data name="UretimDetayiBulunamadi" xml:space="preserve">
+    <value>Production detail not found.</value>
+  </data>
+	<data name="UretimDetayRaporuBaslik" xml:space="preserve">
+    <value>Production Detail Report</value>
+  </data>
+	<data name="ReceteAdiLabel" xml:space="preserve">
+    <value>Recipe Name</value>
+  </data>
+	<data name="BitisZamani" xml:space="preserve">
+    <value>End Time</value>
+  </data>
+	<data name="ToplamSure" xml:space="preserve">
+    <value>Total Duration</value>
+  </data>
+	<data name="ExceleAktar" xml:space="preserve">
+    <value>Export to Excel</value>
+  </data>
+	<data name="ProsesZamanCizgisiBaslik" xml:space="preserve">
+    <value>Process Timeline/Temperature</value>
+  </data>
+	<data name="ZamanCizgisiPlaceholder" xml:space="preserve">
+    <value>Timeline Chart will be displayed here.</value>
+  </data>
+	<data name="SureDagilimiBaslik" xml:space="preserve">
+    <value>Duration Distribution (Pie Chart)</value>
+  </data>
+	<data name="PastaGrafikPlaceholder" xml:space="preserve">
+    <value>Pie Chart will be displayed here.</value>
+  </data>
+	<data name="AdimDetaylariBaslik" xml:space="preserve">
+    <value>Step Details</value>
+  </data>
+	<data name="AdimNo" xml:space="preserve">
+    <value>Step No</value>
+  </data>
+	<data name="TeorikSure" xml:space="preserve">
+    <value>Theoretical Duration</value>
+  </data>
+	<data name="GerceklesenSure" xml:space="preserve">
+    <value>Actual Duration</value>
+  </data>
+	<data name="Tarih" xml:space="preserve">
+    <value>Date</value>
+  </data>
+	<data name="Tip" xml:space="preserve">
+    <value>Type</value>
+  </data>
+	<data name="UretimDetaylariYukleniyor" xml:space="preserve">
+    <value>Loading production details...</value>
+  </data>
+	<data name="HataMakineBatchEksik" xml:space="preserve">
+    <value>Error: Machine or Batch ID missing.</value>
+  </data>
+	<data name="DetaylarBos" xml:space="preserve">
+    <value>Details returned empty.</value>
+  </data>
+	<data name="VeriYuklemeHatasiMesaj" xml:space="preserve">
+    <value>Error loading data</value>
+  </data>
+	<data name="ExcelHazirlaniyor" xml:space="preserve">
+    <value>Preparing Excel file...</value>
+  </data>
+	<data name="ExcelBasarili" xml:space="preserve">
+    <value>Report successfully exported to Excel (Download started).</value>
+  </data>
+	<data name="ExcelBos" xml:space="preserve">
+    <value>Excel file returned empty. (Server error)</value>
+  </data>
+	<data name="DisaAktarmaHatasi" xml:space="preserve">
+    <value>Export error</value>
+  </data>
+	<data name="AktifCalisma" xml:space="preserve">
+    <value>Active Working</value>
+  </data>
+	<data name="MakineAlarm" xml:space="preserve">
+    <value>Machine Alarm</value>
+  </data>
+	<data name="OperatorDuraklama" xml:space="preserve">
+    <value>Operator Pause</value>
+  </data>
+	<data name="VeriYok" xml:space="preserve">
+    <value>No Data</value>
+  </data>
+	<data name="ProsesKontrolBaslik" xml:space="preserve">
+    <value>Proses Kontrol</value>
+  </data>
+	<data name="RecetelerBaslik" xml:space="preserve">
+    <value>Reçeteler</value>
+  </data>
+	<data name="HedefMakineFiltre" xml:space="preserve">
+    <value>Hedef Makine (Filtre)</value>
+  </data>
+	<data name="TumuSeciniz" xml:space="preserve">
+    <value>Tümü / Seçiniz</value>
+  </data>
+	<data name="Yeni" xml:space="preserve">
+    <value>Yeni</value>
+  </data>
+	<data name="Yenile" xml:space="preserve">
+    <value>Yenile</value>
+  </data>
+	<data name="DuzenlemekIcinReceteSecin" xml:space="preserve">
+    <value>Düzenlemek için bir reçete seçin</value>
+  </data>
+	<data name="FtpSenkronizasyonMerkezi" xml:space="preserve">
+    <value>FTP SENKRONİZASYON MERKEZİ</value>
+  </data>
+	<data name="ReceteAdi" xml:space="preserve">
+    <value>Reçete Adı</value>
+  </data>
+	<data name="IslemlerMenu" xml:space="preserve">
+    <value>İŞLEMLER</value>
+  </data>
+	<data name="SeciliMakineyeGonder" xml:space="preserve">
+    <value>Seçili Makineye Gönder</value>
+  </data>
+	<data name="SeciliMakinedenOku" xml:space="preserve">
+    <value>Seçili Makineden Oku</value>
+  </data>
+	<data name="FtpCokluGonderim" xml:space="preserve">
+    <value>FTP / Çoklu Gönderim</value>
+  </data>
+	<data name="AdimlarBaslik" xml:space="preserve">
+    <value>ADIMLAR</value>
+  </data>
+	<data name="AdimSecUyari" xml:space="preserve">
+    <value>Düzenlemek için soldan bir adım seçiniz.</value>
+  </data>
+	<data name="VerilerYuklenmediUyari" xml:space="preserve">
+    <value>Veriler henüz yüklenmedi, lütfen bekleyin.</value>
+  </data>
+	<data name="OnceMakineSecinUyari" xml:space="preserve">
+    <value>Lütfen önce hedef makineyi seçin.</value>
+  </data>
+	<data name="YeniReceteVarsayilanAd" xml:space="preserve">
+    <value>YENİ REÇETE</value>
+  </data>
+	<data name="YeniReceteOlusturuldu" xml:space="preserve">
+    <value>Yeni reçete oluşturuldu.</value>
+  </data>
+	<data name="ReceteDetaylariYukleniyor" xml:space="preserve">
+    <value>Reçete detayları yükleniyor...</value>
+  </data>
+	<data name="ReceteAdiBosOlamaz" xml:space="preserve">
+    <value>Reçete adı boş olamaz.</value>
+  </data>
+	<data name="ReceteTipiEslesmiyorHata" xml:space="preserve">
+    <value>HATA: Reçete tipi ({0}) seçili makine tipiyle ({1}) eşleşmiyor. Lütfen yeni bir reçete oluşturun veya makine tipini değiştirin.</value>
+  </data>
+	<data name="ReceteKaydediliyor" xml:space="preserve">
+    <value>Reçete kaydediliyor...</value>
+  </data>
+	<data name="ReceteBasariylaKaydedildi" xml:space="preserve">
+    <value>Reçete başarıyla kaydedildi.</value>
+  </data>
+	<data name="KaydetmeBasarisizApi" xml:space="preserve">
+    <value>Kaydetme başarısız oldu. API hatası.</value>
+  </data>
+	<data name="ReceteSilOnay" xml:space="preserve">
+    <value>'{0}' reçetesini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.</value>
+  </data>
+	<data name="ReceteSiliniyor" xml:space="preserve">
+    <value>Reçete siliniyor...</value>
+  </data>
+	<data name="ReceteBasariylaSilindi" xml:space="preserve">
+    <value>Reçete başarıyla silindi.</value>
+  </data>
+	<data name="SilmeBasarisizApi" xml:space="preserve">
+    <value>Silme başarısız oldu. API hatası.</value>
+  </data>
+	<data name="HmiReceteNoGiriniz" xml:space="preserve">
+    <value>HMI Reçete Numarası Giriniz (1-99):</value>
+  </data>
+	<data name="ReceteGonderiliyor" xml:space="preserve">
+    <value>Reçete '{0}' makinesine gönderiliyor...</value>
+  </data>
+	<data name="GonderimBasarili" xml:space="preserve">
+    <value>Gönderim Başarılı!</value>
+  </data>
+	<data name="ReceteOkunuyor" xml:space="preserve">
+    <value>Reçete '{0}' makinesinden okunuyor...</value>
+  </data>
+	<data name="ReceteBasariylaOkundu" xml:space="preserve">
+    <value>Reçete makineden başarıyla okundu. Yeni bir isim verip kaydedin.</value>
+  </data>
+	<data name="PlcOkumaBasarisiz" xml:space="preserve">
+    <value>PLC'den okuma başarısız oldu. Bağlantı/PLC hatası.</value>
+  </data>
+	<data name="OkumaHatasi" xml:space="preserve">
+    <value>Okuma sırasında hata</value>
+  </data>
+	<data name="BilesenlerYukleniyor" xml:space="preserve">
+    <value>Bileşenler yükleniyor...</value>
+  </data>
+	<data name="ReceteAdimTasarimcisiBaslik" xml:space="preserve">
+    <value>Reçete Adım Tasarımcısı</value>
+  </data>
+	<data name="TasarimiKaydet" xml:space="preserve">
+    <value>Tasarımı Kaydet</value>
+  </data>
+	<data name="MakineAltTipi" xml:space="preserve">
+    <value>Makine Alt Tipi:</value>
+  </data>
+	<data name="AdimTipi" xml:space="preserve">
+    <value>Adım Tipi:</value>
+  </data>
+	<data name="Kontroller" xml:space="preserve">
+    <value>Kontroller</value>
+  </data>
+	<data name="Ekle" xml:space="preserve">
+    <value>Ekle</value>
+  </data>
+	<data name="EtiketLabel" xml:space="preserve">
+    <value>Etiket (Label)</value>
+  </data>
+	<data name="SayisalNumeric" xml:space="preserve">
+    <value>Sayısal (Numeric)</value>
+  </data>
+	<data name="OnayKutusuCheckbox" xml:space="preserve">
+    <value>Onay Kutusu (Checkbox)</value>
+  </data>
+	<data name="MetinKutusuTextBox" xml:space="preserve">
+    <value>Metin Kutusu (TextBox)</value>
+  </data>
+	<data name="Tur" xml:space="preserve">
+    <value>Tür</value>
+  </data>
+	<data name="MetinIsim" xml:space="preserve">
+    <value>Metin / İsim</value>
+  </data>
+	<data name="KonumXY" xml:space="preserve">
+    <value>Konum (X,Y)</value>
+  </data>
+	<data name="PlcAdres" xml:space="preserve">
+    <value>PLC Adres</value>
+  </data>
+	<data name="Islem" xml:space="preserve">
+    <value>İşlem</value>
+  </data>
+	<data name="Ozellikler" xml:space="preserve">
+    <value>Özellikler</value>
+  </data>
+	<data name="GorunenMetin" xml:space="preserve">
+    <value>Görünen Metin (Text):</value>
+  </data>
+	<data name="XKonumu" xml:space="preserve">
+    <value>X Konumu:</value>
+  </data>
+	<data name="YKonumu" xml:space="preserve">
+    <value>Y Konumu:</value>
+  </data>
+	<data name="PlcAyarlari" xml:space="preserve">
+    <value>PLC Ayarları</value>
+  </data>
+	<data name="AdresWord" xml:space="preserve">
+    <value>Adres (Word):</value>
+  </data>
+	<data name="Bit015" xml:space="preserve">
+    <value>Bit (0-15):</value>
+  </data>
+	<data name="MaxDeger" xml:space="preserve">
+    <value>Max Değer:</value>
+  </data>
+	<data name="OndalikVirgul" xml:space="preserve">
+    <value>Ondalık (Virgül):</value>
+  </data>
+	<data name="UzunlukWord" xml:space="preserve">
+    <value>Uzunluk (Word):</value>
+  </data>
+	<data name="GorselOnizleme" xml:space="preserve">
+    <value>Görsel Önizleme</value>
+  </data>
+	<data name="DuzenlemekIcinKontrolSec" xml:space="preserve">
+    <value>Düzenlemek için listeden bir kontrol seçin.</value>
+  </data>
+	<data name="DuzenlemekIcinAdimTipiSec" xml:space="preserve">
+    <value>Lütfen düzenlemek için bir Adım Tipi seçin.</value>
+  </data>
+	<data name="BasariylaKaydedildi" xml:space="preserve">
+    <value>Başarıyla kaydedildi!</value>
+  </data>
+	<data name="HataOlustu" xml:space="preserve">
+    <value>Hata Oluştu:</value>
+  </data>
+	<data name="KurutmaAdimiSabit" xml:space="preserve">
+    <value>Bu adım kurutma makinesine aittir. Editör yapısı statiktir.</value>
+  </data>
+	<data name="AdimTipleri" xml:space="preserve">
+    <value>Adım Tipleri</value>
+  </data>
+	<data name="AdimSecimiGecersiz" xml:space="preserve">
+    <value>En fazla 2 farklı işlem türü seçilebilir veya Sıkma/Boşaltma adımları diğer standart adımlarla bir arada seçilemez.</value>
+  </data>
+	<data name="KontrolVerisiYuklemeHatasi" xml:space="preserve">
+    <value>Kontrol verisi API'den yüklenirken hata oluştu</value>
+  </data>
+	<data name="BilesenYuklemeHatasi" xml:space="preserve">
+    <value>Bileşen yüklenirken kritik bir hata oluştu</value>
+  </data>
+	<data name="ServisKayitHatasi" xml:space="preserve">
+    <value>Kritik Hata: ScadaDataService servisi 'Program.cs' içinde kayıtlı değil (Dependency Injection hatası).</value>
+  </data>
+	<data name="JsonIslemeHatasi" xml:space="preserve">
+    <value>API'den gelen JSON işlenemedi (Step ID {0})</value>
+  </data>
+	<data name="DegerDegistirmeHatasi" xml:space="preserve">
+    <value>Değer değiştirilirken hata oluştu</value>
+  </data>
+	<data name="KontrolRenderHatasi" xml:space="preserve">
+    <value>Kontrol '{0}' render edilirken hata oluştu</value>
+  </data>
+	<data name="KontrolYuklenemedi" xml:space="preserve">
+    <value>Kontrol yüklenemedi</value>
+  </data>
+	<data name="YeniKullaniciBaslik" xml:space="preserve">
+    <value>Yeni Kullanıcı</value>
+  </data>
+	<data name="KullaniciDuzenleBaslik" xml:space="preserve">
+    <value>Kullanıcı Düzenle</value>
+  </data>
+	<data name="SifreDegismezseBos" xml:space="preserve">
+    <value>(Değişmeyecekse boş bırakın)</value>
+  </data>
+	<data name="RollerLabel" xml:space="preserve">
+    <value>Roller:</value>
+  </data>
+	<data name="RollerYuklenemedi" xml:space="preserve">
+    <value>Roller yüklenemedi.</value>
+  </data>
+	<data name="AktifKullaniciLabel" xml:space="preserve">
+    <value>Aktif Kullanıcı</value>
+  </data>
+	<data name="UzaktanErisim" xml:space="preserve">
+    <value>Uzaktan Erişim:</value>
+  </data>
+	<data name="BaglantiyiKes" xml:space="preserve">
+    <value>Bağlantıyı Kes</value>
+  </data>
+	<data name="MakineBilgileriYukleniyor" xml:space="preserve">
+    <value>Makine bilgileri yükleniyor...</value>
+  </data>
+	<data name="BaglaniyorNokta" xml:space="preserve">
+    <value>Bağlanıyor...</value>
+  </data>
+	<data name="IsEmriBekliyor" xml:space="preserve">
+    <value>Makine iş emri bekliyor</value>
+  </data>
+	<data name="BatchLabel" xml:space="preserve">
+    <value>Batch:</value>
+  </data>
+	<data name="BaglantiYokKisa" xml:space="preserve">
+    <value>Bağlantı Yok</value>
+  </data>
+	<data name="AnlikDetaylar" xml:space="preserve">
+    <value>Anlık Detaylar</value>
+  </data>
+	<data name="TemelBilgiler" xml:space="preserve">
+    <value>Temel Bilgiler</value>
+  </data>
+	<data name="ProsesBilgileri" xml:space="preserve">
+    <value>Proses Bilgileri</value>
+  </data>
+	<data name="AlarmVar" xml:space="preserve">
+    <value>Alarm Var:</value>
+  </data>
+	<data name="CalismaSuresi" xml:space="preserve">
+    <value>Çalışma Süresi:</value>
+  </data>
+	<data name="Dk" xml:space="preserve">
+    <value>dk</value>
+  </data>
+	<data name="Evet" xml:space="preserve">
+    <value>EVET</value>
+  </data>
+	<data name="Hayir" xml:space="preserve">
+    <value>HAYIR</value>
+  </data>
+	<data name="TamProsesKontrolu" xml:space="preserve">
+    <value>Tam Proses Kontrolü</value>
+  </data>
+	<data name="NavMenu_Dashboard" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+	<data name="NavMenu_ProsesIzleme" xml:space="preserve">
+    <value>Proses İzleme</value>
+  </data>
+	<data name="NavMenu_ProsesKontrol" xml:space="preserve">
+    <value>Proses Kontrol</value>
+  </data>
+	<data name="NavMenu_Raporlar" xml:space="preserve">
+    <value>Raporlar</value>
+  </data>
+	<data name="NavMenu_Ayarlar" xml:space="preserve">
+    <value>Ayarlar</value>
+  </data>
+	<data name="CikisYap" xml:space="preserve">
+    <value>Çıkış Yap</value>
+  </data>
+	<data name="GirisYap" xml:space="preserve">
+    <value>Giriş Yap</value>
+  </data>
+	<data name="RaporlarBaslik" xml:space="preserve">
+    <value>Raporlar</value>
+  </data>
+	<data name="UretimRaporuTab" xml:space="preserve">
+    <value>Üretim Raporu</value>
+  </data>
+	<data name="GecmisAlarmlarTab" xml:space="preserve">
+    <value>Geçmiş Alarmlar</value>
+  </data>
+	<data name="OeeRaporuTab" xml:space="preserve">
+    <value>OEE Raporu</value>
+  </data>
+	<data name="TrendAnaliziTabRaporlar" xml:space="preserve">
+    <value>Trend Analizi</value>
+  </data>
+	<data name="ReceteTuketimAnaliziTab" xml:space="preserve">
+    <value>Reçete Tüketim Analizi</value>
+  </data>
+	<data name="ManuelTuketimTab" xml:space="preserve">
+    <value>Manuel Tüketim</value>
+  </data>
+	<data name="GenelTuketimRaporuTab" xml:space="preserve">
+    <value>Genel Tüketim Raporu</value>
+  </data>
+	<data name="EylemKayitlariTab" xml:space="preserve">
+    <value>Eylem Kayıtları</value>
+  </data>
+	<data name="TarihAraligiLabel" xml:space="preserve">
+    <value>Tarih Aralığı</value>
+  </data>
+	<data name="BaslangicBitisPlaceholder" xml:space="preserve">
+    <value>Başlangıç - Bitiş</value>
+  </data>
+	<data name="MakineLabel" xml:space="preserve">
+    <value>Makine</value>
+  </data>
+	<data name="TumMakineler" xml:space="preserve">
+    <value>TÜM MAKİNELER</value>
+  </data>
+	<data name="ReceteAdiAraPlaceholder" xml:space="preserve">
+    <value>Reçete Adı</value>
+  </data>
+	<data name="DetayliFiltrelerPanel" xml:space="preserve">
+    <value>Detaylı Filtreler (Batch, Sipariş, Operatör)</value>
+  </data>
+	<data name="BatchNoLabel" xml:space="preserve">
+    <value>Batch No</value>
+  </data>
+	<data name="Hesaplaniyor" xml:space="preserve">
+    <value>HESAPLANIYOR...</value>
+  </data>
+	<data name="RaporlaButon" xml:space="preserve">
+    <value>RAPORLA</value>
+  </data>
+	<data name="ExcelIndirButon" xml:space="preserve">
+    <value>EXCEL İNDİR</value>
+  </data>
+	<data name="UretimSonuclariBaslik" xml:space="preserve">
+    <value>Üretim Sonuçları</value>
+  </data>
+	<data name="TablodaAraPlaceholder" xml:space="preserve">
+    <value>Tabloda Ara (Batch, Reçete, Operatör...)</value>
+  </data>
+	<data name="VerilerAnalizEdiliyor" xml:space="preserve">
+    <value>Veriler analiz ediliyor, lütfen bekleyin...</value>
+  </data>
+	<data name="KriterlereUygunKayitYok" xml:space="preserve">
+    <value>Seçilen kriterlere uygun kayıt bulunamadı.</value>
+  </data>
+	<data name="AlarmGecmisiBaslikRaporlar" xml:space="preserve">
+    <value>Alarm Geçmişi</value>
+  </data>
+	<data name="AlarmAraPlaceholder" xml:space="preserve">
+    <value>Alarm Ara (No, Açıklama...)</value>
+  </data>
+	<data name="OeeAnaliziBaslik" xml:space="preserve">
+    <value>OEE Analizi</value>
+  </data>
+	<data name="AraGenelPlaceholder" xml:space="preserve">
+    <value>Ara (Makine, Batch...)</value>
+  </data>
+	<data name="KullanilabilirlikLabel" xml:space="preserve">
+    <value>Kullanılabilirlik (A)</value>
+  </data>
+	<data name="PerformansLabel" xml:space="preserve">
+    <value>Performans (P)</value>
+  </data>
+	<data name="KaliteLabel" xml:space="preserve">
+    <value>Kalite (Q)</value>
+  </data>
+	<data name="AnalizAraligiLabel" xml:space="preserve">
+    <value>Analiz Aralığı</value>
+  </data>
+	<data name="MakineSecimiLabel" xml:space="preserve">
+    <value>Makine Seçimi</value>
+  </data>
+	<data name="MakineSecinizPlaceholder" xml:space="preserve">
+    <value>Makine Seçiniz</value>
+  </data>
+	<data name="AnalizEdiliyor" xml:space="preserve">
+    <value>ANALİZ EDİLİYOR...</value>
+  </data>
+	<data name="TrendiCizButon" xml:space="preserve">
+    <value>TRENDİ ÇİZ</value>
+  </data>
+	<data name="VerilerIsleniyor" xml:space="preserve">
+    <value>Veriler işleniyor, lütfen bekleyin...</value>
+  </data>
+	<data name="IstatistikselOzetBaslik" xml:space="preserve">
+    <value>İstatistiksel Özet</value>
+  </data>
+	<data name="TrendVerisiYokTarih" xml:space="preserve">
+    <value>Bu tarih aralığında kayıtlı proses verisi bulunamadı.</value>
+  </data>
+	<data name="ReceteAraPlaceholder" xml:space="preserve">
+    <value>Reçete Ara...</value>
+  </data>
+	<data name="LutfenReceteSeciniz" xml:space="preserve">
+    <value>Lütfen soldan bir reçete seçiniz.</value>
+  </data>
+	<data name="GecmisUretimKaydiYok" xml:space="preserve">
+    <value>Seçilen reçete için geçmiş üretim kaydı bulunamadı.</value>
+  </data>
+	<data name="OrtalamaSu" xml:space="preserve">
+    <value>ORTALAMA SU</value>
+  </data>
+	<data name="OrtalamaElektrik" xml:space="preserve">
+    <value>ORTALAMA ELEKTRİK</value>
+  </data>
+	<data name="OrtalamaBuhar" xml:space="preserve">
+    <value>ORTALAMA BUHAR</value>
+  </data>
+	<data name="GecmisUretimlerBaslik" xml:space="preserve">
+    <value>Geçmiş Üretimler</value>
+  </data>
+	<data name="ManuelModOzet" xml:space="preserve">
+    <value>Manuel Mod Kullanım Özeti</value>
+  </data>
+	<data name="RaporAraligi" xml:space="preserve">
+    <value>Rapor Aralığı:</value>
+  </data>
+	<data name="OrtalamaDevir" xml:space="preserve">
+    <value>ORTALAMA DEVİR</value>
+  </data>
+	<data name="ManuelKayitYok" xml:space="preserve">
+    <value>Seçilen kriterlere uygun manuel çalışma kaydı bulunamadı.</value>
+  </data>
+	<data name="TuketimTipiLabel" xml:space="preserve">
+    <value>Tüketim Tipi</value>
+  </data>
+	<data name="ElektrikKw" xml:space="preserve">
+    <value>Elektrik (kW)</value>
+  </data>
+	<data name="SuLitre" xml:space="preserve">
+    <value>Su (Litre)</value>
+  </data>
+	<data name="BuharKg" xml:space="preserve">
+    <value>Buhar (kg)</value>
+  </data>
+	<data name="MakinelerCokluSecim" xml:space="preserve">
+    <value>Makineler (Çoklu Seçim)</value>
+  </data>
+	<data name="DetayliTuketimRaporuBaslik" xml:space="preserve">
+    <value>Detaylı Tüketim Raporu</value>
+  </data>
+	<data name="IslemDetayiArama" xml:space="preserve">
+    <value>İşlem Detayı (Kısmi Arama)</value>
+  </data>
+	<data name="KullaniciHareketleriBaslik" xml:space="preserve">
+    <value>Kullanıcı Hareketleri</value>
+  </data>
+	<data name="KayitlardaAraPlaceholder" xml:space="preserve">
+    <value>Kayıtlarda Ara...</value>
+  </data>
+	<data name="Zaman" xml:space="preserve">
+    <value>Zaman</value>
+  </data>
+	<data name="IslemTipi" xml:space="preserve">
+    <value>İşlem Tipi</value>
+  </data>
+	<data name="AktarilacakVeriYok" xml:space="preserve">
+    <value>Aktarılacak rapor verisi bulunmamaktadır. Lütfen önce rapor oluşturun.</value>
+  </data>
+	<data name="LutfenEnAzBirMakineSecin" xml:space="preserve">
+    <value>Lütfen en az bir makine seçin.</value>
+  </data>
+	<data name="Turkce" xml:space="preserve">
+    <value>Türkçe</value>
+  </data>
+	<data name="Ingilizce" xml:space="preserve">
+    <value>İngilizce</value>
+  </data>
+	<!-- DB'den Gelen Değerler İçin Çeviriler -->
+	<data name="Dosage" xml:space="preserve">
+    <value>Dozaj</value>
+  </data>
+	<data name="Heating" xml:space="preserve">
+    <value>Isıtma</value>
+  </data>
+	<data name="Filling" xml:space="preserve">
+    <value>Su Alma</value>
+  </data>
+	<data name="Drain" xml:space="preserve">
+    <value>Boşaltma</value>
+  </data>
+	<data name="Circulation" xml:space="preserve">
+    <value>Çalışma (Devirdaim)</value>
+  </data>
+	<data name="Spin" xml:space="preserve">
+    <value>Sıkma</value>
+  </data>
+	<!-- Makine Alt Tipleri İçin Örnek -->
+	<data name="Yilmak_100kg" xml:space="preserve">
+    <value>Yılmak 100KG (Standart)</value>
+  </data>
+	<data name="Dosage" xml:space="preserve">
+    <value>Dosage</value>
+  </data>
+	<data name="Heating" xml:space="preserve">
+    <value>Heating</value>
+  </data>
+	<data name="Filling" xml:space="preserve">
+    <value>Filling</value>
+  </data>
+	<data name="Drain" xml:space="preserve">
+    <value>Drain</value>
+  </data>
+	<data name="Circulation" xml:space="preserve">
+    <value>Circulation</value>
+  </data>
+	<data name="Spin" xml:space="preserve">
+    <value>Spin</value>
+  </data>
+	<data name="Yilmak_100kg" xml:space="preserve">
+    <value>Yilmak 100KG (Standard)</value>
+  </data>
+</root>

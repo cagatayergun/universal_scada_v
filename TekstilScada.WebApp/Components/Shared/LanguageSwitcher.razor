@@ -1,0 +1,35 @@
+﻿@using System.Globalization
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
+@inject NavigationManager NavManager
+@inject IStringLocalizer<SharedResource> Loc
+
+<MudMenu Icon="@Icons.Material.Filled.Language" Color="Color.Inherit" Direction="Direction.Bottom" OffsetY="true" Dense="true">
+    <MudMenuItem OnClick="@(() => ChangeLanguage("tr-TR"))">
+        <div class="d-flex align-center">
+            <MudIcon Icon="@Icons.Material.Filled.Flag" Class="mr-2" Size="Size.Small" Color="Color.Info" />
+            @Loc["Turkce"]
+        </div>
+    </MudMenuItem>
+    <MudMenuItem OnClick="@(() => ChangeLanguage("en-US"))">
+        <div class="d-flex align-center">
+            <MudIcon Icon="@Icons.Material.Outlined.Flag" Class="mr-2" Size="Size.Small" Color="Color.Error" />
+            @Loc["Ingilizce"]
+        </div>
+    </MudMenuItem>
+</MudMenu>
+
+@code {
+    private void ChangeLanguage(string culture)
+    {
+        // Mevcut URL'yi al
+        var uri = new Uri(NavManager.Uri)
+            .GetComponents(UriComponents.PathAndQuery, UriFormat.Unescaped);
+
+        // Controller'a gidecek sorguyu hazırla
+        var query = $"?culture={Uri.EscapeDataString(culture)}&redirectUri={Uri.EscapeDataString(uri)}";
+
+        // Sayfayı yenilemeye zorlayarak (forceLoad: true) Controller'a git
+        NavManager.NavigateTo("/Culture/Set" + query, forceLoad: true);
+    }
+}

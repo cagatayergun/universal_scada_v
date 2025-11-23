@@ -4,20 +4,23 @@
 @using TekstilScada.Models
 @using TekstilScada.WebApp.Services
 @using TekstilScada.WebApp.Components.Shared
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
 @inject ScadaDataService ScadaDataService
 @inject IJSRuntime JSRuntime
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IStringLocalizer<SharedResource> Loc
 
-<PageTitle>Proses Kontrol</PageTitle>
+<PageTitle>@Loc["ProsesKontrolBaslik"]</PageTitle>
 
 <MudGrid Class="h-100">
     <MudItem xs="12" md="3" Class="d-flex flex-column gap-2">
         <MudPaper Elevation="3" Class="pa-3 flex-grow-1 d-flex flex-column" Style="height: calc(100vh - 100px);">
-            <MudText Typo="Typo.h6" Class="mb-2">Reçeteler</MudText>
+            <MudText Typo="Typo.h6" Class="mb-2">@Loc["RecetelerBaslik"]</MudText>
 
-            <MudSelect T="int" Label="Hedef Makine (Filtre)" @bind-Value="SelectedMachineId" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" AnchorOrigin="Origin.BottomCenter">
-                <MudSelectItem Value="0">Tümü / Seçiniz</MudSelectItem>
+            <MudSelect T="int" Label="@Loc["HedefMakineFiltre"]" @bind-Value="SelectedMachineId" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" AnchorOrigin="Origin.BottomCenter">
+                <MudSelectItem Value="0">@Loc["TumuSeciniz"]</MudSelectItem>
                 @if (machines != null)
                 {
                     foreach (var machine in machines)
@@ -28,9 +31,9 @@
             </MudSelect>
 
             <MudButtonGroup Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Class="mb-3 w-100">
-                <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="AddNewRecipe" Disabled="@(selectedMachine == null)">Yeni</MudButton>
-                <MudButton StartIcon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" OnClick="DeleteSelectedRecipe" Disabled="@(selectedRecipe == null)">Sil</MudButton>
-                <MudButton StartIcon="@Icons.Material.Filled.Refresh" Color="MudBlazor.Color.Secondary" OnClick="LoadRecipes">Yenile</MudButton>
+                <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="AddNewRecipe" Disabled="@(selectedMachine == null)">@Loc["Yeni"]</MudButton>
+                <MudButton StartIcon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" OnClick="DeleteSelectedRecipe" Disabled="@(selectedRecipe == null)">@Loc["Sil"]</MudButton>
+                <MudButton StartIcon="@Icons.Material.Filled.Refresh" Color="MudBlazor.Color.Secondary" OnClick="LoadRecipes">@Loc["Yenile"]</MudButton>
             </MudButtonGroup>
 
             <MudList T="string" Clickable="true" Dense="true" Class="flex-grow-1 overflow-auto border rounded">
@@ -58,10 +61,10 @@
             {
                 <div class="d-flex flex-column align-center justify-center h-100" style="opacity:0.5">
                     <MudIcon Icon="@Icons.Material.Filled.EditNote" Size="MudBlazor.Size.Large" style="font-size: 5rem;" />
-                    <MudText Typo="Typo.h5" Class="mt-3">Düzenlemek için bir reçete seçin</MudText>
+                    <MudText Typo="Typo.h5" Class="mt-3">@Loc["DuzenlemekIcinReceteSecin"]</MudText>
 
                     <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Info" StartIcon="@Icons.Material.Filled.CloudSync" OnClick="OpenFtpSync" Class="mt-4">
-                        FTP SENKRONİZASYON MERKEZİ
+                        @Loc["FtpSenkronizasyonMerkezi"]
                     </MudButton>
                 </div>
             }
@@ -69,16 +72,16 @@
             {
                 <MudGrid Class="mb-4 align-center">
                     <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="selectedRecipe.RecipeName" Label="Reçete Adı" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudTextField @bind-Value="selectedRecipe.RecipeName" Label="@Loc["ReceteAdi"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
                     </MudItem>
                     <MudItem xs="12" md="6" Class="d-flex justify-end gap-2">
-                        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveCurrentRecipe" Disabled="@isBusy">KAYDET</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveCurrentRecipe" Disabled="@isBusy">@Loc["Kaydet"]</MudButton>
 
-                        <MudMenu Label="İŞLEMLER" Variant="Variant.Filled" Color="MudBlazor.Color.Info" EndIcon="@Icons.Material.Filled.KeyboardArrowDown">
-                            <MudMenuItem OnClick="SendToPlc" Icon="@Icons.Material.Filled.Upload" Disabled="@(SelectedMachineId == 0)">Seçili Makineye Gönder</MudMenuItem>
-                            <MudMenuItem OnClick="ReadFromPlc" Icon="@Icons.Material.Filled.Download" Disabled="@(SelectedMachineId == 0)">Seçili Makineden Oku</MudMenuItem>
+                        <MudMenu Label="@Loc["IslemlerMenu"]" Variant="Variant.Filled" Color="MudBlazor.Color.Info" EndIcon="@Icons.Material.Filled.KeyboardArrowDown">
+                            <MudMenuItem OnClick="SendToPlc" Icon="@Icons.Material.Filled.Upload" Disabled="@(SelectedMachineId == 0)">@Loc["SeciliMakineyeGonder"]</MudMenuItem>
+                            <MudMenuItem OnClick="ReadFromPlc" Icon="@Icons.Material.Filled.Download" Disabled="@(SelectedMachineId == 0)">@Loc["SeciliMakinedenOku"]</MudMenuItem>
                             <MudDivider />
-                            <MudMenuItem OnClick="OpenFtpSync" Icon="@Icons.Material.Filled.CloudSync">FTP / Çoklu Gönderim</MudMenuItem>
+                            <MudMenuItem OnClick="OpenFtpSync" Icon="@Icons.Material.Filled.CloudSync">@Loc["FtpCokluGonderim"]</MudMenuItem>
                         </MudMenu>
                     </MudItem>
                 </MudGrid>
@@ -94,7 +97,7 @@
                     <MudGrid>
                         <MudItem xs="12" md="3">
                             <MudPaper Class="border pa-2" Style="max-height: 500px; overflow-y: auto;">
-                                <MudText Typo="Typo.subtitle2" Align="MudBlazor.Align.Center" Class="mb-2">ADIMLAR</MudText>
+                                <MudText Typo="Typo.subtitle2" Align="MudBlazor.Align.Center" Class="mb-2">@Loc["AdimlarBaslik"]</MudText>
                                 <MudList T="string" Clickable="true" Dense="true">
                                     @foreach (var step in selectedRecipe.Steps.OrderBy(s => s.StepNumber))
                                     {
@@ -118,7 +121,7 @@
                             }
                             else
                             {
-                                <MudAlert Severity="Severity.Info" Variant="Variant.Filled">Düzenlemek için soldan bir adım seçiniz.</MudAlert>
+                                <MudAlert Severity="Severity.Info" Variant="Variant.Filled">@Loc["AdimSecUyari"]</MudAlert>
                             }
                         </MudItem>
                     </MudGrid>
@@ -131,8 +134,7 @@
 
 
 @code {
-    private List<ScadaRecipe>?
- recipes;
+    private List<ScadaRecipe>? recipes;
     private List<ScadaRecipe> filteredRecipes = new();
     private List<Machine>? machines;
     private ScadaRecipe? selectedRecipe; // Sayfa açılışında null
@@ -142,15 +144,14 @@
     private string statusMessage = string.Empty;
     private bool showFtpModal = false;
 
-    private Machine?
- selectedMachine;
+    private Machine? selectedMachine;
 
     // YENİ: FTP Penceresini Açma Metodu
     private async Task OpenFtpSync()
     {
         if (recipes == null || machines == null)
         {
-            Snackbar.Add("Veriler henüz yüklenmedi, lütfen bekleyin.", Severity.Warning);
+            Snackbar.Add(Loc["VerilerYuklenmediUyari"], Severity.Warning);
             return;
         }
 
@@ -166,11 +167,10 @@
             MaxWidth = MaxWidth.ExtraLarge,
             FullWidth = true,
             CloseButton = true,
-            // DÜZELTME: DisableBackdropClick yerine BackdropClick = false kullanılıyor (MudBlazor v7+)
             BackdropClick = false
         };
 
-        var dialog = await DialogService.ShowAsync<FtpSyncModal>("FTP Senkronizasyon Merkezi", parameters, options);
+        var dialog = await DialogService.ShowAsync<FtpSyncModal>(Loc["FtpSenkronizasyonMerkezi"], parameters, options);
     }
     private string GetMachineFilterType(Machine? machine)
     {
@@ -196,13 +196,13 @@
     protected override async Task OnInitializedAsync()
     {
         isBusy = true;
-        statusMessage = "Bileşenler yükleniyor...";
+        statusMessage = Loc["BilesenlerYukleniyor"];
 
         // 1. Makineler yükleniyor (selectedMachineId = 0 olarak kalır)
         await LoadMachines();
 
         // 2. Reçeteler yükleniyor
-       await LoadRecipes();
+        await LoadRecipes();
         isBusy = false;
 
         // 3. İlk filtrelemeyi yap. Sayfa boş açılsın diye selectedRecipe = null
@@ -247,12 +247,12 @@
         selectedStep = null;
 
         // 0. Hiç makine seçilmediyse, tüm reçeteleri göster (filtresiz)
-       if (SelectedMachineId == 0 || machines == null || recipes == null)
-       {
-           filteredRecipes = new List<ScadaRecipe>();
-           StateHasChanged();
-           return;
-      }
+        if (SelectedMachineId == 0 || machines == null || recipes == null)
+        {
+            filteredRecipes = new List<ScadaRecipe>();
+            StateHasChanged();
+            return;
+        }
 
         var machine = machines.FirstOrDefault(m => m.Id == SelectedMachineId);
         if (machine == null)
@@ -282,7 +282,7 @@
         selectedStep = null;
         if (selectedMachine == null)
         {
-            statusMessage = "Lütfen önce hedef makineyi seçin.";
+            statusMessage = Loc["OnceMakineSecinUyari"];
             return;
         }
 
@@ -290,19 +290,18 @@
 
         selectedRecipe = new ScadaRecipe
         {
-            RecipeName = "YENİ REÇETE",
+            RecipeName = Loc["YeniReceteVarsayilanAd"],
             TargetMachineType = targetType
         };
 
-        int stepCount = (selectedMachine?.MachineType == "Kurutma Makinesi") ?
- 1 : 98;
+        int stepCount = (selectedMachine?.MachineType == "Kurutma Makinesi") ? 1 : 98;
 
         selectedRecipe.Steps.Clear();
         for (int i = 1; i <= stepCount; i++)
         {
             selectedRecipe.Steps.Add(new ScadaRecipeStep { StepNumber = i, StepDataWords = new short[25] });
         }
-        statusMessage = "Yeni reçete oluşturuldu.";
+        statusMessage = Loc["YeniReceteOlusturuldu"];
         StateHasChanged();
     }
 
@@ -313,7 +312,7 @@
         if (selectedRecipe?.Id == recipeId && isFromList) return;
 
         isBusy = true;
-        statusMessage = "Reçete detayları yükleniyor...";
+        statusMessage = Loc["ReceteDetaylariYukleniyor"];
         selectedStep = null;
 
         selectedRecipe = await ScadaDataService.GetRecipeDetailsAsync(recipeId);
@@ -333,18 +332,18 @@
         if (selectedRecipe == null) return;
         if (string.IsNullOrWhiteSpace(selectedRecipe.RecipeName))
         {
-            statusMessage = "Reçete adı boş olamaz.";
+            statusMessage = Loc["ReceteAdiBosOlamaz"];
             return;
         }
 
         if (selectedMachine != null && selectedRecipe.TargetMachineType != GetMachineFilterType(selectedMachine))
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"HATA: Reçete tipi ({selectedRecipe.TargetMachineType}) seçili makine tipiyle ({GetMachineFilterType(selectedMachine)}) eşleşmiyor. Lütfen yeni bir reçete oluşturun veya makine tipini değiştirin.");
+            await JSRuntime.InvokeVoidAsync("alert", string.Format(Loc["ReceteTipiEslesmiyorHata"], selectedRecipe.TargetMachineType, GetMachineFilterType(selectedMachine)));
             return;
         }
 
         isBusy = true;
-        statusMessage = "Reçete kaydediliyor...";
+        statusMessage = Loc["ReceteKaydediliyor"];
         StateHasChanged();
 
         try
@@ -355,17 +354,17 @@
                 selectedRecipe = savedRecipe;
                 await LoadRecipes();
                 FilterRecipesByMachine(autoSelectFirst: false);
-                statusMessage = "Reçete başarıyla kaydedildi.";
-                await JSRuntime.InvokeVoidAsync("alert", "Reçete başarıyla kaydedildi.");
+                statusMessage = Loc["ReceteBasariylaKaydedildi"];
+                await JSRuntime.InvokeVoidAsync("alert", Loc["ReceteBasariylaKaydedildi"].Value);
             }
             else
             {
-                statusMessage = "Kaydetme başarısız oldu. API hatası.";
+                statusMessage = Loc["KaydetmeBasarisizApi"];
             }
         }
         catch (Exception ex)
         {
-            statusMessage = $"Kaydetme sırasında hata: {ex.Message}";
+            statusMessage = $"{Loc["KaydetmeHatasi"]}: {ex.Message}";
         }
         finally
         {
@@ -378,12 +377,12 @@
     {
         if (selectedRecipe == null) return;
 
-        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"'{selectedRecipe.RecipeName}' reçetesini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.");
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", string.Format(Loc["ReceteSilOnay"], selectedRecipe.RecipeName));
 
         if (!confirmed) return;
 
         isBusy = true;
-        statusMessage = "Reçete siliniyor...";
+        statusMessage = Loc["ReceteSiliniyor"];
         StateHasChanged();
 
         try
@@ -396,17 +395,17 @@
                 selectedStep = null;
                 await LoadRecipes();
                 FilterRecipesByMachine(autoSelectFirst: true);
-                statusMessage = "Reçete başarıyla silindi.";
-                await JSRuntime.InvokeVoidAsync("alert", "Reçete başarıyla silindi.");
+                statusMessage = Loc["ReceteBasariylaSilindi"];
+                await JSRuntime.InvokeVoidAsync("alert", Loc["ReceteBasariylaSilindi"].Value);
             }
             else
             {
-                statusMessage = "Silme başarısız oldu. API hatası.";
+                statusMessage = Loc["SilmeBasarisizApi"];
             }
         }
         catch (Exception ex)
         {
-            statusMessage = $"Silme sırasında hata: {ex.Message}";
+            statusMessage = $"{Loc["SilmeHatasi"]}: {ex.Message}";
         }
         finally
         {
@@ -415,8 +414,8 @@
         }
     }
 
-   
-        private async Task SendToPlc()
+
+    private async Task SendToPlc()
     {
         if (selectedRecipe == null || selectedMachine == null) return;
 
@@ -424,9 +423,7 @@
         if (selectedMachine.MachineType == "BYMakinesi")
         {
             // BY Makinesi için Numara Girme Dialogu
-            // MudBlazor Dialog servisini kullanabiliriz veya basit bir JS prompt
-            // Şimdilik basitlik için JS prompt kullanalım
-            string recipeNoStr = await JSRuntime.InvokeAsync<string>("prompt", "HMI Reçete Numarası Giriniz (1-99):");
+            string recipeNoStr = await JSRuntime.InvokeAsync<string>("prompt", Loc["HmiReceteNoGiriniz"].Value);
 
             if (int.TryParse(recipeNoStr, out int recipeNo) && recipeNo >= 1 && recipeNo <= 99)
             {
@@ -434,23 +431,23 @@
                 StateHasChanged();
 
                 // İLERLEME GÖSTERİMİ (Snackbar ile)
-                Snackbar.Add($"Reçete '{selectedMachine.MachineName}' makinesine gönderiliyor...", Severity.Info);
+                Snackbar.Add(string.Format(Loc["ReceteGonderiliyor"], selectedMachine.MachineName), Severity.Info);
 
                 try
                 {
                     string remoteFileName = string.Format("XPR{0:D5}.csv", recipeNo);
-                    bool success = await ScadaDataService.QueueReceiveJobsAsync(new List<string> { remoteFileName }, selectedMachine.Id); // Buradaki metot adını kontrol edin, Send için uygun olanı kullanın
-                                                                                                                                          // Not: ScadaDataService'deki Send metodunu kullanmalısınız, örnekte QueueReceive var.
-                                                                                                                                          // Doğrusu: await ScadaDataService.SendRecipeToPlcAsync(...) olmalı
+                    bool success = await ScadaDataService.QueueReceiveJobsAsync(new List<string> { remoteFileName }, selectedMachine.Id);
+                    // Not: Yukarıdaki satır orijinal kodda QueueReceiveJobsAsync olarak kalmış. Eğer Send (Gönderim) ise ilgili Send metodunun kullanılması gerekir.
+                    // Orijinal kodu bozmamak için burada bırakıyorum.
 
                     // Simülasyon
                     await Task.Delay(1000);
 
-                    Snackbar.Add("Gönderim Başarılı!", Severity.Success);
+                    Snackbar.Add(Loc["GonderimBasarili"], Severity.Success);
                 }
                 catch (Exception ex)
                 {
-                    Snackbar.Add($"Hata: {ex.Message}", Severity.Error);
+                    Snackbar.Add($"{Loc["Hata"]}: {ex.Message}", Severity.Error);
                 }
                 finally
                 {
@@ -471,7 +468,7 @@
         if (selectedMachine == null) return;
 
         isBusy = true;
-        statusMessage = $"Reçete '{selectedMachine.MachineName}' makinesinden okunuyor...";
+        statusMessage = string.Format(Loc["ReceteOkunuyor"], selectedMachine.MachineName);
         selectedRecipe = null;
         StateHasChanged();
 
@@ -485,18 +482,18 @@
                 recipeFromPlc.TargetMachineType = GetMachineFilterType(selectedMachine);
                 selectedRecipe = recipeFromPlc;
                 selectedStep = null;
-                statusMessage = $"Reçete makineden başarıyla okundu. Yeni bir isim verip kaydedin.";
+                statusMessage = Loc["ReceteBasariylaOkundu"];
                 await JSRuntime.InvokeVoidAsync("alert", statusMessage);
             }
             else
             {
-                statusMessage = "PLC'den okuma başarısız oldu. Bağlantı/PLC hatası.";
+                statusMessage = Loc["PlcOkumaBasarisiz"];
                 await JSRuntime.InvokeVoidAsync("alert", statusMessage);
             }
         }
         catch (Exception ex)
         {
-            statusMessage = $"Okuma sırasında hata: {ex.Message}";
+            statusMessage = $"{Loc["OkumaHatasi"]}: {ex.Message}";
             await JSRuntime.InvokeVoidAsync("alert", statusMessage);
         }
         finally
@@ -511,12 +508,12 @@
     {
         var stepTypes = new List<string>();
         short controlWord = step.StepDataWords.Length > 24 ? step.StepDataWords[24] : (short)0;
-        if ((controlWord & 1) != 0) stepTypes.Add("Su Alma");
-        if ((controlWord & 2) != 0) stepTypes.Add("Isıtma");
-        if ((controlWord & 4) != 0) stepTypes.Add("Çalışma");
-        if ((controlWord & 8) != 0) stepTypes.Add("Dozaj");
-        if ((controlWord & 16) != 0) stepTypes.Add("Boşaltma");
-        if ((controlWord & 32) != 0) stepTypes.Add("Sıkma");
+        if ((controlWord & 1) != 0) stepTypes.Add(Loc["AdimTipi_SuAlma"]);
+        if ((controlWord & 2) != 0) stepTypes.Add(Loc["AdimTipi_Isitma"]);
+        if ((controlWord & 4) != 0) stepTypes.Add(Loc["AdimTipi_Calisma"]);
+        if ((controlWord & 8) != 0) stepTypes.Add(Loc["AdimTipi_Dozaj"]);
+        if ((controlWord & 16) != 0) stepTypes.Add(Loc["AdimTipi_Bosaltma"]);
+        if ((controlWord & 32) != 0) stepTypes.Add(Loc["AdimTipi_Sikma"]);
         return stepTypes.Any() ? string.Join(" + ", stepTypes) : "";
     }
 }

@@ -1,36 +1,40 @@
 ﻿@using TekstilScada.Models
 @using Microsoft.AspNetCore.Components.Forms
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SharedResource> Loc
 
 <div class="modal fade show" style="display:block; background-color: rgba(0,0,0,0.5);" role="dialog">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">@(Alarm.Id == 0 ? "Yeni Alarm Tanımı" : "Alarm Düzenle")</h5>
+                @* Başlık: Yeni ise 'AlarmTanimBaslik', Eski ise 'AlarmDuzenleBaslik' *@
+                <h5 class="modal-title">@(Alarm.Id == 0 ? Loc["AlarmTanimBaslik"] : Loc["AlarmDuzenleBaslik"])</h5>
                 <button type="button" class="btn-close" @onclick="Close"></button>
             </div>
             <EditForm Model="@Alarm" OnValidSubmit="SaveChanges">
                 <DataAnnotationsValidator />
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Alarm Numarası (PLC Kodu):</label>
+                        <label class="form-label">@Loc["PlcKodu"]:</label>
                         <InputNumber @bind-Value="Alarm.AlarmNumber" class="form-control" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Alarm Metni:</label>
+                        <label class="form-label">@Loc["AlarmMetni"]:</label>
                         <InputTextArea @bind-Value="Alarm.AlarmText" class="form-control" rows="3" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Önem Derecesi:</label>
+                        <label class="form-label">@Loc["OnemDerecesi"]:</label>
                         <InputSelect @bind-Value="Alarm.Severity" class="form-select">
-                            <option value="1">Bilgi (Düşük)</option>
-                            <option value="2">Uyarı (Orta)</option>
-                            <option value="3">Kritik (Yüksek)</option>
+                            <option value="1">@Loc["Sev_Dusuk"]</option>
+                            <option value="2">@Loc["Sev_Orta"]</option>
+                            <option value="3">@Loc["Sev_Yuksek"]</option>
                         </InputSelect>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="Close">İptal</button>
-                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                    <button type="button" class="btn btn-secondary" @onclick="Close">@Loc["Iptal"]</button>
+                    <button type="submit" class="btn btn-primary">@Loc["Kaydet"]</button>
                 </div>
             </EditForm>
         </div>

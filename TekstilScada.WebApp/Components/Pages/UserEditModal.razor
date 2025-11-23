@@ -2,6 +2,9 @@
 @using TekstilScada.WebApp.Models
 @using TekstilScada.WebApp.Services
 @using Microsoft.AspNetCore.Components.Forms
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SharedResource> Loc
 
 @if (Model != null)
 {
@@ -9,29 +12,29 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">@(Model.Id == 0 ? "Yeni Kullanıcı" : "Kullanıcı Düzenle")</h5>
+                    <h5 class="modal-title">@(Model.Id == 0 ? Loc["YeniKullaniciBaslik"] : Loc["KullaniciDuzenleBaslik"])</h5>
                     <button type="button" class="btn-close" @onclick="Close"></button>
                 </div>
                 <EditForm Model="@Model" OnValidSubmit="SaveChanges">
                     <DataAnnotationsValidator />
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label class="form-label">Ad Soyad:</label>
+                            <label class="form-label">@Loc["AdSoyad"]:</label>
                             <InputText @bind-Value="Model.FullName" class="form-control" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Kullanıcı Adı:</label>
+                            <label class="form-label">@Loc["KullaniciAdiLabel"]:</label>
                             <InputText @bind-Value="Model.Username" class="form-control" />
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Şifre @(Model.Id > 0 ? "(Değişmeyecekse boş bırakın)" : ""):</label>
+                            <label class="form-label">@Loc["SifreLabel"] @(Model.Id > 0 ? Loc["SifreDegismezseBos"] : ""):</label>
                             <InputText @bind-Value="Model.Password" type="password" class="form-control" />
                         </div>
 
                         @* --- ÇOKLU ROL SEÇİMİ ALANI --- *@
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Roller:</label>
+                            <label class="form-label fw-bold">@Loc["RollerLabel"]</label>
                             <div class="card p-2" style="max-height: 150px; overflow-y: auto;">
                                 @if (Roles != null)
                                 {
@@ -51,21 +54,21 @@
                                 }
                                 else
                                 {
-                                    <p class="text-muted">Roller yüklenemedi.</p>
+                                    <p class="text-muted">@Loc["RollerYuklenemedi"]</p>
                                 }
                             </div>
                         </div>
 
                         <div class="form-check mb-3">
                             <InputCheckbox @bind-Value="Model.IsActive" class="form-check-input" />
-                            <label class="form-check-label">Aktif Kullanıcı</label>
+                            <label class="form-check-label">@Loc["AktifKullaniciLabel"]</label>
                         </div>
 
                         <ValidationSummary />
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" @onclick="Close">İptal</button>
-                        <button type="submit" class="btn btn-primary">Kaydet</button>
+                        <button type="button" class="btn btn-secondary" @onclick="Close">@Loc["Iptal"]</button>
+                        <button type="submit" class="btn btn-primary">@Loc["Kaydet"]</button>
                     </div>
                 </EditForm>
             </div>

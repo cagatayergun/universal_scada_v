@@ -3,8 +3,11 @@
 @using TekstilScada.Models
 @using TekstilScada.WebApp.Services
 @using TekstilScada.WebApp.Components.Shared
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
 @inject ScadaDataService ScadaDataService
 @inject NavigationManager NavManager
+@inject IStringLocalizer<SharedResource> Loc
 @implements IDisposable
 
 @* 1. Detay Modalını Sayfaya Ekle *@
@@ -12,13 +15,13 @@
                          MachineId="selectedMachineId"
                          OnClose="HandleModalClose" />
 
-<PageTitle>Genel Bakış</PageTitle>
+<PageTitle>@Loc["GenelBakis"]</PageTitle>
 
-<h1>Genel Makine Durumu</h1>
+<h1>@Loc["GenelMakineDurumu"]</h1>
 
 @if (ScadaDataService.MachineData.IsEmpty)
 {
-    <p><em>Makinelerden veri bekleniyor... (WebAPI projesinin çalıştığından emin olun)</em></p>
+    <p><em>@Loc["VeriBekleniyorDetay"]</em></p>
 }
 else
 {
@@ -28,7 +31,7 @@ else
             <MachineCard MachineStatus="machineStatus"
                          @key="machineStatus.MachineId"
                          @onclick="() => NavigateToDetail(machineStatus.MachineId)"
-                         OnInfoClickAction="(id) => HandleInfoClickAction(id)" /> @* <-- DÜZELTME: Yeni Action parametresi kullanıldı *@
+                         OnInfoClickAction="(id) => HandleInfoClickAction(id)" />
         }
     </div>
 }
@@ -47,13 +50,10 @@ else
         InvokeAsync(StateHasChanged);
     }
 
-    // YENİ METOT: Action delegate'e karşılık gelir (Action olduğu için async/Task değil, void olmalıdır)
     private void HandleInfoClickAction(int machineId)
     {
         selectedMachineId = machineId;
         showDetailModal = true;
-
-        // Action metotları doğrudan UI thread'inde çalışır, bu yüzden InvokeAsync yeterlidir.
         InvokeAsync(StateHasChanged);
     }
 

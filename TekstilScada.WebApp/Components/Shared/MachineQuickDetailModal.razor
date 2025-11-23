@@ -1,6 +1,9 @@
 ﻿@using TekstilScada.Models
 @using TekstilScada.WebApp.Services
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
 @inject ScadaDataService ScadaService
+@inject IStringLocalizer<SharedResource> Loc
 @implements IDisposable
 
 
@@ -8,72 +11,72 @@
 {
     // Modal Arka Planı
     <div class="modal fade show d-block" tabindex="-1" role="dialog" @onclick="Close">
-     
+
         <div class="modal-dialog modal-lg" role="document" @onclick:stopPropagation="true">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">@MachineStatus?.MachineName Anlık Detaylar</h5>
+                    <h5 class="modal-title">@MachineStatus?.MachineName @Loc["AnlikDetaylar"]</h5>
                     <button type="button" class="close btn-close" @onclick="Close" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     @if (MachineStatus == null)
                     {
-                        <p>Makine verileri yükleniyor...</p>
+                        <p>@Loc["MakineBilgileriYukleniyor"]</p>
                     }
                     else
                     {
                         <div class="row">
                             <div class="col-md-6">
-                                <h6>Temel Bilgiler</h6>
+                                <h6>@Loc["TemelBilgiler"]</h6>
                                 <p><strong>ID:</strong> @MachineId</p>
-                                <p><strong>Bağlantı Durumu:</strong> @MachineStatus.ConnectionState</p>
-                                <p><strong>Makine Tipi:</strong> @MachineStatus.MakineTipi</p>
-                                <p><strong>Operatör:</strong> @MachineStatus.OperatorIsmi ?? "-"</p>
+                                <p><strong>@Loc["BaglantiDurumu"]:</strong> @MachineStatus.ConnectionState</p>
+                                <p><strong>@Loc["MakineTipi"]:</strong> @MachineStatus.MakineTipi</p>
+                                <p><strong>@Loc["OperatorLabel"]:</strong> @(MachineStatus.OperatorIsmi ?? "-")</p>
                             </div>
                             <div class="col-md-6">
-                                <h6>Proses Bilgileri</h6>
-                                <p><strong>Reçete Adı:</strong> @MachineStatus.RecipeName ?? "-"</p>
-                                <p><strong>Parti No:</strong> @MachineStatus.BatchNumarasi ?? "-"</p>
-                                <p><strong>Aktif Adım:</strong> @MachineStatus.AktifAdimNo - @MachineStatus.AktifAdimAdi</p>
-                                <p><strong>Proses Yüzdesi:</strong> @MachineStatus.ProsesYuzdesi%</p>
+                                <h6>@Loc["ProsesBilgileri"]</h6>
+                                <p><strong>@Loc["ReceteLabel"]</strong> @(MachineStatus.RecipeName ?? "-")</p>
+                                <p><strong>@Loc["PartiLabel"]</strong> @(MachineStatus.BatchNumarasi ?? "-")</p>
+                                <p><strong>@Loc["AktifAdimLabel"]:</strong> @MachineStatus.AktifAdimNo - @MachineStatus.AktifAdimAdi</p>
+                                <p><strong>@Loc["ProsesYuzdesi"]:</strong> @MachineStatus.ProsesYuzdesi%</p>
                             </div>
                         </div>
-                        
+
                         <hr />
-                        
-                        <h6>Anlık Değerler</h6>
+
+                        <h6>@Loc["AnlikDegerler"]</h6>
                         <div class="details-grid-extended">
                             <div class="detail-item">
-                                <strong>Sıcaklık:</strong> 
+                                <strong>@Loc["Sicaklik"]:</strong>
                                 <span class="@GetTempCssClass()">@GetFormattedTemperature()°C</span>
                             </div>
                             <div class="detail-item">
-                                <strong>Devir (RPM):</strong> 
+                                <strong>@Loc["Devir"]:</strong>
                                 <span>@MachineStatus.AnlikDevirRpm RPM</span>
                             </div>
                             <div class="detail-item">
-                                <strong>Su Seviyesi:</strong> 
+                                <strong>@Loc["SuSeviyesiLabel"]:</strong>
                                 <span>@MachineStatus.AnlikSuSeviyesi</span>
                             </div>
                             <div class="detail-item">
-                                <strong>Alarm Var:</strong> 
+                                <strong>@Loc["AlarmVar"]</strong>
                                 <span class="@(MachineStatus.HasActiveAlarm ? "text-danger" : "text-success")">
-                                    @(MachineStatus.HasActiveAlarm ? $"EVET ({MachineStatus.ActiveAlarmNumber})" : "HAYIR")
+                                    @(MachineStatus.HasActiveAlarm ? $"{Loc["Evet"]} ({MachineStatus.ActiveAlarmNumber})" : Loc["Hayir"])
                                 </span>
                             </div>
                             <div class="detail-item">
-                                <strong>Çalışma Süresi:</strong> 
-                                <span>@MachineStatus.CalismaSuresiDakika dk</span>
+                                <strong>@Loc["CalismaSuresi"]</strong>
+                                <span>@MachineStatus.CalismaSuresiDakika @Loc["Dk"]</span>
                             </div>
                         </div>
                     }
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="Close">Kapat</button>
+                    <button type="button" class="btn btn-secondary" @onclick="Close">@Loc["Kapat"]</button>
                     @if (MachineStatus != null)
                     {
                         @* Tam Detay Sayfasına Gitme butonu *@
-                        <button type="button" class="btn btn-primary" @onclick="NavigateToFullDetail">Tam Proses Kontrolü</button>
+                        <button type="button" class="btn btn-primary" @onclick="NavigateToFullDetail">@Loc["TamProsesKontrolu"]</button>
                     }
                 </div>
             </div>

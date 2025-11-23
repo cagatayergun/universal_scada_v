@@ -1,91 +1,94 @@
 ﻿@using TekstilScada.Models
 @using Microsoft.AspNetCore.Components.Forms
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SharedResource> Loc
 
 <div class="modal fade show" style="display:block; background-color: rgba(0,0,0,0.5);" role="dialog">
     <div class="modal-dialog modal-lg">
         @* modal-lg ile pencereyi genişlettik *@
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">@(Machine.Id == 0 ? "Yeni Makine Ekle" : "Makine Düzenle")</h5>
+                <h5 class="modal-title">@(Machine.Id == 0 ? Loc["YeniMakineEkleBaslik"] : Loc["MakineDuzenleBaslik"])</h5>
                 <button type="button" class="btn-close" @onclick="Close"></button>
             </div>
             <EditForm Model="@Machine" OnValidSubmit="SaveChanges">
                 <DataAnnotationsValidator />
                 <div class="modal-body">
 
-                    <h6 class="text-primary border-bottom pb-2 mb-3">Genel Bilgiler</h6>
+                    <h6 class="text-primary border-bottom pb-2 mb-3">@Loc["GenelBilgiler"]</h6>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Makine Adı:</label>
+                            <label class="form-label">@Loc["MakineAdiLabel"]</label>
                             <InputText @bind-Value="Machine.MachineName" class="form-control" />
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Makine ID (Kısa Kod):</label>
+                            <label class="form-label">@Loc["MakineIdLabel"]</label>
                             <InputText @bind-Value="Machine.MachineUserDefinedId" class="form-control" />
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Makine Tipi:</label>
+                            <label class="form-label">@Loc["MakineTipiLabel"]</label>
                             <InputSelect @bind-Value="Machine.MachineType" class="form-select">
-                                <option value="">Seçiniz...</option>
-                                <option value="BYMakinesi">Boya Makinesi</option>
-                                <option value="Kurutma Makinesi">Kurutma Makinesi</option>
+                                <option value="">@Loc["Seciniz"]</option>
+                                <option value="BYMakinesi">@Loc["BoyaMakinesi"]</option>
+                                <option value="Kurutma Makinesi">@Loc["KurutmaMakinesi"]</option>
                             </InputSelect>
                         </div>
                         @* --- YENİ ALAN: MAKİNE ALT TİPİ --- *@
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Makine Alt Tipi (Reçete Tasarımı İçin):</label>
-                            <InputText @bind-Value="Machine.MachineSubType" class="form-control" placeholder="Örn: Yilmak_100kg" />
-                            <small class="text-muted">Bu alan reçete tasarım ekranında filtreleme için kullanılır.</small>
+                            <label class="form-label">@Loc["MakineAltTipiLabel"]</label>
+                            <InputText @bind-Value="Machine.MachineSubType" class="form-control" placeholder="@Loc["MakineAltTipiPlaceholder"]" />
+                            <small class="text-muted">@Loc["MakineAltTipiInfo"]</small>
                         </div>
                     </div>
 
-                    <h6 class="text-primary border-bottom pb-2 mb-3 mt-3">Bağlantı Ayarları</h6>
+                    <h6 class="text-primary border-bottom pb-2 mb-3 mt-3">@Loc["BaglantiAyarlari"]</h6>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">IP Adresi:</label>
+                            <label class="form-label">@Loc["IpAdresiLabel"]</label>
                             <InputText @bind-Value="Machine.IpAddress" class="form-control" />
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Port:</label>
+                            <label class="form-label">@Loc["PortLabel"]</label>
                             <InputNumber @bind-Value="Machine.Port" class="form-control" />
                         </div>
                     </div>
 
-                    <h6 class="text-primary border-bottom pb-2 mb-3 mt-3">FTP & VNC Ayarları</h6>
+                    <h6 class="text-primary border-bottom pb-2 mb-3 mt-3">@Loc["FtpVncAyarlari"]</h6>
                     <div class="row">
                         @* --- YENİ ALANLAR: FTP BİLGİLERİ --- *@
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">FTP Kullanıcı Adı:</label>
+                            <label class="form-label">@Loc["FtpKullaniciAdiLabel"]</label>
                             <InputText @bind-Value="Machine.FtpUsername" class="form-control" />
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">FTP Şifresi:</label>
+                            <label class="form-label">@Loc["FtpSifresiLabel"]</label>
                             <InputText @bind-Value="Machine.FtpPassword" type="password" class="form-control" />
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">VNC Adresi (Opsiyonel):</label>
+                            <label class="form-label">@Loc["VncAdresiLabel"]</label>
                             <InputText @bind-Value="Machine.VncAddress" class="form-control" />
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">VNC Şifresi:</label>
+                            <label class="form-label">@Loc["VncSifresiLabel"]</label>
                             <InputText @bind-Value="Machine.VncPassword" type="password" class="form-control" />
                         </div>
                     </div>
 
                     <div class="form-check mt-2">
                         <InputCheckbox @bind-Value="Machine.IsEnabled" class="form-check-input" />
-                        <label class="form-check-label">Makine Aktif</label>
+                        <label class="form-check-label">@Loc["MakineAktifLabel"]</label>
                     </div>
 
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="Close">İptal</button>
-                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                    <button type="button" class="btn btn-secondary" @onclick="Close">@Loc["Iptal"]</button>
+                    <button type="submit" class="btn btn-primary">@Loc["Kaydet"]</button>
                 </div>
             </EditForm>
         </div>

@@ -1,7 +1,11 @@
-﻿@using TekstilScada.Models
+﻿@page "/alarm-yonetimi"
+@using TekstilScada.Models
 @using TekstilScada.WebApp.Services
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
 @inject ScadaDataService DataService
 @inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResource> Loc
 
 @if (showEditModal && alarmToEdit != null)
 {
@@ -9,15 +13,15 @@
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4>Alarm Tanımları</h4>
+    <h4>@Loc["AlarmTanimlariBaslik"]</h4>
     <button class="btn btn-success" @onclick="AddNewAlarm">
-        <i class="bi bi-bell-fill me-1"></i> Yeni Alarm Ekle
+        <i class="bi bi-bell-fill me-1"></i> @Loc["YeniAlarmEkle"]
     </button>
 </div>
 
 @if (alarms == null)
 {
-    <div class="text-center mt-4"><div class="spinner-border text-warning"></div><p>Alarmlar yükleniyor...</p></div>
+    <div class="text-center mt-4"><div class="spinner-border text-warning"></div><p>@Loc["AlarmlarYukleniyor"]</p></div>
 }
 else
 {
@@ -25,10 +29,10 @@ else
         <table class="table table-striped table-hover align-middle">
             <thead class="table-dark">
                 <tr>
-                    <th style="width: 100px;">No</th>
-                    <th>Alarm Mesajı</th>
-                    <th style="width: 120px;">Önem</th>
-                    <th class="text-end" style="width: 180px;">İşlemler</th>
+                    <th style="width: 100px;">@Loc["No"]</th>
+                    <th>@Loc["AlarmMesaji"]</th>
+                    <th style="width: 120px;">@Loc["Onem"]</th>
+                    <th class="text-end" style="width: 180px;">@Loc["Islemler"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -40,26 +44,23 @@ else
                         <td>
                             @if (alarm.Severity == 3)
                             {
-                                <span class="badge bg-danger">KRİTİK</span>
+                                <span class="badge bg-danger">@Loc["Sev_Yuksek"]</span>
                             }
                             else if (alarm.Severity == 2)
                             {
-
-                                <span class="badge bg-warning text-dark">UYARI</span>
+                                <span class="badge bg-warning text-dark">@Loc["Sev_Orta"]</span>
                             }
                             else
                             {
-
-                                <span class="badge bg-info text-dark">BİLGİ</span>
+                                <span class="badge bg-info text-dark">@Loc["Sev_Dusuk"]</span>
                             }
                         </td>
                         <td class="text-end">
-                            @* DÜZENLEME BURADA: İkonların yanına metin eklendi ve 'me-1' ile boşluk bırakıldı *@
                             <button class="btn btn-sm btn-primary me-1" @onclick="() => EditAlarm(alarm)">
-                                <i class="bi bi-pencil me-1"></i> Düzenle
+                                <i class="bi bi-pencil me-1"></i> @Loc["Duzenle"]
                             </button>
                             <button class="btn btn-sm btn-danger" @onclick="() => DeleteAlarm(alarm)">
-                                <i class="bi bi-trash me-1"></i> Sil
+                                <i class="bi bi-trash me-1"></i> @Loc["Sil"]
                             </button>
                         </td>
                     </tr>
@@ -82,7 +83,7 @@ else
     private async Task LoadAlarms()
     {
         try { alarms = await DataService.GetAlarmsAsync(); }
-        catch (Exception ex) { Console.WriteLine($"Hata: {ex.Message}"); alarms = new List<AlarmDefinition>(); }
+        catch (Exception ex) { Console.WriteLine($"{Loc["Hata"]}: {ex.Message}"); alarms = new List<AlarmDefinition>(); }
     }
 
     private void AddNewAlarm()
@@ -98,7 +99,8 @@ else
             Id = alarm.Id,
             AlarmNumber = alarm.AlarmNumber,
             AlarmText = alarm.AlarmText,
-            Severity = alarm.Severity
+            Severity = alarm.Severity,
+            
         };
         showEditModal = true;
     }
@@ -113,12 +115,15 @@ else
             showEditModal = false;
             await LoadAlarms();
         }
-        catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", $"Hata: {ex.Message}"); }
+        catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", $"{Loc["Hata"]}: {ex.Message}"); }
     }
 
     private async Task DeleteAlarm(AlarmDefinition alarm)
     {
-        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Alarm No: {alarm.AlarmNumber} silinsin mi?"))
+        // String.Format benzeri kullanım ile parametreli çeviri
+        string message = string.Format(Loc["AlarmSilSoru"], alarm.AlarmNumber);
+
+        if (await JSRuntime.InvokeAsync<bool>("confirm", message))
         {
             await DataService.DeleteAlarmAsync(alarm.Id);
             await LoadAlarms();

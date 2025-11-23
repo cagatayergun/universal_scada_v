@@ -1,5 +1,11 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+@using System.Globalization
+@using TekstilScada.Core.Localization 
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SharedResource> Loc
+
+@* Tarayıcı dilini dinamik olarak ayarla (ör: tr-TR veya en-US) *@
+<html lang="@CultureInfo.CurrentUICulture.Name">
 
 <head>
     <meta charset="utf-8" />
@@ -28,6 +34,14 @@
     <script src="https://cdn.plot.ly/plotly-2.31.1.min.js"></script>
 
     <script>
+        // --- DİL ÇEVİRİLERİNİ JS TARAFINA AKTARMA ---
+        // C# Localizer'dan gelen değerleri global bir JS objesine atıyoruz.
+        window.appLabels = {
+            temperature: '@Loc["Sicaklik"]',
+            rpm: '@Loc["Devir"]',
+            level: '@Loc["SuSeviyesiLabel"]'
+        };
+
         // --- 1. ORTAK AYARLAR ---
         function getCommonLayout(title, yTitle, isMobile) {
             return {
@@ -95,7 +109,7 @@
             }
         }
 
-        // --- 3. PASTA GRAFİK (EKSİK OLAN BU İDİ) ---
+        // --- 3. PASTA GRAFİK ---
         function drawPieChart(elementId, chartData) {
             if (!document.getElementById(elementId)) return;
             if (!chartData || chartData.length === 0) { Plotly.purge(elementId); return; }
@@ -127,18 +141,19 @@
             Plotly.newPlot(elementId, data, layout, { responsive: true, displayModeBar: false });
         }
 
-        // --- 4. ZAMAN ÇİZGİSİ (EKSİK OLAN) ---
+        // --- 4. ZAMAN ÇİZGİSİ ---
         function drawTimelineChart(elementId, chartData) {
              if (!document.getElementById(elementId)) return;
              if (!chartData || chartData.length === 0) { Plotly.purge(elementId); return; }
 
              const steps = chartData.map(d => `Adım ${d.stepNumber}\n${d.description.substring(0,10)}`);
+             // Burada hardcoded 'Sıcaklık' var, bunu da çevirebiliriz
              const trace = {
                  x: steps, y: chartData.map(d => d.temperature),
-                 mode: 'lines+markers', type: 'scatter', name: 'Sıcaklık', line: { color: '#e74c3c', width: 2 }
+                 mode: 'lines+markers', type: 'scatter', name: window.appLabels.temperature, line: { color: '#e74c3c', width: 2 }
              };
              
-             const layout = getCommonLayout('Adım Sıcaklık Trendi', 'Sıcaklık (°C)', window.innerWidth <= 768);
+             const layout = getCommonLayout('Adım Sıcaklık Trendi', `${window.appLabels.temperature} (°C)`, window.innerWidth <= 768);
              layout.xaxis.tickangle = 45;
              Plotly.newPlot(elementId, [trace], layout, { responsive: true });
         }
@@ -150,9 +165,9 @@
             const x = dataPoints.map(p => p.timestamp);
             let y, title, color;
             switch (selectedData) {
-                case 'Temperature': y = dataPoints.map(p => p.temperature/10.0); title='Sıcaklık'; color='#f44336'; break;
-                case 'WaterLevel': y = dataPoints.map(p => p.waterLevel); title='Seviye'; color='#2196f3'; break;
-                case 'Rpm': y = dataPoints.map(p => p.rpm); title='Devir'; color='#4caf50'; break;
+                case 'Temperature': y = dataPoints.map(p => p.temperature/10.0); title=window.appLabels.temperature; color='#f44336'; break;
+                case 'WaterLevel': y = dataPoints.map(p => p.waterLevel); title=window.appLabels.level; color='#2196f3'; break;
+                case 'Rpm': y = dataPoints.map(p => p.rpm); title=window.appLabels.rpm; color='#4caf50'; break;
                 default: return;
             }
             const trace = { x: x, y: y, mode: 'lines', line: { color: color, width: 2 } };
@@ -164,14 +179,15 @@
             if (!dataPoints) dataPoints = [];
             const x = dataPoints.map(p => p.timestamp);
             
-            const t1 = { x:x, y:dataPoints.map(d=>d.temperature), name:'Sıcaklık', type:'scatter', line:{color:'#e74c3c'}, yaxis:'y1' };
-            const t2 = { x:x, y:dataPoints.map(d=>d.rpm), name:'Devir', type:'scatter', line:{color:'#3498db'}, yaxis:'y2' };
-            const t3 = { x:x, y:dataPoints.map(d=>d.waterLevel), name:'Seviye', type:'scatter', line:{color:'#2ecc71'}, yaxis:'y3' };
+            // Çevirileri 'window.appLabels' üzerinden kullanıyoruz
+            const t1 = { x:x, y:dataPoints.map(d=>d.temperature), name: window.appLabels.temperature, type:'scatter', line:{color:'#e74c3c'}, yaxis:'y1' };
+            const t2 = { x:x, y:dataPoints.map(d=>d.rpm), name: window.appLabels.rpm, type:'scatter', line:{color:'#3498db'}, yaxis:'y2' };
+            const t3 = { x:x, y:dataPoints.map(d=>d.waterLevel), name: window.appLabels.level, type:'scatter', line:{color:'#2ecc71'}, yaxis:'y3' };
 
-            const layout = getCommonLayout(title||'Canlı Trend', 'Sıcaklık', false);
+            const layout = getCommonLayout(title||'Canlı Trend', window.appLabels.temperature, false);
             layout.yaxis.gridcolor='#444';
-            layout.yaxis2={ title:'Devir', overlaying:'y', side:'right', position:0.98, showgrid:false, tickfont:{color:'#3498db'} };
-            layout.yaxis3={ title:'Seviye', overlaying:'y', side:'right', position:0.90, showgrid:false, tickfont:{color:'#2ecc71'} };
+            layout.yaxis2={ title: window.appLabels.rpm, overlaying:'y', side:'right', position:0.98, showgrid:false, tickfont:{color:'#3498db'} };
+            layout.yaxis3={ title: window.appLabels.level, overlaying:'y', side:'right', position:0.90, showgrid:false, tickfont:{color:'#2ecc71'} };
             layout.showlegend=true;
             layout.legend={ x:0, y:1.1, orientation:'h', font:{color:'#ccc'} };
 
@@ -190,7 +206,7 @@
     </script>
     <script>
     window.startVnc = async (elementId, url, password) => {
-       
+        
         const { default: RFB } = await import("https://cdn.jsdelivr.net/npm/@@novnc/novnc@@1.4.0/core/rfb.js");
         
         const container = document.getElementById(elementId);

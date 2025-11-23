@@ -1,36 +1,39 @@
 ﻿@using TekstilScada.Models
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SharedResource> Loc
 
 <div class="editor-group">
-    <h5>Kurutma Parametreleri</h5>
+    <h5>@Loc["KurutmaParametreleri"]</h5>
     <div class="row">
         <div class="col-md-6 mb-2">
-            <label class="form-label">Sıcaklık (°C):</label>
+            <label class="form-label">@Loc["SicaklikC"]</label>
             <InputNumber class="form-control" @bind-Value="recipeStep.StepDataWords[0]" @oninput="NotifyParent" />
         </div>
         <div class="col-md-6 mb-2">
-            <label class="form-label">Nem (%):</label>
+            <label class="form-label">@Loc["NemYuzde"]</label>
             <div class="input-group">
                 <InputNumber class="form-control" @bind-Value="recipeStep.StepDataWords[1]" @oninput="NotifyParent" />
                 <div class="input-group-text">
-                    <InputCheckbox @bind-Value="isNemAktif" @oninput="NotifyParent" /> Aktif
+                    <InputCheckbox @bind-Value="isNemAktif" @oninput="NotifyParent" /> @Loc["Aktif"]
                 </div>
             </div>
         </div>
         <div class="col-md-6 mb-2">
-            <label class="form-label">Süre (dk):</label>
+            <label class="form-label">@Loc["SureDk"]</label>
             <div class="input-group">
                 <InputNumber class="form-control" @bind-Value="recipeStep.StepDataWords[2]" @oninput="NotifyParent" />
                 <div class="input-group-text">
-                    <InputCheckbox @bind-Value="isZamanAktif" @oninput="NotifyParent" /> Aktif
+                    <InputCheckbox @bind-Value="isZamanAktif" @oninput="NotifyParent" /> @Loc["Aktif"]
                 </div>
             </div>
         </div>
         <div class="col-md-6 mb-2">
-            <label class="form-label">Çalışma Devri (rpm):</label>
+            <label class="form-label">@Loc["CalismaDevriRpm"]</label>
             <InputNumber class="form-control" @bind-Value="recipeStep.StepDataWords[3]" @oninput="NotifyParent" />
         </div>
         <div class="col-md-6 mb-2">
-            <label class="form-label">Soğutma Süresi (dk):</label>
+            <label class="form-label">@Loc["SogutmaSuresiDk"]</label>
             <InputNumber class="form-control" @bind-Value="recipeStep.StepDataWords[4]" @oninput="NotifyParent" />
         </div>
     </div>

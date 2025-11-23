@@ -1,84 +1,70 @@
-// Dosya: TekstilScada.WebApp/Program.cs (TEMÝZLENMÝÞ VE DÜZELTÝLMÝÞ)
-using MudBlazor.Services; // Ekle
+// Dosya: TekstilScada.WebApp/Program.cs
+using MudBlazor.Services;
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
+using Microsoft.AspNetCore.Localization;
+using System.Globalization;
 using TekstilScada.WebApp.Components;
 using TekstilScada.WebApp.Services;
+// Core projesinde Localization varsa:
+// using TekstilScada.Core.Localization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// --- 1. Temel Servisler ---
 builder.Services.AddMudServices();
-// --- 1. ÇEKÝRDEK KÝMLÝK DOÐRULAMA SERVÝSLERÝ EKLENDÝ ---
-// Servislerin kayýtlý olmasý, "IAuthenticationService" ve "No scheme"
-// hatalarýný engeller.
+builder.Services.AddLocalization();
+builder.Services.AddControllers(); // Controller desteði
+
+// --- 2. Authentication (Kimlik Doðrulama) Servisi ---
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.LoginPath = "/login";
+        options.ExpireTimeSpan = TimeSpan.FromDays(30);
 
-        // --- YÖNLENDÝRME DÖNGÜSÜ ÝÇÝN DÜZELTME ---
+        // Redirect Döngüsü Korumasý
         options.Events.OnRedirectToLogin = context =>
         {
-            // KRÝTÝK KONTROL: Eðer istek ZATEN /login sayfasýna
-            // gidiyorsa, ASLA tekrar yönlendirme yapma.
-            // Bu, "boþ sayfa" ve "manuel giriþ" sorunlarýný
-            // (sonsuz döngüyü) çözecektir.
             if (context.Request.Path == options.LoginPath)
             {
-                // Sadece olayýn tamamlanmasýna izin ver,
-                // sayfanýn (Login.razor) yüklenmesini engelleme.
                 return Task.CompletedTask;
             }
-
-            // Eðer istek /login dýþýnda bir sayfaya (örn: '/')
-            // yapýlýyorsa, normal þekilde /login'e yönlendir.
             context.Response.Redirect(context.RedirectUri);
             return Task.CompletedTask;
         };
-        // --- DÜZELTMENÝN SONU ---
     });
 
-
-// Add services to the container.
+// --- 3. Blazor Servisleri ---
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddCircuitOptions(options => { options.DetailedErrors = true; });
 
-// 1. Blazored Local Storage'ý ekle (Bu DOÐRU)
 builder.Services.AddBlazoredLocalStorage();
+builder.Services.AddAuthorizationCore(); // [Authorize] için gerekli
 
-// 2. AuthorizationCore (Bu DOÐRU, Blazor'un [Authorize] özniteliðini tanýmasý için bu kalmalý)
-builder.Services.AddAuthorizationCore();
-
-// 3. CustomAuthStateProvider kaydý (Bu DOÐRU)
+// --- 4. Custom Auth Provider ---
 builder.Services.AddScoped<CustomAuthStateProvider>(sp =>
 {
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
     var httpClient = httpClientFactory.CreateClient("WebApiClient");
     var localStorage = sp.GetRequiredService<ILocalStorageService>();
-
-    // YENÝ: Logger'ý da servisten alýp provider'a iletiyoruz
     var logger = sp.GetRequiredService<ILogger<CustomAuthStateProvider>>();
 
-    return new CustomAuthStateProvider(httpClient, localStorage, logger); // <-- logger'ý buraya ekleyin
+    return new CustomAuthStateProvider(httpClient, localStorage, logger);
 });
 
-// 4. CustomAuthStateProvider'ý ana kimlik doðrulama saðlayýcýsý olarak ata (Bu DOÐRU)
 builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
     provider.GetRequiredService<CustomAuthStateProvider>());
 
-
-// HttpClient yapýlandýrmasý (Bu doðru)
+// --- 5. HttpClient ---
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:7039";
-
-// HttpClient yapýlandýrmasý (Bu doðru)
 builder.Services.AddHttpClient("WebApiClient", client =>
 {
-    // client.BaseAddress = new Uri("http://localhost:7039"); // ESKÝ SATIR
-    client.BaseAddress = new Uri(apiBaseUrl); // YENÝ SATIR
+    client.BaseAddress = new Uri(apiBaseUrl);
 })
 .ConfigurePrimaryHttpMessageHandler(() =>
 {
@@ -88,7 +74,7 @@ builder.Services.AddHttpClient("WebApiClient", client =>
     };
 });
 
-// ScadaDataService kaydý (Bu doðru)
+// --- 6. Scada & Diðer Servisler ---
 builder.Services.AddSingleton(sp =>
 {
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
@@ -96,41 +82,55 @@ builder.Services.AddSingleton(sp =>
     return new ScadaDataService(httpClient);
 });
 
-// --- Diðer servisler (Bunlar doðru) ---
 builder.Services.AddScoped<CircuitHandler, UnhandledCircuitExceptionHandler>();
 builder.Services.AddLogging();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// =================================================================
+// MIDDLEWARE (AKIÞ) SIRALAMASI - BURASI KRÝTÝK
+// =================================================================
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // app.UseHsts();
 }
 
-//app.UseHttpsRedirection();
+// 1. Statik Dosyalar
 app.UseStaticFiles();
+
+// 2. Dil Desteði (Routing'den önce olabilir, RequestLocalization routing'den baðýmsýz çalýþabilir)
+var supportedCultures = new[] { "tr-TR", "en-US" };
+var localizationOptions = new RequestLocalizationOptions()
+    .SetDefaultCulture("tr-TR")
+    .AddSupportedCultures(supportedCultures)
+    .AddSupportedUICultures(supportedCultures);
+app.UseRequestLocalization(localizationOptions);
+
+// 3. Routing (Yönlendirme Mekanizmasý Baþlar)
+app.UseRouting();
+
+// 4. Güvenlik (Authentication & Authorization)
+// UseRouting ile UseEndpoints (veya Map...) ARASINDA OLMAK ZORUNDA
+app.UseAuthentication(); // Kimlik Doðrulama (Ben kimim?) - YORUMU KALDIRDIK
+app.UseAuthorization();  // Yetkilendirme (Buraya girebilir miyim?) - YORUMU KALDIRDIK
+
+// 5. Antiforgery (Genellikle Auth'dan sonra gelir)
 app.UseAntiforgery();
 
-// --- BU ÝKÝ SATIR YORUMDA KALMALI ---
-// Bu middleware'ler, F5'te /login yönlendirmesine neden olan
-// çerez (Cookie) tabanlý sistemi tetikler.
-// app.UseAuthentication();
-// app.UseAuthorization();
+// 6. Endpoint Tanýmlarý
+app.MapControllers(); // Dil deðiþimi ve API controller'larý için
 
-// --- SON ÇÖZÜM: ÖN YÜKLEMEYÝ (PRERENDERING) KAPAT ---
-// Prerendering ayarý App.razor dosyasýnda zaten (prerender: false) olarak yapýldý.
-// Buradaki satýrýn parametresiz olmasý gerekiyor.
+// Blazor Endpoint'i
+// Prerendering kapalý (Auth state sorunlarýný önlemek için)
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode(); // <-- HATA DÜZELTÝLDÝ: Parametre kaldýrýldý
+    .AddInteractiveServerRenderMode();
 
-
-
-// ... (Kalan kodun ayný kalabilir, ScadaDataService baþlatma vb.) ...
-
+// --- Veri Baþlatma ---
 var scadaDataService = app.Services.GetRequiredService<ScadaDataService>();
 await scadaDataService.InitializeAsync();
+
+// --- Global Hata Yakalama ---
 var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
 var circuitLogger = loggerFactory.CreateLogger("CircuitLogger");
 app.Use(async (context, next) =>
@@ -146,11 +146,11 @@ app.Use(async (context, next) =>
             circuitLogger.LogError(ex, ">>> KRÝTÝK BLZOR DEVRE HATASI YAKALANDI! <<<");
             context.Response.ContentType = "text/plain";
             context.Response.StatusCode = 500;
-            await context.Response.WriteAsync("Blazor devre hatasý: Sunucu baðlantýsý kesildi. Detaylar için sunucu loglarýna bakýn.");
+            await context.Response.WriteAsync("Blazor devre hatasý: Sunucu baðlantýsý kesildi.");
             return;
         }
         throw;
     }
 });
-app.Run();
 
+app.Run();

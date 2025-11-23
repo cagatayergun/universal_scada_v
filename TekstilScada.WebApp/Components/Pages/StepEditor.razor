@@ -3,38 +3,35 @@
 @using Microsoft.AspNetCore.Components.Web.Virtualization
 @using TekstilScada.Models
 @using TekstilScada.Repositories
-@inject IJSRuntime JSRuntime
 @using System.Text.RegularExpressions
-@* --- DEĞİŞİKLİK 1: ESKİSİNİ SİLİN --- *@
-@* @inject RecipeConfigurationRepository ConfigRepo *@
-
-@* --- DEĞİŞİKLİK 2: API SERVİSİNİ EKLEYİN --- *@
-@* (Servisinizin adı farklıysa burada düzeltin. Bu servis WebApp/Program.cs içinde kayıtlı olmalı) *@
+@using TekstilScada.Core.Localization 
+@using Microsoft.Extensions.Localization
+@inject IJSRuntime JSRuntime
 @inject TekstilScada.WebApp.Services.ScadaDataService ScadaService 
+@inject IStringLocalizer<SharedResource> Loc
 
 <div class="step-editor-container">
 
     @if (!string.IsNullOrEmpty(errorMessage))
     {
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <strong>Hata Oluştu:</strong>
+            <strong>@Loc["HataOlustu"]</strong>
             <pre style="white-space: pre-wrap; word-break: break-all;">@errorMessage</pre>
             <button type="button" class="btn-close" @onclick="() => errorMessage = null" aria-label="Close"></button>
         </div>
     }
     
-    @* ... (HTML'in geri kalanı aynı kalır) ... *@
     @if (MachineSubType == "Kurutma Makinesi")
     {
         <div class="alert alert-info">
-            Bu adım kurutma makinesine aittir. Editör yapısı statiktir.
+            @Loc["KurutmaAdimiSabit"]
         </div>
         <KurutmaStepEditor Step="Step" OnChanged="OnChanged" />
     }
     else
     {
         <div class="step-types">
-            <h6>Adım Tipleri</h6>
+            <h6>@Loc["AdimTipleri"]</h6>
             <div class="pnlStepTypes">
                 @foreach (var stepType in StepTypes)
                 {
@@ -59,11 +56,6 @@
 
                                 @foreach (var data in _activeControlsMetadata.Where(d => d.ParentStepId == stepInfo.Id))
                                 {
-                                    @* GÜNCELLEME: 
-           1. 'width' yerine 'min-width' kullandık. (Kutu yazıya göre uzayabilsin diye)
-           2. 'overflow: hidden' kaldırıldı. (Yazı kesilmesin diye)
-           3. 'z-index: 10' eklendi. (Yazı uzarsa diğer kontrollerin üstünde görünsün, altında kalmasın)
-        *@
                                     <div title="@data.Text"
                                          style="position: absolute;
                                 left: @(GetLeft(data.Location))px;
@@ -75,7 +67,6 @@
 
                                         @if ((data.ControlType ?? "").Contains("Label"))
                                         {
-                                            @* Label için kesme komutlarını (ellipsis) kaldırdık *@
                                             <span class="fw-bold" style="display: block;">
                                                 @data.Text
                                             </span>
@@ -86,7 +77,6 @@
                                             {
                                                 <div class="d-flex align-items-center" style="height: 100%;">
                                                     @RenderControl(data, stepInfo.Id)
-                                                    @* Checkbox yazısı için kesme komutlarını kaldırdık *@
                                                     <span class="ms-2 small">
                                                         @data.Text
                                                     </span>
@@ -94,7 +84,6 @@
                                             }
                                             else
                                             {
-                                                @* Numeric veya Textbox (Genişliği kendi boyutunda kalsın istersek style eklenebilir ama şimdilik standart) *@
                                                 @RenderControl(data, stepInfo.Id)
                                             }
                                         }
@@ -118,8 +107,6 @@
     private List<StepControlMetadata> _activeControlsMetadata = new();
     private string? errorMessage; 
 
-    // ... (Yardımcı sınıflar ve Veriler aynı kalır: StepControlMetadata, StepTypeInfo, StepTypes, StepColorMap) ...
-
     private class StepControlMetadata : ControlMetadata
     {
         public int ParentStepId { get; set; }
@@ -134,14 +121,15 @@
         public StepTypeInfo(int id, string name, short bitValue, int plcWordIndex) { Id = id; Name = name; BitValue = bitValue; PLC_WordIndex = plcWordIndex; }
     }
 
+    // Listeyi başlangıçta oluşturuyoruz, ancak isimleri OnInitializedAsync'de çevireceğiz
     private List<StepTypeInfo> StepTypes = new()
     {
-        new StepTypeInfo(1, "Su Alma", 1, 0),    
-        new StepTypeInfo(2, "Isıtma", 2, 2),     
-        new StepTypeInfo(3, "Çalışma", 4, 14),   
-        new StepTypeInfo(4, "Dozaj", 8, 5),      
+        new StepTypeInfo(1, "Su Alma", 1, 0),     
+        new StepTypeInfo(2, "Isıtma", 2, 2),      
+        new StepTypeInfo(3, "Çalışma", 4, 14),    
+        new StepTypeInfo(4, "Dozaj", 8, 5),       
         new StepTypeInfo(5, "Boşaltma", 16, 10), 
-        new StepTypeInfo(6, "Sıkma", 32, 8)      
+        new StepTypeInfo(6, "Sıkma", 32, 8)       
     };
     private List<StepTypeInfo> ActiveStepInfos => StepTypes.Where(s => IsStepTypeChecked(s.BitValue)).ToList();
     
@@ -153,14 +141,22 @@
     };
 
 
-    // --- LIFE CYCLE (GÜNCELLENDİ: HATA YAKALAMA EKLENDİ) ---
+    // --- LIFE CYCLE ---
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            // Adım isimlerini seçilen dile göre güncelle
+            StepTypes[0].Name = Loc["AdimTipi_SuAlma"];
+            StepTypes[1].Name = Loc["AdimTipi_Isitma"];
+            StepTypes[2].Name = Loc["AdimTipi_Calisma"];
+            StepTypes[3].Name = Loc["AdimTipi_Dozaj"];
+            StepTypes[4].Name = Loc["AdimTipi_Bosaltma"];
+            StepTypes[5].Name = Loc["AdimTipi_Sikma"];
+
             if (ScadaService == null)
             {
-                errorMessage = "Kritik Hata: ScadaDataService servisi 'Program.cs' içinde kayıtlı değil (Dependency Injection hatası).";
+                errorMessage = Loc["ServisKayitHatasi"];
                 return; 
             }
 
@@ -181,11 +177,10 @@
         }
         catch (Exception ex)
         {
-            errorMessage = $"Bileşen yüklenirken kritik bir hata oluştu: {ex.Message}\n--- STACK TRACE ---\n{ex.StackTrace}";
+            errorMessage = $"{Loc["BilesenYuklemeHatasi"]}: {ex.Message}\n--- STACK TRACE ---\n{ex.StackTrace}";
         }
     }
     
-    // ... (OnStepTypeChanged metodu aynı kalır, LoadControlsData'yı çağırdığı için o da hata yakalamış olur) ...
     private bool IsStepTypeChecked(short bit) => (Step != null && Step.StepDataWords.Length > 24 && (Step.StepDataWords[24] & bit) != 0);
     
     private async Task OnStepTypeChanged(StepTypeInfo changedStep, bool isChecked)
@@ -201,7 +196,7 @@
 
             if (!IsSelectionValid(newControlWord))
             {
-                errorMessage = "En fazla 2 farklı işlem türü seçilebilir veya Sıkma/Boşaltma adımları diğer standart adımlarla bir arada seçilemez.";
+                errorMessage = Loc["AdimSecimiGecersiz"];
                 return;
             }
 
@@ -213,11 +208,10 @@
         }
         catch (Exception ex)
         {
-             errorMessage = $"Adım tipi değiştirilirken hata oluştu: {ex.Message}\n--- STACK TRACE ---\n{ex.StackTrace}";
+             errorMessage = $"{Loc["HataOlustu"]} {ex.Message}\n--- STACK TRACE ---\n{ex.StackTrace}";
         }
     }
 
-    // --- GÜNCELLENMİŞ METOT (API SERVİSİ KULLANIYOR) ---
     private async Task LoadControlsData()
     {
         try
@@ -227,14 +221,11 @@
 
             foreach(var stepId in activeStepIds)
             {
-                // --- DEĞİŞİKLİK 3: ConfigRepo yerine API servisi çağrılır ---
-                // (Metot adı ScadaDataService içinde farklı olabilir, varsayılan olarak GetLayoutJsonAsync kullanıldı)
                 string layoutJson = await ScadaService.GetLayoutJsonAsync(MachineSubType, stepId);
                 
-                // API "DEFAULT" mantığını kendi içinde halletmiyorsa, onu burada tekrar deneyebiliriz.
                 if (string.IsNullOrEmpty(layoutJson) && MachineSubType != "DEFAULT")
                 {
-                     layoutJson = await ScadaService.GetLayoutJsonAsync("DEFAULT", stepId);
+                      layoutJson = await ScadaService.GetLayoutJsonAsync("DEFAULT", stepId);
                 }
                                     
                 if (!string.IsNullOrEmpty(layoutJson))
@@ -254,7 +245,7 @@
                                     ControlType = control.ControlType,
                                     Name = control.Name,
                                     Text = control.Text,
-                                    Location = control.Location,  // <--- BUNU EKLEYİN (Konum için)
+                                    Location = control.Location,
                                     Size = control.Size,
                                     PLC_WordIndex = control.PLC_WordIndex,
                                     PLC_BitIndex = control.PLC_BitIndex,
@@ -267,21 +258,18 @@
                     }
                     catch (JsonException jsonEx)
                     {
-                        errorMessage = $"API'den gelen JSON işlenemedi (Step ID {stepId}): {jsonEx.Message}. Gelen JSON: {layoutJson.Substring(0, Math.Min(layoutJson.Length, 100))}...";
+                        errorMessage = string.Format(Loc["JsonIslemeHatasi"], stepId) + $": {jsonEx.Message}.";
                     }
                 }
             }
         }
         catch (Exception ex)
         {
-            // Bu, ScadaService.GetLayoutJsonAsync() API çağrısı sırasındaki hatayı yakalar
-            errorMessage = $"Kontrol verisi API'den yüklenirken hata oluştu: {ex.Message}\n--- STACK TRACE ---\n{ex.StackTrace}";
+            errorMessage = $"{Loc["KontrolVerisiYuklemeHatasi"]}: {ex.Message}\n--- STACK TRACE ---\n{ex.StackTrace}";
         }
         
         await InvokeAsync(StateHasChanged);
     }
-    
-    // ... (Kural Kontrolü, PLC Veri Yönetimi ve RenderControl metotları aynı kalır) ...
     
     private bool IsSelectionValid(short controlWord)
     {
@@ -382,7 +370,7 @@
         }
         catch (Exception ex)
         {
-            errorMessage = $"Değer değiştirilirken hata oluştu: {ex.Message}";
+            errorMessage = $"{Loc["DegerDegistirmeHatasi"]}: {ex.Message}";
         }
     }
 
@@ -437,10 +425,10 @@
             }
             catch (Exception ex)
             {
-                errorMessage = $"Kontrol '{data.Text}' render edilirken hata oluştu: {ex.Message}";
+                errorMessage = string.Format(Loc["KontrolRenderHatasi"], data.Text) + $": {ex.Message}";
                 builder.OpenElement(0, "div");
                 builder.AddAttribute(1, "class", "text-danger");
-                builder.AddContent(2, $"Kontrol yüklenemedi: {ex.Message}");
+                builder.AddContent(2, $"{Loc["KontrolYuklenemedi"]}: {ex.Message}");
                 builder.CloseElement();
             }
         };

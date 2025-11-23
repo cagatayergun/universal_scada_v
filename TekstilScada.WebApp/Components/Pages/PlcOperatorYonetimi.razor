@@ -1,7 +1,10 @@
 ﻿@using TekstilScada.Models
 @using TekstilScada.WebApp.Services
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
 @inject ScadaDataService DataService
 @inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResource> Loc
 
 @if (showEditModal && operatorToEdit != null)
 {
@@ -9,15 +12,15 @@
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4>PLC Operatör Yönetimi</h4>
+    <h4>@Loc["PlcOperatorYonetimiBaslik"]</h4>
     <button class="btn btn-success" @onclick="AddDefaultOperator">
-        <i class="bi bi-person-plus me-1"></i> Varsayılan Ekle
+        <i class="bi bi-person-plus me-1"></i> @Loc["VarsayilanEkle"]
     </button>
 </div>
 
 @if (operators == null)
 {
-    <div class="text-center mt-4"><div class="spinner-border text-primary"></div><p>Yükleniyor...</p></div>
+    <div class="text-center mt-4"><div class="spinner-border text-primary"></div><p>@Loc["Yukleniyor"]</p></div>
 }
 else
 {
@@ -25,10 +28,10 @@ else
         <table class="table table-striped table-hover align-middle">
             <thead class="table-dark">
                 <tr>
-                    <th>Operatör Adı</th>
-                    <th>Kullanıcı ID</th>
-                    <th>Şifre</th>
-                    <th class="text-end">İşlemler</th>
+                    <th>@Loc["OperatorAdi"]</th>
+                    <th>@Loc["KullaniciId"]</th>
+                    <th>@Loc["Sifre"]</th>
+                    <th class="text-end">@Loc["Islemler"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -40,10 +43,10 @@ else
                         <td>**** (@op.Password)</td>
                         <td class="text-end">
                             <button class="btn btn-sm btn-primary me-1" @onclick="() => EditOperator(op)">
-                                <i class="bi bi-pencil me-1"></i> Düzenle
+                                <i class="bi bi-pencil me-1"></i> @Loc["Duzenle"]
                             </button>
                             <button class="btn btn-sm btn-danger" @onclick="() => DeleteOperator(op)">
-                                <i class="bi bi-trash me-1"></i> Sil
+                                <i class="bi bi-trash me-1"></i> @Loc["Sil"]
                             </button>
                         </td>
                     </tr>
@@ -66,7 +69,7 @@ else
     private async Task LoadData()
     {
         try { operators = await DataService.GetPlcOperatorsAsync(); }
-        catch (Exception ex) { Console.WriteLine($"Hata: {ex.Message}"); }
+        catch (Exception ex) { Console.WriteLine($"{Loc["Hata"]}: {ex.Message}"); }
     }
 
     private async Task AddDefaultOperator()
@@ -96,12 +99,13 @@ else
             showEditModal = false;
             await LoadData();
         }
-        catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", $"Hata: {ex.Message}"); }
+        catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", $"{Loc["Hata"]}: {ex.Message}"); }
     }
 
     private async Task DeleteOperator(PlcOperator op)
     {
-        if (await JSRuntime.InvokeAsync<bool>("confirm", $"'{op.Name}' operatörü silinsin mi?"))
+        string message = string.Format(Loc["OperatorSilOnay"], op.Name);
+        if (await JSRuntime.InvokeAsync<bool>("confirm", message))
         {
             // Repository'de SlotIndex aslında veritabanı ID'si olarak kullanılıyor
             await DataService.DeletePlcOperatorAsync(op.SlotIndex);

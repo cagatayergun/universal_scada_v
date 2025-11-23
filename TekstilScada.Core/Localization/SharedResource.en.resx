@@ -1,0 +1,1241 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+	<!-- 
+		Microsoft ResX Schema
+
+		Version 1.3
+
+		The primary goals of this format is to allow a simple XML format 
+		that is mostly human readable. The generation and parsing of the 
+		various data types are done through the TypeConverter classes 
+		associated with the data types.
+
+		Example:
+
+		... ado.net/XML headers & schema ...
+		<resheader name="resmimetype">text/microsoft-resx</resheader>
+		<resheader name="version">1.3</resheader>
+		<resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+		<resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+		<data name="Name1">this is my long string</data>
+		<data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+		<data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+			[base64 mime encoded serialized .NET Framework object]
+		</data>
+		<data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+			[base64 mime encoded string representing a byte array form of the .NET Framework object]
+		</data>
+
+		There are any number of "resheader" rows that contain simple 
+		name/value pairs.
+
+		Each data row contains a name, and value. The row also contains a 
+		type or mimetype. Type corresponds to a .NET class that support 
+		text/value conversion through the TypeConverter architecture. 
+		Classes that don't support this are serialized and stored with the 
+		mimetype set.
+
+		The mimetype is used for serialized objects, and tells the 
+		ResXResourceReader how to depersist the object. This is currently not 
+		extensible. For a given mimetype the value must be set accordingly:
+
+		Note - application/x-microsoft.net.object.binary.base64 is the format 
+		that the ResXResourceWriter will generate, however the reader can 
+		read any of the formats listed below.
+
+		mimetype: application/x-microsoft.net.object.binary.base64
+		value   : The object must be serialized with 
+			: System.Serialization.Formatters.Binary.BinaryFormatter
+			: and then encoded with base64 encoding.
+
+		mimetype: application/x-microsoft.net.object.soap.base64
+		value   : The object must be serialized with 
+			: System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+			: and then encoded with base64 encoding.
+
+		mimetype: application/x-microsoft.net.object.bytearray.base64
+		value   : The object must be serialized into a byte array 
+			: using a System.ComponentModel.TypeConverter
+			: and then encoded with base64 encoding.
+	-->
+	
+	<xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+		<xsd:element name="root" msdata:IsDataSet="true">
+			<xsd:complexType>
+				<xsd:choice maxOccurs="unbounded">
+					<xsd:element name="data">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+								<xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+							</xsd:sequence>
+							<xsd:attribute name="name" type="xsd:string" msdata:Ordinal="1" />
+							<xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+							<xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+						</xsd:complexType>
+					</xsd:element>
+					<xsd:element name="resheader">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+							</xsd:sequence>
+							<xsd:attribute name="name" type="xsd:string" use="required" />
+						</xsd:complexType>
+					</xsd:element>
+				</xsd:choice>
+			</xsd:complexType>
+		</xsd:element>
+	</xsd:schema>
+	<resheader name="resmimetype">
+		<value>text/microsoft-resx</value>
+	</resheader>
+	<resheader name="version">
+		<value>1.3</value>
+	</resheader>
+	<resheader name="reader">
+		<value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.3500.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+	</resheader>
+	<resheader name="writer">
+		<value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.3500.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+	</resheader>
+	<data name="AlarmDuzenleBaslik" xml:space="preserve">
+    <value>Edit Alarm</value>
+  </data>
+	<data name="YeniAlarmBaslik" xml:space="preserve">
+    <value>Add New Alarm</value>
+  </data>
+	<data name="AlarmNo" xml:space="preserve">
+    <value>Alarm Number</value>
+  </data>
+	<data name="AlarmMetni" xml:space="preserve">
+    <value>Alarm Text</value>
+  </data>
+	<data name="MakineTipi" xml:space="preserve">
+    <value>Machine Type</value>
+  </data>
+	<data name="Kaydet" xml:space="preserve">
+    <value>Save</value>
+  </data>
+	<data name="Iptal" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+	<data name="Sil" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+	<data name="AlarmSilOnay" xml:space="preserve">
+    <value>Are you sure you want to delete this alarm?</value>
+  </data>
+	<data name="AlarmTanimlariBaslik" xml:space="preserve">
+    <value>Alarm Definitions</value>
+  </data>
+	<data name="YeniAlarmEkle" xml:space="preserve">
+    <value>Add New Alarm</value>
+  </data>
+	<data name="AlarmlarYukleniyor" xml:space="preserve">
+    <value>Loading alarms...</value>
+  </data>
+	<data name="No" xml:space="preserve">
+    <value>No</value>
+  </data>
+	<data name="AlarmMesaji" xml:space="preserve">
+    <value>Alarm Message</value>
+  </data>
+	<data name="Onem" xml:space="preserve">
+    <value>Severity</value>
+  </data>
+	<data name="Islemler" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+	<data name="Duzenle" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+	<data name="AlarmSilSoru" xml:space="preserve">
+    <value>Delete Alarm No: {0}?</value>
+  </data>
+	<data name="Hata" xml:space="preserve">
+    <value>Error</value>
+  </data>
+	<data name="SistemAyarlari" xml:space="preserve">
+    <value>System Settings</value>
+  </data>
+	<data name="MakineYonetimi" xml:space="preserve">
+    <value>Machine Management</value>
+  </data>
+	<data name="KullaniciYonetimi" xml:space="preserve">
+    <value>User Management</value>
+  </data>
+	<data name="AlarmTanimlari" xml:space="preserve">
+    <value>Alarm Definitions</value>
+  </data>
+	<data name="MaliyetYonetimi" xml:space="preserve">
+    <value>Cost Management</value>
+  </data>
+	<data name="PlcOperatorleri" xml:space="preserve">
+    <value>PLC Operators</value>
+  </data>
+	<data name="ReceteTasarimcisi" xml:space="preserve">
+    <value>Recipe Designer</value>
+  </data>
+	<data name="VerilerYukleniyor" xml:space="preserve">
+    <value>Loading data and establishing SignalR connection...</value>
+  </data>
+	<data name="ToplamMakine" xml:space="preserve">
+    <value>TOTAL MACHINES</value>
+  </data>
+	<data name="AktifMakine" xml:space="preserve">
+    <value>ACTIVE MACHINES</value>
+  </data>
+	<data name="AlarmdakiMakine" xml:space="preserve">
+    <value>MACHINES IN ALARM</value>
+  </data>
+	<data name="BekleyenMakine" xml:space="preserve">
+    <value>IDLE MACHINES</value>
+  </data>
+	<data name="MakineTanimlanmamis" xml:space="preserve">
+    <value>No machines defined in the system yet.</value>
+  </data>
+	<data name="VeriBekleniyor" xml:space="preserve">
+    <value>Waiting for data...</value>
+  </data>
+	<data name="ReceteGonderBaslik" xml:space="preserve">
+    <value>Send Recipe (PC -> Machine)</value>
+  </data>
+	<data name="Adim1ReceteSecimi" xml:space="preserve">
+    <value>Step 1: Select Recipe</value>
+  </data>
+	<data name="ReceteTipi" xml:space="preserve">
+    <value>Recipe Type</value>
+  </data>
+	<data name="ReceteSecildiCount" xml:space="preserve">
+    <value>{0} recipes selected.</value>
+  </data>
+	<data name="Adim2HedefSecimi" xml:space="preserve">
+    <value>Step 2: Select Target</value>
+  </data>
+	<data name="Online" xml:space="preserve">
+    <value>Online</value>
+  </data>
+	<data name="MakineAdi" xml:space="preserve">
+    <value>Machine Name</value>
+  </data>
+	<data name="HedefNo" xml:space="preserve">
+    <value>Target No</value>
+  </data>
+	<data name="HedefBaslangicNo" xml:space="preserve">
+    <value>Target Start Slot:</value>
+  </data>
+	<data name="GonderimiBaslat" xml:space="preserve">
+    <value>START TRANSFER</value>
+  </data>
+	<data name="ReceteAlBaslik" xml:space="preserve">
+    <value>Receive Recipe (Machine -> PC)</value>
+  </data>
+	<data name="KaynakSecimi" xml:space="preserve">
+    <value>Source Selection</value>
+  </data>
+	<data name="MakineSeciniz" xml:space="preserve">
+    <value>Select Machine</value>
+  </data>
+	<data name="HafizaOkunuyor" xml:space="preserve">
+    <value>Reading memory...</value>
+  </data>
+	<data name="HmiReceteleri" xml:space="preserve">
+    <value>HMI Recipes (PLC)</value>
+  </data>
+	<data name="ReceteAdi" xml:space="preserve">
+    <value>Recipe Name</value>
+  </data>
+	<data name="Secilen" xml:space="preserve">
+    <value>Selected</value>
+  </data>
+	<data name="Adet" xml:space="preserve">
+    <value>items</value>
+  </data>
+	<data name="Indir" xml:space="preserve">
+    <value>DOWNLOAD</value>
+  </data>
+	<data name="IslemKuyrugu" xml:space="preserve">
+    <value>Job Queue</value>
+  </data>
+	<data name="KuyrukBos" xml:space="preserve">
+    <value>Queue is empty</value>
+  </data>
+	<data name="IslemlerSuruyor" xml:space="preserve">
+    <value>Processing...</value>
+  </data>
+	<data name="Kapat" xml:space="preserve">
+    <value>Close</value>
+  </data>
+	<data name="PlcReceteBulunamadi" xml:space="preserve">
+    <value>No recipe name found in PLC.</value>
+  </data>
+	<data name="ReceteListesiAlinamadi" xml:space="preserve">
+    <value>Failed to get recipe list</value>
+  </data>
+	<data name="ReceteIndirmeKuyrugaEklendi" xml:space="preserve">
+    <value>recipes added to download queue.</value>
+  </data>
+	<data name="MakineOfflineOnay" xml:space="preserve">
+    <value>{0} machines are OFFLINE. Continue anyway?</value>
+  </data>
+	<data name="LimitAsildi" xml:space="preserve">
+    <value>limit exceeded!</value>
+  </data>
+	<data name="KuyrugaAlindi" xml:space="preserve">
+    <value>Queued.</value>
+  </data>
+	<data name="MakineFiltreleme" xml:space="preserve">
+    <value>Machine Filtering</value>
+  </data>
+	<data name="MakineListesiYuklenemedi" xml:space="preserve">
+    <value>Could not load machine list.</value>
+  </data>
+	<data name="Filtrele" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+	<data name="TumunuSec" xml:space="preserve">
+    <value>Select All</value>
+  </data>
+	<data name="SecimiTemizle" xml:space="preserve">
+    <value>Clear Selection</value>
+  </data>
+	<data name="FiltreSonucuYok" xml:space="preserve">
+    <value>No machines found matching the filter.</value>
+  </data>
+	<data name="OeeVerisiYok" xml:space="preserve">
+    <value>No OEE Data...</value>
+  </data>
+	<data name="GenelBakis" xml:space="preserve">
+    <value>Overview</value>
+  </data>
+	<data name="GenelMakineDurumu" xml:space="preserve">
+    <value>General Machine Status</value>
+  </data>
+	<data name="VeriBekleniyorDetay" xml:space="preserve">
+    <value>Waiting for data from machines... (Ensure WebAPI project is running)</value>
+  </data>
+	<data name="YeniKullanici" xml:space="preserve">
+    <value>New User</value>
+  </data>
+	<data name="AdSoyad" xml:space="preserve">
+    <value>Full Name</value>
+  </data>
+	<data name="KullaniciAdi" xml:space="preserve">
+    <value>Username</value>
+  </data>
+	<data name="Durum" xml:space="preserve">
+    <value>Status</value>
+  </data>
+	<data name="Aktif" xml:space="preserve">
+    <value>Active</value>
+  </data>
+	<data name="Pasif" xml:space="preserve">
+    <value>Passive</value>
+  </data>
+	<data name="Yukleniyor" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
+	<data name="KullaniciSilOnay" xml:space="preserve">
+    <value>Delete {0}?</value>
+  </data>
+	<data name="KurutmaParametreleri" xml:space="preserve">
+    <value>Drying Parameters</value>
+  </data>
+	<data name="SicaklikC" xml:space="preserve">
+    <value>Temperature (°C):</value>
+  </data>
+	<data name="NemYuzde" xml:space="preserve">
+    <value>Moisture (%):</value>
+  </data>
+	<data name="SureDk" xml:space="preserve">
+    <value>Time (min):</value>
+  </data>
+	<data name="CalismaDevriRpm" xml:space="preserve">
+    <value>Working Speed (rpm):</value>
+  </data>
+	<data name="SogutmaSuresiDk" xml:space="preserve">
+    <value>Cooling Time (min):</value>
+  </data>
+	<data name="GirisYapBaslik" xml:space="preserve">
+    <value>Sign In</value>
+  </data>
+	<data name="KullaniciAdiLabel" xml:space="preserve">
+    <value>Username</value>
+  </data>
+	<data name="SifreLabel" xml:space="preserve">
+    <value>Password</value>
+  </data>
+	<data name="GirisBasarisizHata" xml:space="preserve">
+    <value>Login failed. Please check your username and password.</value>
+  </data>
+	<data name="GirisButon" xml:space="preserve">
+    <value>Sign In</value>
+  </data>
+	<data name="Detaylar" xml:space="preserve">
+    <value>Details</value>
+  </data>
+	<data name="VncIzle" xml:space="preserve">
+    <value>Watch Screen (VNC)</value>
+  </data>
+	<data name="Bagli" xml:space="preserve">
+    <value>Connected</value>
+  </data>
+	<data name="Baglaniyor" xml:space="preserve">
+    <value>Connecting...</value>
+  </data>
+	<data name="BaglantiYok" xml:space="preserve">
+    <value>No Connection</value>
+  </data>
+	<data name="BaglantiKoptu" xml:space="preserve">
+    <value>DISCONNECTED</value>
+  </data>
+	<data name="Alarm" xml:space="preserve">
+    <value>ALARM</value>
+  </data>
+	<data name="Durakladi" xml:space="preserve">
+    <value>PAUSED</value>
+  </data>
+	<data name="Calisiyor" xml:space="preserve">
+    <value>RUNNING</value>
+  </data>
+	<data name="Bosta" xml:space="preserve">
+    <value>IDLE</value>
+  </data>
+	<data name="Ilerleme" xml:space="preserve">
+    <value>Progress</value>
+  </data>
+	<data name="Recete" xml:space="preserve">
+    <value>Recipe:</value>
+  </data>
+	<data name="Parti" xml:space="preserve">
+    <value>Batch:</value>
+  </data>
+	<data name="Adim" xml:space="preserve">
+    <value>Step:</value>
+  </data>
+	<data name="Sicaklik" xml:space="preserve">
+    <value>Temperature</value>
+  </data>
+	<data name="Devir" xml:space="preserve">
+    <value>Speed (RPM)</value>
+  </data>
+	<data name="YeniMakineEkleBaslik" xml:space="preserve">
+    <value>Add New Machine</value>
+  </data>
+	<data name="MakineDuzenleBaslik" xml:space="preserve">
+    <value>Edit Machine</value>
+  </data>
+	<data name="GenelBilgiler" xml:space="preserve">
+    <value>General Information</value>
+  </data>
+	<data name="MakineAdiLabel" xml:space="preserve">
+    <value>Machine Name:</value>
+  </data>
+	<data name="MakineIdLabel" xml:space="preserve">
+    <value>Machine ID (Short Code):</value>
+  </data>
+	<data name="MakineTipiLabel" xml:space="preserve">
+    <value>Machine Type:</value>
+  </data>
+	<data name="Seciniz" xml:space="preserve">
+    <value>Select...</value>
+  </data>
+	<data name="BoyaMakinesi" xml:space="preserve">
+    <value>Dyeing Machine</value>
+  </data>
+	<data name="KurutmaMakinesi" xml:space="preserve">
+    <value>Drying Machine</value>
+  </data>
+	<data name="MakineAltTipiLabel" xml:space="preserve">
+    <value>Machine Sub-Type (For Recipe Design):</value>
+  </data>
+	<data name="MakineAltTipiPlaceholder" xml:space="preserve">
+    <value>Ex: Yilmak_100kg</value>
+  </data>
+	<data name="MakineAltTipiInfo" xml:space="preserve">
+    <value>This field is used for filtering in the recipe design screen.</value>
+  </data>
+	<data name="BaglantiAyarlari" xml:space="preserve">
+    <value>Connection Settings</value>
+  </data>
+	<data name="IpAdresiLabel" xml:space="preserve">
+    <value>IP Address:</value>
+  </data>
+	<data name="PortLabel" xml:space="preserve">
+    <value>Port:</value>
+  </data>
+	<data name="FtpVncAyarlari" xml:space="preserve">
+    <value>FTP &amp; VNC Settings</value>
+  </data>
+	<data name="FtpKullaniciAdiLabel" xml:space="preserve">
+    <value>FTP Username:</value>
+  </data>
+	<data name="FtpSifresiLabel" xml:space="preserve">
+    <value>FTP Password:</value>
+  </data>
+	<data name="VncAdresiLabel" xml:space="preserve">
+    <value>VNC Address (Optional):</value>
+  </data>
+	<data name="VncSifresiLabel" xml:space="preserve">
+    <value>VNC Password:</value>
+  </data>
+	<data name="MakineAktifLabel" xml:space="preserve">
+    <value>Machine Active</value>
+  </data>
+	<data name="MakineDetayPageTitle" xml:space="preserve">
+    <value>Machine Detail: {0} - {1}</value>
+  </data>
+	<data name="MakineDurumuYukleniyor" xml:space="preserve">
+    <value>Loading machine status or Machine ID: {0} not found...</value>
+  </data>
+	<data name="MakineDetayiBaslik" xml:space="preserve">
+    <value>{0} ({1}) Detail</value>
+  </data>
+	<data name="BaglantiDurumu" xml:space="preserve">
+    <value>Connection Status</value>
+  </data>
+	<data name="UretimDurumu" xml:space="preserve">
+    <value>Production Status</value>
+  </data>
+	<data name="ProsesYuzdesi" xml:space="preserve">
+    <value>Process Percentage</value>
+  </data>
+	<data name="AktifAlarmBaslik" xml:space="preserve">
+    <value>Active Alarm</value>
+  </data>
+	<data name="AlarmNoFormat" xml:space="preserve">
+    <value>ALARM NO: {0}</value>
+  </data>
+	<data name="AlarmYok" xml:space="preserve">
+    <value>No Alarm</value>
+  </data>
+	<data name="AnlikDegerler" xml:space="preserve">
+    <value>Instant Values</value>
+  </data>
+	<data name="OperatorLabel" xml:space="preserve">
+    <value>OPERATOR</value>
+  </data>
+	<data name="MusteriNoLabel" xml:space="preserve">
+    <value>CUSTOMER NO</value>
+  </data>
+	<data name="SiparisNoLabel" xml:space="preserve">
+    <value>ORDER NO</value>
+  </data>
+	<data name="SuSeviyesiLabel" xml:space="preserve">
+    <value>WATER LEVEL</value>
+  </data>
+	<data name="AktifAdimLabel" xml:space="preserve">
+    <value>ACTIVE STEP</value>
+  </data>
+	<data name="PlcReceteAdimlari" xml:space="preserve">
+    <value>Recipe Steps Read from PLC</value>
+  </data>
+	<data name="ReceteAdimlariOkunuyor" xml:space="preserve">
+    <value>Reading recipe steps from PLC...</value>
+  </data>
+	<data name="AktifAdimBulunamadi" xml:space="preserve">
+    <value>Active recipe step not found on machine or no defined step.</value>
+  </data>
+	<data name="AdimSutun" xml:space="preserve">
+    <value>Step</value>
+  </data>
+	<data name="AciklamaSutun" xml:space="preserve">
+    <value>Description</value>
+  </data>
+	<data name="TanimsizAdim" xml:space="preserve">
+    <value>Undefined Step</value>
+  </data>
+	<data name="AlarmGecmisiTab" xml:space="preserve">
+    <value>Alarm History</value>
+  </data>
+	<data name="TrendAnaliziTab" xml:space="preserve">
+    <value>Trend Analysis (Temp/Water/Speed)</value>
+  </data>
+	<data name="AktifAlarmDurumu" xml:space="preserve">
+    <value>Active Alarm Status</value>
+  </data>
+	<data name="AktifAlarmLabel" xml:space="preserve">
+    <value>Active Alarm:</value>
+  </data>
+	<data name="AktifAlarmYok" xml:space="preserve">
+    <value>No Active Alarm.</value>
+  </data>
+	<data name="BaglantiBekleniyorAlarm" xml:space="preserve">
+    <value>Waiting for connection... Cannot check active alarm status.</value>
+  </data>
+	<data name="AlarmGecmisiBaslik" xml:space="preserve">
+    <value>Alarm History (Last 30 Days)</value>
+  </data>
+	<data name="AlarmGecmisiYukleniyor" xml:space="preserve">
+    <value>Loading alarm history...</value>
+  </data>
+	<data name="GecmisAlarmYok" xml:space="preserve">
+    <value>No past alarm records found for this machine.</value>
+  </data>
+	<data name="BaslangicZamani" xml:space="preserve">
+    <value>Start Time</value>
+  </data>
+	<data name="AlarmKodu" xml:space="preserve">
+    <value>Alarm Code</value>
+  </data>
+	<data name="Aciklama" xml:space="preserve">
+    <value>Description</value>
+  </data>
+	<data name="Sure" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+	<data name="TrendVerileriYukleniyor" xml:space="preserve">
+    <value>Loading trend data...</value>
+  </data>
+	<data name="TrendVerisiYok" xml:space="preserve">
+    <value>No trend data found for the last 100 minutes.</value>
+  </data>
+	<data name="CanliTrendGrafigi" xml:space="preserve">
+    <value>Live Process Trend Chart</value>
+  </data>
+	<data name="CanliTrendAnalizi" xml:space="preserve">
+    <value>Live Process Trend Analysis</value>
+  </data>
+	<data name="AdimTipi_SuAlma" xml:space="preserve">
+    <value>Water Intake</value>
+  </data>
+	<data name="AdimTipi_Isitma" xml:space="preserve">
+    <value>Heating</value>
+  </data>
+	<data name="AdimTipi_Calisma" xml:space="preserve">
+    <value>Running</value>
+  </data>
+	<data name="AdimTipi_Dozaj" xml:space="preserve">
+    <value>Dosing</value>
+  </data>
+	<data name="AdimTipi_Bosaltma" xml:space="preserve">
+    <value>Drain</value>
+  </data>
+	<data name="AdimTipi_Sikma" xml:space="preserve">
+    <value>Spin</value>
+  </data>
+	<data name="MakineYonetimiBaslik" xml:space="preserve">
+    <value>Machine Management</value>
+  </data>
+	<data name="YeniMakineEkleButon" xml:space="preserve">
+    <value>Add New Machine</value>
+  </data>
+	<data name="MakinelerYukleniyor" xml:space="preserve">
+    <value>Loading machines...</value>
+  </data>
+	<data name="ID" xml:space="preserve">
+    <value>ID</value>
+  </data>
+	<data name="MakineAdi" xml:space="preserve">
+    <value>Machine Name</value>
+  </data>
+	<data name="IpAdresi" xml:space="preserve">
+    <value>IP Address</value>
+  </data>
+	<data name="Port" xml:space="preserve">
+    <value>Port</value>
+  </data>
+	<data name="Tipi" xml:space="preserve">
+    <value>Type</value>
+  </data>
+	<data name="Durum" xml:space="preserve">
+    <value>Status</value>
+  </data>
+	<data name="Islemler" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+	<data name="Aktif" xml:space="preserve">
+    <value>Active</value>
+  </data>
+	<data name="Pasif" xml:space="preserve">
+    <value>Passive</value>
+  </data>
+	<data name="Duzenle" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+	<data name="Sil" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+	<data name="VeriYuklemeHatasi" xml:space="preserve">
+    <value>Data loading error</value>
+  </data>
+	<data name="KaydetmeHatasi" xml:space="preserve">
+    <value>Saving error</value>
+  </data>
+	<data name="MakineSilOnay" xml:space="preserve">
+    <value>Are you sure you want to delete machine '{0}'?</value>
+  </data>
+	<data name="SilmeHatasi" xml:space="preserve">
+    <value>Deletion error</value>
+  </data>
+	<data name="MaliyetParametreleriBaslik" xml:space="preserve">
+    <value>Cost Parameters</value>
+  </data>
+	<data name="DegisiklikleriKaydet" xml:space="preserve">
+    <value>Save Changes</value>
+  </data>
+	<data name="SistemParaBirimi" xml:space="preserve">
+    <value>System Currency:</value>
+  </data>
+	<data name="SistemParaBirimiInfo" xml:space="preserve">
+    <value>This currency will be used in all reports.</value>
+  </data>
+	<data name="ParametreAdi" xml:space="preserve">
+    <value>Parameter Name</value>
+  </data>
+	<data name="BirimMaliyet" xml:space="preserve">
+    <value>Unit Cost</value>
+  </data>
+	<data name="Birim" xml:space="preserve">
+    <value>Unit</value>
+  </data>
+	<data name="CarpanKatsayi" xml:space="preserve">
+    <value>Multiplier (Coefficient)</value>
+  </data>
+	<data name="MaliyetAyarlariKaydedildi" xml:space="preserve">
+    <value>Cost settings saved successfully.</value>
+  </data>
+	<data name="OperatorDuzenleBaslik" xml:space="preserve">
+    <value>Edit Operator</value>
+  </data>
+	<data name="PlcKoduBilgi" xml:space="preserve">
+    <value>These settings are templates that will be written directly to the PLC.</value>
+  </data>
+	<data name="OperatorAdi" xml:space="preserve">
+    <value>Operator Name:</value>
+  </data>
+	<data name="KullaniciIdSayisal" xml:space="preserve">
+    <value>User ID (Numeric):</value>
+  </data>
+	<data name="SifreSayisal" xml:space="preserve">
+    <value>Password (Numeric):</value>
+  </data>
+	<data name="PlcOperatorYonetimiBaslik" xml:space="preserve">
+    <value>PLC Operator Management</value>
+  </data>
+	<data name="VarsayilanEkle" xml:space="preserve">
+    <value>Add Default</value>
+  </data>
+	<data name="OperatorAdi" xml:space="preserve">
+    <value>Operator Name</value>
+  </data>
+	<data name="KullaniciId" xml:space="preserve">
+    <value>User ID</value>
+  </data>
+	<data name="Sifre" xml:space="preserve">
+    <value>Password</value>
+  </data>
+	<data name="OperatorSilOnay" xml:space="preserve">
+    <value>Delete operator '{0}'?</value>
+  </data>
+	<data name="ProsesKontrolBaslik" xml:space="preserve">
+    <value>Process Control</value>
+  </data>
+	<data name="RecetelerBaslik" xml:space="preserve">
+    <value>Recipes</value>
+  </data>
+	<data name="HedefMakineFiltre" xml:space="preserve">
+    <value>Target Machine (Filter)</value>
+  </data>
+	<data name="TumuSeciniz" xml:space="preserve">
+    <value>All / Select</value>
+  </data>
+	<data name="Yeni" xml:space="preserve">
+    <value>New</value>
+  </data>
+	<data name="Yenile" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+	<data name="DuzenlemekIcinReceteSecin" xml:space="preserve">
+    <value>Select a recipe to edit</value>
+  </data>
+	<data name="FtpSenkronizasyonMerkezi" xml:space="preserve">
+    <value>FTP SYNCHRONIZATION CENTER</value>
+  </data>
+	<data name="ReceteAdi" xml:space="preserve">
+    <value>Recipe Name</value>
+  </data>
+	<data name="IslemlerMenu" xml:space="preserve">
+    <value>ACTIONS</value>
+  </data>
+	<data name="SeciliMakineyeGonder" xml:space="preserve">
+    <value>Send to Selected Machine</value>
+  </data>
+	<data name="SeciliMakinedenOku" xml:space="preserve">
+    <value>Read from Selected Machine</value>
+  </data>
+	<data name="FtpCokluGonderim" xml:space="preserve">
+    <value>FTP / Multi Send</value>
+  </data>
+	<data name="AdimlarBaslik" xml:space="preserve">
+    <value>STEPS</value>
+  </data>
+	<data name="AdimSecUyari" xml:space="preserve">
+    <value>Select a step from the left to edit.</value>
+  </data>
+	<data name="VerilerYuklenmediUyari" xml:space="preserve">
+    <value>Data not loaded yet, please wait.</value>
+  </data>
+	<data name="OnceMakineSecinUyari" xml:space="preserve">
+    <value>Please select a target machine first.</value>
+  </data>
+	<data name="YeniReceteVarsayilanAd" xml:space="preserve">
+    <value>NEW RECIPE</value>
+  </data>
+	<data name="YeniReceteOlusturuldu" xml:space="preserve">
+    <value>New recipe created.</value>
+  </data>
+	<data name="ReceteDetaylariYukleniyor" xml:space="preserve">
+    <value>Loading recipe details...</value>
+  </data>
+	<data name="ReceteAdiBosOlamaz" xml:space="preserve">
+    <value>Recipe name cannot be empty.</value>
+  </data>
+	<data name="ReceteTipiEslesmiyorHata" xml:space="preserve">
+    <value>ERROR: Recipe type ({0}) does not match selected machine type ({1}). Please create a new recipe or change the machine type.</value>
+  </data>
+	<data name="ReceteKaydediliyor" xml:space="preserve">
+    <value>Saving recipe...</value>
+  </data>
+	<data name="ReceteBasariylaKaydedildi" xml:space="preserve">
+    <value>Recipe saved successfully.</value>
+  </data>
+	<data name="KaydetmeBasarisizApi" xml:space="preserve">
+    <value>Save failed. API error.</value>
+  </data>
+	<data name="ReceteSilOnay" xml:space="preserve">
+    <value>Are you sure you want to delete recipe '{0}'? This action cannot be undone.</value>
+  </data>
+	<data name="ReceteSiliniyor" xml:space="preserve">
+    <value>Deleting recipe...</value>
+  </data>
+	<data name="ReceteBasariylaSilindi" xml:space="preserve">
+    <value>Recipe deleted successfully.</value>
+  </data>
+	<data name="SilmeBasarisizApi" xml:space="preserve">
+    <value>Delete failed. API error.</value>
+  </data>
+	<data name="HmiReceteNoGiriniz" xml:space="preserve">
+    <value>Enter HMI Recipe Number (1-99):</value>
+  </data>
+	<data name="ReceteGonderiliyor" xml:space="preserve">
+    <value>Sending recipe to machine '{0}'...</value>
+  </data>
+	<data name="GonderimBasarili" xml:space="preserve">
+    <value>Transfer Successful!</value>
+  </data>
+	<data name="ReceteOkunuyor" xml:space="preserve">
+    <value>Reading recipe from machine '{0}'...</value>
+  </data>
+	<data name="ReceteBasariylaOkundu" xml:space="preserve">
+    <value>Recipe successfully read from machine. Rename and save it.</value>
+  </data>
+	<data name="PlcOkumaBasarisiz" xml:space="preserve">
+    <value>Reading from PLC failed. Connection/PLC error.</value>
+  </data>
+	<data name="OkumaHatasi" xml:space="preserve">
+    <value>Error reading</value>
+  </data>
+	<data name="BilesenlerYukleniyor" xml:space="preserve">
+    <value>Loading components...</value>
+  </data>
+	<data name="ReceteAdimTasarimcisiBaslik" xml:space="preserve">
+    <value>Recipe Step Designer</value>
+  </data>
+	<data name="TasarimiKaydet" xml:space="preserve">
+    <value>Save Layout</value>
+  </data>
+	<data name="MakineAltTipi" xml:space="preserve">
+    <value>Machine Sub-Type:</value>
+  </data>
+	<data name="AdimTipi" xml:space="preserve">
+    <value>Step Type:</value>
+  </data>
+	<data name="Kontroller" xml:space="preserve">
+    <value>Controls</value>
+  </data>
+	<data name="Ekle" xml:space="preserve">
+    <value>Add</value>
+  </data>
+	<data name="EtiketLabel" xml:space="preserve">
+    <value>Label</value>
+  </data>
+	<data name="SayisalNumeric" xml:space="preserve">
+    <value>Numeric (NumericUpDown)</value>
+  </data>
+	<data name="OnayKutusuCheckbox" xml:space="preserve">
+    <value>Checkbox</value>
+  </data>
+	<data name="MetinKutusuTextBox" xml:space="preserve">
+    <value>TextBox</value>
+  </data>
+	<data name="Tur" xml:space="preserve">
+    <value>Type</value>
+  </data>
+	<data name="MetinIsim" xml:space="preserve">
+    <value>Text / Name</value>
+  </data>
+	<data name="KonumXY" xml:space="preserve">
+    <value>Position (X,Y)</value>
+  </data>
+	<data name="PlcAdres" xml:space="preserve">
+    <value>PLC Address</value>
+  </data>
+	<data name="Islem" xml:space="preserve">
+    <value>Action</value>
+  </data>
+	<data name="Ozellikler" xml:space="preserve">
+    <value>Properties</value>
+  </data>
+	<data name="GorunenMetin" xml:space="preserve">
+    <value>Display Text:</value>
+  </data>
+	<data name="XKonumu" xml:space="preserve">
+    <value>X Position:</value>
+  </data>
+	<data name="YKonumu" xml:space="preserve">
+    <value>Y Position:</value>
+  </data>
+	<data name="PlcAyarlari" xml:space="preserve">
+    <value>PLC Settings</value>
+  </data>
+	<data name="AdresWord" xml:space="preserve">
+    <value>Address (Word):</value>
+  </data>
+	<data name="Bit015" xml:space="preserve">
+    <value>Bit (0-15):</value>
+  </data>
+	<data name="MaxDeger" xml:space="preserve">
+    <value>Max Value:</value>
+  </data>
+	<data name="OndalikVirgul" xml:space="preserve">
+    <value>Decimal Places:</value>
+  </data>
+	<data name="UzunlukWord" xml:space="preserve">
+    <value>Length (Word):</value>
+  </data>
+	<data name="GorselOnizleme" xml:space="preserve">
+    <value>Visual Preview</value>
+  </data>
+	<data name="DuzenlemekIcinKontrolSec" xml:space="preserve">
+    <value>Select a control from the list to edit.</value>
+  </data>
+	<data name="DuzenlemekIcinAdimTipiSec" xml:space="preserve">
+    <value>Please select a Step Type to edit.</value>
+  </data>
+	<data name="BasariylaKaydedildi" xml:space="preserve">
+    <value>Saved successfully!</value>
+  </data>
+	<data name="HataOlustu" xml:space="preserve">
+    <value>Error Occurred:</value>
+  </data>
+	<data name="KurutmaAdimiSabit" xml:space="preserve">
+    <value>This step belongs to a drying machine. The editor structure is static.</value>
+  </data>
+	<data name="AdimTipleri" xml:space="preserve">
+    <value>Step Types</value>
+  </data>
+	<data name="AdimSecimiGecersiz" xml:space="preserve">
+    <value>A maximum of 2 different process types can be selected, or Spin/Drain steps cannot be selected together with other standard steps.</value>
+  </data>
+	<data name="KontrolVerisiYuklemeHatasi" xml:space="preserve">
+    <value>Error loading control data from API</value>
+  </data>
+	<data name="BilesenYuklemeHatasi" xml:space="preserve">
+    <value>A critical error occurred while loading the component</value>
+  </data>
+	<data name="ServisKayitHatasi" xml:space="preserve">
+    <value>Critical Error: ScadaDataService is not registered in 'Program.cs' (Dependency Injection error).</value>
+  </data>
+	<data name="JsonIslemeHatasi" xml:space="preserve">
+    <value>API JSON could not be processed (Step ID {0})</value>
+  </data>
+	<data name="DegerDegistirmeHatasi" xml:space="preserve">
+    <value>Error occurred while changing value</value>
+  </data>
+	<data name="KontrolRenderHatasi" xml:space="preserve">
+    <value>Error rendering control '{0}'</value>
+  </data>
+	<data name="KontrolYuklenemedi" xml:space="preserve">
+    <value>Control could not be loaded</value>
+  </data>
+	<data name="YeniKullaniciBaslik" xml:space="preserve">
+    <value>New User</value>
+  </data>
+	<data name="KullaniciDuzenleBaslik" xml:space="preserve">
+    <value>Edit User</value>
+  </data>
+	<data name="SifreDegismezseBos" xml:space="preserve">
+    <value>(Leave blank if not changing)</value>
+  </data>
+	<data name="RollerLabel" xml:space="preserve">
+    <value>Roles:</value>
+  </data>
+	<data name="RollerYuklenemedi" xml:space="preserve">
+    <value>Roles could not be loaded.</value>
+  </data>
+	<data name="AktifKullaniciLabel" xml:space="preserve">
+    <value>Active User</value>
+  </data>
+	<data name="UzaktanErisim" xml:space="preserve">
+    <value>Remote Access:</value>
+  </data>
+	<data name="BaglantiyiKes" xml:space="preserve">
+    <value>Disconnect</value>
+  </data>
+	<data name="MakineBilgileriYukleniyor" xml:space="preserve">
+    <value>Loading machine information...</value>
+  </data>
+	<data name="BaglaniyorNokta" xml:space="preserve">
+    <value>Connecting...</value>
+  </data>
+	<data name="IsEmriBekliyor" xml:space="preserve">
+    <value>Machine waiting for work order</value>
+  </data>
+	<data name="BatchLabel" xml:space="preserve">
+    <value>Batch:</value>
+  </data>
+	<data name="BaglantiYokKisa" xml:space="preserve">
+    <value>No Connection</value>
+  </data>
+	<data name="AnlikDetaylar" xml:space="preserve">
+    <value>Instant Details</value>
+  </data>
+	<data name="TemelBilgiler" xml:space="preserve">
+    <value>Basic Information</value>
+  </data>
+	<data name="ProsesBilgileri" xml:space="preserve">
+    <value>Process Information</value>
+  </data>
+	<data name="AlarmVar" xml:space="preserve">
+    <value>Alarm Active:</value>
+  </data>
+	<data name="CalismaSuresi" xml:space="preserve">
+    <value>Running Time:</value>
+  </data>
+	<data name="Dk" xml:space="preserve">
+    <value>min</value>
+  </data>
+	<data name="Evet" xml:space="preserve">
+    <value>YES</value>
+  </data>
+	<data name="Hayir" xml:space="preserve">
+    <value>NO</value>
+  </data>
+	<data name="TamProsesKontrolu" xml:space="preserve">
+    <value>Full Process Control</value>
+  </data>
+	<data name="NavMenu_Dashboard" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+	<data name="NavMenu_ProsesIzleme" xml:space="preserve">
+    <value>Process Monitoring</value>
+  </data>
+	<data name="NavMenu_ProsesKontrol" xml:space="preserve">
+    <value>Process Control</value>
+  </data>
+	<data name="NavMenu_Raporlar" xml:space="preserve">
+    <value>Reports</value>
+  </data>
+	<data name="NavMenu_Ayarlar" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+	<data name="CikisYap" xml:space="preserve">
+    <value>Sign Out</value>
+  </data>
+	<data name="GirisYap" xml:space="preserve">
+    <value>Sign In</value>
+  </data>
+	<data name="RaporlarBaslik" xml:space="preserve">
+    <value>Reports</value>
+  </data>
+	<data name="UretimRaporuTab" xml:space="preserve">
+    <value>Production Report</value>
+  </data>
+	<data name="GecmisAlarmlarTab" xml:space="preserve">
+    <value>Past Alarms</value>
+  </data>
+	<data name="OeeRaporuTab" xml:space="preserve">
+    <value>OEE Report</value>
+  </data>
+	<data name="TrendAnaliziTabRaporlar" xml:space="preserve">
+    <value>Trend Analysis</value>
+  </data>
+	<data name="ReceteTuketimAnaliziTab" xml:space="preserve">
+    <value>Recipe Consumption Analysis</value>
+  </data>
+	<data name="ManuelTuketimTab" xml:space="preserve">
+    <value>Manual Consumption</value>
+  </data>
+	<data name="GenelTuketimRaporuTab" xml:space="preserve">
+    <value>General Consumption Report</value>
+  </data>
+	<data name="EylemKayitlariTab" xml:space="preserve">
+    <value>Action Logs</value>
+  </data>
+	<data name="TarihAraligiLabel" xml:space="preserve">
+    <value>Date Range</value>
+  </data>
+	<data name="BaslangicBitisPlaceholder" xml:space="preserve">
+    <value>Start - End</value>
+  </data>
+	<data name="MakineLabel" xml:space="preserve">
+    <value>Machine</value>
+  </data>
+	<data name="TumMakineler" xml:space="preserve">
+    <value>ALL MACHINES</value>
+  </data>
+	<data name="ReceteAdiAraPlaceholder" xml:space="preserve">
+    <value>Recipe Name</value>
+  </data>
+	<data name="DetayliFiltrelerPanel" xml:space="preserve">
+    <value>Detailed Filters (Batch, Order, Operator)</value>
+  </data>
+	<data name="BatchNoLabel" xml:space="preserve">
+    <value>Batch No</value>
+  </data>
+	<data name="Hesaplaniyor" xml:space="preserve">
+    <value>CALCULATING...</value>
+  </data>
+	<data name="RaporlaButon" xml:space="preserve">
+    <value>REPORT</value>
+  </data>
+	<data name="ExcelIndirButon" xml:space="preserve">
+    <value>DOWNLOAD EXCEL</value>
+  </data>
+	<data name="UretimSonuclariBaslik" xml:space="preserve">
+    <value>Production Results</value>
+  </data>
+	<data name="TablodaAraPlaceholder" xml:space="preserve">
+    <value>Search in Table (Batch, Recipe, Operator...)</value>
+  </data>
+	<data name="VerilerAnalizEdiliyor" xml:space="preserve">
+    <value>Analyzing data, please wait...</value>
+  </data>
+	<data name="KriterlereUygunKayitYok" xml:space="preserve">
+    <value>No records found matching the criteria.</value>
+  </data>
+	<data name="AlarmGecmisiBaslikRaporlar" xml:space="preserve">
+    <value>Alarm History</value>
+  </data>
+	<data name="AlarmAraPlaceholder" xml:space="preserve">
+    <value>Search Alarm (No, Description...)</value>
+  </data>
+	<data name="OeeAnaliziBaslik" xml:space="preserve">
+    <value>OEE Analysis</value>
+  </data>
+	<data name="AraGenelPlaceholder" xml:space="preserve">
+    <value>Search (Machine, Batch...)</value>
+  </data>
+	<data name="KullanilabilirlikLabel" xml:space="preserve">
+    <value>Availability (A)</value>
+  </data>
+	<data name="PerformansLabel" xml:space="preserve">
+    <value>Performance (P)</value>
+  </data>
+	<data name="KaliteLabel" xml:space="preserve">
+    <value>Quality (Q)</value>
+  </data>
+	<data name="AnalizAraligiLabel" xml:space="preserve">
+    <value>Analysis Range</value>
+  </data>
+	<data name="MakineSecimiLabel" xml:space="preserve">
+    <value>Select Machine</value>
+  </data>
+	<data name="MakineSecinizPlaceholder" xml:space="preserve">
+    <value>Select Machine</value>
+  </data>
+	<data name="AnalizEdiliyor" xml:space="preserve">
+    <value>ANALYZING...</value>
+  </data>
+	<data name="TrendiCizButon" xml:space="preserve">
+    <value>PLOT TREND</value>
+  </data>
+	<data name="VerilerIsleniyor" xml:space="preserve">
+    <value>Processing data, please wait...</value>
+  </data>
+	<data name="IstatistikselOzetBaslik" xml:space="preserve">
+    <value>Statistical Summary</value>
+  </data>
+	<data name="TrendVerisiYokTarih" xml:space="preserve">
+    <value>No process data found for this date range.</value>
+  </data>
+	<data name="ReceteAraPlaceholder" xml:space="preserve">
+    <value>Search Recipe...</value>
+  </data>
+	<data name="LutfenReceteSeciniz" xml:space="preserve">
+    <value>Please select a recipe from the left.</value>
+  </data>
+	<data name="GecmisUretimKaydiYok" xml:space="preserve">
+    <value>No past production records found for the selected recipe.</value>
+  </data>
+	<data name="OrtalamaSu" xml:space="preserve">
+    <value>AVG WATER</value>
+  </data>
+	<data name="OrtalamaElektrik" xml:space="preserve">
+    <value>AVG ELECTRICITY</value>
+  </data>
+	<data name="OrtalamaBuhar" xml:space="preserve">
+    <value>AVG STEAM</value>
+  </data>
+	<data name="GecmisUretimlerBaslik" xml:space="preserve">
+    <value>Past Productions</value>
+  </data>
+	<data name="ManuelModOzet" xml:space="preserve">
+    <value>Manual Mode Usage Summary</value>
+  </data>
+	<data name="RaporAraligi" xml:space="preserve">
+    <value>Report Range:</value>
+  </data>
+	<data name="OrtalamaDevir" xml:space="preserve">
+    <value>AVG SPEED</value>
+  </data>
+	<data name="ManuelKayitYok" xml:space="preserve">
+    <value>No manual operation records found matching the criteria.</value>
+  </data>
+	<data name="TuketimTipiLabel" xml:space="preserve">
+    <value>Consumption Type</value>
+  </data>
+	<data name="ElektrikKw" xml:space="preserve">
+    <value>Electricity (kW)</value>
+  </data>
+	<data name="SuLitre" xml:space="preserve">
+    <value>Water (Liter)</value>
+  </data>
+	<data name="BuharKg" xml:space="preserve">
+    <value>Steam (kg)</value>
+  </data>
+	<data name="MakinelerCokluSecim" xml:space="preserve">
+    <value>Machines (Multi Select)</value>
+  </data>
+	<data name="DetayliTuketimRaporuBaslik" xml:space="preserve">
+    <value>Detailed Consumption Report</value>
+  </data>
+	<data name="IslemDetayiArama" xml:space="preserve">
+    <value>Action Detail (Partial Search)</value>
+  </data>
+	<data name="KullaniciHareketleriBaslik" xml:space="preserve">
+    <value>User Actions</value>
+  </data>
+	<data name="KayitlardaAraPlaceholder" xml:space="preserve">
+    <value>Search Logs...</value>
+  </data>
+	<data name="Zaman" xml:space="preserve">
+    <value>Time</value>
+  </data>
+	<data name="IslemTipi" xml:space="preserve">
+    <value>Action Type</value>
+  </data>
+	<data name="AktarilacakVeriYok" xml:space="preserve">
+    <value>No report data to export. Please generate the report first.</value>
+  </data>
+	<data name="LutfenEnAzBirMakineSecin" xml:space="preserve">
+    <value>Please select at least one machine.</value>
+  </data>
+	<data name="Turkce" xml:space="preserve">
+    <value>Turkish</value>
+  </data>
+	<data name="Ingilizce" xml:space="preserve">
+    <value>English</value>
+  </data>
+</root>

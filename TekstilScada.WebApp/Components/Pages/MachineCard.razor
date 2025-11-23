@@ -3,7 +3,10 @@
 @using TekstilScada.Models
 @using Microsoft.AspNetCore.Components.Web
 @using MudBlazor
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
 @inject NavigationManager NavigationManager
+@inject IStringLocalizer<SharedResource> Loc
 
 <MudCard Elevation="4" Class="ma-2 machine-card-hover" Style="@GetCardBorderStyle()">
     <MudCardHeader>
@@ -14,17 +17,17 @@
         </CardHeaderAvatar>
         <CardHeaderContent>
             <MudText Typo="Typo.h6" Color="Color.Primary"><b>@MachineStatus.MachineName</b></MudText>
-            <MudText Typo="Typo.caption">@MachineStatus.MachineId</MudText>
+            <MudText Typo="Typo.caption">@MachineStatus.MachineId</MudText> @* <-- DÜZELTME: MachineId değil UserDefinedId *@
         </CardHeaderContent>
         <CardHeaderActions>
-            <MudTooltip Text="Detaylar">
+            <MudTooltip Text="@Loc["Detaylar"]">
                 <MudIconButton Icon="@Icons.Material.Filled.Info"
                                Color="Color.Default"
-                               OnClick="NavigateToDetail" 
+                               OnClick="NavigateToDetail"
                                Disabled="@(MachineStatus.ConnectionState != ConnectionStatus.Connected)" />
             </MudTooltip>
 
-            <MudTooltip Text="Ekranı İzle (VNC)">
+            <MudTooltip Text="@Loc["VncIzle"]">
                 <MudIconButton Icon="@Icons.Material.Filled.ScreenShare"
                                Color="Color.Info"
                                Href="@($"/vnc/{MachineStatus.MachineId}")"
@@ -54,7 +57,7 @@
         {
             <div class="mb-4">
                 <div class="d-flex justify-space-between">
-                    <MudText Typo="Typo.caption">İlerleme</MudText>
+                    <MudText Typo="Typo.caption">@Loc["Ilerleme"]</MudText>
                     <MudText Typo="Typo.caption"><b>%@MachineStatus.ProsesYuzdesi</b></MudText>
                 </div>
                 <MudProgressLinear Color="Color.Success"
@@ -69,7 +72,7 @@
             <MudItem xs="12">
                 <MudStack Row="true" AlignItems="AlignItems.Center">
                     <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Size="Size.Small" Color="Color.Default" />
-                    <MudText Typo="Typo.body2" Style="font-weight:bold;">Reçete:</MudText>
+                    <MudText Typo="Typo.body2" Style="font-weight:bold;">@Loc["Recete"]</MudText>
                     <MudText Typo="Typo.body2" Class="ml-auto text-truncate">@MachineStatus.RecipeName</MudText>
                 </MudStack>
             </MudItem>
@@ -77,7 +80,7 @@
             <MudItem xs="6">
                 <MudStack Row="true" AlignItems="AlignItems.Center">
                     <MudIcon Icon="@Icons.Material.Filled.QrCode" Size="Size.Small" Color="Color.Default" />
-                    <MudText Typo="Typo.caption">Parti:</MudText>
+                    <MudText Typo="Typo.caption">@Loc["Parti"]</MudText>
                     <MudText Typo="Typo.body2" Class="ml-auto"><b>@MachineStatus.BatchNumarasi</b></MudText>
                 </MudStack>
             </MudItem>
@@ -85,7 +88,7 @@
             <MudItem xs="6">
                 <MudStack Row="true" AlignItems="AlignItems.Center">
                     <MudIcon Icon="@Icons.Material.Filled.FormatListNumbered" Size="Size.Small" Color="Color.Default" />
-                    <MudText Typo="Typo.caption">Adım:</MudText>
+                    <MudText Typo="Typo.caption">@Loc["Adim"]</MudText>
                     <MudText Typo="Typo.body2" Class="ml-auto"><b>@MachineStatus.AktifAdimNo</b></MudText>
                 </MudStack>
             </MudItem>
@@ -96,7 +99,7 @@
                 <div class="d-flex align-center justify-center flex-column pa-2 rounded mud-theme-primary-hover">
                     <MudIcon Icon="@Icons.Material.Filled.Thermostat" Color="Color.Error" />
                     <MudText Typo="Typo.h6">@GetFormattedTemperature()°C</MudText>
-                    <MudText Typo="Typo.caption">Sıcaklık</MudText>
+                    <MudText Typo="Typo.caption">@Loc["Sicaklik"]</MudText>
                 </div>
             </MudItem>
 
@@ -104,7 +107,7 @@
                 <div class="d-flex align-center justify-center flex-column pa-2 rounded mud-theme-primary-hover">
                     <MudIcon Icon="@Icons.Material.Filled.Speed" Color="Color.Warning" />
                     <MudText Typo="Typo.h6">@MachineStatus.AnlikDevirRpm</MudText>
-                    <MudText Typo="Typo.caption">Devir (RPM)</MudText>
+                    <MudText Typo="Typo.caption">@Loc["Devir"]</MudText>
                 </div>
             </MudItem>
 
@@ -137,8 +140,6 @@
     [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
     [Parameter] public EventCallback<int> OnInfoClick { get; set; }
 
-    // Eski CSS class string metodları yerine MudBlazor Color Enum dönen metodlar:
-
     private Color GetConnectionColor()
     {
         return MachineStatus.ConnectionState switch
@@ -153,19 +154,19 @@
     {
         return MachineStatus.ConnectionState switch
         {
-            ConnectionStatus.Connected => "Bağlı",
-            ConnectionStatus.Connecting => "Bağlanıyor...",
-            _ => "Bağlantı Yok"
+            ConnectionStatus.Connected => Loc["Bagli"],
+            ConnectionStatus.Connecting => Loc["Baglaniyor"],
+            _ => Loc["BaglantiYok"]
         };
     }
 
     private string GetStatusText()
     {
-        if (MachineStatus.ConnectionState != ConnectionStatus.Connected) return "BAĞLANTI KOPTU";
-        if (MachineStatus.HasActiveAlarm) return $"ALARM: {MachineStatus.ActiveAlarmNumber}";
-        if (MachineStatus.IsPaused) return "DURAKLATILDI";
-        if (MachineStatus.IsInRecipeMode) return $"ÇALIŞIYOR - {MachineStatus.AktifAdimAdi}";
-        return "HAZIR / DURUYOR";
+        if (MachineStatus.ConnectionState != ConnectionStatus.Connected) return Loc["BaglantiKoptu"];
+        if (MachineStatus.HasActiveAlarm) return $"{Loc["Alarm"]}: {MachineStatus.ActiveAlarmNumber}";
+        if (MachineStatus.IsPaused) return Loc["Durakladi"];
+        if (MachineStatus.IsInRecipeMode) return $"{Loc["Calisiyor"]} - {MachineStatus.AktifAdimAdi}";
+        return Loc["Bosta"];
     }
 
     private Color GetStatusColor()

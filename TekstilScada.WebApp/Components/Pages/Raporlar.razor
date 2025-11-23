@@ -3,40 +3,44 @@
 @using TekstilScada.Models
 @using TekstilScada.Repositories
 @using TekstilScada.WebApp.Services
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
 @inject ScadaDataService ScadaDataService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
-<PageTitle>Raporlar</PageTitle>
+@inject IStringLocalizer<SharedResource> Loc
 
-<h1>Raporlar</h1>
+<PageTitle>@Loc["RaporlarBaslik"]</PageTitle>
+
+<h1>@Loc["RaporlarBaslik"]</h1>
 
 <div class="card">
     <div class="card-header">
         <ul class="nav nav-tabs card-header-tabs">
             <li class="nav-item">
-                <a class="nav-link @(activeTab == "uretim" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "uretim"'>Üretim Raporu</a>
+                <a class="nav-link @(activeTab == "uretim" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "uretim"'>@Loc["UretimRaporuTab"]</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(activeTab == "alarmlar" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "alarmlar"'>Geçmiş Alarmlar</a>
+                <a class="nav-link @(activeTab == "alarmlar" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "alarmlar"'>@Loc["GecmisAlarmlarTab"]</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(activeTab == "oee" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "oee"'>OEE Raporu</a>
+                <a class="nav-link @(activeTab == "oee" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "oee"'>@Loc["OeeRaporuTab"]</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(activeTab == "trend" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "trend"'>Trend Analizi</a>
+                <a class="nav-link @(activeTab == "trend" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "trend"'>@Loc["TrendAnaliziTabRaporlar"]</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(activeTab == "receteTuketim" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "receteTuketim"'>Reçete Tüketim Analizi</a>
+                <a class="nav-link @(activeTab == "receteTuketim" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "receteTuketim"'>@Loc["ReceteTuketimAnaliziTab"]</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(activeTab == "manuelTuketim" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "manuelTuketim"'>Manuel Tüketim</a>
+                <a class="nav-link @(activeTab == "manuelTuketim" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "manuelTuketim"'>@Loc["ManuelTuketimTab"]</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(activeTab == "genelTuketim" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "genelTuketim"'>Genel Tüketim Raporu</a>
+                <a class="nav-link @(activeTab == "genelTuketim" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "genelTuketim"'>@Loc["GenelTuketimRaporuTab"]</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(activeTab == "eylemKayitlari" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "eylemKayitlari"'>Eylem Kayıtları</a>
+                <a class="nav-link @(activeTab == "eylemKayitlari" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "eylemKayitlari"'>@Loc["EylemKayitlariTab"]</a>
             </li>
         </ul>
     </div>
@@ -48,16 +52,16 @@
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="4">
-                                <MudDateRangePicker Label="Tarih Aralığı"
+                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]"
                                                     @bind-DateRange="_dateRange"
                                                     Color="MudBlazor.Color.Primary"
-                                                    Placeholder="Başlangıç - Bitiş"
+                                                    Placeholder="@Loc["BaslangicBitisPlaceholder"]"
                                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
 
                             <MudItem xs="12" md="4">
-                                <MudSelect T="int" Label="Makine" @bind-Value="selectedMachineId" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
-                                    <MudSelectItem Value="0">TÜM MAKİNELER</MudSelectItem>
+                                <MudSelect T="int" Label="@Loc["MakineLabel"]" @bind-Value="selectedMachineId" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                    <MudSelectItem Value="0">@Loc["TumMakineler"]</MudSelectItem>
                                     @if (machines != null)
                                     {
                                         foreach (var machine in machines)
@@ -69,23 +73,23 @@
                             </MudItem>
 
                             <MudItem xs="12" md="4">
-                                <MudTextField @bind-Value="filters.RecipeName" Label="Reçete Adı" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" />
+                                <MudTextField @bind-Value="filters.RecipeName" Label="@Loc["ReceteAdiAraPlaceholder"]" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" />
                             </MudItem>
 
                             <MudItem xs="12">
-                                <MudExpansionPanel Text="Detaylı Filtreler (Batch, Sipariş, Operatör)" Dense="true">
+                                <MudExpansionPanel Text="@Loc["DetayliFiltrelerPanel"]" Dense="true">
                                     <MudGrid>
                                         <MudItem xs="6" md="3">
-                                            <MudTextField @bind-Value="filters.BatchNo" Label="Batch No" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                            <MudTextField @bind-Value="filters.BatchNo" Label="@Loc["BatchNoLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
                                         </MudItem>
                                         <MudItem xs="6" md="3">
-                                            <MudTextField @bind-Value="filters.SiparisNo" Label="Sipariş No" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                            <MudTextField @bind-Value="filters.SiparisNo" Label="@Loc["SiparisNoLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
                                         </MudItem>
                                         <MudItem xs="6" md="3">
-                                            <MudTextField @bind-Value="filters.MusteriNo" Label="Müşteri No" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                            <MudTextField @bind-Value="filters.MusteriNo" Label="@Loc["MusteriNoLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
                                         </MudItem>
                                         <MudItem xs="6" md="3">
-                                            <MudTextField @bind-Value="filters.OperatorName" Label="Operatör" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                            <MudTextField @bind-Value="filters.OperatorName" Label="@Loc["OperatorLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
                                         </MudItem>
                                     </MudGrid>
                                 </MudExpansionPanel>
@@ -97,7 +101,7 @@
                                            StartIcon="@Icons.Material.Filled.Search"
                                            OnClick="GenerateReport"
                                            Disabled="@isLoading">
-                                    @(isLoading ? "HESAPLANIYOR..." : "RAPORLA")
+                                    @(isLoading? Loc["Hesaplaniyor"].Value : Loc["RaporlaButon"].Value)
                                 </MudButton>
 
                                 <MudButton Variant="Variant.Filled"
@@ -105,7 +109,7 @@
                                            StartIcon="@Icons.Material.Filled.FileDownload"
                                            OnClick="ExportProductionToExcel"
                                            Disabled="@(reportItems == null || !reportItems.Any())">
-                                    EXCEL İNDİR
+                                    @Loc["ExcelIndirButon"]
                                 </MudButton>
                             </MudItem>
                         </MudGrid>
@@ -128,10 +132,10 @@
                                  RowClick="@OnRowClick"
                                  QuickFilter="@_quickFilter">
                         <ToolBarContent>
-                            <MudText Typo="Typo.h6">Üretim Sonuçları</MudText>
+                            <MudText Typo="Typo.h6">@Loc["UretimSonuclariBaslik"]</MudText>
                             <MudSpacer />
                             <MudTextField @bind-Value="_searchString"
-                                          Placeholder="Tabloda Ara (Batch, Reçete, Operatör...)"
+                                          Placeholder="@Loc["TablodaAraPlaceholder"]"
                                           Adornment="Adornment.Start"
                                           AdornmentIcon="@Icons.Material.Filled.Search"
                                           IconSize="MudBlazor.Size.Medium"
@@ -140,51 +144,49 @@
                         </ToolBarContent>
 
                         <Columns>
-                            <PropertyColumn Property="x => x.MachineName" Title="Makine" Groupable="true" CellStyle="white-space: normal; min-width: 100px;" />
-                            <PropertyColumn Property="x => x.RecipeName" Title="Reçete" CellStyle="white-space: normal; min-width: 120px;" />
-                            <PropertyColumn Property="x => x.BatchId" Title="Batch No" CellStyle="white-space: normal; word-break: break-all; min-width: 90px;" />
-                            <PropertyColumn Property="x => x.OperatorName" Title="Operatör" CellStyle="white-space: normal; min-width: 80px;" />
-                            <PropertyColumn Property="x => x.StartTime" Title="Başlangıç" Format="dd.MM.yy HH:mm" />
-                            <PropertyColumn Property="x => x.EndTime" Title="Bitiş" Format="dd.MM.yy HH:mm" />
-                            <PropertyColumn Property="x => x.CycleTime" Title="Süre" />
-                            <PropertyColumn Property="x => x.TotalWater" Title="Su (L)" AggregateDefinition="_sumAggregation" />
-                            <PropertyColumn Property="x => x.TotalElectricity" Title="Elek. (kW)" AggregateDefinition="_sumAggregation" />
-                            <PropertyColumn Property="x => x.TotalSteam" Title="Buhar (kg)" AggregateDefinition="_sumAggregation" />
-
+                            <PropertyColumn Property="x => x.MachineName" Title="@Loc["MakineLabel"]" Groupable="true" CellStyle="white-space: normal; min-width: 100px;" />
+                            <PropertyColumn Property="x => x.RecipeName" Title="@Loc["ReceteLabel"]" CellStyle="white-space: normal; min-width: 120px;" />
+                            <PropertyColumn Property="x => x.BatchId" Title="@Loc["BatchNoLabel"]" CellStyle="white-space: normal; word-break: break-all; min-width: 90px;" />
+                            <PropertyColumn Property="x => x.OperatorName" Title="@Loc["OperatorLabel"]" CellStyle="white-space: normal; min-width: 80px;" />
+                            <PropertyColumn Property="x => x.StartTime" Title="@Loc["BaslangicZamani"]" Format="dd.MM.yy HH:mm" />
+                            <PropertyColumn Property="x => x.EndTime" Title="@Loc["BitisZamani"]" Format="dd.MM.yy HH:mm" />
+                            <PropertyColumn Property="x => x.CycleTime" Title="@Loc["Sure"]" />
+                            <PropertyColumn Property="x => x.TotalWater" Title="@Loc["SuLitre"]" AggregateDefinition="_sumAggregation" />
+                            <PropertyColumn Property="x => x.TotalElectricity" Title="@Loc["ElektrikKw"]" AggregateDefinition="_sumAggregation" />
+                            <PropertyColumn Property="x => x.TotalSteam" Title="@Loc["BuharKg"]" AggregateDefinition="_sumAggregation" />
                         </Columns>
 
                         <PagerContent>
                             <MudDataGridPager T="ProductionReportItem" />
                         </PagerContent>
                     </MudDataGrid>
-
-                        
                 }
                 else if (isLoading)
                 {
                     <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" Class="my-7" />
-                    <MudText Align="MudBlazor.Align.Center">Veriler analiz ediliyor, lütfen bekleyin...</MudText>
+                    <MudText Align="MudBlazor.Align.Center">@Loc["VerilerAnalizEdiliyor"]</MudText>
                 }
                 else if (reportItems != null)
                 {
-                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">Seçilen kriterlere uygun kayıt bulunamadı.</MudAlert>
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">@Loc["KriterlereUygunKayitYok"]</MudAlert>
                 }
                 break;
+
             case "alarmlar":
                 <MudCard Class="mb-4" Elevation="3">
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="5">
-                                <MudDateRangePicker Label="Tarih Aralığı"
+                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]"
                                                     @bind-DateRange="_alarmDateRange"
                                                     Color="MudBlazor.Color.Primary"
-                                                    Placeholder="Başlangıç - Bitiş"
+                                                    Placeholder="@Loc["BaslangicBitisPlaceholder"]"
                                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
 
                             <MudItem xs="12" md="3">
-                                <MudSelect T="int" Label="Makine" @bind-Value="selectedAlarmMachineId" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
-                                    <MudSelectItem Value="0">TÜM MAKİNELER</MudSelectItem>
+                                <MudSelect T="int" Label="@Loc["MakineLabel"]" @bind-Value="selectedAlarmMachineId" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                    <MudSelectItem Value="0">@Loc["TumMakineler"]</MudSelectItem>
                                     @if (machines != null)
                                     {
                                         foreach (var machine in machines)
@@ -197,10 +199,10 @@
 
                             <MudItem xs="12" md="4" Class="d-flex justify-end gap-2">
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.ManageSearch" OnClick="GenerateAlarmReport" Disabled="@isLoading">
-                                    @(isLoading ? "HESAPLANIYOR..." : "RAPORLA")
+                                    @(isLoading? Loc["Hesaplaniyor"].Value : Loc["RaporlaButon"].Value)
                                 </MudButton>
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Success" StartIcon="@Icons.Material.Filled.FileDownload" OnClick="ExportAlarmsToExcel" Disabled="@(alarmReportItems == null || !alarmReportItems.Any())">
-                                    EXCEL İNDİR
+                                    @Loc["ExcelIndirButon"]
                                 </MudButton>
                             </MudItem>
                         </MudGrid>
@@ -221,10 +223,10 @@
                                  QuickFilter="@_quickFilterAlarm"
                                  RowsPerPage="15">
                         <ToolBarContent>
-                            <MudText Typo="Typo.h6">Alarm Geçmişi</MudText>
+                            <MudText Typo="Typo.h6">@Loc["AlarmGecmisiBaslikRaporlar"]</MudText>
                             <MudSpacer />
                             <MudTextField @bind-Value="_searchStringAlarm"
-                                          Placeholder="Alarm Ara (No, Açıklama...)"
+                                          Placeholder="@Loc["AlarmAraPlaceholder"]"
                                           Adornment="Adornment.Start"
                                           AdornmentIcon="@Icons.Material.Filled.Search"
                                           IconSize="MudBlazor.Size.Medium"
@@ -233,15 +235,15 @@
                         </ToolBarContent>
 
                         <Columns>
-                            <PropertyColumn Property="x => x.MachineName" Title="Makine" Groupable="true" CellStyle="white-space: normal; min-width: 100px;" />
+                            <PropertyColumn Property="x => x.MachineName" Title="@Loc["MakineLabel"]" Groupable="true" CellStyle="white-space: normal; min-width: 100px;" />
 
-                            <PropertyColumn Property="x => x.AlarmNumber" Title="No" CellStyle="min-width: 60px;" />
+                            <PropertyColumn Property="x => x.AlarmNumber" Title="@Loc["No"]" CellStyle="min-width: 60px;" />
 
-                            <PropertyColumn Property="x => x.AlarmText" Title="Açıklama" CellStyle="white-space: normal; min-width: 200px;" />
+                            <PropertyColumn Property="x => x.AlarmText" Title="@Loc["Aciklama"]" CellStyle="white-space: normal; min-width: 200px;" />
 
-                            <PropertyColumn Property="x => x.StartTime" Title="Başlangıç" Format="dd.MM.yy HH:mm:ss" CellStyle="white-space: normal;" />
+                            <PropertyColumn Property="x => x.StartTime" Title="@Loc["BaslangicZamani"]" Format="dd.MM.yy HH:mm:ss" CellStyle="white-space: normal;" />
 
-                            <TemplateColumn Title="Bitiş" SortBy="@(x => x.EndTime)">
+                            <TemplateColumn Title="@Loc["BitisZamani"]" SortBy="@(x => x.EndTime)">
                                 <CellTemplate>
                                     @if (context.Item.EndTime.HasValue)
                                     {
@@ -249,12 +251,12 @@
                                     }
                                     else
                                     {
-                                        <MudChip T="string" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" Variant="Variant.Filled">AKTİF</MudChip>
+                                        <MudChip T="string" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" Variant="Variant.Filled">@Loc["Aktif"]</MudChip>
                                     }
                                 </CellTemplate>
                             </TemplateColumn>
 
-                            <PropertyColumn Property="x => x.Duration" Title="Süre" />
+                            <PropertyColumn Property="x => x.Duration" Title="@Loc["Sure"]" />
                         </Columns>
                         <PagerContent>
                             <MudDataGridPager T="AlarmReportItem" />
@@ -267,7 +269,7 @@
                 }
                 else if (alarmReportItems != null)
                 {
-                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">Kriterlere uygun alarm bulunamadı.</MudAlert>
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">@Loc["KriterlereUygunKayitYok"]</MudAlert>
                 }
                 break;
 
@@ -276,16 +278,16 @@
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="5">
-                                <MudDateRangePicker Label="Tarih Aralığı"
+                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]"
                                                     @bind-DateRange="_oeeDateRange"
                                                     Color="MudBlazor.Color.Primary"
-                                                    Placeholder="Başlangıç - Bitiş"
+                                                    Placeholder="@Loc["BaslangicBitisPlaceholder"]"
                                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
 
                             <MudItem xs="12" md="3">
-                                <MudSelect T="int" Label="Makine" @bind-Value="selectedOeeMachineId" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
-                                    <MudSelectItem Value="0">TÜM MAKİNELER</MudSelectItem>
+                                <MudSelect T="int" Label="@Loc["MakineLabel"]" @bind-Value="selectedOeeMachineId" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                    <MudSelectItem Value="0">@Loc["TumMakineler"]</MudSelectItem>
                                     @if (machines != null)
                                     {
                                         foreach (var machine in machines)
@@ -298,10 +300,10 @@
 
                             <MudItem xs="12" md="4" Class="d-flex justify-end gap-2">
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Analytics" OnClick="GenerateOeeReport" Disabled="@isLoading">
-                                    @(isLoading ? "HESAPLANIYOR..." : "RAPORLA")
+                                    @(isLoading? Loc["Hesaplaniyor"].Value : Loc["RaporlaButon"].Value)
                                 </MudButton>
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Success" StartIcon="@Icons.Material.Filled.FileDownload" OnClick="ExportOeeToExcel" Disabled="@(oeeReportItems == null || !oeeReportItems.Any())">
-                                    EXCEL İNDİR
+                                    @Loc["ExcelIndirButon"]
                                 </MudButton>
                             </MudItem>
                         </MudGrid>
@@ -322,10 +324,10 @@
                                  RowsPerPage="15">
 
                         <ToolBarContent>
-                            <MudText Typo="Typo.h6">OEE Analizi</MudText>
+                            <MudText Typo="Typo.h6">@Loc["OeeAnaliziBaslik"]</MudText>
                             <MudSpacer />
                             <MudTextField @bind-Value="_searchStringOee"
-                                          Placeholder="Ara (Makine, Batch...)"
+                                          Placeholder="@Loc["AraGenelPlaceholder"]"
                                           Adornment="Adornment.Start"
                                           AdornmentIcon="@Icons.Material.Filled.Search"
                                           IconSize="MudBlazor.Size.Medium"
@@ -334,12 +336,12 @@
                         </ToolBarContent>
 
                         <Columns>
-                            <PropertyColumn Property="x => x.MachineName" Title="Makine" Groupable="true" />
-                            <PropertyColumn Property="x => x.BatchId" Title="Batch No" />
+                            <PropertyColumn Property="x => x.MachineName" Title="@Loc["MakineLabel"]" Groupable="true" />
+                            <PropertyColumn Property="x => x.BatchId" Title="@Loc["BatchNoLabel"]" />
 
-                            <PropertyColumn Property="x => x.Availability" Title="Kullanılabilirlik (A)" Format="N2" />
-                            <PropertyColumn Property="x => x.Performance" Title="Performans (P)" Format="N2" />
-                            <PropertyColumn Property="x => x.Quality" Title="Kalite (Q)" Format="N2" />
+                            <PropertyColumn Property="x => x.Availability" Title="@Loc["KullanilabilirlikLabel"]" Format="N2" />
+                            <PropertyColumn Property="x => x.Performance" Title="@Loc["PerformansLabel"]" Format="N2" />
+                            <PropertyColumn Property="x => x.Quality" Title="@Loc["KaliteLabel"]" Format="N2" />
 
                             <TemplateColumn Title="OEE %" SortBy="@(x => x.OEE)">
                                 <CellTemplate>
@@ -364,7 +366,7 @@
                 }
                 else if (oeeReportItems != null)
                 {
-                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">Kriterlere uygun OEE verisi bulunamadı.</MudAlert>
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">@Loc["KriterlereUygunKayitYok"]</MudAlert>
                 }
                 break;
 
@@ -373,18 +375,18 @@
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="4">
-                                <MudDateRangePicker Label="Analiz Aralığı"
+                                <MudDateRangePicker Label="@Loc["AnalizAraligiLabel"]"
                                                     @bind-DateRange="_trendDateRange"
                                                     Color="MudBlazor.Color.Primary"
-                                                    Placeholder="Başlangıç - Bitiş"
+                                                    Placeholder="@Loc["BaslangicBitisPlaceholder"]"
                                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
 
                             <MudItem xs="12" md="4">
-                                <MudSelect T="int" Label="Makine Seçimi"
+                                <MudSelect T="int" Label="@Loc["MakineSecimiLabel"]"
                                            @bind-Value="selectedTrendMachineIdInt"
                                            Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
-                                    <MudSelectItem Value="0">Makine Seçiniz</MudSelectItem>
+                                    <MudSelectItem Value="0">@Loc["MakineSecinizPlaceholder"]</MudSelectItem>
                                     @if (machines != null)
                                     {
                                         foreach (var machine in machines)
@@ -402,7 +404,7 @@
                                            OnClick="GenerateTrendReport"
                                            Disabled="@isLoading"
                                            FullWidth="true">
-                                    @(isLoading ? "ANALİZ EDİLİYOR..." : "TRENDİ ÇİZ")
+                                    @(isLoading? Loc["AnalizEdiliyor"].Value : Loc["TrendiCizButon"].Value)
                                 </MudButton>
                             </MudItem>
                         </MudGrid>
@@ -412,7 +414,7 @@
                 @if (isLoading)
                 {
                     <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" Class="my-7" />
-                    <MudText Align="MudBlazor.Align.Center">Veriler işleniyor, lütfen bekleyin...</MudText>
+                    <MudText Align="MudBlazor.Align.Center">@Loc["VerilerIsleniyor"]</MudText>
                 }
                 else if (trendDataPoints != null && trendDataPoints.Any())
                 {
@@ -420,7 +422,7 @@
                         <div id="trendChart" style="width: 100%; height: 500px;"></div>
                     </MudPaper>
 
-                    <MudText Typo="Typo.h6" Class="mb-2">İstatistiksel Özet</MudText>
+                    <MudText Typo="Typo.h6" Class="mb-2">@Loc["IstatistikselOzetBaslik"]</MudText>
                     <MudGrid>
                         <MudItem xs="12" md="4">
                             <MudCard Elevation="2" Class="border-l-4" Style="border-left-color: #e74c3c;">
@@ -431,7 +433,7 @@
                                         </MudAvatar>
                                     </CardHeaderAvatar>
                                     <CardHeaderContent>
-                                        <MudText Typo="Typo.subtitle1"><b>Sıcaklık (°C)</b></MudText>
+                                        <MudText Typo="Typo.subtitle1"><b>@Loc["Sicaklik"] (°C)</b></MudText>
                                     </CardHeaderContent>
                                 </MudCardHeader>
                                 <MudCardContent>
@@ -453,7 +455,7 @@
                                         </MudAvatar>
                                     </CardHeaderAvatar>
                                     <CardHeaderContent>
-                                        <MudText Typo="Typo.subtitle1"><b>Devir (RPM)</b></MudText>
+                                        <MudText Typo="Typo.subtitle1"><b>@Loc["Devir"]</b></MudText>
                                     </CardHeaderContent>
                                 </MudCardHeader>
                                 <MudCardContent>
@@ -475,7 +477,7 @@
                                         </MudAvatar>
                                     </CardHeaderAvatar>
                                     <CardHeaderContent>
-                                        <MudText Typo="Typo.subtitle1"><b>Su Seviyesi (%)</b></MudText>
+                                        <MudText Typo="Typo.subtitle1"><b>@Loc["SuSeviyesiLabel"] (%)</b></MudText>
                                     </CardHeaderContent>
                                 </MudCardHeader>
                                 <MudCardContent>
@@ -491,7 +493,7 @@
                 }
                 else if (trendDataPoints != null)
                 {
-                    <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mt-4">Bu tarih aralığında kayıtlı proses verisi bulunamadı.</MudAlert>
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mt-4">@Loc["TrendVerisiYokTarih"]</MudAlert>
                 }
                 break;
 
@@ -510,10 +512,10 @@
                                          FixedHeader="true"
                                          Height="calc(100vh - 250px)">
                                 <ToolBarContent>
-                                    <MudText Typo="Typo.h6">Reçeteler</MudText>
+                                    <MudText Typo="Typo.h6">@Loc["RecetelerBaslik"]</MudText>
                                     <MudSpacer />
                                     <MudTextField @bind-Value="_searchStringRecipe"
-                                                  Placeholder="Reçete Ara..."
+                                                  Placeholder="@Loc["ReceteAraPlaceholder"]"
                                                   Adornment="Adornment.Start"
                                                   AdornmentIcon="@Icons.Material.Filled.Search"
                                                   IconSize="MudBlazor.Size.Small"
@@ -522,8 +524,8 @@
                                 </ToolBarContent>
 
                                 <Columns>
-                                    <PropertyColumn Property="x => x.RecipeName" Title="Reçete Adı" CellStyle="font-weight:bold;" />
-                                    <PropertyColumn Property="x => x.TargetMachineType" Title="Tip" />
+                                    <PropertyColumn Property="x => x.RecipeName" Title="@Loc["ReceteAdi"]" CellStyle="font-weight:bold;" />
+                                    <PropertyColumn Property="x => x.TargetMachineType" Title="@Loc["Tip"]" />
                                 </Columns>
                             </MudDataGrid>
                         </MudPaper>
@@ -534,36 +536,36 @@
                         {
                             <div class="d-flex flex-column align-center justify-center h-100" style="opacity:0.6;">
                                 <MudIcon Icon="@Icons.Material.Filled.TouchApp" Size="MudBlazor.Size.Large" />
-                                <MudText Typo="Typo.h6" Class="mt-2">Lütfen soldan bir reçete seçiniz.</MudText>
+                                <MudText Typo="Typo.h6" Class="mt-2">@Loc["LutfenReceteSeciniz"]</MudText>
                             </div>
                         }
                         else if (isLoading)
                         {
                             <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" Class="my-4" />
-                            <MudText Align="MudBlazor.Align.Center">Veriler analiz ediliyor...</MudText>
+                            <MudText Align="MudBlazor.Align.Center">@Loc["VerilerAnalizEdiliyor"]</MudText>
                         }
                         else if (consumptionHistory == null || !consumptionHistory.Any())
                         {
-                            <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">Seçilen reçete için geçmiş üretim kaydı bulunamadı.</MudAlert>
+                            <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">@Loc["GecmisUretimKaydiYok"]</MudAlert>
                         }
                         else
                         {
                             <MudGrid Class="mb-3" Spacing="2">
                                 <MudItem xs="12" md="4">
                                     <MudPaper Elevation="2" Class="pa-3 d-flex flex-column align-center" Style="border-top: 4px solid #29b6f6;">
-                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">ORTALAMA SU</MudText>
-                                        <MudText Typo="Typo.h5">@consumptionHistory.Average(x => x.TotalWater).ToString("N0") <span style="font-size:0.6em">Litre</span></MudText>
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@Loc["OrtalamaSu"]</MudText>
+                                        <MudText Typo="Typo.h5">@consumptionHistory.Average(x => x.TotalWater).ToString("N0") <span style="font-size:0.6em">@Loc["SuLitre"]</span></MudText>
                                     </MudPaper>
                                 </MudItem>
                                 <MudItem xs="12" md="4">
                                     <MudPaper Elevation="2" Class="pa-3 d-flex flex-column align-center" Style="border-top: 4px solid #ffa726;">
-                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">ORTALAMA ELEKTRİK</MudText>
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@Loc["OrtalamaElektrik"]</MudText>
                                         <MudText Typo="Typo.h5">@consumptionHistory.Average(x => x.TotalElectricity).ToString("N1") <span style="font-size:0.6em">kW</span></MudText>
                                     </MudPaper>
                                 </MudItem>
                                 <MudItem xs="12" md="4">
                                     <MudPaper Elevation="2" Class="pa-3 d-flex flex-column align-center" Style="border-top: 4px solid #ab47bc;">
-                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">ORTALAMA BUHAR</MudText>
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@Loc["OrtalamaBuhar"]</MudText>
                                         <MudText Typo="Typo.h5">@consumptionHistory.Average(x => x.TotalSteam).ToString("N1") <span style="font-size:0.6em">kg</span></MudText>
                                     </MudPaper>
                                 </MudItem>
@@ -580,19 +582,19 @@
                                          RowsPerPage="10">
 
                                 <ToolBarContent>
-                                    <MudText Typo="Typo.h6">@consumptionHistory.FirstOrDefault()?.RecipeName - Geçmiş Üretimler</MudText>
+                                    <MudText Typo="Typo.h6">@consumptionHistory.FirstOrDefault()?.RecipeName - @Loc["GecmisUretimlerBaslik"]</MudText>
                                     <MudSpacer />
                                 </ToolBarContent>
 
                                 <Columns>
-                                    <PropertyColumn Property="x => x.MachineName" Title="Makine" Groupable="true" />
-                                    <PropertyColumn Property="x => x.BatchId" Title="Batch No" />
-                                    <PropertyColumn Property="x => x.EndTime" Title="Tarih" Format="dd.MM.yy HH:mm" />
-                                    <PropertyColumn Property="x => x.CycleTime" Title="Süre" />
+                                    <PropertyColumn Property="x => x.MachineName" Title="@Loc["MakineLabel"]" Groupable="true" />
+                                    <PropertyColumn Property="x => x.BatchId" Title="@Loc["BatchNoLabel"]" />
+                                    <PropertyColumn Property="x => x.EndTime" Title="@Loc["Tarih"]" Format="dd.MM.yy HH:mm" />
+                                    <PropertyColumn Property="x => x.CycleTime" Title="@Loc["Sure"]" />
 
-                                    <PropertyColumn Property="x => x.TotalWater" Title="Su (L)" AggregateDefinition="_avgAggregation" />
-                                    <PropertyColumn Property="x => x.TotalElectricity" Title="Elek. (kW)" AggregateDefinition="_avgAggregation" />
-                                    <PropertyColumn Property="x => x.TotalSteam" Title="Buhar (kg)" AggregateDefinition="_avgAggregation" />
+                                    <PropertyColumn Property="x => x.TotalWater" Title="@Loc["SuLitre"]" AggregateDefinition="_avgAggregation" />
+                                    <PropertyColumn Property="x => x.TotalElectricity" Title="@Loc["ElektrikKw"]" AggregateDefinition="_avgAggregation" />
+                                    <PropertyColumn Property="x => x.TotalSteam" Title="@Loc["BuharKg"]" AggregateDefinition="_avgAggregation" />
                                 </Columns>
                                 <PagerContent>
                                     <MudDataGridPager T="ProductionReportItem" />
@@ -608,16 +610,16 @@
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="4">
-                                <MudDateRangePicker Label="Analiz Aralığı"
+                                <MudDateRangePicker Label="@Loc["AnalizAraligiLabel"]"
                                                     @bind-DateRange="_manualDateRange"
                                                     Color="MudBlazor.Color.Primary"
-                                                    Placeholder="Başlangıç - Bitiş"
+                                                    Placeholder="@Loc["BaslangicBitisPlaceholder"]"
                                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
 
                             <MudItem xs="12" md="4">
-                                <MudSelect T="int" Label="Makine Seçimi" @bind-Value="selectedManualMachineId" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
-                                    <MudSelectItem Value="0">Makine Seçiniz</MudSelectItem>
+                                <MudSelect T="int" Label="@Loc["MakineSecimiLabel"]" @bind-Value="selectedManualMachineId" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                    <MudSelectItem Value="0">@Loc["MakineSecinizPlaceholder"]</MudSelectItem>
                                     @if (machines != null)
                                     {
                                         foreach (var machine in machines)
@@ -630,10 +632,10 @@
 
                             <MudItem xs="12" md="4" Class="d-flex justify-end gap-2">
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Analytics" OnClick="GenerateManualConsumptionReport" Disabled="@isLoading">
-                                    @(isLoading ? "ANALİZ EDİLİYOR..." : "RAPORLA")
+                                    @(isLoading? Loc["AnalizEdiliyor"].Value : Loc["RaporlaButon"].Value)
                                 </MudButton>
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Success" StartIcon="@Icons.Material.Filled.FileDownload" OnClick="ExportManualConsumptionToExcel" Disabled="@(consumptionSummary == null)">
-                                    EXCEL İNDİR
+                                    @Loc["ExcelIndirButon"]
                                 </MudButton>
                             </MudItem>
                         </MudGrid>
@@ -649,8 +651,8 @@
                     <MudGrid>
                         <MudItem xs="12">
                             <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3">
-                                <MudText Typo="Typo.subtitle1"><b>@consumptionSummary.Makine</b> - Manuel Mod Kullanım Özeti</MudText>
-                                <MudText Typo="Typo.caption">Rapor Aralığı: @consumptionSummary.RaporAraligi</MudText>
+                                <MudText Typo="Typo.subtitle1"><b>@consumptionSummary.Makine</b> - @Loc["ManuelModOzet"]</MudText>
+                                <MudText Typo="Typo.caption">@Loc["RaporAraligi"] @consumptionSummary.RaporAraligi</MudText>
                             </MudAlert>
                         </MudItem>
 
@@ -658,7 +660,7 @@
                             <MudPaper Elevation="2" Class="pa-4 d-flex flex-column align-center" Style="border-top: 4px solid #7e57c2;">
                                 <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" Class="mb-2" />
                                 <MudText Typo="Typo.h5">@consumptionSummary.ToplamManuelSure</MudText>
-                                <MudText Typo="Typo.caption" Class="mud-text-secondary">TOPLAM SÜRE</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@Loc["ToplamSure"]</MudText>
                             </MudPaper>
                         </MudItem>
 
@@ -666,7 +668,7 @@
                             <MudPaper Elevation="2" Class="pa-4 d-flex flex-column align-center" Style="border-top: 4px solid #ef5350;">
                                 <MudIcon Icon="@Icons.Material.Filled.Thermostat" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Error" Class="mb-2" />
                                 <MudText Typo="Typo.h5">@consumptionSummary.OrtalamaSicaklik.ToString("N1") °C</MudText>
-                                <MudText Typo="Typo.caption" Class="mud-text-secondary">ORTALAMA SICAKLIK</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@Loc["Sicaklik"]</MudText>
                             </MudPaper>
                         </MudItem>
 
@@ -674,7 +676,7 @@
                             <MudPaper Elevation="2" Class="pa-4 d-flex flex-column align-center" Style="border-top: 4px solid #26a69a;">
                                 <MudIcon Icon="@Icons.Material.Filled.Speed" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Success" Class="mb-2" />
                                 <MudText Typo="Typo.h5">@consumptionSummary.OrtalamaDevir.ToString("N0") d/d</MudText>
-                                <MudText Typo="Typo.caption" Class="mud-text-secondary">ORTALAMA DEVİR</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@Loc["OrtalamaDevir"]</MudText>
                             </MudPaper>
                         </MudItem>
 
@@ -685,7 +687,7 @@
                                         <MudAvatar Color="MudBlazor.Color.Info" Variant="Variant.Filled"><MudIcon Icon="@Icons.Material.Filled.WaterDrop" /></MudAvatar>
                                     </CardHeaderAvatar>
                                     <CardHeaderContent>
-                                        <MudText Typo="Typo.body1">Toplam Su</MudText>
+                                        <MudText Typo="Typo.body1">@Loc["SuLitre"]</MudText>
                                         <MudText Typo="Typo.h5"><b>@consumptionSummary.ToplamSuTuketimi_Litre.ToString("N0")</b> L</MudText>
                                     </CardHeaderContent>
                                 </MudCardHeader>
@@ -699,7 +701,7 @@
                                         <MudAvatar Color="MudBlazor.Color.Warning" Variant="Variant.Filled"><MudIcon Icon="@Icons.Material.Filled.Bolt" /></MudAvatar>
                                     </CardHeaderAvatar>
                                     <CardHeaderContent>
-                                        <MudText Typo="Typo.body1">Toplam Elektrik</MudText>
+                                        <MudText Typo="Typo.body1">@Loc["ElektrikKw"]</MudText>
                                         <MudText Typo="Typo.h5"><b>@consumptionSummary.ToplamElektrikTuketimi_kW.ToString("N1")</b> kW</MudText>
                                     </CardHeaderContent>
                                 </MudCardHeader>
@@ -713,7 +715,7 @@
                                         <MudAvatar Color="MudBlazor.Color.Secondary" Variant="Variant.Filled"><MudIcon Icon="@Icons.Material.Filled.Cloud" /></MudAvatar>
                                     </CardHeaderAvatar>
                                     <CardHeaderContent>
-                                        <MudText Typo="Typo.body1">Toplam Buhar</MudText>
+                                        <MudText Typo="Typo.body1">@Loc["BuharKg"]</MudText>
                                         <MudText Typo="Typo.h5"><b>@consumptionSummary.ToplamBuharTuketimi_kg.ToString("N1")</b> kg</MudText>
                                     </CardHeaderContent>
                                 </MudCardHeader>
@@ -723,7 +725,7 @@
                 }
                 else if (consumptionSummary == null && selectedManualMachineId != 0)
                 {
-                    <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mt-4">Seçilen kriterlere uygun manuel çalışma kaydı bulunamadı.</MudAlert>
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mt-4">@Loc["ManuelKayitYok"]</MudAlert>
                 }
                 break;
 
@@ -732,23 +734,23 @@
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="3">
-                                <MudDateRangePicker Label="Tarih Aralığı"
+                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]"
                                                     @bind-DateRange="_generalDateRange"
                                                     Color="MudBlazor.Color.Primary"
-                                                    Placeholder="Başlangıç - Bitiş"
+                                                    Placeholder="@Loc["BaslangicBitisPlaceholder"]"
                                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
 
                             <MudItem xs="12" md="3">
-                                <MudSelect T="string" Label="Tüketim Tipi" @bind-Value="selectedConsumptionType" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
-                                    <MudSelectItem Value="@("TotalElectricity")">Elektrik (kW)</MudSelectItem>
-                                    <MudSelectItem Value="@("TotalWater")">Su (Litre)</MudSelectItem>
-                                    <MudSelectItem Value="@("TotalSteam")">Buhar (kg)</MudSelectItem>
+                                <MudSelect T="string" Label="@Loc["TuketimTipiLabel"]" @bind-Value="selectedConsumptionType" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                    <MudSelectItem Value="@("TotalElectricity")">@Loc["ElektrikKw"]</MudSelectItem>
+                                    <MudSelectItem Value="@("TotalWater")">@Loc["SuLitre"]</MudSelectItem>
+                                    <MudSelectItem Value="@("TotalSteam")">@Loc["BuharKg"]</MudSelectItem>
                                 </MudSelect>
                             </MudItem>
 
                             <MudItem xs="12" md="4">
-                                <MudSelect T="int" Label="Makineler (Çoklu Seçim)" MultiSelection="true" @bind-SelectedValues="_selectedGeneralMachineIds" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                <MudSelect T="int" Label="@Loc["MakinelerCokluSecim"]" MultiSelection="true" @bind-SelectedValues="_selectedGeneralMachineIds" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
                                     @if (machines != null)
                                     {
                                         foreach (var machine in machines)
@@ -761,7 +763,7 @@
 
                             <MudItem xs="12" md="2" Class="d-flex justify-end gap-2">
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.ManageSearch" OnClick="GenerateGeneralDetailedConsumptionReport" Disabled="@isLoading" FullWidth="true">
-                                    @(isLoading ? "..." : "RAPORLA")
+                                    @(isLoading ? "..." : Loc["RaporlaButon"].Value)
                                 </MudButton>
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Success" StartIcon="@Icons.Material.Filled.FileDownload" OnClick="ExportGeneralDetailedConsumptionToExcel" Disabled="@(generalDetailedConsumptionReport == null || !generalDetailedConsumptionReport.Any())">
                                     EXCEL
@@ -785,10 +787,10 @@
                                  RowsPerPage="15">
 
                         <ToolBarContent>
-                            <MudText Typo="Typo.h6">Detaylı Tüketim Raporu (@GetConsumptionUnitName(selectedConsumptionType))</MudText>
+                            <MudText Typo="Typo.h6">@Loc["DetayliTuketimRaporuBaslik"] (@GetConsumptionUnitName(selectedConsumptionType))</MudText>
                             <MudSpacer />
                             <MudTextField @bind-Value="_searchStringGeneral"
-                                          Placeholder="Ara..."
+                                          Placeholder="@Loc["AraGenelPlaceholder"]"
                                           Adornment="Adornment.Start"
                                           AdornmentIcon="@Icons.Material.Filled.Search"
                                           IconSize="MudBlazor.Size.Medium"
@@ -797,9 +799,9 @@
                         </ToolBarContent>
 
                         <Columns>
-                            <PropertyColumn Property="x => x.MachineName" Title="Makine" Groupable="true" />
-                            <PropertyColumn Property="x => x.BatchId" Title="Batch No" />
-                            <PropertyColumn Property="x => x.EndTime" Title="Bitiş Zamanı" Format="dd.MM.yy HH:mm" />
+                            <PropertyColumn Property="x => x.MachineName" Title="@Loc["MakineLabel"]" Groupable="true" />
+                            <PropertyColumn Property="x => x.BatchId" Title="@Loc["BatchNoLabel"]" />
+                            <PropertyColumn Property="x => x.EndTime" Title="@Loc["BitisZamani"]" Format="dd.MM.yy HH:mm" />
 
                             <TemplateColumn Title="@GetConsumptionUnitName(selectedConsumptionType)" Sortable="true">
                                 <CellTemplate>
@@ -819,7 +821,7 @@
                 }
                 else if (generalDetailedConsumptionReport != null)
                 {
-                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">Kriterlere uygun veri bulunamadı.</MudAlert>
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">@Loc["KriterlereUygunKayitYok"]</MudAlert>
                 }
                 break;
 
@@ -828,24 +830,24 @@
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="3">
-                                <MudDateRangePicker Label="Tarih Aralığı"
+                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]"
                                                     @bind-DateRange="_actionDateRange"
                                                     Color="MudBlazor.Color.Primary"
-                                                    Placeholder="Başlangıç - Bitiş"
+                                                    Placeholder="@Loc["BaslangicBitisPlaceholder"]"
                                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
 
                             <MudItem xs="12" md="3">
-                                <MudTextField @bind-Value="actionLogFilters.Username" Label="Kullanıcı Adı" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Person" />
+                                <MudTextField @bind-Value="actionLogFilters.Username" Label="@Loc["KullaniciAdiLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Person" />
                             </MudItem>
 
                             <MudItem xs="12" md="4">
-                                <MudTextField @bind-Value="actionLogFilters.Details" Label="İşlem Detayı (Kısmi Arama)" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.TextSnippet" />
+                                <MudTextField @bind-Value="actionLogFilters.Details" Label="@Loc["IslemDetayiArama"]" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.TextSnippet" />
                             </MudItem>
 
                             <MudItem xs="12" md="2" Class="d-flex justify-end gap-2">
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.ManageSearch" OnClick="GenerateActionLogsReport" Disabled="@isLoading" FullWidth="true">
-                                    @(isLoading ? "..." : "RAPORLA")
+                                    @(isLoading ? "..." : Loc["RaporlaButon"].Value)
                                 </MudButton>
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Success" StartIcon="@Icons.Material.Filled.FileDownload" OnClick="ExportActionLogsToExcel" Disabled="@(actionLogs == null || !actionLogs.Any())">
                                     EXCEL
@@ -869,10 +871,10 @@
                                  RowsPerPage="15">
 
                         <ToolBarContent>
-                            <MudText Typo="Typo.h6">Kullanıcı Hareketleri</MudText>
+                            <MudText Typo="Typo.h6">@Loc["KullaniciHareketleriBaslik"]</MudText>
                             <MudSpacer />
                             <MudTextField @bind-Value="_searchStringAction"
-                                          Placeholder="Kayıtlarda Ara..."
+                                          Placeholder="@Loc["KayitlardaAraPlaceholder"]"
                                           Adornment="Adornment.Start"
                                           AdornmentIcon="@Icons.Material.Filled.Search"
                                           IconSize="MudBlazor.Size.Medium"
@@ -881,8 +883,8 @@
                         </ToolBarContent>
 
                         <Columns>
-                            <PropertyColumn Property="x => x.Timestamp" Title="Zaman" Format="dd.MM.yy HH:mm:ss" Sortable="true" />
-                            <PropertyColumn Property="x => x.Username" Title="Kullanıcı" Groupable="true">
+                            <PropertyColumn Property="x => x.Timestamp" Title="@Loc["Zaman"]" Format="dd.MM.yy HH:mm:ss" Sortable="true" />
+                            <PropertyColumn Property="x => x.Username" Title="@Loc["OperatorLabel"]" Groupable="true">
                                 <CellTemplate>
                                     <div class="d-flex align-center">
                                         <MudIcon Icon="@Icons.Material.Filled.Person" Size="MudBlazor.Size.Small" Class="mr-2 text-muted" />
@@ -890,7 +892,7 @@
                                     </div>
                                 </CellTemplate>
                             </PropertyColumn>
-                            <PropertyColumn Property="x => x.ActionType" Title="İşlem Tipi" Groupable="true">
+                            <PropertyColumn Property="x => x.ActionType" Title="@Loc["IslemTipi"]" Groupable="true">
                                 <CellTemplate>
                                     @{
                                         var color = context.Item.ActionType?.ToLower() switch
@@ -905,7 +907,7 @@
                                 </CellTemplate>
                             </PropertyColumn>
 
-                            <PropertyColumn Property="x => x.Details" Title="Detaylar" CellStyle="white-space: normal;" />
+                            <PropertyColumn Property="x => x.Details" Title="@Loc["Detaylar"]" CellStyle="white-space: normal;" />
                         </Columns>
 
                         <PagerContent>
@@ -919,7 +921,7 @@
                 }
                 else if (actionLogs != null)
                 {
-                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">Kriterlere uygun kayıt bulunamadı.</MudAlert>
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">@Loc["KriterlereUygunKayitYok"]</MudAlert>
                 }
                 break;
         }
@@ -965,7 +967,7 @@
     private int selectedTrendMachineIdInt { get; set; } = 0;
     private string selectedTrendData = "Temperature";
     private string _searchStringRecipe;
-   
+
 
     // YENİ FLAG: Grafik çizimini tetiklemek için kullanılır
     private bool shouldRenderChart = false;
@@ -1033,7 +1035,7 @@
     private string _searchStringOee;
 
     // 3. Alarm Satır Stili Fonksiyonu
-   
+
     // --- YAŞAM DÖNGÜSÜ METOTLARI ---
 
     protected override async Task OnInitializedAsync()
@@ -1083,7 +1085,7 @@
     // 4. Ortalama Hesaplama Tanımı (Tablonun altında Ort: ... yazması için)
     private AggregateDefinition<ProductionReportItem> _avgAggregation = new AggregateDefinition<ProductionReportItem>
     {
-        Type = AggregateType.Avg, 
+        Type = AggregateType.Avg,
         DisplayFormat = "Ort: {value:N1}"
     };
     private Func<OeeData, bool> _quickFilterOee => x =>
@@ -1136,7 +1138,7 @@
         return false;
     };
     // YENİ METOT: Makine seçimi değiştiğinde çalışır (UI binding fix)
-   
+
 
     // YENİ METOT: Plotly JS çağrısını yapan helper metot
     private async Task CallPlotlyJS()
@@ -1231,7 +1233,7 @@
             await InvokeAsync(StateHasChanged);
         }
     }
-   
+
     private async Task GenerateAlarmReport()
     {
         // --- BU KISMI EKLEYİN ---
@@ -1353,7 +1355,7 @@
             await InvokeAsync(StateHasChanged);
         }
     }
-    
+
     private async Task GenerateTrendReport()
     {
         // Tarih kontrolü
@@ -1735,7 +1737,7 @@
             await InvokeAsync(StateHasChanged);
         }
 
-       }
+    }
     private async Task ExportOeeToExcel()
     {
         if (oeeReportItems == null || !oeeReportItems.Any())

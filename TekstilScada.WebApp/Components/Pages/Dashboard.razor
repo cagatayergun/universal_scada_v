@@ -4,8 +4,12 @@
 @using TekstilScada.WebApp.Services
 @using TekstilScada.Models
 @using TekstilScada.WebApp.Components.Shared
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
+@using System.Globalization @* <-- CultureInfo için gerekli *@
 @inject ScadaDataService ScadaService
 @inject NavigationManager NavManager
+@inject IStringLocalizer<SharedResource> Loc
 
 @implements IDisposable
 
@@ -14,23 +18,23 @@
     @if (_isLoading)
     {
         <div class="loading-overlay">
-            <p>Veriler yükleniyor ve SignalR bağlantısı kuruluyor...</p>
+            <p>@Loc["VerilerYukleniyor"]</p>
         </div>
     }
     else
     {
         <div class="kpi-cards-row">
-            <KpiCard Title="TOPLAM MAKİNE" Value="@TotalMachines.ToString()" CssClass="kpi-info" />
-            <KpiCard Title="AKTİF MAKİNE" Value="@RunningMachines.ToString()" CssClass="kpi-success" />
-            <KpiCard Title="ALARMDAKİ MAKİNE" Value="@AlarmMachines.ToString()" CssClass="kpi-danger" />
-            <KpiCard Title="BEKLEYEN MAKİNE" Value="@IdleMachines.ToString()" CssClass="kpi-warning" />
+            <KpiCard Title="@Loc["ToplamMakine"]" Value="@TotalMachines.ToString()" CssClass="kpi-info" />
+            <KpiCard Title="@Loc["AktifMakine"]" Value="@RunningMachines.ToString()" CssClass="kpi-success" />
+            <KpiCard Title="@Loc["AlarmdakiMakine"]" Value="@AlarmMachines.ToString()" CssClass="kpi-danger" />
+            <KpiCard Title="@Loc["BekleyenMakine"]" Value="@IdleMachines.ToString()" CssClass="kpi-warning" />
         </div>
 
         <div class="main-content-area">
             <div class="machine-groups-column">
                 @if (TotalMachines == 0)
                 {
-                    <p>Sistemde henüz makine tanımlanmamıştır.</p>
+                    <p>@Loc["MakineTanimlanmamis"]</p>
                 }
                 else
                 {
@@ -41,7 +45,6 @@
                             <div class="group-inner-panel" style="display: flex; flex-wrap: wrap; gap: 10px;">
                                 @foreach (var machineStatus in group)
                                 {
-                                    @* KRİTİK GÜNCELLEME: MachineCard yerine DashboardMachineCard kullanılıyor *@
                                     <DashboardMachineCard MachineStatus="machineStatus"
                                                           @key="machineStatus.MachineId"
                                                           MouseClick="() => NavigateToDetail(machineStatus.MachineId)" />
@@ -58,7 +61,7 @@
                     <div id="oeeChartContainer" style="width:100%; height:250px;"></div>
                     @if (!HourlyOeeData.Any())
                     {
-                        <MudText Typo="Typo.caption" Align="MudBlazor.Align.Center" Class="d-block text-muted">Veri bekleniyor...</MudText>
+                        <MudText Typo="Typo.caption" Align="MudBlazor.Align.Center" Class="d-block text-muted">@Loc["VeriBekleniyor"]</MudText>
                     }
                 </MudPaper>
 
@@ -85,14 +88,17 @@
 
 @code {
     [Inject]
-    public IJSRuntime JSRuntime { get; set; } // KRİTİK: JS çağrısı için enjeksiyon
+    public IJSRuntime JSRuntime { get; set; }
 
     private List<IGrouping<string, FullMachineStatus>> GroupedMachines = new();
     private bool _isLoading = true;
     private bool _isDisposed = false;
-    private bool _shouldRenderCharts = false; // KRİTİK: Çizim bayrağı
+    private bool _shouldRenderCharts = false;
 
-    // Sidebar verileri için alanlar (ScadaDataService.cs'deki DTO'lar)
+    // KULLANICI DİLİNİ SAKLAMAK İÇİN DEĞİŞKEN
+    private CultureInfo _userCulture;
+
+    // Sidebar verileri
     private List<HourlyConsumptionData> HourlyConsumptionData = new();
     private List<HourlyOeeData> HourlyOeeData = new();
     private List<TopAlarmData> TopAlarms = new();
@@ -103,7 +109,6 @@
     private int AlarmMachines = 0;
     private int IdleMachines = 0;
 
-    // Windows Forms'taki renk paletinden alınan ilk 10 renk (CSS'e karşılık gelir)
     private readonly List<string> DarkColors = new List<string>
     {
         "#2c3e50", "#2ecc71", "#e74c3c", "#9b59b6", "#3498db",
@@ -116,6 +121,9 @@
     {
         try
         {
+            // 1. ADIM: Sayfa ilk açıldığında (doğru dil varken) bu dili yakalıyoruz.
+            _userCulture = CultureInfo.CurrentUICulture;
+
             await ScadaService.InitializeAsync();
             await ScadaService.GetMachinesAsync();
             ScadaService.OnDataUpdated += HandleDataUpdate;
@@ -134,14 +142,12 @@
         await base.OnInitializedAsync();
     }
 
-    // KRİTİK: OnAfterRenderAsync metodu eklendi
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_shouldRenderCharts)
         {
-            _shouldRenderCharts = false; // Tekrar çizimi engelle
+            _shouldRenderCharts = false;
 
-            // Tüm grafik verilerini tek bir çağrıda gönderiyoruz.
             try
             {
                 await JSRuntime.InvokeVoidAsync("plotDashboardCharts",
@@ -156,19 +162,15 @@
         }
     }
 
-    // WinForms'taki UpdateSidebarCharts mantığına karşılık gelir
     private async Task LoadSidebarDataAsync()
     {
-        // Data Service'den verileri çekiyoruz
         HourlyConsumptionData = await ScadaService.GetHourlyConsumptionAsync() ?? new();
         HourlyOeeData = await ScadaService.GetHourlyOeeAsync() ?? new();
         TopAlarms = await ScadaService.GetTopAlarmsAsync() ?? new();
 
-        // Veri yüklendi, artık çizim sinyali verilebilir.
         _shouldRenderCharts = true;
     }
 
-    // WinForms'taki BuildMachineCards ve UpdateKpiCards mantıklarını birleştirir
     private void UpdateDashboardData()
     {
         var allStatuses = ScadaService.MachineData.Values.ToList();
@@ -180,7 +182,6 @@
             }
         }
 
-        // --- KPI Hesaplamaları ---
         TotalMachines = allStatuses.Count;
         RunningMachines = allStatuses.Count(s => s.IsInRecipeMode && !s.HasActiveAlarm);
         AlarmMachines = allStatuses.Count(s => s.HasActiveAlarm);
@@ -192,7 +193,6 @@
             return;
         }
 
-        // --- Makine Gruplama ve Sıralama (GenelBakis_Control.cs'e uygun) ---
         var sortedMachines = allStatuses
             .OrderByDescending(m => m.IsInRecipeMode)
             .ThenBy(m => m.HasActiveAlarm)
@@ -204,7 +204,6 @@
              .ThenBy(g => g.Key)
              .ToList();
 
-        // Gruplara renk ataması
         if (GroupColors.Count != GroupedMachines.Count)
         {
             _colorIndex = 0;
@@ -223,9 +222,15 @@
         {
             if (_isDisposed) return;
 
+            // 2. ADIM: Arka plan servisinden güncelleme geldiğinde,
+            // thread'in dilini, kullanıcının kaydettiğimiz dili ile değiştiriyoruz.
+            if (_userCulture != null)
+            {
+                CultureInfo.CurrentCulture = _userCulture;
+                CultureInfo.CurrentUICulture = _userCulture;
+            }
+
             UpdateDashboardData();
-            // Makine verisi güncellendiğinde, yan çubuk verilerini yeniden yüklemeye GEREK YOKTUR,
-            // sadece JS'e çizim sinyali gönderilir, çünkü yan çubuk verileri saatliktir.
             _shouldRenderCharts = true;
             InvokeAsync(StateHasChanged);
         }

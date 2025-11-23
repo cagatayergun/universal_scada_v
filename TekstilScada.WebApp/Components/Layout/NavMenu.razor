@@ -1,21 +1,25 @@
-﻿<MudNavMenu>
+﻿@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SharedResource> Loc
+
+<MudNavMenu>
     <MudNavLink Href="dashboard" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
-        Dashboard
+        @Loc["NavMenu_Dashboard"]
     </MudNavLink>
 
     <MudNavLink Href="proses-izleme" Icon="@Icons.Material.Filled.MonitorHeart">
-        Proses İzleme
+        @Loc["NavMenu_ProsesIzleme"]
     </MudNavLink>
 
     <MudNavLink Href="proses-kontrol" Icon="@Icons.Material.Filled.SettingsRemote">
-        Proses Kontrol
+        @Loc["NavMenu_ProsesKontrol"]
     </MudNavLink>
 
     <MudNavLink Href="raporlar" Icon="@Icons.Material.Filled.Assessment">
-        Raporlar
+        @Loc["NavMenu_Raporlar"]
     </MudNavLink>
 
     <MudNavLink Href="ayarlar" Icon="@Icons.Material.Filled.Settings">
-        Ayarlar
+        @Loc["NavMenu_Ayarlar"]
     </MudNavLink>
 </MudNavMenu>

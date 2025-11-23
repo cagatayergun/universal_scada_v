@@ -7,8 +7,12 @@
 @using TekstilScada.WebApp.Components.Shared
 @using TekstilScada.WebApp.Components.Layout
 @using MudBlazor
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
+@using System.Globalization @* <-- Dil sabitleme için gerekli *@
 @inject ScadaDataService ScadaService
 @inject NavigationManager NavManager
+@inject IStringLocalizer<SharedResource> Loc
 
 @implements IDisposable
 
@@ -21,22 +25,22 @@
     @if (_isLoading)
     {
         <div class="loading-overlay">
-            <p>Veriler yükleniyor ve SignalR bağlantısı kuruluyor...</p>
+            <p>@Loc["VerilerYukleniyor"]</p>
         </div>
     }
     else
     {
         <div class="kpi-cards-row">
-            <KpiCard Title="TOPLAM MAKİNE" Value="@TotalMachines.ToString()" CssClass="kpi-info" />
-            <KpiCard Title="AKTİF MAKİNE" Value="@RunningMachines.ToString()" CssClass="kpi-success" />
-            <KpiCard Title="ALARMDAKİ MAKİNE" Value="@AlarmMachines.ToString()" CssClass="kpi-danger" />
-            <KpiCard Title="BEKLEYEN MAKİNE" Value="@IdleMachines.ToString()" CssClass="kpi-warning" />
+            <KpiCard Title="@Loc["ToplamMakine"]" Value="@TotalMachines.ToString()" CssClass="kpi-info" />
+            <KpiCard Title="@Loc["AktifMakine"]" Value="@RunningMachines.ToString()" CssClass="kpi-success" />
+            <KpiCard Title="@Loc["AlarmdakiMakine"]" Value="@AlarmMachines.ToString()" CssClass="kpi-danger" />
+            <KpiCard Title="@Loc["BekleyenMakine"]" Value="@IdleMachines.ToString()" CssClass="kpi-warning" />
         </div>
 
         <MudPaper Elevation="3" Class="pa-4 mb-4 rounded-lg" Style="background-color: #1e1e2d; color: #f0f0f0; border: 1px solid #333;">
             <div class="d-flex align-center justify-space-between" @onclick="ToggleFilterVisibility" style="cursor: pointer;">
                 <MudText Typo="Typo.h6" Color="Color.Info">
-                    <MudIcon Icon="@Icons.Material.Filled.FilterList" Class="mr-2" /> Makine Filtreleme
+                    <MudIcon Icon="@Icons.Material.Filled.FilterList" Class="mr-2" /> @Loc["MakineFiltreleme"]
                 </MudText>
                 <MudIconButton Icon="@(_isFilterVisible? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)"
                                Color="Color.Inherit" />
@@ -63,13 +67,13 @@
                     }
                     else
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Inherit">Makine listesi yüklenemedi.</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Inherit">@Loc["MakineListesiYuklenemedi"]</MudText>
                     }
                 </div>
                 <div class="d-flex gap-2 mt-3">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="ApplyFilter">Filtrele</MudButton>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small" OnClick="SelectAllMachines">Tümünü Seç</MudButton>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="ClearSelection">Seçimi Temizle</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="ApplyFilter">@Loc["Filtrele"]</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small" OnClick="SelectAllMachines">@Loc["TumunuSec"]</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="ClearSelection">@Loc["SecimiTemizle"]</MudButton>
                 </div>
             }
         </MudPaper>
@@ -78,11 +82,11 @@
             <div class="machine-groups-column">
                 @if (GroupedMachines.Count == 0 && TotalMachines > 0)
                 {
-                    <MudAlert Severity="Severity.Info" Class="my-2">Filtreleme sonucunda gösterilecek makine bulunamadı.</MudAlert>
+                    <MudAlert Severity="Severity.Info" Class="my-2">@Loc["FiltreSonucuYok"]</MudAlert>
                 }
                 else if (TotalMachines == 0)
                 {
-                    <MudAlert Severity="Severity.Warning" Class="my-2">Sistemde henüz makine tanımlanmamıştır.</MudAlert>
+                    <MudAlert Severity="Severity.Warning" Class="my-2">@Loc["MakineTanimlanmamis"]</MudAlert>
                 }
                 else
                 {
@@ -108,7 +112,7 @@
                     <div id="oeeChartContainer" style="width:100%; height:250px;"></div>
                     @if (!HourlyOeeData.Any())
                     {
-                        <MudText Typo="Typo.caption" Align="Align.Center" Class="d-block text-muted">OEE Verisi Yok...</MudText>
+                        <MudText Typo="Typo.caption" Align="Align.Center" Class="d-block text-muted">@Loc["OeeVerisiYok"]</MudText>
                     }
                 </MudPaper>
 
@@ -155,6 +159,9 @@
     private bool _isDisposed = false;
     private bool _shouldRenderCharts = false;
 
+    // Kullanıcının dilini saklamak için değişken (Dashboard düzeltmesi)
+    private CultureInfo _userCulture;
+
     // Filtreleme Durumu
     private bool _isFilterVisible = false;
 
@@ -190,6 +197,9 @@
     {
         try
         {
+            // 1. ADIM: Kullanıcı dilini başlatırken kaydet
+            _userCulture = CultureInfo.CurrentUICulture;
+
             await ScadaService.InitializeAsync();
             await ScadaService.GetMachinesAsync();
             ScadaService.OnDataUpdated += HandleDataUpdate;
@@ -329,6 +339,14 @@
         try
         {
             if (_isDisposed) return;
+
+            // 2. ADIM: Güncelleme geldiğinde dili zorla
+            if (_userCulture != null)
+            {
+                CultureInfo.CurrentCulture = _userCulture;
+                CultureInfo.CurrentUICulture = _userCulture;
+            }
+
             UpdateDashboardData();
             _shouldRenderCharts = true;
             InvokeAsync(StateHasChanged);

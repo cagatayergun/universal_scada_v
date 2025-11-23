@@ -5,10 +5,13 @@
 @using MudBlazor
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ScadaDataService ScadaDataService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResource> Loc
 
 <MudDialog DisableSidePadding="true" MaxWidth="MaxWidth.False" Style="width:95vw; max-height:95vh;" Scrollable="true">
     <DialogContent>
@@ -18,12 +21,12 @@
                 <MudItem xs="12" md="8">
                     <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-3" Style="background-color: white;">
 
-                        <MudTabPanel Text="Reçete Gönder (PC -> Makine)" Icon="@Icons.Material.Filled.CloudUpload">
+                        <MudTabPanel Text="@Loc["ReceteGonderBaslik"]" Icon="@Icons.Material.Filled.CloudUpload">
                             <MudGrid Spacing="3">
                                 <MudItem xs="12" md="5">
                                     <div class="mb-2">
-                                        <MudText Typo="Typo.subtitle2" Color="MudBlazor.Color.Primary" Class="mb-1"><b>1. Adım: Reçete Seçimi</b></MudText>
-                                        <MudSelect T="string" Label="Reçete Tipi" Value="@_filterType" ValueChanged="OnFilterTypeChanged" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                                        <MudText Typo="Typo.subtitle2" Color="MudBlazor.Color.Primary" Class="mb-1"><b>@Loc["Adim1ReceteSecimi"]</b></MudText>
+                                        <MudSelect T="string" Label="@Loc["ReceteTipi"]" Value="@_filterType" ValueChanged="OnFilterTypeChanged" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                                             @foreach (var type in _availableTypes)
                                             {
                                                 <MudSelectItem Value="@type">@type</MudSelectItem>
@@ -44,16 +47,16 @@
                                                      Virtualize="true">
                                             <Columns>
                                                 <SelectColumn T="ScadaRecipe" />
-                                                <PropertyColumn Property="x => x.RecipeName" Title="Reçete Adı" />
+                                                <PropertyColumn Property="x => x.RecipeName" Title="@Loc["ReceteAdi"]" />
                                             </Columns>
                                         </MudDataGrid>
                                     </MudPaper>
-                                    <MudText Typo="Typo.caption" Class="mt-1">@(_selectedRecipes.Count) reçete seçildi.</MudText>
+                                    <MudText Typo="Typo.caption" Class="mt-1">@string.Format(Loc["ReceteSecildiCount"], _selectedRecipes.Count)</MudText>
                                 </MudItem>
 
                                 <MudItem xs="12" md="7">
                                     <div class="mb-2">
-                                        <MudText Typo="Typo.subtitle2" Color="MudBlazor.Color.Secondary" Class="mb-1"><b>2. Adım: Hedef Seçimi</b></MudText>
+                                        <MudText Typo="Typo.subtitle2" Color="MudBlazor.Color.Secondary" Class="mb-1"><b>@Loc["Adim2HedefSecimi"]</b></MudText>
                                     </div>
 
                                     <MudPaper Elevation="0" Outlined="true" Class="d-flex flex-column border-2 mud-border-secondary"
@@ -69,7 +72,7 @@
                                                      Virtualize="true">
                                             <Columns>
                                                 <SelectColumn T="MachineSelectionModel" />
-                                                <TemplateColumn Title="Online" CellClass="d-flex justify-center">
+                                                <TemplateColumn Title="@Loc["Online"]" CellClass="d-flex justify-center">
                                                     <CellTemplate>
                                                         @if (context.Item.IsOnline)
                                                         {
@@ -81,8 +84,8 @@
                                                         }
                                                     </CellTemplate>
                                                 </TemplateColumn>
-                                                <PropertyColumn Property="x => x.Machine.MachineName" Title="Makine Adı" />
-                                                <TemplateColumn Title="Hedef No" CellClass="d-flex justify-center align-center">
+                                                <PropertyColumn Property="x => x.Machine.MachineName" Title="@Loc["MakineAdi"]" />
+                                                <TemplateColumn Title="@Loc["HedefNo"]" CellClass="d-flex justify-center align-center">
                                                     <CellTemplate>
                                                         <div class="mud-datagrid-row-select-skip" style="width: 70px;">
                                                             <MudNumericField @bind-Value="context.Item.TargetStartSlot"
@@ -103,7 +106,7 @@
                                     <div class="mt-3">
                                         <MudPaper Elevation="3" Class="pa-3 d-flex align-center gap-3 flex-wrap" Style="background-color: #f5f5f5; border-radius: 8px;">
                                             <div class="d-flex flex-column">
-                                                <MudText Typo="Typo.caption" Style="font-weight:bold;">Hedef Başlangıç No:</MudText>
+                                                <MudText Typo="Typo.caption" Style="font-weight:bold;">@Loc["HedefBaslangicNo"]</MudText>
                                                 <MudNumericField @bind-Value="_globalTargetSlot"
                                                                  Min="1" Max="98"
                                                                  Variant="Variant.Outlined"
@@ -115,7 +118,7 @@
                                             <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Large" StartIcon="@Icons.Material.Filled.CloudUpload"
                                                        OnClick="StartTransferProcess" FullWidth="false" Class="flex-grow-1"
                                                        Disabled="@(_selectedRecipes.Count == 0 || _selectedMachines.Count == 0 || isBusy)">
-                                                GÖNDERİMİ BAŞLAT
+                                                @Loc["GonderimiBaslat"]
                                             </MudButton>
                                         </MudPaper>
                                     </div>
@@ -123,13 +126,13 @@
                             </MudGrid>
                         </MudTabPanel>
 
-                        <MudTabPanel Text="Reçete Al (Makine -> PC)" Icon="@Icons.Material.Filled.CloudDownload">
+                        <MudTabPanel Text="@Loc["ReceteAlBaslik"]" Icon="@Icons.Material.Filled.CloudDownload">
                             <MudGrid Spacing="3">
                                 <MudItem xs="12" md="4">
                                     <div class="mb-3">
-                                        <MudText Typo="Typo.subtitle2" Class="mb-1"><b>Kaynak Seçimi</b></MudText>
+                                        <MudText Typo="Typo.subtitle2" Class="mb-1"><b>@Loc["KaynakSecimi"]</b></MudText>
                                         <MudPaper Class="pa-3" Elevation="3" Style="background-color:#fcfcfc;" Hover="true" Dense="true">
-                                            <MudSelect T="Machine" Label="Makine Seçiniz" Value="_downloadSourceMachine" ValueChanged="OnDownloadSourceChanged" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                                            <MudSelect T="Machine" Label="@Loc["MakineSeciniz"]" Value="_downloadSourceMachine" ValueChanged="OnDownloadSourceChanged" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
                                                 @if (AllMachines != null)
                                                 {
                                                     @foreach (var m in AllMachines.Where(x => !string.IsNullOrEmpty(x.FtpUsername)))
@@ -142,7 +145,7 @@
                                             {
                                                 <div class="d-flex align-center mt-3 gap-2">
                                                     <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Color="MudBlazor.Color.Primary" />
-                                                    <MudText Typo="Typo.caption">Hafıza okunuyor...</MudText>
+                                                    <MudText Typo="Typo.caption">@Loc["HafizaOkunuyor"]</MudText>
                                                 </div>
                                             }
                                         </MudPaper>
@@ -151,7 +154,7 @@
 
                                 <MudItem xs="12" md="8">
                                     <div>
-                                        <MudText Typo="Typo.subtitle2" Class="mb-2"><b>HMI Reçeteleri (PLC)</b></MudText>
+                                        <MudText Typo="Typo.subtitle2" Class="mb-2"><b>@Loc["HmiReceteleri"]</b></MudText>
                                     </div>
                                     <MudPaper Elevation="0" Outlined="true" Class="d-flex flex-column border-2 mud-border-warning"
                                               Style="height: 50vh; min-height: 300px; overflow-y: auto; overflow-x: hidden;">
@@ -166,19 +169,19 @@
                                                      Virtualize="true">
                                             <Columns>
                                                 <SelectColumn T="HmiRecipeModel" />
-                                                <PropertyColumn Property="x => x.SlotNumber" Title="No" CellStyle="width: 70px; font-weight:bold;" />
-                                                <PropertyColumn Property="x => x.RecipeName" Title="Reçete Adı" />
+                                                <PropertyColumn Property="x => x.SlotNumber" Title="@Loc["No"]" CellStyle="width: 70px; font-weight:bold;" />
+                                                <PropertyColumn Property="x => x.RecipeName" Title="@Loc["ReceteAdi"]" />
                                             </Columns>
                                         </MudDataGrid>
                                     </MudPaper>
 
                                     <div class="mt-3">
                                         <MudPaper Elevation="3" Class="pa-3 d-flex justify-end align-center flex-wrap" Style="background-color: #fff3e0; border-radius: 8px;">
-                                            <MudText Typo="Typo.body2" Class="mr-4">Seçilen: <b>@_selectedHmiRecipes.Count</b> adet</MudText>
+                                            <MudText Typo="Typo.body2" Class="mr-4">@Loc["Secilen"]: <b>@_selectedHmiRecipes.Count</b> @Loc["Adet"]</MudText>
                                             <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Large" StartIcon="@Icons.Material.Filled.CloudDownload"
                                                        OnClick="StartDownloadProcess"
                                                        Disabled="@(_selectedHmiRecipes.Count == 0 || _downloadSourceMachine == null || isBusy)">
-                                                DOWNLOAD
+                                                @Loc["Indir"]
                                             </MudButton>
                                         </MudPaper>
                                     </div>
@@ -191,7 +194,7 @@
 
                 <MudItem xs="12" md="4" Class="d-flex flex-column">
                     <div class="mb-2 flex-shrink-0 mt-3 mt-md-0">
-                        <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.History" Class="mr-2" /> İşlem Kuyruğu</MudText>
+                        <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.History" Class="mr-2" /> @Loc["IslemKuyrugu"]</MudText>
                     </div>
 
                     <MudPaper Elevation="4" Class="d-flex flex-column"
@@ -237,7 +240,7 @@
                             {
                                 <div class="d-flex flex-column align-center justify-center" style="height:100%; opacity:0.5">
                                     <MudIcon Icon="@Icons.Material.Filled.Inbox" Size="MudBlazor.Size.Large" />
-                                    <MudText>Kuyruk boş</MudText>
+                                    <MudText>@Loc["KuyrukBos"]</MudText>
                                 </div>
                             }
                         </div>
@@ -248,7 +251,7 @@
                         <div class="pt-2 flex-shrink-0">
                             <MudPaper Class="pa-2" Elevation="0" Style="background-color:transparent">
                                 <MudProgressLinear Color="MudBlazor.Color.Info" Indeterminate="true" />
-                                <MudText Align="MudBlazor.Align.Center" Typo="Typo.caption">İşlemler sürüyor...</MudText>
+                                <MudText Align="MudBlazor.Align.Center" Typo="Typo.caption">@Loc["IslemlerSuruyor"]</MudText>
                             </MudPaper>
                         </div>
                     }
@@ -258,7 +261,7 @@
         </MudContainer>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="() => MudDialog.Cancel()" Color="MudBlazor.Color.Default">Kapat</MudButton>
+        <MudButton OnClick="() => MudDialog.Cancel()" Color="MudBlazor.Color.Default">@Loc["Kapat"]</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -390,12 +393,12 @@
             }
             else
             {
-                Snackbar.Add("PLC'de kayıtlı reçete ismi bulunamadı.", Severity.Info);
+                Snackbar.Add(Loc["PlcReceteBulunamadi"], Severity.Info);
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Reçete listesi alınamadı: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{Loc["ReceteListesiAlinamadi"]}: {ex.Message}", Severity.Error);
         }
         finally
         {
@@ -419,12 +422,12 @@
             }
 
             await ScadaDataService.QueueReceiveJobsAsync(fileNamesToRequest, _downloadSourceMachine.Id);
-            Snackbar.Add($"{fileNamesToRequest.Count} reçete indirme kuyruğuna eklendi.", Severity.Success);
+            Snackbar.Add($"{fileNamesToRequest.Count} {Loc["ReceteIndirmeKuyrugaEklendi"]}", Severity.Success);
             _selectedHmiRecipes.Clear();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Hata: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{Loc["Hata"]}: {ex.Message}", Severity.Error);
         }
         finally
         {
@@ -439,7 +442,8 @@
         var offlineMachines = _selectedMachines.Where(m => !m.IsOnline).ToList();
         if (offlineMachines.Any())
         {
-            var confirm = await JSRuntime.InvokeAsync<bool>("confirm", $"{offlineMachines.Count} makine OFFLINE. Yine de eklensin mi?");
+            var message = string.Format(Loc["MakineOfflineOnay"], offlineMachines.Count);
+            var confirm = await JSRuntime.InvokeAsync<bool>("confirm", message);
             if (!confirm) return;
         }
 
@@ -457,11 +461,11 @@
                 int startSlot = machineItem.TargetStartSlot;
                 if (startSlot + recipeIds.Count - 1 > 98)
                 {
-                    Snackbar.Add($"{machineItem.Machine.MachineName} limit aşıldı!", Severity.Warning);
+                    Snackbar.Add($"{machineItem.Machine.MachineName} {Loc["LimitAsildi"]}", Severity.Warning);
                     continue;
                 }
                 await ScadaDataService.QueueSequentiallyNamedSendJobsAsync(recipeIds, machineIds, startSlot);
-                Snackbar.Add($"{machineItem.Machine.MachineName}: Kuyruğa alındı.", Severity.Success);
+                Snackbar.Add($"{machineItem.Machine.MachineName}: {Loc["KuyrugaAlindi"]}", Severity.Success);
                 if (currentUserId > 0)
                 {
                     // Örn: "FTP Transfer: Reçete1, Reçete2 -> Makine1 (Başlangıç Slot: 1)"
@@ -472,7 +476,7 @@
                 }
             }
         }
-        catch (Exception ex) { Snackbar.Add($"Hata: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"{Loc["Hata"]}: {ex.Message}", Severity.Error); }
         finally { isBusy = false; StateHasChanged(); }
     }
 

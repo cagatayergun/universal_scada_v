@@ -1,18 +1,21 @@
 ﻿@using TekstilScada.Models
 @using TekstilScada.WebApp.Services
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
 @inject ScadaDataService DataService
 @inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResource> Loc
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4>Maliyet Parametreleri</h4>
+    <h4>@Loc["MaliyetParametreleriBaslik"]</h4>
     <button class="btn btn-primary" @onclick="SaveChanges">
-        <i class="bi bi-save me-1"></i> Değişiklikleri Kaydet
+        <i class="bi bi-save me-1"></i> @Loc["DegisiklikleriKaydet"]
     </button>
 </div>
 
 @if (costs == null)
 {
-    <div class="text-center mt-4"><div class="spinner-border text-info"></div><p>Veriler yükleniyor...</p></div>
+    <div class="text-center mt-4"><div class="spinner-border text-info"></div><p>@Loc["Yukleniyor"]</p></div>
 }
 else
 {
@@ -20,14 +23,14 @@ else
         <div class="card-body bg-light">
             <div class="row align-items-center">
                 <div class="col-auto">
-                    <label class="fw-bold col-form-label">Sistem Para Birimi:</label>
+                    <label class="fw-bold col-form-label">@Loc["SistemParaBirimi"]</label>
                 </div>
                 <div class="col-auto">
                     <input type="text" class="form-control" style="width: 100px;"
                            @bind="globalCurrency" placeholder="TL, USD..." />
                 </div>
                 <div class="col">
-                    <small class="text-muted"><i class="bi bi-info-circle"></i> Bu para birimi tüm raporlarda kullanılacaktır.</small>
+                    <small class="text-muted"><i class="bi bi-info-circle"></i> @Loc["SistemParaBirimiInfo"]</small>
                 </div>
             </div>
         </div>
@@ -37,10 +40,10 @@ else
         <table class="table table-striped table-hover align-middle">
             <thead class="table-dark">
                 <tr>
-                    <th>Parametre Adı</th>
-                    <th style="width: 200px;">Birim Maliyet</th>
-                    <th style="width: 150px;">Birim</th>
-                    <th style="width: 200px;">Çarpan (Katsayı)</th>
+                    <th>@Loc["ParametreAdi"]</th>
+                    <th style="width: 200px;">@Loc["BirimMaliyet"]</th>
+                    <th style="width: 150px;">@Loc["Birim"]</th>
+                    <th style="width: 200px;">@Loc["CarpanKatsayi"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -90,7 +93,7 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Hata: {ex.Message}");
+            Console.WriteLine($"{Loc["Hata"]}: {ex.Message}");
         }
     }
 
@@ -108,12 +111,12 @@ else
             }
 
             await DataService.UpdateCostsAsync(costs);
-            await JSRuntime.InvokeVoidAsync("alert", "Maliyet ayarları başarıyla kaydedildi.");
+            await JSRuntime.InvokeVoidAsync("alert", Loc["MaliyetAyarlariKaydedildi"].Value);
             await LoadData(); // Verileri tazeleyelim
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Kaydetme hatası: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"{Loc["KaydetmeHatasi"]}: {ex.Message}");
         }
     }
 }
