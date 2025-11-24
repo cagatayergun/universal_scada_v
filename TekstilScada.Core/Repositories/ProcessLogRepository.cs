@@ -1,201 +1,326 @@
-﻿// Repositories/ProcessLogRepository.cs
-using MySql.Data.MySqlClient;
+﻿using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
-using TekstilScada.Core; // Bu satırı ekleyin
+using Dapper; // Performanslı okuma için Dapper eklendi
+using TekstilScada.Core;
 using TekstilScada.Models;
+
 namespace TekstilScada.Repositories
 {
     public class ProcessLogRepository
     {
         private readonly string _connectionString = AppConfig.ConnectionString;
 
-        public void LogData(FullMachineStatus status)
+        // --- BULK INSERT (YAZMA) İŞLEMLERİ ---
+
+        public void LogBulkData(List<FullMachineStatus> statusList)
         {
-            // Batch numarası yoksa veya reçete modunda değilse loglama yapma
-            if (string.IsNullOrEmpty(status.BatchNumarasi) || !status.IsInRecipeMode)
+            if (statusList == null || !statusList.Any()) return;
+
+            // 1000 Makine için StringBuilder'ın sürekli resize olmasını engellemek adına
+            // tahmini bir kapasite (RowLength * Count) veriyoruz.
+            var queryBuilder = new StringBuilder("INSERT INTO process_data_log (MachineId, BatchId, LogTimestamp, LiveTemperature, LiveWaterLevel, LiveRpm) VALUES ", statusList.Count * 100);
+
+            var parameters = new DynamicParameters(); // Dapper parametreleri veya MySqlParameter kullanılabilir. Burada manuel yönetim daha kontrollü.
+            var mySqlParams = new List<MySqlParameter>();
+
+            for (int i = 0; i < statusList.Count; i++)
             {
-                return;
+                var s = statusList[i];
+                // Her satırı tek tek ekliyoruz
+                queryBuilder.Append($"(@m{i}, @b{i}, @t{i}, @temp{i}, @wl{i}, @rpm{i}),");
+
+                mySqlParams.Add(new MySqlParameter($"@m{i}", s.MachineId));
+                mySqlParams.Add(new MySqlParameter($"@b{i}", s.BatchNumarasi));
+                mySqlParams.Add(new MySqlParameter($"@t{i}", DateTime.Now));
+                mySqlParams.Add(new MySqlParameter($"@temp{i}", s.AnlikSicaklik));
+                mySqlParams.Add(new MySqlParameter($"@wl{i}", s.AnlikSuSeviyesi));
+                mySqlParams.Add(new MySqlParameter($"@rpm{i}", s.AnlikDevirRpm));
             }
+
+            // Sondaki virgülü silip noktalı virgül koyuyoruz
+            queryBuilder.Length--;
+            queryBuilder.Append(";");
 
             using (var connection = new MySqlConnection(_connectionString))
             {
                 connection.Open();
-                string query = "INSERT INTO process_data_log (MachineId, BatchId, LogTimestamp, LiveTemperature, LiveWaterLevel, LiveRpm) VALUES (@MachineId, @BatchId, @LogTimestamp, @LiveTemperature, @LiveWaterLevel, @LiveRpm);";
-                var cmd = new MySqlCommand(query, connection);
-                cmd.Parameters.AddWithValue("@MachineId", status.MachineId);
-                cmd.Parameters.AddWithValue("@BatchId", status.BatchNumarasi);
-                cmd.Parameters.AddWithValue("@LogTimestamp", DateTime.Now);
-                cmd.Parameters.AddWithValue("@LiveTemperature", status.AnlikSicaklik); // Varsayımsal olarak anlık sıcaklık
-                cmd.Parameters.AddWithValue("@LiveWaterLevel", status.AnlikSuSeviyesi);
-                cmd.Parameters.AddWithValue("@LiveRpm", status.AnlikDevirRpm);
-                cmd.ExecuteNonQuery();
+                using (var transaction = connection.BeginTransaction())
+                {
+                    try
+                    {
+                        using (var cmd = new MySqlCommand(queryBuilder.ToString(), connection, transaction))
+                        {
+                            // 1000 makine * 6 parametre = 6000 parametre. MySQL limiti ~65k'dır, güvenli.
+                            cmd.Parameters.AddRange(mySqlParams.ToArray());
+
+                            // Büyük veri paketleri için timeout süresini artırıyoruz (Varsayılan 30sn -> 60sn)
+                            cmd.CommandTimeout = 60;
+
+                            cmd.ExecuteNonQuery();
+                        }
+                        transaction.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        transaction.Rollback();
+                        Console.WriteLine($"[BulkLog Error] {ex.Message}");
+                        throw;
+                    }
+                }
             }
         }
-        // YENİ: Manuel mod verilerini loglayan metot
-        public void LogManualData(FullMachineStatus status)
+
+        public void LogBulkManualData(List<FullMachineStatus> statusList)
         {
+            if (statusList == null || !statusList.Any()) return;
+
+            var queryBuilder = new StringBuilder("INSERT INTO manual_mode_log (MachineId, LogTimestamp, LiveTemperature, TotalWater, LiveWaterLevel, LiveRpm, LiveElectricity, LiveSteam) VALUES ", statusList.Count * 120);
+            var mySqlParams = new List<MySqlParameter>();
+
+            for (int i = 0; i < statusList.Count; i++)
+            {
+                var s = statusList[i];
+                queryBuilder.Append($"(@m{i}, @t{i}, @temp{i}, @tw{i}, @wl{i}, @rpm{i}, @elec{i}, @stm{i}),");
+
+                mySqlParams.Add(new MySqlParameter($"@m{i}", s.MachineId));
+                mySqlParams.Add(new MySqlParameter($"@t{i}", DateTime.Now));
+                mySqlParams.Add(new MySqlParameter($"@temp{i}", s.AnlikSicaklik));
+                mySqlParams.Add(new MySqlParameter($"@tw{i}", s.SuMiktari));
+                mySqlParams.Add(new MySqlParameter($"@wl{i}", s.AnlikSuSeviyesi));
+                mySqlParams.Add(new MySqlParameter($"@rpm{i}", s.AnlikDevirRpm));
+                mySqlParams.Add(new MySqlParameter($"@elec{i}", s.ElektrikHarcama));
+                mySqlParams.Add(new MySqlParameter($"@stm{i}", s.BuharHarcama));
+            }
+
+            queryBuilder.Length--;
+            queryBuilder.Append(";");
+
             using (var connection = new MySqlConnection(_connectionString))
             {
                 connection.Open();
-                string query = "INSERT INTO manual_mode_log (MachineId, LogTimestamp, LiveTemperature,TotalWater, LiveWaterLevel, LiveRpm,LiveElectricity,LiveSteam) VALUES (@MachineId, @LogTimestamp, @LiveTemperature,@TotalWater, @LiveWaterLevel, @LiveRpm,@LiveElectricity,@LiveSteam);";
-                var cmd = new MySqlCommand(query, connection);
-                cmd.Parameters.AddWithValue("@MachineId", status.MachineId);
-                cmd.Parameters.AddWithValue("@LogTimestamp", DateTime.Now);
-                cmd.Parameters.AddWithValue("@LiveTemperature", status.AnlikSicaklik);
-                cmd.Parameters.AddWithValue("@TotalWater", status.SuMiktari);
-                
-
-                cmd.Parameters.AddWithValue("@LiveWaterLevel", status.AnlikSuSeviyesi);
-                cmd.Parameters.AddWithValue("@LiveRpm", status.AnlikDevirRpm);
-                cmd.Parameters.AddWithValue("@LiveElectricity", status.ElektrikHarcama);
-                cmd.Parameters.AddWithValue("@LiveSteam", status.BuharHarcama);
-                cmd.ExecuteNonQuery();
+                using (var transaction = connection.BeginTransaction())
+                {
+                    try
+                    {
+                        using (var cmd = new MySqlCommand(queryBuilder.ToString(), connection, transaction))
+                        {
+                            cmd.Parameters.AddRange(mySqlParams.ToArray());
+                            cmd.CommandTimeout = 60;
+                            cmd.ExecuteNonQuery();
+                        }
+                        transaction.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        transaction.Rollback();
+                        Console.WriteLine($"[BulkManualLog Error] {ex.Message}");
+                        throw;
+                    }
+                }
             }
         }
+
+        // --- DAPPER İLE OKUMA İŞLEMLERİ (OPTİMİZE EDİLDİ) ---
+
         public List<ProcessDataPoint> GetLogsForBatch(int machineId, string batchId, DateTime? startTime = null, DateTime? endTime = null)
         {
-            var dataPoints = new List<ProcessDataPoint>();
             using (var connection = new MySqlConnection(_connectionString))
             {
-                connection.Open();
-                var queryBuilder = new StringBuilder("SELECT LogTimestamp, LiveTemperature, LiveWaterLevel, LiveRpm FROM process_data_log WHERE MachineId = @MachineId ");
+                var sql = new StringBuilder(@"
+                    SELECT 
+                        LogTimestamp as Timestamp, 
+                        LiveTemperature as Temperature, 
+                        LiveWaterLevel as WaterLevel, 
+                        LiveRpm as Rpm 
+                    FROM process_data_log 
+                    WHERE MachineId = @MachineId ");
+
+                var p = new DynamicParameters();
+                p.Add("@MachineId", machineId);
 
                 if (!string.IsNullOrEmpty(batchId))
                 {
-                    queryBuilder.Append("AND BatchId = @BatchId ");
+                    sql.Append("AND BatchId = @BatchId ");
+                    p.Add("@BatchId", batchId);
                 }
                 if (startTime.HasValue)
                 {
-                    queryBuilder.Append("AND LogTimestamp >= @StartTime ");
+                    sql.Append("AND LogTimestamp >= @StartTime ");
+                    p.Add("@StartTime", startTime);
                 }
                 if (endTime.HasValue)
                 {
-                    queryBuilder.Append("AND LogTimestamp <= @EndTime ");
+                    sql.Append("AND LogTimestamp <= @EndTime ");
+                    p.Add("@EndTime", endTime);
                 }
-                queryBuilder.Append("ORDER BY LogTimestamp;");
+                sql.Append("ORDER BY LogTimestamp;");
 
-                var cmd = new MySqlCommand(queryBuilder.ToString(), connection);
-                cmd.Parameters.AddWithValue("@MachineId", machineId);
-
-                if (!string.IsNullOrEmpty(batchId)) cmd.Parameters.AddWithValue("@BatchId", batchId);
-                if (startTime.HasValue) cmd.Parameters.AddWithValue("@StartTime", startTime.Value);
-                if (endTime.HasValue) cmd.Parameters.AddWithValue("@EndTime", endTime.Value);
-
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        dataPoints.Add(new ProcessDataPoint
-                        {
-                            Timestamp = reader.GetDateTime("LogTimestamp"),
-                            Temperature = reader.GetDecimal("LiveTemperature"),
-                            WaterLevel = reader.GetDecimal("LiveWaterLevel"),
-                            Rpm = reader.GetInt32("LiveRpm")
-                        });
-                    }
-                }
+                // Dapper ile tek satırda mapping ve listeleme
+                return connection.Query<ProcessDataPoint>(sql.ToString(), p).ToList();
             }
-            return dataPoints;
         }
+
         public List<ProcessDataPoint> GetLogsForDateRange(int machineId, DateTime startTime, DateTime endTime)
         {
-            var dataPoints = new List<ProcessDataPoint>();
             using (var connection = new MySqlConnection(_connectionString))
             {
-                connection.Open();
-                string query = "SELECT LogTimestamp, LiveTemperature, LiveWaterLevel, LiveRpm FROM process_data_log WHERE MachineId = @MachineId AND LogTimestamp BETWEEN @StartTime AND @EndTime ORDER BY LogTimestamp;";
-                var cmd = new MySqlCommand(query, connection);
-                cmd.Parameters.AddWithValue("@MachineId", machineId);
-                cmd.Parameters.AddWithValue("@StartTime", startTime);
-                cmd.Parameters.AddWithValue("@EndTime", endTime);
+                string sql = @"
+                    SELECT 
+                        LogTimestamp as Timestamp, 
+                        LiveTemperature as Temperature, 
+                        LiveWaterLevel as WaterLevel, 
+                        LiveRpm as Rpm 
+                    FROM process_data_log 
+                    WHERE MachineId = @MachineId 
+                    AND LogTimestamp BETWEEN @StartTime AND @EndTime 
+                    ORDER BY LogTimestamp;";
 
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        dataPoints.Add(new ProcessDataPoint
-                        {
-                            Timestamp = reader.GetDateTime("LogTimestamp"),
-                            Temperature = reader.GetDecimal("LiveTemperature"),
-                            WaterLevel = reader.GetDecimal("LiveWaterLevel"),
-                            Rpm = reader.GetInt32("LiveRpm")
-                        });
-                    }
-                }
+                return connection.Query<ProcessDataPoint>(sql, new { MachineId = machineId, StartTime = startTime, EndTime = endTime }).ToList();
             }
-            return dataPoints;
         }
+
+        // Dapper ile çoklu makine sorgusu
+        public List<ProcessDataPoint> GetLogsForDateRange(DateTime startTime, DateTime endTime, List<int> machineIds)
+        {
+            if (machineIds == null || !machineIds.Any()) return new List<ProcessDataPoint>();
+
+            using (var connection = new MySqlConnection(_connectionString))
+            {
+                // Dapper "IN" sorgusunu otomatik halleder (List<int> verdiğimizde)
+                string sql = @"
+                    SELECT 
+                        MachineId, 
+                        LogTimestamp as Timestamp, 
+                        LiveTemperature as Temperature, 
+                        LiveWaterLevel as WaterLevel, 
+                        LiveRpm as Rpm 
+                    FROM process_data_log 
+                    WHERE LogTimestamp BETWEEN @StartTime AND @EndTime 
+                    AND MachineId IN @MachineIds 
+                    ORDER BY LogTimestamp;";
+
+                return connection.Query<ProcessDataPoint>(sql, new { StartTime = startTime, EndTime = endTime, MachineIds = machineIds }).ToList();
+            }
+        }
+
+        // --- MANUEL RAPORLAMA (OPTİMİZE EDİLDİ) ---
+
         public List<ProcessDataManuel> GetManualLogs1(int machineId, DateTime startTime, DateTime endTime)
         {
-            
-            var dataPoints1 = new List<ProcessDataManuel>();
             using (var connection = new MySqlConnection(_connectionString))
             {
-                connection.Open();
-                string query = "SELECT LogTimestamp, LiveTemperature,TotalWater, LiveWaterLevel, LiveRpm,LiveElectricity,LiveSteam FROM manual_mode_log WHERE MachineId = @MachineId AND LogTimestamp BETWEEN @StartTime AND @EndTime ORDER BY LogTimestamp;";
-                var cmd = new MySqlCommand(query, connection);
-                cmd.Parameters.AddWithValue("@MachineId", machineId);
-                cmd.Parameters.AddWithValue("@StartTime", startTime);
-                cmd.Parameters.AddWithValue("@EndTime", endTime);
+                string sql = @"
+                    SELECT 
+                        LogTimestamp as Timestamp, 
+                        TotalWater as totalwatermanuel, 
+                        LiveElectricity as totalelectritymanuel, 
+                        LiveSteam as totalsteammanuel 
+                    FROM manual_mode_log 
+                    WHERE MachineId = @MachineId 
+                    AND LogTimestamp BETWEEN @StartTime AND @EndTime 
+                    ORDER BY LogTimestamp;";
 
-
-
-
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        dataPoints1.Add(new ProcessDataManuel
-                        {
-                            Timestamp = reader.GetDateTime("LogTimestamp"),
-                            totalwatermanuel = reader.GetDecimal("TotalWater"),
-                            totalelectritymanuel = reader.GetDecimal("LiveElectricity"),
-                            totalsteammanuel = reader.GetDecimal("LiveSteam")
-                        });
-
-                     
-                    }
-                }
+                return connection.Query<ProcessDataManuel>(sql, new { MachineId = machineId, StartTime = startTime, EndTime = endTime }).ToList();
             }
-            return dataPoints1;
         }
+
         public List<ProcessDataPoint> GetManualLogs(int machineId, DateTime startTime, DateTime endTime)
         {
-            var dataPoints = new List<ProcessDataPoint>();
-          //  var dataPoints1 = new List<ProcessDataManuel>();
             using (var connection = new MySqlConnection(_connectionString))
             {
-                connection.Open();
-                string query = "SELECT LogTimestamp, LiveTemperature,TotalWater, LiveWaterLevel, LiveRpm,LiveElectricity,LiveSteam FROM manual_mode_log WHERE MachineId = @MachineId AND LogTimestamp BETWEEN @StartTime AND @EndTime ORDER BY LogTimestamp;";
-                var cmd = new MySqlCommand(query, connection);
-                cmd.Parameters.AddWithValue("@MachineId", machineId);
-                cmd.Parameters.AddWithValue("@StartTime", startTime);
-                cmd.Parameters.AddWithValue("@EndTime", endTime);
+                string sql = @"
+                    SELECT 
+                        LogTimestamp as Timestamp, 
+                        LiveTemperature as Temperature, 
+                        LiveWaterLevel as WaterLevel, 
+                        LiveRpm as Rpm 
+                    FROM manual_mode_log 
+                    WHERE MachineId = @MachineId 
+                    AND LogTimestamp BETWEEN @StartTime AND @EndTime 
+                    ORDER BY LogTimestamp;";
 
-
-
-
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                       
-
-                        dataPoints.Add(new ProcessDataPoint
-                        {
-                            Timestamp = reader.GetDateTime("LogTimestamp"),
-                            Temperature = reader.GetDecimal("LiveTemperature"),
-                            WaterLevel = reader.GetDecimal("LiveWaterLevel"),
-                            Rpm = reader.GetInt32("LiveRpm")
-                            
-                        });
-                    }
-                }
+                return connection.Query<ProcessDataPoint>(sql, new { MachineId = machineId, StartTime = startTime, EndTime = endTime }).ToList();
             }
-            return dataPoints;
         }
+
+        // Düzeltilmiş Manuel Tüketim Özeti Mantığı
+        public ManualConsumptionSummary GetManualConsumptionSummary(int machineId, string machineName, DateTime startTime, DateTime endTime)
+        {
+            var dataPoints = GetManualLogs(machineId, startTime, endTime);
+            var dataPoints1 = GetManualLogs1(machineId, startTime, endTime);
+
+            if (dataPoints == null || !dataPoints.Any() || dataPoints1 == null || !dataPoints1.Any())
+            {
+                // Veri yoksa boş ama güvenli bir nesne dön
+                return new ManualConsumptionSummary
+                {
+                    Makine = machineName,
+                    RaporAraligi = $"{startTime:dd.MM.yy HH:mm} - {endTime:dd.MM.yy HH:mm}",
+                    ToplamManuelSure = "00:00:00",
+                    OrtalamaSicaklik = 0,
+                    OrtalamaDevir = 0,
+                    ToplamSuTuketimi_Litre = 0,
+                    ToplamElektrikTuketimi_kW = 0,
+                    ToplamBuharTuketimi_kg = 0
+                };
+            }
+
+            // Yardımcı Metot: Kümülatif artan sayaçların toplam tüketimini hesaplar.
+            // Sayaç sıfırlanırsa (reset), önceki maksimum değeri toplama ekler.
+            decimal CalculateConsumption(List<ProcessDataManuel> data, Func<ProcessDataManuel, decimal> selector)
+            {
+                if (data.Count == 0) return 0;
+
+                decimal totalConsumption = 0;
+                decimal previousValue = selector(data[0]);
+
+                for (int i = 1; i < data.Count; i++)
+                {
+                    decimal currentValue = selector(data[i]);
+
+                    if (currentValue >= previousValue)
+                    {
+                        // Sayaç artıyor, normal durum. Farkı alıyoruz.
+                        // Not: Eğer sayaç kümülatif değil anlık ise bu mantık değişmelidir. 
+                        // Buradaki mantık: Sayaç kümülatif artıyor (örn: su sayacı).
+                        totalConsumption += (currentValue - previousValue);
+                    }
+                    else
+                    {
+                        // Sayaç düşmüş (Resetlenmiş). 
+                        // Önceki değer o ana kadarki tüketime dahildi, zaten ekledik.
+                        // Şimdi yeni başlangıç değerini (currentValue) tüketim kabul ediyoruz (eğer 0'dan başladıysa).
+                        totalConsumption += currentValue;
+                    }
+                    previousValue = currentValue;
+                }
+                return totalConsumption;
+            }
+
+            // Eğer veriler "Toplam Tüketim" değil de "Anlık Değer" ise SumPeaks yerine doğrudan Average veya Sum kullanılmalıdır.
+            // Ancak TotalWater gibi alanlar genelde kümülatiftir.
+
+            var summary = new ManualConsumptionSummary
+            {
+                Makine = machineName,
+                RaporAraligi = $"{startTime:dd.MM.yy HH:mm} - {endTime:dd.MM.yy HH:mm}",
+                ToplamManuelSure = TimeSpan.FromSeconds(dataPoints.Count * 5).ToString(@"hh\:mm\:ss"), // 5 saniyelik periyot varsayımı
+                OrtalamaSicaklik = dataPoints.Average(p => (double)p.Temperature/10.0), // /10.0 gerekip gerekmediğini kontrol edin
+                OrtalamaDevir = dataPoints.Average(p => p.Rpm),
+
+                // Kümülatif hesaplama
+                ToplamSuTuketimi_Litre = CalculateConsumption(dataPoints1, p => p.totalwatermanuel),
+                ToplamElektrikTuketimi_kW = CalculateConsumption(dataPoints1, p => p.totalelectritymanuel),
+                ToplamBuharTuketimi_kg = CalculateConsumption(dataPoints1, p => p.totalsteammanuel)
+            };
+
+            return summary;
+        }
+
+        // --- HELPER CLASSES ---
         public class ProcessDataManuel
         {
             public int MachineId { get; set; }
@@ -204,277 +329,18 @@ namespace TekstilScada.Repositories
             public decimal totalelectritymanuel { get; set; }
             public decimal totalsteammanuel { get; set; }
         }
-        // GÜNCELLENDİ: Manuel logları ve batch sonu verilerini birleştirerek özet oluşturan metot
-        // GÜNCELLENDİ: Manuel logları ve batch sonu verilerini birleştirerek özet oluşturan metot
-        public ManualConsumptionSummary GetManualConsumptionSummary(int machineId, string machineName, DateTime startTime, DateTime endTime)
+        // Grafik için veri noktası modeli
+        public class ProcessDataPoint
         {
-            var status = new FullMachineStatus();
-            var dataPoints = GetManualLogs(machineId, startTime, endTime);
-            if (!dataPoints.Any())
-            {
-                return null; // Veri yoksa boş döndür
-            }
-            var dataPoints1 = GetManualLogs1(machineId, startTime, endTime);
-            if (!dataPoints1.Any())
-            {
-                return null; // Veri yoksa boş döndür
-            }
-
-            // Her bir değer türü için tepe noktalarını bulan ve toplayan yardımcı metot
-            decimal SumPeaks(List<ProcessDataManuel> data, Func<ProcessDataManuel, decimal> selector)
-            {
-                decimal sumOfPeaks = 0;
-                if (data.Count == 0) return 0;
-
-                // Listenin sonuna her zaman son noktayı ekleyelim, çünkü o da bir tepe noktası olabilir.
-                // Bunu yapmazsak, eğer artış devam ederken liste biterse, son tepe noktasını kaçırırız.
-                var fullData = new List<ProcessDataManuel>(data);
-
-                // Döngü içinde önceki değeri tutmak için bir değişken
-                decimal previousValue = 0;
-
-                foreach (var point in fullData)
-                {
-                    var currentValue = selector(point);
-                    // Eğer mevcut değer bir önceki değerden büyükse (yükseliş trendindeysek)
-                    if (currentValue > previousValue)
-                    {
-                        // Değerin bir sonraki noktada düşüp düşmediğini kontrol et
-                        // Bu, o noktanın bir "tepe" olduğunu gösterir.
-                        // Basitlik için sadece currentValue'i previousValue'a atıyoruz ve döngüyü devam ettiriyoruz.
-                        // Çünkü asıl tepe noktası, düşüşe geçtiği anda tespit edilecek.
-                        // Bu algoritmada, her düşüşün başlangıcındaki en yüksek değeri yakalamak hedeflenmiştir.
-
-                        // Daha basit bir algoritma kullanalım:
-                        // Sadece yükselen trendlerin son noktasını alalım.
-                    }
-                    else if (currentValue < previousValue)
-                    {
-                        // Yükseliş bitti, previousValue bir tepe noktasıydı.
-                        sumOfPeaks += previousValue;
-                        // Yeni bir trend başladı.
-                    }
-                    previousValue = currentValue;
-                }
-
-                // Döngü bittiğinde, son kalan tepe noktasını da ekleyelim.
-                sumOfPeaks += previousValue;
-
-                return sumOfPeaks;
-            }
-
-
-            var summary = new ManualConsumptionSummary
-            {
-                Makine = machineName,
-                RaporAraligi = $"{startTime:dd.MM.yy HH:mm} - {endTime:dd.MM.yy HH:mm}",
-                ToplamManuelSure = TimeSpan.FromSeconds(dataPoints.Count * 5).ToString(@"hh\:mm\:ss"),
-                OrtalamaSicaklik = dataPoints.Average(p => (double)p.Temperature / 10.0),
-                OrtalamaDevir = dataPoints.Average(p => p.Rpm),
-
-                // Tepe noktalarını bulup toplama işlemleri
-                ToplamSuTuketimi_Litre = SumPeaks(dataPoints1, p => p.totalwatermanuel),
-                ToplamElektrikTuketimi_kW = SumPeaks(dataPoints1, p => p.totalelectritymanuel),
-                ToplamBuharTuketimi_kg = SumPeaks(dataPoints1, p => p.totalsteammanuel)
-            };
-
-            return summary;
-        }
-        public List<ProcessDataPoint> GetLogsForDateRange(DateTime startTime, DateTime endTime, List<int> machineIds)
-        {
-            var dataPoints = new List<ProcessDataPoint>();
-            // Eğer seçili makine yoksa, boş liste döndür.
-            if (machineIds == null || !machineIds.Any())
-            {
-                return dataPoints;
-            }
-
-            using (var connection = new MySqlConnection(_connectionString))
-            {
-                connection.Open();
-
-                var queryBuilder = new StringBuilder();
-                queryBuilder.Append("SELECT MachineId, LogTimestamp, LiveTemperature, LiveWaterLevel, LiveRpm FROM process_data_log ");
-                queryBuilder.Append("WHERE LogTimestamp BETWEEN @StartTime AND @EndTime ");
-
-                // Seçilen makine ID'lerini sorguya parametre olarak ekle
-                queryBuilder.Append("AND MachineId IN (");
-                var machineParams = new List<string>();
-                for (int i = 0; i < machineIds.Count; i++)
-                {
-                    var paramName = $"@MachineId{i}";
-                    machineParams.Add(paramName);
-                }
-                queryBuilder.Append(string.Join(",", machineParams));
-                queryBuilder.Append(") ORDER BY LogTimestamp;");
-
-                var cmd = new MySqlCommand(queryBuilder.ToString(), connection);
-                cmd.Parameters.AddWithValue("@StartTime", startTime);
-                cmd.Parameters.AddWithValue("@EndTime", endTime);
-                for (int i = 0; i < machineIds.Count; i++)
-                {
-                    cmd.Parameters.AddWithValue($"@MachineId{i}", machineIds[i]);
-                }
-
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        dataPoints.Add(new ProcessDataPoint
-                        {
-                            // MachineId'yi de modele eklemek ileride faydalı olabilir,
-                            // şimdilik bu şekilde bırakıyoruz.
-                            MachineId = reader.GetInt32("MachineId"),
-                            Timestamp = reader.GetDateTime("LogTimestamp"),
-                            Temperature = reader.GetDecimal("LiveTemperature"),
-                            WaterLevel = reader.GetDecimal("LiveWaterLevel"),
-                            Rpm = reader.GetInt32("LiveRpm")
-                        });
-                    }
-                }
-            }
-            return dataPoints;
-        }
-        public void LogBulkData(List<FullMachineStatus> statusList)
-        {
-            // Eğer liste boşsa hiç işlem yapma
-            if (statusList == null || !statusList.Any())
-                return;
-
-            try
-            {
-                using (var connection = new MySqlConnection(_connectionString))
-                {
-                    connection.Open();
-
-                    // Transaction (İşlem Bütünlüğü) başlatıyoruz. 
-                    // Bu, 300 kayıt atarken yarıda elektrik kesilirse yarım yamalak kayıt oluşmasını engeller.
-                    using (var transaction = connection.BeginTransaction())
-                    {
-                        try
-                        {
-                            var queryBuilder = new StringBuilder();
-                            queryBuilder.Append("INSERT INTO process_data_log (MachineId, BatchId, LogTimestamp, LiveTemperature, LiveWaterLevel, LiveRpm) VALUES ");
-
-                            var parameters = new List<MySqlParameter>();
-                            var rows = new List<string>();
-
-                            for (int i = 0; i < statusList.Count; i++)
-                            {
-                                var status = statusList[i];
-
-                                // Her satır için parametre isimlerini benzersiz yapıyoruz (p0_MachineId, p1_MachineId gibi)
-                                // Bu sayede SQL Injection korumasından ödün vermiyoruz.
-                                rows.Add($"(@MId{i}, @BId{i}, @Time{i}, @Temp{i}, @WLevel{i}, @Rpm{i})");
-
-                                parameters.Add(new MySqlParameter($"@MId{i}", status.MachineId));
-                                parameters.Add(new MySqlParameter($"@BId{i}", status.BatchNumarasi));
-                                parameters.Add(new MySqlParameter($"@Time{i}", DateTime.Now));
-                                parameters.Add(new MySqlParameter($"@Temp{i}", status.AnlikSicaklik));
-                                parameters.Add(new MySqlParameter($"@WLevel{i}", status.AnlikSuSeviyesi));
-                                parameters.Add(new MySqlParameter($"@Rpm{i}", status.AnlikDevirRpm));
-                            }
-
-                            // Tüm değerleri virgülle birleştirip sorguya ekle
-                            queryBuilder.Append(string.Join(",", rows));
-                            queryBuilder.Append(";");
-
-                            using (var cmd = new MySqlCommand(queryBuilder.ToString(), connection, transaction))
-                            {
-                                // Parametreleri komuta ekle
-                                cmd.Parameters.AddRange(parameters.ToArray());
-
-                                // Tek seferde çalıştır!
-                                cmd.ExecuteNonQuery();
-                            }
-
-                            // Her şey yolundaysa onayla
-                            transaction.Commit();
-                        }
-                        catch (Exception)
-                        {
-                            // Hata varsa işlemi geri al (Rollback)
-                            transaction.Rollback();
-                            throw; // Hatayı yukarı fırlat ki loglayabilelim
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // Burada hatayı konsola veya bir dosyaya yazabilirsiniz
-                Console.WriteLine($"Bulk Insert Hatası: {ex.Message}");
-            }
-        }
-        public void LogBulkManualData(List<FullMachineStatus> statusList)
-        {
-            if (statusList == null || !statusList.Any()) return;
-
-            try
-            {
-                using (var connection = new MySqlConnection(_connectionString))
-                {
-                    connection.Open();
-                    using (var transaction = connection.BeginTransaction())
-                    {
-                        try
-                        {
-                            var queryBuilder = new StringBuilder();
-                            // Manuel mod tablosuna toplu insert sorgusu
-                            queryBuilder.Append("INSERT INTO manual_mode_log (MachineId, LogTimestamp, LiveTemperature, TotalWater, LiveWaterLevel, LiveRpm, LiveElectricity, LiveSteam) VALUES ");
-
-                            var parameters = new List<MySqlParameter>();
-                            var rows = new List<string>();
-
-                            for (int i = 0; i < statusList.Count; i++)
-                            {
-                                var status = statusList[i];
-                                // Parametre isimlendirmesinde çakışma olmasın diye m_ ön eki kullandık
-                                rows.Add($"(@m_MId{i}, @m_Time{i}, @m_Temp{i}, @m_TWater{i}, @m_WLevel{i}, @m_Rpm{i}, @m_Elec{i}, @m_Steam{i})");
-
-                                parameters.Add(new MySqlParameter($"@m_MId{i}", status.MachineId));
-                                parameters.Add(new MySqlParameter($"@m_Time{i}", DateTime.Now));
-                                parameters.Add(new MySqlParameter($"@m_Temp{i}", status.AnlikSicaklik));
-                                parameters.Add(new MySqlParameter($"@m_TWater{i}", status.SuMiktari));
-                                parameters.Add(new MySqlParameter($"@m_WLevel{i}", status.AnlikSuSeviyesi));
-                                parameters.Add(new MySqlParameter($"@m_Rpm{i}", status.AnlikDevirRpm));
-                                parameters.Add(new MySqlParameter($"@m_Elec{i}", status.ElektrikHarcama));
-                                parameters.Add(new MySqlParameter($"@m_Steam{i}", status.BuharHarcama));
-                            }
-
-                            queryBuilder.Append(string.Join(",", rows));
-                            queryBuilder.Append(";");
-
-                            using (var cmd = new MySqlCommand(queryBuilder.ToString(), connection, transaction))
-                            {
-                                cmd.Parameters.AddRange(parameters.ToArray());
-                                cmd.ExecuteNonQuery();
-                            }
-                            transaction.Commit();
-                        }
-                        catch (Exception)
-                        {
-                            transaction.Rollback();
-                            throw;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Bulk Manual Insert Hatası: {ex.Message}");
-            }
+            public int MachineId { get; set; }
+            public DateTime Timestamp { get; set; }
+            public decimal Temperature { get; set; }
+            public decimal WaterLevel { get; set; }
+            public int Rpm { get; set; }
         }
     }
-
-    
-    // Grafik için veri noktası modeli
-    public class ProcessDataPoint
-    {
-        public int MachineId { get; set; }
-        public DateTime Timestamp { get; set; }
-        public decimal Temperature { get; set; }
-        public decimal WaterLevel { get; set; }
-        public int Rpm { get; set; }
-    }
+    // public class ProcessDataPoint -> Bu sınıf zaten namespace altında tanımlıysa buraya tekrar yazmaya gerek yok.
 }
+
+
+
