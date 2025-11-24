@@ -7,7 +7,7 @@
 @using Microsoft.Extensions.Localization
 @inject NavigationManager NavigationManager
 @inject IStringLocalizer<SharedResource> Loc
-
+@inject IDialogService DialogService
 <MudCard Elevation="4" Class="ma-2 machine-card-hover" Style="@GetCardBorderStyle()">
     <MudCardHeader>
         <CardHeaderAvatar>
@@ -30,7 +30,7 @@
             <MudTooltip Text="@Loc["VncIzle"]">
                 <MudIconButton Icon="@Icons.Material.Filled.ScreenShare"
                                Color="Color.Info"
-                               Href="@($"/vnc/{MachineStatus.MachineId}")"
+                               OnClick="() => OpenVncPopup(MachineStatus.MachineId)"
                                Target="_blank"
                                Disabled="@(MachineStatus.ConnectionState != ConnectionStatus.Connected)" />
             </MudTooltip>
@@ -209,5 +209,30 @@
     private void NavigateToDetail()
     {
         NavigationManager.NavigateTo($"/makine-detay/{MachineStatus.MachineId}");
+    }
+    private async Task OpenVncPopup(int machineId)
+    {
+        try
+        {
+            var parameters = new DialogParameters { ["MachineId"] = machineId };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.ExtraLarge,
+                FullWidth = true,
+                CloseButton = true,
+                BackdropClick = false,
+                NoHeader = false
+            };
+
+            var dialog = await DialogService.ShowAsync<VncMonitorDialog>("", parameters, options);
+            // Sonucu beklemek zorunda değilseniz bu satırı kaldırabilirsiniz, bazen kilitlenmeye sebep olabilir.
+            // var result = await dialog.Result;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Dialog Hatası: {ex.Message}");
+            // Gerekirse kullanıcıya Snackbar ile hata gösterilebilir.
+        }
     }
 }
