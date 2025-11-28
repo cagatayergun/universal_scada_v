@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using TekstilScada.Models;
 using TekstilScada.Repositories;
 using TekstilScada.Services;
-using TekstilScada.WebApp.Models;
+
 // DTO'lar, global namespace'de kalmalı4
 // 1. TrendDataPoint (CS0234 hatasını çözmek için)
 public class TrendDataPoint
@@ -932,7 +932,7 @@ namespace TekstilScada.WebApp.Services
         public async Task<List<TekstilScada.Core.Models.ActionLogEntry>?> GetActionLogsAsync(ActionLogFilters filters)
         {
             // Endpoint yolunu Controller'daki "report" action'ına yönlendiriyoruz
-            var response = await _httpClient.PostAsJsonAsync("api/actionlogs/report", filters);
+            var response = await _httpClient.PostAsJsonAsync("api/reports/action-logs", filters);
 
             if (!response.IsSuccessStatusCode)
             {

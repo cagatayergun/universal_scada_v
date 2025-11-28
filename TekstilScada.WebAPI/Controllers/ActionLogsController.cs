@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TekstilScada.Core.Models;
 using TekstilScada.Repositories;
-using TekstilScada.WebApp.Models; // DTO'lar için (ActionLogFilters vb.)
+
 
 namespace TekstilScada.WebAPI.Controllers
 {
@@ -40,26 +40,6 @@ namespace TekstilScada.WebAPI.Controllers
             }
         }
 
-        // 2. RAPORLAMA ENDPOINT'İ (Raporlar sayfasında listelemek için)
-        // Filters nesnesi ScadaDataService.cs içinde tanımladığımız "ActionLogFilters" sınıfıdır.
-        [HttpPost("report")]
-        public IActionResult GetActionLogs([FromBody] ActionLogFilters filters)
-        {
-            try
-            {
-                var logs = _userRepository.GetActionLogs(
-                    filters.StartTime,
-                    filters.EndTime,
-                    filters.Username,
-                    filters.Details
-                );
-
-                return Ok(logs);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Logları getirme hatası: {ex.Message}");
-            }
-        }
+       
     }
 }

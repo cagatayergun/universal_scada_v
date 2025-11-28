@@ -104,7 +104,7 @@
             // Not: BaseUri'yi dinamik almak için NavigationManager inject edilebilir veya appsettings kullanılabilir.
             // Burada önceki kodunuzdaki mantığı koruyorum.
             var baseUri = new Uri("http://localhost:7039");
-            var wsScheme = baseUri.Scheme == "https" ? "wss" : "ws";
+            var wsScheme = baseUri.Scheme == "https" ? "ws" : "ws";
             var wsUrl = $"{wsScheme}://{baseUri.Authority}/api/vnc/connect/{MachineId}";
 
             try

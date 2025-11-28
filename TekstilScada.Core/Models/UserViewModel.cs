@@ -1,9 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿// Dosya: TekstilScada.Core/Models/UserViewModel.cs
 
-namespace TekstilScada.WebApp.Models
+using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic; // List için eklendi
+
+// KRİTİK: Namespace'i TekstilScada.Core olarak ayarlayın
+namespace TekstilScada.Models
 {
-    // Bu sınıf sadece arayüzde form doldururken kullanılır.
-    // Veritabanı modelini (User.cs) kirletmemiş oluruz.
+    // Bu sınıf artık Core'dadır ve WebAPI ile WebApp tarafından kullanılabilir.
     public class UserViewModel
     {
         public int Id { get; set; }
