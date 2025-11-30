@@ -308,6 +308,20 @@
     {
         // --- KULLANICI ID ALMA İŞLEMİ ---
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        try
+        {
+            var currentJobs = await ScadaDataService.GetActiveFtpJobsAsync();
+            if (currentJobs != null && currentJobs.Any())
+            {
+                _activeJobs = currentJobs;
+                // Listeyi en yeniden en eskiye veya duruma göre sıralayabilirsiniz
+                // _activeJobs = currentJobs.OrderByDescending(x => x.Id).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Kuyruk listesi yüklenemedi: {ex.Message}", Severity.Warning);
+        }
         var user = authState.User;
         if (user.Identity != null && user.Identity.IsAuthenticated)
         {

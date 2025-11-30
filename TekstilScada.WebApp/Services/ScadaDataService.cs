@@ -931,16 +931,30 @@ namespace TekstilScada.WebApp.Services
         // RAPOR ÇEKME METODU (Zaten eklemiştik, endpoint yolunu güncelliyoruz)
         public async Task<List<TekstilScada.Core.Models.ActionLogEntry>?> GetActionLogsAsync(ActionLogFilters filters)
         {
-            // Endpoint yolunu Controller'daki "report" action'ına yönlendiriyoruz
             var response = await _httpClient.PostAsJsonAsync("api/reports/action-logs", filters);
 
             if (!response.IsSuccessStatusCode)
             {
+                var errorContent = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"API Hatası (Eylem Kayıtları): {response.StatusCode}");
                 return new List<TekstilScada.Core.Models.ActionLogEntry>();
             }
 
             return await response.Content.ReadFromJsonAsync<List<TekstilScada.Core.Models.ActionLogEntry>>();
+        }
+        public async Task<List<TransferJob>> GetActiveFtpJobsAsync()
+        {
+            try
+            {
+                // API'den listeyi çek
+                var jobs = await _httpClient.GetFromJsonAsync<List<TransferJob>>("api/ftp/active-jobs");
+                return jobs ?? new List<TransferJob>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"FTP İşleri alınırken hata: {ex.Message}");
+                return new List<TransferJob>();
+            }
         }
     }
 }

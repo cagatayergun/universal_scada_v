@@ -161,6 +161,21 @@ namespace TekstilScada.WebAPI.Controllers
                 return StatusCode(500, $"Alma işleri kuyruğa alınırken hata: {ex.Message}");
             }
         }
-
+        // 5. ENDPOINT: Aktif iş kuyruğunu listeler (EKLENDİ)
+        [HttpGet("active-jobs")]
+        public ActionResult<List<TransferJob>> GetActiveJobs()
+        {
+            try
+            {
+                // FtpTransferService içindeki Jobs listesinin bir kopyasını döndürüyoruz.
+                // Thread safety için ToList() ile kopyalıyoruz.
+                var jobs = _transferService.Jobs.ToList();
+                return Ok(jobs);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"İş listesi alınamadı: {ex.Message}");
+            }
+        }
     }
 }
