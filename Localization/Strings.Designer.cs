@@ -8,11 +8,10 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace TekstilScada.Localization
-{
+namespace TekstilScada.Localization {
     using System;
-
-
+    
+    
     /// <summary>
     ///   Yerelleştirilmiş dizeleri aramak gibi işlemler için, türü kesin olarak belirtilmiş kaynak sınıfı.
     /// </summary>
@@ -23,114 +22,94 @@ namespace TekstilScada.Localization
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    public class Strings
-    {
-
+    public class Strings {
+        
         private static global::System.Resources.ResourceManager resourceMan;
-
+        
         private static global::System.Globalization.CultureInfo resourceCulture;
-
+        
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal Strings()
-        {
+        internal Strings() {
         }
-
+        
         /// <summary>
         ///   Bu sınıf tarafından kullanılan, önbelleğe alınmış ResourceManager örneğini döndürür.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        public static global::System.Resources.ResourceManager ResourceManager
-        {
-            get
-            {
-                if (object.ReferenceEquals(resourceMan, null))
-                {
+        public static global::System.Resources.ResourceManager ResourceManager {
+            get {
+                if (object.ReferenceEquals(resourceMan, null)) {
                     global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("TekstilScada.Localization.Strings", typeof(Strings).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
             }
         }
-
+        
         /// <summary>
         ///   Tümü için geçerli iş parçacığının CurrentUICulture özelliğini geçersiz kular
         ///   CurrentUICulture özelliğini tüm kaynak aramaları için geçersiz kılar.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        public static global::System.Globalization.CultureInfo Culture
-        {
-            get
-            {
+        public static global::System.Globalization.CultureInfo Culture {
+            get {
                 return resourceCulture;
             }
-            set
-            {
+            set {
                 resourceCulture = value;
             }
         }
-
+        
         /// <summary>
-        ///   Tekstil SCADA Sistemi benzeri yerelleştirilmiş bir dize arar.
+        ///   YILMAK TELEMETRY benzeri yerelleştirilmiş bir dize arar.
         /// </summary>
-        public static string ApplicationTitle
-        {
-            get
-            {
+        public static string ApplicationTitle {
+            get {
                 return ResourceManager.GetString("ApplicationTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Genel Bakış benzeri yerelleştirilmiş bir dize arar.
         /// </summary>
-        public static string MainMenu_GeneralOverview
-        {
-            get
-            {
+        public static string MainMenu_GeneralOverview {
+            get {
                 return ResourceManager.GetString("MainMenu_GeneralOverview", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Proses Kontrol benzeri yerelleştirilmiş bir dize arar.
         /// </summary>
-        public static string MainMenu_ProcessControl
-        {
-            get
-            {
+        public static string MainMenu_ProcessControl {
+            get {
                 return ResourceManager.GetString("MainMenu_ProcessControl", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Proses İzleme benzeri yerelleştirilmiş bir dize arar.
         /// </summary>
-        public static string MainMenu_ProcessMonitoring
-        {
-            get
-            {
+        public static string MainMenu_ProcessMonitoring {
+            get {
                 return ResourceManager.GetString("MainMenu_ProcessMonitoring", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Raporlar benzeri yerelleştirilmiş bir dize arar.
         /// </summary>
-        public static string MainMenu_Reports
-        {
-            get
-            {
+        public static string MainMenu_Reports {
+            get {
                 return ResourceManager.GetString("MainMenu_Reports", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Ayarlar benzeri yerelleştirilmiş bir dize arar.
         /// </summary>
-        public static string MainMenu_Settings
-        {
-            get
-            {
+        public static string MainMenu_Settings {
+            get {
                 return ResourceManager.GetString("MainMenu_Settings", resourceCulture);
             }
         }

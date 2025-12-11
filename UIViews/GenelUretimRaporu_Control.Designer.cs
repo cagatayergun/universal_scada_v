@@ -18,6 +18,7 @@
         private void InitializeComponent()
         {
             pnlFilters = new Panel();
+            btnExportToExcel = new Button();
             groupBox1 = new GroupBox();
             radioBuhar = new RadioButton();
             radioSu = new RadioButton();
@@ -45,6 +46,7 @@
             // 
             // pnlFilters
             // 
+            pnlFilters.Controls.Add(btnExportToExcel);
             pnlFilters.Controls.Add(groupBox1);
             pnlFilters.Controls.Add(btnRaporOlustur);
             pnlFilters.Controls.Add(dtpEndTime);
@@ -55,6 +57,18 @@
             pnlFilters.Name = "pnlFilters";
             pnlFilters.Size = new Size(1050, 60);
             pnlFilters.TabIndex = 0;
+            // 
+            // btnExportToExcel
+            // 
+            btnExportToExcel.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold, GraphicsUnit.Point, 162);
+            btnExportToExcel.Location = new Point(674, 16);
+            btnExportToExcel.Margin = new Padding(3, 2, 3, 2);
+            btnExportToExcel.Name = "btnExportToExcel";
+            btnExportToExcel.Size = new Size(125, 30);
+            btnExportToExcel.TabIndex = 8;
+            btnExportToExcel.Text = "Export to Excel";
+            btnExportToExcel.UseVisualStyleBackColor = true;
+            btnExportToExcel.Click += btnExportToExcel_Click;
             // 
             // groupBox1
             // 
@@ -297,5 +311,6 @@
         private System.Windows.Forms.Button btnRemove;
         private System.Windows.Forms.Button btnAdd;
         private System.Windows.Forms.ListBox listBoxSeciliMakineler;
+        private Button btnExportToExcel;
     }
 }

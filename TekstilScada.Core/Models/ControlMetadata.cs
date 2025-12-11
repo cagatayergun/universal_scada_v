@@ -14,7 +14,7 @@ namespace TekstilScada.Models
         public string? Size { get; set; }
 
         public decimal Maximum { get; set; } = 1000;
-
+        public decimal Minimum { get; set; } = 0; // YENİ: Bu satırı ekleyin
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int DecimalPlaces { get; set; }
 

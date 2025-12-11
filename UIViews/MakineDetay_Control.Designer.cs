@@ -28,9 +28,11 @@
             pnlGauges = new Panel();
             waterTankGauge1 = new TekstilScada.UI.Controls.WaterTankGauge();
             panelTemp = new Panel();
+            label11 = new Label();
+            label9 = new Label();
             lblTempValue = new Label();
             lblTempTitle = new Label();
-            progressTemp = new ProgressBar();
+            progressTemp = new Panel();
             gaugeRpm = new CircularProgressBar.CircularProgressBar();
             pnlInfo = new Panel();
             lblSiparisNo = new Label();
@@ -45,7 +47,10 @@
             label2 = new Label();
             label1 = new Label();
             pnlTimeline = new Panel();
-            formsPlot1 = new ScottPlot.WinForms.FormsPlot();
+            tblPlots = new TableLayoutPanel();
+            formsPlotTemp = new ScottPlot.WinForms.FormsPlot();
+            formsPlotRpm = new ScottPlot.WinForms.FormsPlot();
+            formsPlotWater = new ScottPlot.WinForms.FormsPlot();
             pnlAlarmsAndSteps = new Panel();
             dgvAdimlar = new DataGridView();
             label10 = new Label();
@@ -63,6 +68,7 @@
             panelTemp.SuspendLayout();
             pnlInfo.SuspendLayout();
             pnlTimeline.SuspendLayout();
+            tblPlots.SuspendLayout();
             pnlAlarmsAndSteps.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvAdimlar).BeginInit();
             SuspendLayout();
@@ -126,7 +132,6 @@
             tableLayoutPanelMain.RowCount = 2;
             tableLayoutPanelMain.RowStyles.Add(new RowStyle(SizeType.Absolute, 239F));
             tableLayoutPanelMain.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanelMain.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
             tableLayoutPanelMain.Size = new Size(969, 761);
             tableLayoutPanelMain.TabIndex = 0;
             // 
@@ -169,18 +174,21 @@
             // pnlGauges
             // 
             pnlGauges.Anchor = AnchorStyles.Top | AnchorStyles.Bottom;
+            pnlGauges.AutoSize = true;
             pnlGauges.Controls.Add(waterTankGauge1);
             pnlGauges.Controls.Add(panelTemp);
             pnlGauges.Controls.Add(gaugeRpm);
-            pnlGauges.Location = new Point(401, -1);
+            pnlGauges.Location = new Point(203, 0);
             pnlGauges.Margin = new Padding(3, 2, 3, 2);
             pnlGauges.Name = "pnlGauges";
-            pnlGauges.Size = new Size(556, 231);
+            pnlGauges.Size = new Size(760, 231);
             pnlGauges.TabIndex = 1;
             // 
             // waterTankGauge1
             // 
-            waterTankGauge1.Location = new Point(362, 18);
+            waterTankGauge1.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            waterTankGauge1.AutoSize = true;
+            waterTankGauge1.Location = new Point(531, 18);
             waterTankGauge1.Margin = new Padding(3, 2, 3, 2);
             waterTankGauge1.Maximum = 5000;
             waterTankGauge1.Name = "waterTankGauge1";
@@ -190,14 +198,39 @@
             // 
             // panelTemp
             // 
+            panelTemp.Anchor = AnchorStyles.None;
+            panelTemp.Controls.Add(label11);
+            panelTemp.Controls.Add(label9);
             panelTemp.Controls.Add(lblTempValue);
             panelTemp.Controls.Add(lblTempTitle);
             panelTemp.Controls.Add(progressTemp);
-            panelTemp.Location = new Point(220, 28);
+            panelTemp.Location = new Point(305, 28);
             panelTemp.Margin = new Padding(3, 2, 3, 2);
             panelTemp.Name = "panelTemp";
             panelTemp.Size = new Size(105, 176);
             panelTemp.TabIndex = 3;
+            // 
+            // label11
+            // 
+            label11.AutoSize = true;
+            label11.BackColor = Color.Transparent;
+            label11.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label11.Location = new Point(25, 118);
+            label11.Name = "label11";
+            label11.Size = new Size(14, 15);
+            label11.TabIndex = 6;
+            label11.Text = "0";
+            // 
+            // label9
+            // 
+            label9.AutoSize = true;
+            label9.BackColor = Color.Transparent;
+            label9.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label9.Location = new Point(11, 17);
+            label9.Name = "label9";
+            label9.Size = new Size(28, 15);
+            label9.TabIndex = 5;
+            label9.Text = "100";
             // 
             // lblTempValue
             // 
@@ -226,15 +259,13 @@
             // 
             progressTemp.Location = new Point(39, 17);
             progressTemp.Margin = new Padding(3, 2, 3, 2);
-            progressTemp.Maximum = 1500;
             progressTemp.Name = "progressTemp";
             progressTemp.Size = new Size(26, 113);
-            progressTemp.Step = 1;
-            progressTemp.Style = ProgressBarStyle.Continuous;
             progressTemp.TabIndex = 0;
             // 
             // gaugeRpm
             // 
+            gaugeRpm.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
             gaugeRpm.AnimationFunction = WinFormAnimation.KnownAnimationFunctions.Liner;
             gaugeRpm.AnimationSpeed = 500;
             gaugeRpm.BackColor = Color.Transparent;
@@ -269,7 +300,7 @@
             // 
             // pnlInfo
             // 
-            pnlInfo.Anchor = AnchorStyles.Top | AnchorStyles.Bottom;
+            pnlInfo.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
             pnlInfo.Controls.Add(lblSiparisNo);
             pnlInfo.Controls.Add(label6);
             pnlInfo.Controls.Add(lblBatchNo);
@@ -292,7 +323,7 @@
             lblSiparisNo.BackColor = Color.White;
             lblSiparisNo.BorderStyle = BorderStyle.FixedSingle;
             lblSiparisNo.Font = new Font("Segoe UI", 9F);
-            lblSiparisNo.Location = new Point(128, 134);
+            lblSiparisNo.Location = new Point(128, 161);
             lblSiparisNo.Name = "lblSiparisNo";
             lblSiparisNo.Size = new Size(175, 19);
             lblSiparisNo.TabIndex = 21;
@@ -303,7 +334,7 @@
             // 
             label6.AutoSize = true;
             label6.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label6.Location = new Point(10, 135);
+            label6.Location = new Point(10, 162);
             label6.Name = "label6";
             label6.Size = new Size(62, 15);
             label6.TabIndex = 20;
@@ -314,7 +345,7 @@
             lblBatchNo.BackColor = Color.White;
             lblBatchNo.BorderStyle = BorderStyle.FixedSingle;
             lblBatchNo.Font = new Font("Segoe UI", 9F);
-            lblBatchNo.Location = new Point(128, 110);
+            lblBatchNo.Location = new Point(128, 137);
             lblBatchNo.Name = "lblBatchNo";
             lblBatchNo.Size = new Size(175, 19);
             lblBatchNo.TabIndex = 19;
@@ -325,7 +356,7 @@
             // 
             label5.AutoSize = true;
             label5.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label5.Location = new Point(10, 112);
+            label5.Location = new Point(10, 139);
             label5.Name = "label5";
             label5.Size = new Size(61, 15);
             label5.TabIndex = 18;
@@ -336,7 +367,7 @@
             lblMusteriNo.BackColor = Color.White;
             lblMusteriNo.BorderStyle = BorderStyle.FixedSingle;
             lblMusteriNo.Font = new Font("Segoe UI", 9F);
-            lblMusteriNo.Location = new Point(128, 87);
+            lblMusteriNo.Location = new Point(128, 114);
             lblMusteriNo.Name = "lblMusteriNo";
             lblMusteriNo.Size = new Size(175, 19);
             lblMusteriNo.TabIndex = 17;
@@ -347,7 +378,7 @@
             // 
             label4.AutoSize = true;
             label4.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label4.Location = new Point(10, 88);
+            label4.Location = new Point(10, 115);
             label4.Name = "label4";
             label4.Size = new Size(113, 15);
             label4.TabIndex = 16;
@@ -358,7 +389,7 @@
             lblOperator.BackColor = Color.White;
             lblOperator.BorderStyle = BorderStyle.FixedSingle;
             lblOperator.Font = new Font("Segoe UI", 9F);
-            lblOperator.Location = new Point(128, 64);
+            lblOperator.Location = new Point(128, 91);
             lblOperator.Name = "lblOperator";
             lblOperator.Size = new Size(175, 19);
             lblOperator.TabIndex = 15;
@@ -369,7 +400,7 @@
             // 
             label3.AutoSize = true;
             label3.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label3.Location = new Point(10, 65);
+            label3.Location = new Point(10, 92);
             label3.Name = "label3";
             label3.Size = new Size(61, 15);
             label3.TabIndex = 14;
@@ -380,7 +411,7 @@
             lblReceteAdi.BackColor = Color.White;
             lblReceteAdi.BorderStyle = BorderStyle.FixedSingle;
             lblReceteAdi.Font = new Font("Segoe UI", 9F);
-            lblReceteAdi.Location = new Point(128, 40);
+            lblReceteAdi.Location = new Point(128, 67);
             lblReceteAdi.Name = "lblReceteAdi";
             lblReceteAdi.Size = new Size(175, 19);
             lblReceteAdi.TabIndex = 13;
@@ -391,7 +422,7 @@
             // 
             label2.AutoSize = true;
             label2.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label2.Location = new Point(10, 42);
+            label2.Location = new Point(10, 69);
             label2.Name = "label2";
             label2.Size = new Size(84, 15);
             label2.TabIndex = 12;
@@ -401,7 +432,7 @@
             // 
             label1.AutoSize = true;
             label1.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
-            label1.Location = new Point(7, 5);
+            label1.Location = new Point(7, 32);
             label1.Name = "label1";
             label1.Size = new Size(172, 21);
             label1.TabIndex = 0;
@@ -409,7 +440,7 @@
             // 
             // pnlTimeline
             // 
-            pnlTimeline.Controls.Add(formsPlot1);
+            pnlTimeline.Controls.Add(tblPlots);
             pnlTimeline.Dock = DockStyle.Fill;
             pnlTimeline.Location = new Point(3, 241);
             pnlTimeline.Margin = new Padding(3, 2, 3, 2);
@@ -417,15 +448,49 @@
             pnlTimeline.Size = new Size(963, 518);
             pnlTimeline.TabIndex = 1;
             // 
-            // formsPlot1
+            // tblPlots
             // 
-            formsPlot1.DisplayScale = 1F;
-            formsPlot1.Dock = DockStyle.Fill;
-            formsPlot1.Location = new Point(0, 0);
-            formsPlot1.Margin = new Padding(3, 2, 3, 2);
-            formsPlot1.Name = "formsPlot1";
-            formsPlot1.Size = new Size(963, 518);
-            formsPlot1.TabIndex = 0;
+            tblPlots.ColumnCount = 1;
+            tblPlots.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            tblPlots.Controls.Add(formsPlotTemp, 0, 0);
+            tblPlots.Controls.Add(formsPlotRpm, 0, 1);
+            tblPlots.Controls.Add(formsPlotWater, 0, 2);
+            tblPlots.Dock = DockStyle.Fill;
+            tblPlots.Location = new Point(0, 0);
+            tblPlots.Name = "tblPlots";
+            tblPlots.RowCount = 3;
+            tblPlots.RowStyles.Add(new RowStyle(SizeType.Percent, 33.33F));
+            tblPlots.RowStyles.Add(new RowStyle(SizeType.Percent, 33.33F));
+            tblPlots.RowStyles.Add(new RowStyle(SizeType.Percent, 33.33F));
+            tblPlots.Size = new Size(963, 518);
+            tblPlots.TabIndex = 0;
+            // 
+            // formsPlotTemp
+            // 
+            formsPlotTemp.DisplayScale = 1F;
+            formsPlotTemp.Dock = DockStyle.Fill;
+            formsPlotTemp.Location = new Point(3, 3);
+            formsPlotTemp.Name = "formsPlotTemp";
+            formsPlotTemp.Size = new Size(957, 166);
+            formsPlotTemp.TabIndex = 0;
+            // 
+            // formsPlotRpm
+            // 
+            formsPlotRpm.DisplayScale = 1F;
+            formsPlotRpm.Dock = DockStyle.Fill;
+            formsPlotRpm.Location = new Point(3, 175);
+            formsPlotRpm.Name = "formsPlotRpm";
+            formsPlotRpm.Size = new Size(957, 166);
+            formsPlotRpm.TabIndex = 1;
+            // 
+            // formsPlotWater
+            // 
+            formsPlotWater.DisplayScale = 1F;
+            formsPlotWater.Dock = DockStyle.Fill;
+            formsPlotWater.Location = new Point(3, 347);
+            formsPlotWater.Name = "formsPlotWater";
+            formsPlotWater.Size = new Size(957, 168);
+            formsPlotWater.TabIndex = 2;
             // 
             // pnlAlarmsAndSteps
             // 
@@ -540,11 +605,15 @@
             pnlTopDashboard.ResumeLayout(false);
             tableLayoutPanelTop.ResumeLayout(false);
             pnlGaugesAndInfo.ResumeLayout(false);
+            pnlGaugesAndInfo.PerformLayout();
             pnlGauges.ResumeLayout(false);
+            pnlGauges.PerformLayout();
             panelTemp.ResumeLayout(false);
+            panelTemp.PerformLayout();
             pnlInfo.ResumeLayout(false);
             pnlInfo.PerformLayout();
             pnlTimeline.ResumeLayout(false);
+            tblPlots.ResumeLayout(false);
             pnlAlarmsAndSteps.ResumeLayout(false);
             pnlAlarmsAndSteps.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)dgvAdimlar).EndInit();
@@ -560,7 +629,13 @@
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanelMain;
         private System.Windows.Forms.Panel pnlTopDashboard;
         private System.Windows.Forms.Panel pnlTimeline;
-        private ScottPlot.WinForms.FormsPlot formsPlot1;
+
+        // DEĞİŞEN KISIM: Tek formsPlot1 yerine tablo ve 3 grafik
+        private System.Windows.Forms.TableLayoutPanel tblPlots;
+        private ScottPlot.WinForms.FormsPlot formsPlotTemp;
+        private ScottPlot.WinForms.FormsPlot formsPlotRpm;
+        private ScottPlot.WinForms.FormsPlot formsPlotWater;
+
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanelTop;
         private System.Windows.Forms.Panel pnlGaugesAndInfo;
         private System.Windows.Forms.Panel pnlInfo;
@@ -578,18 +653,18 @@
         private System.Windows.Forms.Label label2;
         private CircularProgressBar.CircularProgressBar gaugeRpm;
         private System.Windows.Forms.Panel panelTemp;
-        private System.Windows.Forms.ProgressBar progressTemp;
+        private System.Windows.Forms.Panel progressTemp; // Tipi Panel oldu
         private System.Windows.Forms.Label lblTempValue;
         private System.Windows.Forms.Label lblTempTitle;
         private UI.Controls.WaterTankGauge waterTankGauge1;
-        private Panel pnlAlarmsAndSteps;
-        private DataGridView dgvAdimlar;
-        private Label label10;
-        private Label lblCalisanAdim;
-        private Label label8;
-        private ListBox lstAlarmlar;
-        private Label label7;
+        private System.Windows.Forms.Panel pnlAlarmsAndSteps;
+        private System.Windows.Forms.DataGridView dgvAdimlar;
+        private System.Windows.Forms.Label label10;
+        private System.Windows.Forms.Label lblCalisanAdim;
+        private System.Windows.Forms.Label label8;
+        private System.Windows.Forms.ListBox lstAlarmlar;
+        private System.Windows.Forms.Label label7;
+        private System.Windows.Forms.Label label11;
+        private System.Windows.Forms.Label label9;
     }
 }
-
-

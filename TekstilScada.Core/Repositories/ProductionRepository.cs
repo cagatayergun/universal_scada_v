@@ -91,7 +91,7 @@ namespace TekstilScada.Repositories
                             StartTime = reader.GetDateTime("StartTime"),
                             EndTime = reader.IsDBNull(reader.GetOrdinal("EndTime")) ? DateTime.MinValue : reader.GetDateTime("EndTime"),
                             CycleTime = reader.IsDBNull(reader.GetOrdinal("CycleTime"))
-                                ? "Devam Ediyor"
+                                ? "In Progress"
                                 : reader.GetTimeSpan(reader.GetOrdinal("CycleTime")).ToString(@"hh\:mm\:ss"),
                             RecipeName = reader.IsDBNull(reader.GetOrdinal("RecipeName")) ? "" : reader.GetString("RecipeName"),
                             OperatorName = reader.IsDBNull(reader.GetOrdinal("OperatorName")) ? "" : reader.GetString("OperatorName"),

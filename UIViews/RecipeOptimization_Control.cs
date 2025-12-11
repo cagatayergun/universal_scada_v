@@ -88,7 +88,30 @@ namespace TekstilScada.UI.Views
 
             // Geçmiş tablosunu birleştirerek göster
             dgvHistory.DataSource = history1.Concat(history2).OrderByDescending(h => h.StartTime).ToList();
+            // --- YENİ EKLENEN KISIM: GEREKSİZ KOLONLARI GİZLE ---
+            if (dgvHistory.Columns["MachineId"] != null) dgvHistory.Columns["MachineId"].Visible = false;
+            if (dgvHistory.Columns["BatchId"] != null) dgvHistory.Columns["BatchId"].Visible = false;
+            // RecipeName zaten üstte seçili olduğu için tekrar tabloda göstermek gereksiz olabilir, 
+            // ama karşılaştırma olduğu için hangisinin hangi reçeteye ait olduğunu görmek adına açık kalması daha iyidir.
 
+            // İsteğe bağlı: Diğer teknik alanları da gizleyebilirsiniz
+            if (dgvHistory.Columns["MachineAlarmDurationSeconds"] != null) dgvHistory.Columns["MachineAlarmDurationSeconds"].Visible = false;
+            if (dgvHistory.Columns["OperatorPauseDurationSeconds"] != null) dgvHistory.Columns["OperatorPauseDurationSeconds"].Visible = false;
+            if (dgvHistory.Columns["TheoreticalCycleTimeSeconds"] != null) dgvHistory.Columns["TheoreticalCycleTimeSeconds"].Visible = false;
+            if (dgvHistory.Columns["GoodCount"] != null) dgvHistory.Columns["GoodCount"].Visible = false;
+            if (dgvHistory.Columns["ScrapCount"] != null) dgvHistory.Columns["ScrapCount"].Visible = false;
+            if (dgvHistory.Columns["TotalProductionCount"] != null) dgvHistory.Columns["TotalProductionCount"].Visible = false;
+            if (dgvHistory.Columns["DefectiveProductionCount"] != null) dgvHistory.Columns["DefectiveProductionCount"].Visible = false;
+            if (dgvHistory.Columns["TotalDownTimeSeconds"] != null) dgvHistory.Columns["TotalDownTimeSeconds"].Visible = false;
+            if (dgvHistory.Columns["actual_produced_quantity"] != null) dgvHistory.Columns["actual_produced_quantity"].Visible = false;
+            if (dgvHistory.Columns["MachineAlarmDurationSeconds"] != null) dgvHistory.Columns["MachineAlarmDurationSeconds"].Visible = false;
+            if (dgvHistory.Columns["OperatorPauseDurationSeconds"] != null) dgvHistory.Columns["OperatorPauseDurationSeconds"].Visible = false;
+
+            if (dgvHistory.Columns["OperatorName"] != null) dgvHistory.Columns["OperatorName"].Visible = false;
+            if (dgvHistory.Columns["MusteriNo"] != null) dgvHistory.Columns["MusteriNo"].Visible = false;
+            if (dgvHistory.Columns["SiparisNo"] != null) dgvHistory.Columns["SiparisNo"].Visible = false;
+            if (dgvHistory.Columns["RecipeName"] != null) dgvHistory.Columns["RecipeName"].Visible = false;
+            // ----------------------------------------------------
             // Sonuçları renklendirerek karşılaştır
             CompareAndHighlight(averages1, averages2);
         }

@@ -139,10 +139,33 @@ namespace TekstilScada.Services
                 if (musteriNoResult.IsSuccess) status.MusteriNumarasi = musteriNoResult.Content;
                 else { Debug.WriteLine($"[ERROR] {IpAddress} - {CUSTOMER_NO} (Customer No) could not be read: {musteriNoResult.Message}"); anyReadFailed = true; }
 
-                var batchNoResult = ReadStringFromWords(BATCH_NO, 5);
-                if (batchNoResult.IsSuccess) status.BatchNumarasi = batchNoResult.Content;
-                else { Debug.WriteLine($"[ERROR] {IpAddress} - {BATCH_NO} (Batch No) could not be read: {batchNoResult.Message}"); anyReadFailed = true; }
+                if (!string.IsNullOrEmpty(status.BatchNumarasi))
+                {
+                    // 1. Uzunluk Ayarı: 
+                    // Önceki okuma kodunuzda 5 Word okuyordunuz. 5 Word = 10 Byte (Karakter) eder.
+                    int byteLength = 10;
 
+                    // String'i 10 karaktere tamamla veya kırp (PadRight ve Substring)
+                    string batchString = status.BatchNumarasi.PadRight(byteLength, ' ').Substring(0, byteLength);
+
+                    // 2. ASCII Byte Dizisine Çevir
+                    byte[] rawBytes = System.Text.Encoding.ASCII.GetBytes(batchString);
+                    byte[] dataToWrite = new byte[byteLength];
+
+                    // 3. Byte Swap Döngüsü (Referans kodunuzdaki mantık: AB -> BA)
+                    // İkinci karakteri birinci sıraya, birinci karakteri ikinci sıraya koyar.
+                    for (int i = 0; i < byteLength; i += 2)
+                    {
+                        dataToWrite[i] = rawBytes[i + 1];     // High Byte (i+1'deki karakter)
+                        dataToWrite[i + 1] = rawBytes[i];     // Low Byte (i'deki karakter)
+                    }
+
+                    // 4. PLC'ye Yaz (Task.Run ile asenkron sarmalama referans koddaki gibi)
+                    // BATCH_NO değişkeninin PLC adresini (Örn: "40") tuttuğunu varsayıyoruz.
+                    var writeResult = Task.Run(() => _plcClient.Write(BATCH_NO, dataToWrite));
+
+
+                }
                 var suResult = _plcClient.ReadInt16(WATER_QUANTITY);
                 if (!suResult.IsSuccess) return OperateResult.CreateFailedResult<FullMachineStatus>(suResult);
                 status.SuMiktari = suResult.Content;

@@ -147,20 +147,56 @@ namespace TekstilScada.Repositories
             using (var connection = new MySqlConnection(_connectionString))
             {
                 connection.Open();
-                // Bu sorgu, tamamlanmış batch'lerin verilerini saatlik olarak gruplayıp toplar.
+
+                // BU SQL SORGUSU İKİ TABLOYU BİRLEŞTİRİR:
+                // 1. Kısım: Production Batches (Reçeteli üretimlerin bittiği saate göre toplamları)
+                // 2. Kısım: Manual Mode Log (Manuel kayıtların saatlik farkları [Max - Min])
                 string query = @"
                     SELECT 
-                        HOUR(EndTime) AS Saat,
-                        SUM(TotalElectricity) AS ToplamElektrik,
-                        SUM(TotalWater) AS ToplamSu,
-                        SUM(TotalSteam) AS ToplamBuhar
-                    FROM production_batches
-                    WHERE DATE(EndTime) = @SelectedDate
-                    GROUP BY HOUR(EndTime)
-                    ORDER BY Saat;
+                        T.Saat,
+                        SUM(T.ToplamElektrik) AS ToplamElektrik,
+                        SUM(T.ToplamSu) AS ToplamSu,
+                        SUM(T.ToplamBuhar) AS ToplamBuhar
+                    FROM (
+                        -- 1. REÇETELİ ÜRETİM (BATCH) TÜKETİMLERİ
+                        SELECT 
+                            HOUR(EndTime) AS Saat,
+                            SUM(TotalElectricity) AS ToplamElektrik,
+                            SUM(TotalWater) AS ToplamSu,
+                            SUM(TotalSteam) AS ToplamBuhar
+                        FROM production_batches
+                        WHERE DATE(EndTime) = @SelectedDate 
+                        AND EndTime IS NOT NULL
+                        GROUP BY HOUR(EndTime)
+
+                        UNION ALL
+
+                        -- 2. MANUEL MOD TÜKETİMLERİ (Her makine için saatlik farklar)
+                        SELECT
+                            LogHour as Saat,
+                            SUM(MaxElec - MinElec) as ToplamElektrik,
+                            SUM(MaxWater - MinWater) as ToplamSu,
+                            SUM(MaxSteam - MinSteam) as ToplamBuhar
+                        FROM (
+                            SELECT 
+                                MachineId,
+                                HOUR(LogTimestamp) as LogHour,
+                                MIN(TotalWater) as MinWater, MAX(TotalWater) as MaxWater,
+                                MIN(LiveElectricity) as MinElec, MAX(LiveElectricity) as MaxElec,
+                                MIN(LiveSteam) as MinSteam, MAX(LiveSteam) as MaxSteam
+                            FROM manual_mode_log
+                            WHERE DATE(LogTimestamp) = @SelectedDate
+                            GROUP BY MachineId, HOUR(LogTimestamp)
+                        ) as ManualSub
+                        GROUP BY LogHour
+                    ) AS T
+                    GROUP BY T.Saat
+                    ORDER BY T.Saat;
                 ";
+
                 var cmd = new MySqlCommand(query, connection);
                 cmd.Parameters.AddWithValue("@SelectedDate", date.ToString("yyyy-MM-dd"));
+
                 using (var reader = cmd.ExecuteReader())
                 {
                     dt.Load(reader);

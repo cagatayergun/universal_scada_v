@@ -81,18 +81,18 @@ namespace TekstilScada.UI.Views
             groupBox1.Controls.Add(txtUsername);
             groupBox1.Controls.Add(label1);
             groupBox1.Dock = DockStyle.Bottom;
-            groupBox1.Location = new Point(0, 262);
+            groupBox1.Location = new Point(0, 172);
             groupBox1.Margin = new Padding(3, 2, 3, 2);
             groupBox1.Name = "groupBox1";
             groupBox1.Padding = new Padding(3, 2, 3, 2);
-            groupBox1.Size = new Size(700, 188);
+            groupBox1.Size = new Size(700, 278);
             groupBox1.TabIndex = 1;
             groupBox1.TabStop = false;
             groupBox1.Text = "User Details";
             // 
             // btnNew
             // 
-            btnNew.Location = new Point(420, 142);
+            btnNew.Location = new Point(76, 235);
             btnNew.Margin = new Padding(3, 2, 3, 2);
             btnNew.Name = "btnNew";
             btnNew.Size = new Size(82, 22);
@@ -103,7 +103,7 @@ namespace TekstilScada.UI.Views
             // 
             // btnSave
             // 
-            btnSave.Location = new Point(508, 142);
+            btnSave.Location = new Point(164, 235);
             btnSave.Margin = new Padding(3, 2, 3, 2);
             btnSave.Name = "btnSave";
             btnSave.Size = new Size(82, 22);
@@ -114,7 +114,7 @@ namespace TekstilScada.UI.Views
             // 
             // btnDelete
             // 
-            btnDelete.Location = new Point(595, 142);
+            btnDelete.Location = new Point(251, 235);
             btnDelete.Margin = new Padding(3, 2, 3, 2);
             btnDelete.Name = "btnDelete";
             btnDelete.Size = new Size(82, 22);
@@ -126,16 +126,16 @@ namespace TekstilScada.UI.Views
             // clbRoles
             // 
             clbRoles.FormattingEnabled = true;
-            clbRoles.Location = new Point(394, 38);
+            clbRoles.Location = new Point(394, 21);
             clbRoles.Margin = new Padding(3, 2, 3, 2);
             clbRoles.Name = "clbRoles";
-            clbRoles.Size = new Size(176, 76);
+            clbRoles.Size = new Size(284, 238);
             clbRoles.TabIndex = 9;
             // 
             // label5
             // 
             label5.AutoSize = true;
-            label5.Location = new Point(394, 19);
+            label5.Location = new Point(394, 2);
             label5.Name = "label5";
             label5.Size = new Size(38, 15);
             label5.TabIndex = 8;
@@ -144,7 +144,7 @@ namespace TekstilScada.UI.Views
             // chkIsActive
             // 
             chkIsActive.AutoSize = true;
-            chkIsActive.Location = new Point(114, 142);
+            chkIsActive.Location = new Point(114, 136);
             chkIsActive.Margin = new Padding(3, 2, 3, 2);
             chkIsActive.Name = "chkIsActive";
             chkIsActive.Size = new Size(85, 19);

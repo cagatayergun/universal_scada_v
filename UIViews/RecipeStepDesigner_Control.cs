@@ -132,7 +132,8 @@ namespace TekstilScada.UI.Views
                 if (control is NumericUpDown num)
                 {
                     metadata.Maximum = num.Maximum;
-                    metadata.DecimalPlaces = num.DecimalPlaces; // İşte bu satırı ekliyoruz!
+                    metadata.Minimum = num.Minimum; // YENİ: Minimum değerini de kaydediyoruz
+                    metadata.DecimalPlaces = num.DecimalPlaces;
                 }
                 // --- EKLEME BİTTİ ---
 
@@ -178,10 +179,10 @@ namespace TekstilScada.UI.Views
             if (newControl is NumericUpDown num)
             {
                 num.Maximum = data.Maximum;
+                num.Minimum = data.Minimum; // YENİ: Minimum değerini geri yüklüyoruz
                 num.DecimalPlaces = data.DecimalPlaces;
-
             }
-            
+
 
             newControl.MouseDown += Control_MouseDown;
             newControl.MouseMove += Control_MouseMove;
@@ -356,6 +357,21 @@ namespace TekstilScada.UI.Views
             {
                 get => _mapping?.StringWordLength ?? 0;
                 set { if (_control is TextBox && _mapping != null) _mapping.StringWordLength = value; }
+            }
+            [Category("Tasarım")]
+            [DisplayName("Maksimum Değer")]
+            public decimal Maximum
+            {
+                get => (_control as NumericUpDown)?.Maximum ?? 100;
+                set { if (_control is NumericUpDown num) num.Maximum = value; }
+            }
+
+            [Category("Tasarım")]
+            [DisplayName("Minimum Değer")]
+            public decimal Minimum
+            {
+                get => (_control as NumericUpDown)?.Minimum ?? 0;
+                set { if (_control is NumericUpDown num) num.Minimum = value; }
             }
         }
     }

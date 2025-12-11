@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="ApplicationTitle" xml:space="preserve">
-    <value>Tekstil SCADA Sistemi</value>
+    <value>YILMAK TELEMETRY</value>
     <comment>Uygulamanın ana başlığı</comment>
   </data>
   <data name="MainMenu_GeneralOverview" xml:space="preserve">

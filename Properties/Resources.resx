@@ -271,7 +271,7 @@
     <value>OEE Raporu</value>
   </data>
   <data name="Operator" xml:space="preserve">
-    <value>OPERATOR:</value>
+    <value>Operatör:</value>
   </data>
   <data name="OrderNo" xml:space="preserve">
     <value>Sipariş No:</value>
@@ -307,7 +307,7 @@
     <value>Miktar (Litre):</value>
   </data>
   <data name="RecipeName" xml:space="preserve">
-    <value>RECETE ADI:</value>
+    <value>Recete Adı:</value>
   </data>
   <data name="RecipeOptimization" xml:space="preserve">
     <value>Reçete Optimizasyon</value>
@@ -331,7 +331,7 @@
     <value>Kaydet</value>
   </data>
   <data name="ScadaSystem" xml:space="preserve">
-    <value>Tekstil SCADA Sistemi</value>
+    <value>YILMAK TELEMETRİ</value>
   </data>
   <data name="Settings" xml:space="preserve">
     <value>Ayarlar</value>
@@ -370,7 +370,7 @@
     <value>Tank Alınan Su:</value>
   </data>
   <data name="Temperature" xml:space="preserve">
-    <value>Isı (°C):</value>
+    <value>Isı (°C)</value>
   </data>
   <data name="TemperatureControl" xml:space="preserve">
     <value>Isı Kontrol</value>
@@ -526,16 +526,16 @@
     <value>Manuel Tüketimler</value>
   </data>
   <data name="ortalamabuhartuketimi" xml:space="preserve">
-    <value>Ortalama Buhar Tüketimi</value>
+    <value>Saatlik Buhar Tüketimi</value>
   </data>
   <data name="ortalamacevrimsuresi" xml:space="preserve">
     <value>Ortalama Çevrim Süresi</value>
   </data>
   <data name="ortalamaelektriktuketimi" xml:space="preserve">
-    <value>Ortalama Elektrik Tüketimi</value>
+    <value>Saatlik Elektrik Tüketimi</value>
   </data>
   <data name="ortalamasutuketimi" xml:space="preserve">
-    <value>Ortalama Su Tüketimi</value>
+    <value>Saatlik Su Tüketimi</value>
   </data>
   <data name="suseviyesi" xml:space="preserve">
     <value>Su seviyesi</value>
@@ -601,7 +601,7 @@
     <value>Boşta Bekleyen</value>
   </data>
   <data name="Saatlikelektrik" xml:space="preserve">
-    <value>Ortalama Elektrik Tüketimi</value>
+    <value>Saatlik Elektrik Tüketimi</value>
   </data>
   <data name="ensikalarm" xml:space="preserve">
     <value>En Sık 5 Alarm (Son 24 Saat)</value>

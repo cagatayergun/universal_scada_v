@@ -15,8 +15,6 @@ namespace TekstilScada.UI.Views
     {
         private MachineRepository _machineRepository;
         private ProductionRepository _productionRepository;
-        // YENİ: CostRepository alanını ekleyin
-        private CostRepository _costRepository;
         private DataTable _reportData;
         private ListBox _activeSourceListBox;
 
@@ -26,12 +24,10 @@ namespace TekstilScada.UI.Views
             InitializeComponent();
         }
 
-        // GÜNCELLENDİ: CostRepository parametresini ekleyin
-        public void InitializeControl(MachineRepository machineRepo, ProductionRepository productionRepo, CostRepository costRepo)
+        public void InitializeControl(MachineRepository machineRepo, ProductionRepository productionRepo)
         {
             _machineRepository = machineRepo;
             _productionRepository = productionRepo;
-            _costRepository = costRepo; // YENİ: Atama işlemi
         }
 
         private void LanguageManager_LanguageChanged(object sender, EventArgs e)
@@ -43,6 +39,10 @@ namespace TekstilScada.UI.Views
         {
             groupBox1.Text = Resources.tüketimtipi;
             btnRaporOlustur.Text = Resources.Reports;
+
+            if (btnExportToExcel != null)
+                btnExportToExcel.Text = Resources.ExportToExcel ?? "Export to Excel";
+
             radioElektrik.Text = Resources.elk;
             radioBuhar.Text = Resources.buhar;
             radioSu.Text = Resources.su;
@@ -53,6 +53,10 @@ namespace TekstilScada.UI.Views
             dtpStartTime.Value = DateTime.Today;
             dtpEndTime.Value = DateTime.Today.AddDays(1).AddSeconds(-1);
             LoadMachineLists();
+
+            // Tablo görünüm ayarları
+            dgvReport.Dock = DockStyle.Fill;
+            dgvReport.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         }
 
         private void LoadMachineLists()
@@ -61,6 +65,7 @@ namespace TekstilScada.UI.Views
             var groupedMachines = allMachines
                 .Where(m => !string.IsNullOrEmpty(m.MachineSubType))
                 .GroupBy(m => m.MachineSubType);
+
             flpMachineGroups.Controls.Clear();
             foreach (var group in groupedMachines)
             {
@@ -96,12 +101,19 @@ namespace TekstilScada.UI.Views
             try
             {
                 this.Cursor = Cursors.WaitCursor;
+                // Veriyi çek
                 _reportData = _productionRepository.GetGeneralProductionReport(dtpStartTime.Value, dtpEndTime.Value, selectedMachines);
 
-                // YENİ: Maliyet hesaplamalarını ekle
-                CalculateAndAddCostToReport();
+                // 1. ADIM: Birimleri Dönüştür (Litre -> m3, Watt -> kW)
+                ConvertUnits(_reportData);
 
+                // 2. ADIM: Tabloya Bağla
                 dgvReport.DataSource = _reportData;
+
+                // 3. ADIM: Başlıkları ve Görünümü Ayarla
+                ConfigureGridAppearance();
+
+                // 4. ADIM: Seçime göre filtrele
                 FilterGridByConsumptionType();
             }
             catch (Exception ex)
@@ -114,48 +126,114 @@ namespace TekstilScada.UI.Views
             }
         }
 
-        // YENİ: Maliyet hesaplayan ve tabloya ekleyen metot
-        private void CalculateAndAddCostToReport()
+        // --- YENİ METOT: BİRİM DÖNÜŞÜMÜ ---
+        private void ConvertUnits(DataTable table)
         {
-            if (_reportData == null || _reportData.Rows.Count == 0 || _costRepository == null) return;
+            if (table == null || table.Rows.Count == 0) return;
 
-            var costParams = _costRepository.GetAllParameters();
-            var waterCostParam = costParams.FirstOrDefault(p => p.ParameterName == "Water");
-            var electricityCostParam = costParams.FirstOrDefault(p => p.ParameterName == "Electricity");
-            var steamCostParam = costParams.FirstOrDefault(p => p.ParameterName == "Steam");
-
-            if (waterCostParam == null || electricityCostParam == null || steamCostParam == null)
+            // Yardımcı yerel fonksiyon: Sütunu Decimal'e çevirir ve böler
+            void ConvertColumnToDecimalAndDivide(string columnName, decimal divisor)
             {
-                MessageBox.Show("Cost parameters are missing. Please check the Settings -> Cost Parameters screen.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                if (!table.Columns.Contains(columnName)) return;
+
+                // 1. Yeni geçici bir decimal sütun ekle
+                string tempColName = columnName + "_Temp";
+                if (!table.Columns.Contains(tempColName))
+                {
+                    table.Columns.Add(tempColName, typeof(decimal));
+                }
+
+                // 2. Verileri dönüştürerek yeni sütuna aktar
+                foreach (DataRow row in table.Rows)
+                {
+                    if (row[columnName] != DBNull.Value)
+                    {
+                        try
+                        {
+                            decimal val = Convert.ToDecimal(row[columnName]);
+                            row[tempColName] = val / divisor;
+                        }
+                        catch
+                        {
+                            row[tempColName] = 0m;
+                        }
+                    }
+                    else
+                    {
+                        row[tempColName] = 0m;
+                    }
+                }
+
+                // 3. Eski sütunu sil ve yeni sütunun adını eski sütunun adı yap
+                // (Böylece DataGridView ayarlarını bozmamış oluruz)
+                int ordinalIndex = table.Columns[columnName].Ordinal; // Eski sütunun sırasını sakla
+
+                table.Columns.Remove(columnName); // Eski int sütunu sil
+                table.Columns[tempColName].ColumnName = columnName; // Yeni sütuna eski ismini ver
+                table.Columns[columnName].SetOrdinal(ordinalIndex); // Sırasını eski yerine koy
+            }
+
+            // Dönüşümleri Uygula
+            ConvertColumnToDecimalAndDivide("TotalWater", 1000m);       // Litre -> m3
+            ConvertColumnToDecimalAndDivide("TotalElectricity", 1000m); // Watt -> kWh
+            ConvertColumnToDecimalAndDivide("TotalSteam", 1000m);       // Litre -> m3
+        }
+
+        // --- YENİ METOT: BAŞLIK VE FORMAT AYARLARI ---
+        private void ConfigureGridAppearance()
+        {
+            if (dgvReport.DataSource == null) return;
+
+            // Sütun Başlıklarını İngilizce Yap ve Birim Ekle
+            if (dgvReport.Columns.Contains("MachineName"))
+                dgvReport.Columns["MachineName"].HeaderText = "Machine Name";
+
+            if (dgvReport.Columns.Contains("TotalWater"))
+            {
+                dgvReport.Columns["TotalWater"].HeaderText = "Total Water (m³)";
+                dgvReport.Columns["TotalWater"].DefaultCellStyle.Format = "N2"; // 2 hane ondalık
+            }
+
+            if (dgvReport.Columns.Contains("TotalElectricity"))
+            {
+                dgvReport.Columns["TotalElectricity"].HeaderText = "Total Electricity (kWh)";
+                dgvReport.Columns["TotalElectricity"].DefaultCellStyle.Format = "N2";
+            }
+
+            if (dgvReport.Columns.Contains("TotalSteam"))
+            {
+                dgvReport.Columns["TotalSteam"].HeaderText = "Total Steam (m³)";
+                dgvReport.Columns["TotalSteam"].DefaultCellStyle.Format = "N2";
+            }
+
+            if (dgvReport.Columns.Contains("RecipeCount"))
+                dgvReport.Columns["RecipeCount"].HeaderText = "Recipe Count";
+
+            if (dgvReport.Columns.Contains("TotalDuration"))
+                dgvReport.Columns["TotalDuration"].HeaderText = "Total Duration (Min)";
+        }
+
+        private void btnExportToExcel_Click(object sender, EventArgs e)
+        {
+            if (dgvReport.Rows.Count == 0)
+            {
+                MessageBox.Show("Empty" ?? "No data to export.", Resources.Warning, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            // Yeni bir sütun ekle
-            _reportData.Columns.Add("Cost", typeof(decimal));
-
-            foreach (DataRow row in _reportData.Rows)
+            try
             {
-                decimal totalWater = row["TotalWater"] == DBNull.Value ? 0 : Convert.ToDecimal(row["TotalWater"]);
-                decimal totalElectricity = row["TotalElectricity"] == DBNull.Value ? 0 : Convert.ToDecimal(row["TotalElectricity"]);
-                decimal totalSteam = row["TotalSteam"] == DBNull.Value ? 0 : Convert.ToDecimal(row["TotalSteam"]);
-
-                decimal totalCost = 0;
-
-                // Sadece seçili tüketim tipine göre maliyeti hesapla
-                if (radioSu.Checked)
-                {
-                    totalCost = totalWater * waterCostParam.CostValue * waterCostParam.Multiplier;
-                }
-                else if (radioElektrik.Checked)
-                {
-                    totalCost = totalElectricity * electricityCostParam.CostValue * electricityCostParam.Multiplier;
-                }
-                else if (radioBuhar.Checked)
-                {
-                    totalCost = totalSteam * steamCostParam.CostValue * steamCostParam.Multiplier;
-                }
-
-                row["Cost"] = totalCost;
+                this.Cursor = Cursors.WaitCursor;
+                // DataTable üzerinde dönüşüm yaptığımız için Excel'e doğru birimler gidecektir.
+                ExcelExporter.ExportDataGridViewToExcel(dgvReport);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"{Resources.raporolusturukenhata}: {ex.Message}", Resources.Error, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                this.Cursor = Cursors.Default;
             }
         }
 
@@ -168,27 +246,21 @@ namespace TekstilScada.UI.Views
         {
             if (dgvReport.DataSource == null || dgvReport.Columns.Count == 0) return;
 
-            // Önce tüm tüketim ve maliyet kolonlarını gizle
             if (dgvReport.Columns.Contains("TotalWater")) dgvReport.Columns["TotalWater"].Visible = false;
             if (dgvReport.Columns.Contains("TotalElectricity")) dgvReport.Columns["TotalElectricity"].Visible = false;
             if (dgvReport.Columns.Contains("TotalSteam")) dgvReport.Columns["TotalSteam"].Visible = false;
-            if (dgvReport.Columns.Contains("Cost")) dgvReport.Columns["Cost"].Visible = false;
 
-            // Sadece seçili olanı göster
             if (radioSu.Checked && dgvReport.Columns.Contains("TotalWater"))
             {
                 dgvReport.Columns["TotalWater"].Visible = true;
-                if (dgvReport.Columns.Contains("Cost")) dgvReport.Columns["Cost"].Visible = true;
             }
             if (radioElektrik.Checked && dgvReport.Columns.Contains("TotalElectricity"))
             {
                 dgvReport.Columns["TotalElectricity"].Visible = true;
-                if (dgvReport.Columns.Contains("Cost")) dgvReport.Columns["Cost"].Visible = true;
             }
             if (radioBuhar.Checked && dgvReport.Columns.Contains("TotalSteam"))
             {
                 dgvReport.Columns["TotalSteam"].Visible = true;
-                if (dgvReport.Columns.Contains("Cost")) dgvReport.Columns["Cost"].Visible = true;
             }
         }
 

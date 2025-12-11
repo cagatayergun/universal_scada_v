@@ -41,29 +41,34 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.remoteDesktop1 = new VncSharpCore.RemoteDesktop();
-            this.SuspendLayout();
-            //
+            remoteDesktop1 = new VncSharpCore.RemoteDesktop();
+            SuspendLayout();
+            // 
             // remoteDesktop1
-            //
-            this.remoteDesktop1.AutoScroll = true;
-            this.remoteDesktop1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.remoteDesktop1.Location = new System.Drawing.Point(0, 0);
-            this.remoteDesktop1.Name = "remoteDesktop1";
-            this.remoteDesktop1.Size = new System.Drawing.Size(800, 600);
-            this.remoteDesktop1.TabIndex = 0;
-            //
+            // 
+            remoteDesktop1.AutoScroll = true;
+            remoteDesktop1.AutoScrollMinSize = new Size(608, 427);
+            remoteDesktop1.Dock = DockStyle.Fill;
+            remoteDesktop1.Location = new Point(0, 0);
+            remoteDesktop1.Margin = new Padding(3, 2, 3, 2);
+            remoteDesktop1.Name = "remoteDesktop1";
+            remoteDesktop1.Size = new Size(1052, 594);
+            remoteDesktop1.TabIndex = 0;
+            remoteDesktop1.ViewOnly = false;
+            // 
             // VncViewer_Form
-            //
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 600);
-            this.Controls.Add(this.remoteDesktop1);
-            this.Name = "VncViewer_Form";
-            this.Text = "VNC Görüntüleyici";
-            this.Load += new System.EventHandler(this.VncViewer_Form_Load);
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.VncViewer_Form_FormClosing);
-            this.ResumeLayout(false);
+            // 
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            AutoSize = true;
+            ClientSize = new Size(1052, 594);
+            Controls.Add(remoteDesktop1);
+            Margin = new Padding(3, 2, 3, 2);
+            Name = "VncViewer_Form";
+            Text = "VNC Görüntüleyici";
+            FormClosing += VncViewer_Form_FormClosing;
+            Load += VncViewer_Form_Load;
+            ResumeLayout(false);
 
         }
 

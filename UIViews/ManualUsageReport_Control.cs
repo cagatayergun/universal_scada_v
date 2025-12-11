@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic; // List için eklendi
+﻿// UI/Views/ManualUsageReport_Control.cs
+using System;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using TekstilScada.Core;
 using TekstilScada.Models;
 using TekstilScada.Properties;
 using TekstilScada.Repositories;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace TekstilScada.UI.Views
 {
@@ -18,6 +18,9 @@ namespace TekstilScada.UI.Views
         {
             InitializeComponent();
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
+
+            // Hücre formatlama olayını (Birim dönüşümü için) bağlıyoruz
+            dgvManualUsage.CellFormatting += DgvManualUsage_CellFormatting;
         }
 
         public void InitializeControl(MachineRepository machineRepo, ProcessLogRepository processLogRepo)
@@ -25,22 +28,20 @@ namespace TekstilScada.UI.Views
             _machineRepository = machineRepo;
             _processLogRepository = processLogRepo;
         }
+
         private void LanguageManager_LanguageChanged(object sender, EventArgs e)
         {
             ApplyLocalization();
-
         }
+
         public void ApplyLocalization()
         {
             label1.Text = Resources.DateRange;
-           // label2.Text = Resources.AlarmText;
             label3.Text = Resources.Machine;
             btnGenerateReport.Text = Resources.Reports;
             btnExportToExcel.Text = Resources.ExportToExcel;
-           
-
-
         }
+
         private void ManualUsageReport_Control_Load(object sender, EventArgs e)
         {
             dtpStartTime.Value = DateTime.Today;
@@ -56,7 +57,7 @@ namespace TekstilScada.UI.Views
         {
             DateTime startTime = dtpStartTime.Value;
             DateTime endTime = dtpEndTime.Value;
-           
+
             var selectedMachine = cmbMachines.SelectedItem as Machine;
 
             if (selectedMachine == null) return;
@@ -65,7 +66,7 @@ namespace TekstilScada.UI.Views
             {
                 this.Cursor = Cursors.WaitCursor;
                 var summary = _processLogRepository.GetManualConsumptionSummary(selectedMachine.Id, selectedMachine.MachineName, startTime, endTime);
-                
+
                 var reportData = new List<ManualConsumptionSummary>();
                 if (summary != null)
                 {
@@ -74,6 +75,9 @@ namespace TekstilScada.UI.Views
 
                 dgvManualUsage.DataSource = null;
                 dgvManualUsage.DataSource = reportData;
+
+                // Tablo görünümünü ve başlıkları ayarla
+                CustomizeGridAppearance();
             }
             catch (Exception ex)
             {
@@ -82,6 +86,73 @@ namespace TekstilScada.UI.Views
             finally
             {
                 this.Cursor = Cursors.Default;
+            }
+        }
+
+        private void CustomizeGridAppearance()
+        {
+            if (dgvManualUsage.DataSource == null) return;
+
+            // 1. İstenmeyen kolonları gizle
+            if (dgvManualUsage.Columns["OrtalamaSicaklik"] != null)
+                dgvManualUsage.Columns["OrtalamaSicaklik"].Visible = false;
+
+            if (dgvManualUsage.Columns["OrtalamaDevir"] != null)
+                dgvManualUsage.Columns["OrtalamaDevir"].Visible = false;
+
+            // 2. Başlıkları İngilizce yap ve Birimleri Ekle
+            if (dgvManualUsage.Columns["MachineName"] != null)
+                dgvManualUsage.Columns["MachineName"].HeaderText = "Machine Name";
+            
+            if (dgvManualUsage.Columns["ToplamSuTuketimi_Litre"] != null)
+                dgvManualUsage.Columns["ToplamSuTuketimi_Litre"].HeaderText = "Total Water (m³)";
+
+            if (dgvManualUsage.Columns["ToplamElektrikTuketimi_kW"] != null)
+                dgvManualUsage.Columns["ToplamElektrikTuketimi_kW"].HeaderText = "Total Electricity (kWh)";
+
+            if (dgvManualUsage.Columns["ToplamBuharTuketimi_kg"] != null)
+                dgvManualUsage.Columns["ToplamBuharTuketimi_kg"].HeaderText = "Total Steam (m³)";
+
+            if (dgvManualUsage.Columns["DurationMinutes"] != null)
+                dgvManualUsage.Columns["DurationMinutes"].HeaderText = "Duration (Minutes)";
+
+            // 3. Sayı formatı (Virgülden sonra 2 basamak)
+            dgvManualUsage.DefaultCellStyle.Format = "N2";
+        }
+
+        // Verileri dönüştürmek için (Litre -> m³, Watt -> kW) kullanılan olay
+        // Verileri dönüştürmek için (Litre -> m³, Watt -> kW) kullanılan olay
+        private void DgvManualUsage_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            // Satır indeksi geçersizse veya değer boşsa işlem yapma
+            if (e.RowIndex < 0 || e.Value == null || e.Value == DBNull.Value) return;
+
+            string colName = dgvManualUsage.Columns[e.ColumnIndex].Name;
+
+            // Su, Elektrik ve Buhar kolonlarını yakala
+            if (colName == "ToplamSuTuketimi_Litre" ||
+                colName == "ToplamElektrikTuketimi_kW" ||
+                colName == "ToplamBuharTuketimi_kg")
+            {
+                try
+                {
+                    // Değeri double'a çevir
+                    double val = Convert.ToDouble(e.Value);
+
+                    // 1000'e böl
+                    double result = val / 1000.0;
+
+                    // Sonucu virgülden sonra 2 basamaklı String olarak ata
+                    // Bu sayede "N2" formatı ile çakışmaz ve kesin görünür.
+                    e.Value = result.ToString("N2");
+
+                    // Formatlamanın tamamlandığını bildir (Grid tekrar formatlamaya çalışmasın)
+                    e.FormattingApplied = true;
+                }
+                catch
+                {
+                    // Eğer sayısal bir değer değilse (örn. hata metni varsa) dokunma
+                }
             }
         }
 

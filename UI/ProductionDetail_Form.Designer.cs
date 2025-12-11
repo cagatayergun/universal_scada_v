@@ -28,13 +28,18 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea2 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend2 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Series series2 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            txtTheoreticalDuration = new TextBox();
+            labelTheoretical = new Label();
+            txtDurationDiff = new TextBox();
+            labelDiff = new Label();
             pnlBottom = new Panel();
             btnExportToExcel = new Button();
             btnClose = new Button();
             gbProductionInfo = new GroupBox();
+            pieChartControl = new System.Windows.Forms.DataVisualization.Charting.Chart();
             txtTotalDuration = new TextBox();
             label6 = new Label();
             txtStopTime = new TextBox();
@@ -63,9 +68,15 @@
             dgvAlarms = new DataGridView();
             tabPageChemicals = new TabPage();
             dgvChemicals = new DataGridView();
-            pieChartControl = new System.Windows.Forms.DataVisualization.Charting.Chart();
+            txtElectricity = new TextBox();
+            label9 = new Label();
+            txtWater = new TextBox();
+            label10 = new Label();
+            txtSteam = new TextBox();
+            label11 = new Label();
             pnlBottom.SuspendLayout();
             gbProductionInfo.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)pieChartControl).BeginInit();
             pnlMainContent.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainerMain).BeginInit();
             splitContainerMain.Panel1.SuspendLayout();
@@ -80,15 +91,52 @@
             ((System.ComponentModel.ISupportInitialize)dgvAlarms).BeginInit();
             tabPageChemicals.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvChemicals).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pieChartControl).BeginInit();
             SuspendLayout();
+            // 
+            // txtTheoreticalDuration
+            // 
+            txtTheoreticalDuration.Font = new Font("Segoe UI", 9F);
+            txtTheoreticalDuration.Location = new Point(11, 334);
+            txtTheoreticalDuration.Name = "txtTheoreticalDuration";
+            txtTheoreticalDuration.ReadOnly = true;
+            txtTheoreticalDuration.Size = new Size(284, 23);
+            txtTheoreticalDuration.TabIndex = 17;
+            // 
+            // labelTheoretical
+            // 
+            labelTheoretical.AutoSize = true;
+            labelTheoretical.Font = new Font("Segoe UI", 9F);
+            labelTheoretical.Location = new Point(11, 317);
+            labelTheoretical.Name = "labelTheoretical";
+            labelTheoretical.Size = new Size(118, 15);
+            labelTheoretical.TabIndex = 16;
+            labelTheoretical.Text = "Theoretical Duration:";
+            // 
+            // txtDurationDiff
+            // 
+            txtDurationDiff.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            txtDurationDiff.Location = new Point(11, 376);
+            txtDurationDiff.Name = "txtDurationDiff";
+            txtDurationDiff.ReadOnly = true;
+            txtDurationDiff.Size = new Size(284, 23);
+            txtDurationDiff.TabIndex = 19;
+            // 
+            // labelDiff
+            // 
+            labelDiff.AutoSize = true;
+            labelDiff.Font = new Font("Segoe UI", 9F);
+            labelDiff.Location = new Point(11, 359);
+            labelDiff.Name = "labelDiff";
+            labelDiff.Size = new Size(125, 15);
+            labelDiff.TabIndex = 18;
+            labelDiff.Text = "Difference (Act-Theo):";
             // 
             // pnlBottom
             // 
             pnlBottom.Controls.Add(btnExportToExcel);
             pnlBottom.Controls.Add(btnClose);
             pnlBottom.Dock = DockStyle.Bottom;
-            pnlBottom.Location = new Point(9, 525);
+            pnlBottom.Location = new Point(9, 715);
             pnlBottom.Margin = new Padding(3, 2, 3, 2);
             pnlBottom.Name = "pnlBottom";
             pnlBottom.Size = new Size(1088, 38);
@@ -122,6 +170,12 @@
             // 
             // gbProductionInfo
             // 
+            gbProductionInfo.Controls.Add(txtSteam);
+            gbProductionInfo.Controls.Add(label11);
+            gbProductionInfo.Controls.Add(txtWater);
+            gbProductionInfo.Controls.Add(label10);
+            gbProductionInfo.Controls.Add(txtElectricity);
+            gbProductionInfo.Controls.Add(label9);
             gbProductionInfo.Controls.Add(pieChartControl);
             gbProductionInfo.Controls.Add(txtTotalDuration);
             gbProductionInfo.Controls.Add(label6);
@@ -139,21 +193,41 @@
             gbProductionInfo.Controls.Add(label2);
             gbProductionInfo.Controls.Add(txtMachineName);
             gbProductionInfo.Controls.Add(label1);
+            gbProductionInfo.Controls.Add(txtDurationDiff);
+            gbProductionInfo.Controls.Add(labelDiff);
+            gbProductionInfo.Controls.Add(txtTheoreticalDuration);
+            gbProductionInfo.Controls.Add(labelTheoretical);
             gbProductionInfo.Dock = DockStyle.Left;
             gbProductionInfo.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             gbProductionInfo.Location = new Point(9, 8);
             gbProductionInfo.Margin = new Padding(3, 2, 3, 2);
             gbProductionInfo.Name = "gbProductionInfo";
             gbProductionInfo.Padding = new Padding(9, 8, 9, 8);
-            gbProductionInfo.Size = new Size(306, 517);
+            gbProductionInfo.Size = new Size(306, 707);
             gbProductionInfo.TabIndex = 1;
             gbProductionInfo.TabStop = false;
             gbProductionInfo.Text = "Production Summary";
             // 
+            // pieChartControl
+            // 
+            chartArea2.Name = "ChartArea1";
+            pieChartControl.ChartAreas.Add(chartArea2);
+            legend2.Name = "Legend1";
+            pieChartControl.Legends.Add(legend2);
+            pieChartControl.Location = new Point(28, 542);
+            pieChartControl.Name = "pieChartControl";
+            series2.ChartArea = "ChartArea1";
+            series2.Legend = "Legend1";
+            series2.Name = "Series1";
+            pieChartControl.Series.Add(series2);
+            pieChartControl.Size = new Size(217, 149);
+            pieChartControl.TabIndex = 16;
+            pieChartControl.Text = "chart1";
+            // 
             // txtTotalDuration
             // 
             txtTotalDuration.Font = new Font("Segoe UI", 9F);
-            txtTotalDuration.Location = new Point(11, 305);
+            txtTotalDuration.Location = new Point(11, 292);
             txtTotalDuration.Margin = new Padding(3, 2, 3, 2);
             txtTotalDuration.Name = "txtTotalDuration";
             txtTotalDuration.ReadOnly = true;
@@ -164,16 +238,16 @@
             // 
             label6.AutoSize = true;
             label6.Font = new Font("Segoe UI", 9F);
-            label6.Location = new Point(11, 288);
+            label6.Location = new Point(11, 275);
             label6.Name = "label6";
-            label6.Size = new Size(75, 15);
+            label6.Size = new Size(85, 15);
             label6.TabIndex = 14;
             label6.Text = "Total Duration:";
             // 
             // txtStopTime
             // 
             txtStopTime.Font = new Font("Segoe UI", 9F);
-            txtStopTime.Location = new Point(11, 259);
+            txtStopTime.Location = new Point(11, 250);
             txtStopTime.Margin = new Padding(3, 2, 3, 2);
             txtStopTime.Name = "txtStopTime";
             txtStopTime.ReadOnly = true;
@@ -184,16 +258,16 @@
             // 
             label5.AutoSize = true;
             label5.Font = new Font("Segoe UI", 9F);
-            label5.Location = new Point(11, 242);
+            label5.Location = new Point(11, 233);
             label5.Name = "label5";
-            label5.Size = new Size(63, 15);
+            label5.Size = new Size(57, 15);
             label5.TabIndex = 12;
             label5.Text = "End Date:";
             // 
             // txtStartTime
             // 
             txtStartTime.Font = new Font("Segoe UI", 9F);
-            txtStartTime.Location = new Point(11, 212);
+            txtStartTime.Location = new Point(11, 208);
             txtStartTime.Margin = new Padding(3, 2, 3, 2);
             txtStartTime.Name = "txtStartTime";
             txtStartTime.ReadOnly = true;
@@ -204,9 +278,9 @@
             // 
             label4.AutoSize = true;
             label4.Font = new Font("Segoe UI", 9F);
-            label4.Location = new Point(11, 195);
+            label4.Location = new Point(11, 191);
             label4.Name = "label4";
-            label4.Size = new Size(91, 15);
+            label4.Size = new Size(61, 15);
             label4.TabIndex = 10;
             label4.Text = "Start Date:";
             // 
@@ -224,16 +298,16 @@
             // 
             label8.AutoSize = true;
             label8.Font = new Font("Segoe UI", 9F);
-            label8.Location = new Point(11, 148);
+            label8.Location = new Point(11, 149);
             label8.Name = "label8";
-            label8.Size = new Size(69, 15);
+            label8.Size = new Size(109, 15);
             label8.TabIndex = 8;
             label8.Text = "Customer Number:";
             // 
             // txtOrderNo
             // 
             txtOrderNo.Font = new Font("Segoe UI", 9F);
-            txtOrderNo.Location = new Point(11, 119);
+            txtOrderNo.Location = new Point(11, 124);
             txtOrderNo.Margin = new Padding(3, 2, 3, 2);
             txtOrderNo.Name = "txtOrderNo";
             txtOrderNo.ReadOnly = true;
@@ -244,16 +318,16 @@
             // 
             label7.AutoSize = true;
             label7.Font = new Font("Segoe UI", 9F);
-            label7.Location = new Point(11, 102);
+            label7.Location = new Point(11, 107);
             label7.Name = "label7";
-            label7.Size = new Size(63, 15);
+            label7.Size = new Size(59, 15);
             label7.TabIndex = 6;
             label7.Text = "Order No:";
             // 
             // txtOperator
             // 
             txtOperator.Font = new Font("Segoe UI", 9F);
-            txtOperator.Location = new Point(11, 80);
+            txtOperator.Location = new Point(11, 82);
             txtOperator.Margin = new Padding(3, 2, 3, 2);
             txtOperator.Name = "txtOperator";
             txtOperator.ReadOnly = true;
@@ -264,7 +338,7 @@
             // 
             label3.AutoSize = true;
             label3.Font = new Font("Segoe UI", 9F);
-            label3.Location = new Point(11, 63);
+            label3.Location = new Point(11, 65);
             label3.Name = "label3";
             label3.Size = new Size(57, 15);
             label3.TabIndex = 4;
@@ -286,7 +360,7 @@
             label2.Font = new Font("Segoe UI", 9F);
             label2.Location = new Point(11, 23);
             label2.Name = "label2";
-            label2.Size = new Size(66, 15);
+            label2.Size = new Size(108, 15);
             label2.TabIndex = 2;
             label2.Text = "Prescription Name:";
             // 
@@ -306,7 +380,7 @@
             label1.Font = new Font("Segoe UI", 9F);
             label1.Location = new Point(11, 23);
             label1.Name = "label1";
-            label1.Size = new Size(70, 15);
+            label1.Size = new Size(91, 15);
             label1.TabIndex = 0;
             label1.Text = "Machine Name:";
             // 
@@ -317,7 +391,7 @@
             pnlMainContent.Location = new Point(315, 8);
             pnlMainContent.Margin = new Padding(3, 2, 3, 2);
             pnlMainContent.Name = "pnlMainContent";
-            pnlMainContent.Size = new Size(782, 517);
+            pnlMainContent.Size = new Size(782, 707);
             pnlMainContent.TabIndex = 2;
             // 
             // splitContainerMain
@@ -335,8 +409,8 @@
             // splitContainerMain.Panel2
             // 
             splitContainerMain.Panel2.Controls.Add(tabSubDetails);
-            splitContainerMain.Size = new Size(782, 517);
-            splitContainerMain.SplitterDistance = 342;
+            splitContainerMain.Size = new Size(782, 707);
+            splitContainerMain.SplitterDistance = 467;
             splitContainerMain.SplitterWidth = 3;
             splitContainerMain.TabIndex = 0;
             // 
@@ -349,7 +423,7 @@
             tabMainDetails.Margin = new Padding(3, 2, 3, 2);
             tabMainDetails.Name = "tabMainDetails";
             tabMainDetails.SelectedIndex = 0;
-            tabMainDetails.Size = new Size(782, 342);
+            tabMainDetails.Size = new Size(782, 467);
             tabMainDetails.TabIndex = 0;
             // 
             // tabPageSteps
@@ -359,7 +433,7 @@
             tabPageSteps.Margin = new Padding(3, 2, 3, 2);
             tabPageSteps.Name = "tabPageSteps";
             tabPageSteps.Padding = new Padding(3, 2, 3, 2);
-            tabPageSteps.Size = new Size(774, 314);
+            tabPageSteps.Size = new Size(774, 439);
             tabPageSteps.TabIndex = 0;
             tabPageSteps.Text = "Step Details";
             tabPageSteps.UseVisualStyleBackColor = true;
@@ -377,7 +451,7 @@
             dgvStepDetails.ReadOnly = true;
             dgvStepDetails.RowHeadersWidth = 51;
             dgvStepDetails.RowTemplate.Height = 29;
-            dgvStepDetails.Size = new Size(768, 310);
+            dgvStepDetails.Size = new Size(768, 435);
             dgvStepDetails.TabIndex = 0;
             // 
             // tabPageGraph
@@ -387,7 +461,7 @@
             tabPageGraph.Margin = new Padding(3, 2, 3, 2);
             tabPageGraph.Name = "tabPageGraph";
             tabPageGraph.Padding = new Padding(3, 2, 3, 2);
-            tabPageGraph.Size = new Size(774, 314);
+            tabPageGraph.Size = new Size(774, 382);
             tabPageGraph.TabIndex = 1;
             tabPageGraph.Text = "Process Chart";
             tabPageGraph.UseVisualStyleBackColor = true;
@@ -399,7 +473,7 @@
             formsPlot1.Location = new Point(3, 2);
             formsPlot1.Margin = new Padding(3, 2, 3, 2);
             formsPlot1.Name = "formsPlot1";
-            formsPlot1.Size = new Size(768, 310);
+            formsPlot1.Size = new Size(768, 378);
             formsPlot1.TabIndex = 0;
             // 
             // tabSubDetails
@@ -411,7 +485,7 @@
             tabSubDetails.Margin = new Padding(3, 2, 3, 2);
             tabSubDetails.Name = "tabSubDetails";
             tabSubDetails.SelectedIndex = 0;
-            tabSubDetails.Size = new Size(782, 172);
+            tabSubDetails.Size = new Size(782, 237);
             tabSubDetails.TabIndex = 0;
             // 
             // tabPageAlarms
@@ -421,7 +495,7 @@
             tabPageAlarms.Margin = new Padding(3, 2, 3, 2);
             tabPageAlarms.Name = "tabPageAlarms";
             tabPageAlarms.Padding = new Padding(3, 2, 3, 2);
-            tabPageAlarms.Size = new Size(774, 144);
+            tabPageAlarms.Size = new Size(774, 209);
             tabPageAlarms.TabIndex = 0;
             tabPageAlarms.Text = "Process Alarms";
             tabPageAlarms.UseVisualStyleBackColor = true;
@@ -439,7 +513,7 @@
             dgvAlarms.ReadOnly = true;
             dgvAlarms.RowHeadersWidth = 51;
             dgvAlarms.RowTemplate.Height = 29;
-            dgvAlarms.Size = new Size(768, 140);
+            dgvAlarms.Size = new Size(768, 205);
             dgvAlarms.TabIndex = 0;
             // 
             // tabPageChemicals
@@ -449,7 +523,7 @@
             tabPageChemicals.Margin = new Padding(3, 2, 3, 2);
             tabPageChemicals.Name = "tabPageChemicals";
             tabPageChemicals.Padding = new Padding(3, 2, 3, 2);
-            tabPageChemicals.Size = new Size(774, 144);
+            tabPageChemicals.Size = new Size(774, 179);
             tabPageChemicals.TabIndex = 1;
             tabPageChemicals.Text = "Chemical Consumption";
             tabPageChemicals.UseVisualStyleBackColor = true;
@@ -467,30 +541,71 @@
             dgvChemicals.ReadOnly = true;
             dgvChemicals.RowHeadersWidth = 51;
             dgvChemicals.RowTemplate.Height = 29;
-            dgvChemicals.Size = new Size(768, 140);
+            dgvChemicals.Size = new Size(768, 175);
             dgvChemicals.TabIndex = 0;
             // 
-            // pieChartControl
+            // txtElectricity
             // 
-            chartArea1.Name = "ChartArea1";
-            pieChartControl.ChartAreas.Add(chartArea1);
-            legend1.Name = "Legend1";
-            pieChartControl.Legends.Add(legend1);
-            pieChartControl.Location = new Point(28, 345);
-            pieChartControl.Name = "pieChartControl";
-            series1.ChartArea = "ChartArea1";
-            series1.Legend = "Legend1";
-            series1.Name = "Series1";
-            pieChartControl.Series.Add(series1);
-            pieChartControl.Size = new Size(217, 149);
-            pieChartControl.TabIndex = 16;
-            pieChartControl.Text = "chart1";
+            txtElectricity.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            txtElectricity.Location = new Point(11, 418);
+            txtElectricity.Name = "txtElectricity";
+            txtElectricity.ReadOnly = true;
+            txtElectricity.Size = new Size(284, 23);
+            txtElectricity.TabIndex = 21;
+            // 
+            // label9
+            // 
+            label9.AutoSize = true;
+            label9.Font = new Font("Segoe UI", 9F);
+            label9.Location = new Point(11, 401);
+            label9.Name = "label9";
+            label9.Size = new Size(137, 15);
+            label9.TabIndex = 20;
+            label9.Text = "Electricity Consumption:";
+            // 
+            // txtWater
+            // 
+            txtWater.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            txtWater.Location = new Point(11, 460);
+            txtWater.Name = "txtWater";
+            txtWater.ReadOnly = true;
+            txtWater.Size = new Size(284, 23);
+            txtWater.TabIndex = 23;
+            // 
+            // label10
+            // 
+            label10.AutoSize = true;
+            label10.Font = new Font("Segoe UI", 9F);
+            label10.Location = new Point(11, 443);
+            label10.Name = "label10";
+            label10.Size = new Size(117, 15);
+            label10.TabIndex = 22;
+            label10.Text = "Water Consumption:";
+            // 
+            // txtSteam
+            // 
+            txtSteam.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            txtSteam.Location = new Point(11, 502);
+            txtSteam.Name = "txtSteam";
+            txtSteam.ReadOnly = true;
+            txtSteam.Size = new Size(284, 23);
+            txtSteam.TabIndex = 25;
+            // 
+            // label11
+            // 
+            label11.AutoSize = true;
+            label11.Font = new Font("Segoe UI", 9F);
+            label11.Location = new Point(11, 485);
+            label11.Name = "label11";
+            label11.Size = new Size(119, 15);
+            label11.TabIndex = 24;
+            label11.Text = "Steam Consumption:";
             // 
             // ProductionDetail_Form
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1106, 571);
+            ClientSize = new Size(1106, 761);
             Controls.Add(pnlMainContent);
             Controls.Add(gbProductionInfo);
             Controls.Add(pnlBottom);
@@ -504,6 +619,7 @@
             pnlBottom.ResumeLayout(false);
             gbProductionInfo.ResumeLayout(false);
             gbProductionInfo.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)pieChartControl).EndInit();
             pnlMainContent.ResumeLayout(false);
             splitContainerMain.Panel1.ResumeLayout(false);
             splitContainerMain.Panel2.ResumeLayout(false);
@@ -518,7 +634,6 @@
             ((System.ComponentModel.ISupportInitialize)dgvAlarms).EndInit();
             tabPageChemicals.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)dgvChemicals).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pieChartControl).EndInit();
             ResumeLayout(false);
         }
 
@@ -557,8 +672,17 @@
         private System.Windows.Forms.DataGridView dgvAlarms;
         private System.Windows.Forms.DataGridView dgvChemicals;
         private System.Windows.Forms.DataVisualization.Charting.Chart pieChartControl;
+        private System.Windows.Forms.TextBox txtTheoreticalDuration; // YENİ
+        private System.Windows.Forms.Label labelTheoretical; // YENİ
+        private System.Windows.Forms.TextBox txtDurationDiff; // YENİ
+        private System.Windows.Forms.Label labelDiff; // YENİ
+        private TextBox txtSteam;
+        private Label label11;
+        private TextBox txtWater;
+        private Label label10;
+        private TextBox txtElectricity;
+        private Label label9;
     }
 }
 
 
-//Bu kod, formunuzu daha modern ve kullanışlı bir hale getirecektir. Veri yoğunluğunu sekmelerle yöneterek her bir bilginin daha rahat incelenmesini sağl

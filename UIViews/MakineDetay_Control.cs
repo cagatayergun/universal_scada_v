@@ -1,15 +1,23 @@
-﻿// UI/Views/MakineDetay_Control.cs
+﻿
+
+
+
+
+
+
 using System;
 using System.Collections.Generic;
-using System.Drawing;
+using System.Drawing; // Çizim kütüphanesi
 using System.Linq;
-using System.Resources;
 using System.Windows.Forms;
 using TekstilScada.Core;
 using TekstilScada.Models;
 using TekstilScada.Properties;
 using TekstilScada.Repositories;
 using TekstilScada.Services;
+using System.Text.Json;
+using System.Threading.Tasks;
+using ScottPlot; // Grafik kütüphanesi
 
 namespace TekstilScada.UI.Views
 {
@@ -22,59 +30,225 @@ namespace TekstilScada.UI.Views
         private AlarmRepository _alarmRepository;
         private RecipeRepository _recipeRepository;
         private ProductionRepository _productionRepository;
+        private readonly RecipeConfigurationRepository _configRepo = new RecipeConfigurationRepository();
         private Machine _machine;
-        private ScottPlot.Plottables.Scatter _tempPlot;
-        private ScottPlot.Plottables.Scatter _rpmPlot;
-        private ScottPlot.Plottables.Scatter _waterLevelPlot; // Eğer su seviyesi çizgisini de eklediyseniz veya ekleyecekseniz
-        private List<string> _currentlyDisplayedAlarms = new List<string>(); // BU SATIRI EKLEYİN
 
+        // Plot nesneleri
+        private ScottPlot.Plottables.Scatter _tempScatter;
+        private ScottPlot.Plottables.Scatter _rpmScatter;
+        private ScottPlot.Plottables.Scatter _waterScatter;
+
+        private List<string> _currentlyDisplayedAlarms = new List<string>();
         private System.Windows.Forms.Timer _uiUpdateTimer;
-        private string _lastLoadedBatchIdForChart = null; // Sadece bu değişken kalacak
+        private string _lastLoadedBatchIdForChart = null;
+        private bool _isSyncing = false;
 
         public MakineDetay_Control()
         {
-            
             InitializeComponent();
             btnGeri.Click += (sender, args) => BackRequested?.Invoke(this, EventArgs.Empty);
-            this.progressTemp.Paint += new System.Windows.Forms.PaintEventHandler(this.progressTemp_Paint);
+
+            // --- KRİTİK AYARLAR ---
+            // Panelin Paint olayını bağlıyoruz
+            this.progressTemp.Paint += new System.Windows.Forms.PaintEventHandler(this.progressTemp_Paint);
+
+            // Titremeyi önlemek için DoubleBuffering açıyoruz (Reflection ile)
+            typeof(Panel).InvokeMember("DoubleBuffered",
+    System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+    null, progressTemp, new object[] { true });
+
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
+
+            // Grafik Eksenlerini Bağlama (Senkronizasyon)
+            formsPlotTemp.Plot.RenderManager.AxisLimitsChanged += (s, e) => SyncAxes(formsPlotTemp);
+            formsPlotRpm.Plot.RenderManager.AxisLimitsChanged += (s, e) => SyncAxes(formsPlotRpm);
+            formsPlotWater.Plot.RenderManager.AxisLimitsChanged += (s, e) => SyncAxes(formsPlotWater);
+        }
+
+        private void SyncAxes(ScottPlot.WinForms.FormsPlot sourcePlot)
+        {
+            if (_isSyncing) return;
+            _isSyncing = true;
+
+            var limits = sourcePlot.Plot.Axes.GetLimits();
+
+            if (sourcePlot != formsPlotTemp)
+            {
+                formsPlotTemp.Plot.Axes.SetLimitsX(limits.Left, limits.Right);
+                formsPlotTemp.Refresh();
+            }
+            if (sourcePlot != formsPlotRpm)
+            {
+                formsPlotRpm.Plot.Axes.SetLimitsX(limits.Left, limits.Right);
+                formsPlotRpm.Refresh();
+            }
+            if (sourcePlot != formsPlotWater)
+            {
+                formsPlotWater.Plot.Axes.SetLimitsX(limits.Left, limits.Right);
+                formsPlotWater.Refresh();
+            }
+
+            _isSyncing = false;
         }
 
         public void InitializeControl(Machine machine, PlcPollingService service, ProcessLogRepository logRepo, AlarmRepository alarmRepo, RecipeRepository recipeRepo, ProductionRepository productionRepo)
         {
             _machine = machine;
             _pollingService = service;
-
             _logRepository = logRepo;
             _alarmRepository = alarmRepo;
             _recipeRepository = recipeRepo;
             _productionRepository = productionRepo;
+
             _uiUpdateTimer = new System.Windows.Forms.Timer { Interval = 1000 };
             _uiUpdateTimer.Tick += (sender, args) => UpdateLiveGauges();
             _uiUpdateTimer.Start();
+
             _pollingService.OnMachineDataRefreshed += OnDataRefreshed;
             _pollingService.OnMachineConnectionStateChanged += OnConnectionStateChanged;
-            _pollingService.OnActiveAlarmStateChanged += OnAlarmStateChanged; // BU SATIRI EKLEYİN
+            _pollingService.OnActiveAlarmStateChanged += OnAlarmStateChanged;
             this.VisibleChanged += MakineDetay_Control_VisibleChanged;
+
             LoadInitialData();
         }
 
         private void LoadInitialData()
         {
+            SetWaterGaugeLimitAsync();
+            SetRpmGaugeLimitAsync();
             if (_pollingService.MachineDataCache.TryGetValue(_machine.Id, out var status))
             {
                 UpdateUI(status);
-                UpdateAlarmList(); // İLK YÜKLEME: Alarm listesini doldur
-
+                UpdateAlarmList();
                 LoadRecipeStepsFromPlcAsync();
             }
-
         }
-        private void LanguageManager_LanguageChanged(object sender, EventArgs e)
+
+        private void ClearAllFieldsWithMessage(string message)
+        {
+            ClearBatchSpecificFieldsWithMessage(message);
+            lblReceteAdi.Text = "---";
+            lblOperator.Text = "---";
+            lblMusteriNo.Text = "---";
+            lblBatchNo.Text = "---";
+            lblSiparisNo.Text = "---";
+            lblCalisanAdim.Text = "---";
+        }
+
+        // --- GAUGE LİMİT AYARLARI ---
+        private async void SetRpmGaugeLimitAsync()
+        {
+            try
+            {
+                var stepTypesTable = await Task.Run(() => _configRepo.GetStepTypes());
+                int rpmStepTypeId = -1;
+
+                foreach (System.Data.DataRow row in stepTypesTable.Rows)
+                {
+                    string stepName = row["StepName"].ToString();
+                    if (stepName.Contains("Sıkma") || stepName.Contains("Squeezing"))
+                    {
+                        rpmStepTypeId = Convert.ToInt32(row["Id"]);
+                        break;
+                    }
+                }
+
+                if (rpmStepTypeId != -1)
+                {
+                    string layoutJson = await Task.Run(() => _configRepo.GetLayoutJson(_machine.MachineSubType, rpmStepTypeId));
+
+                    if (!string.IsNullOrEmpty(layoutJson))
+                    {
+                        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                        var controls = JsonSerializer.Deserialize<List<ControlMetadata>>(layoutJson, options);
+
+                        var rpmControl = controls.FirstOrDefault(c =>
+                         (c.Name != null && (c.Name.IndexOf("numSikmaDevri", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                              c.Name.IndexOf("Rpm", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                              c.Name.IndexOf("Squeezing Speed", StringComparison.OrdinalIgnoreCase) >= 0)) ||
+                         (c.Text != null && c.Text.IndexOf("Devir", StringComparison.OrdinalIgnoreCase) >= 0)
+                        );
+
+                        if (rpmControl != null)
+                        {
+                            // --- DEĞİŞİKLİK BURADA ---
+                            // Maximum değerini 1.33 ile çarpıp int'e çeviriyoruz.
+                            // Örnek: 1000 * 1.33 = 1330
+                            int newMax = (int)(rpmControl.Maximum * 1.33m);
+
+                            if (gaugeRpm.InvokeRequired)
+                            {
+                                gaugeRpm.Invoke(new Action(() => gaugeRpm.Maximum = newMax));
+                            }
+                            else
+                            {
+                                gaugeRpm.Maximum = newMax;
+                            }
+                            // -------------------------
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"RPM limiti ayarlanamadı: {ex.Message}");
+            }
+        }
+
+        private async void SetWaterGaugeLimitAsync()
+        {
+            try
+            {
+                var stepTypesTable = await Task.Run(() => _configRepo.GetStepTypes());
+                int waterStepTypeId = -1;
+
+                foreach (System.Data.DataRow row in stepTypesTable.Rows)
+                {
+                    string stepName = row["StepName"].ToString();
+                    if (stepName.Contains("Su Alma") || stepName.Contains("Water Intake"))
+                    {
+                        waterStepTypeId = Convert.ToInt32(row["Id"]);
+                        break;
+                    }
+                }
+
+                if (waterStepTypeId != -1)
+                {
+                    string layoutJson = await Task.Run(() => _configRepo.GetLayoutJson(_machine.MachineSubType, waterStepTypeId));
+
+                    if (!string.IsNullOrEmpty(layoutJson))
+                    {
+                        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                        var controls = JsonSerializer.Deserialize<List<ControlMetadata>>(layoutJson, options);
+
+                        var waterControl = controls.FirstOrDefault(c =>
+                         (c.Name != null && (c.Name.IndexOf("numLitre", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                              c.Name.IndexOf("Su", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                              c.Name.IndexOf("Water", StringComparison.OrdinalIgnoreCase) >= 0))
+                        );
+
+                        if (waterControl != null)
+                        {
+                            if (waterTankGauge1.InvokeRequired)
+                                waterTankGauge1.Invoke(new Action(() => waterTankGauge1.Maximum = (int)waterControl.Maximum));
+                            else
+                                waterTankGauge1.Maximum = (int)waterControl.Maximum;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Su seviyesi limiti ayarlanamadı: {ex.Message}");
+            }
+        }
+
+        // --- DİL AYARLARI ---
+        private void LanguageManager_LanguageChanged(object sender, EventArgs e)
         {
             ApplyLocalization();
-
         }
+
         public void ApplyLocalization()
         {
             btnGeri.Text = Resources.geri;
@@ -86,13 +260,10 @@ namespace TekstilScada.UI.Views
             label6.Text = Resources.OrderNo;
             lblTempTitle.Text = Resources.Temperature;
             lstAlarmlar.Text = Resources.baglantibekleniyro;
-
-
-            //btnSave.Text = Resources.Save;
-
-
         }
-        private void OnConnectionStateChanged(int machineId, FullMachineStatus status)
+
+        // --- EVENT HANDLERS ---
+        private void OnConnectionStateChanged(int machineId, FullMachineStatus status)
         {
             if (machineId == _machine.Id && this.IsHandleCreated && !this.IsDisposed)
             {
@@ -112,13 +283,12 @@ namespace TekstilScada.UI.Views
         {
             if (this.Visible && _machine != null)
             {
-                _lastLoadedBatchIdForChart = null; // Sayfa göründüğünde izleyiciyi sıfırla
+                _lastLoadedBatchIdForChart = null;
                 if (_pollingService.MachineDataCache.TryGetValue(_machine.Id, out var status))
                 {
                     UpdateUI(status);
-                    UpdateAlarmList(); // GÖRÜNÜR OLDUĞUNDA: Alarm listesini doldur
+                    UpdateAlarmList();
                 }
-
             }
         }
 
@@ -131,28 +301,69 @@ namespace TekstilScada.UI.Views
                     gaugeRpm.Value = status.AnlikDevirRpm;
                     gaugeRpm.Text = status.AnlikDevirRpm.ToString();
 
-                    // Anlık sıcaklık değerini Panel'in Tag özelliğine atıyoruz.
-                    // Maksimum değeri (150) burada veya Paint metodunda sabit tutabilirsiniz,
-                    // veya onu da Tag'in farklı bir parçası olarak geçirebilirsiniz.
-                    // DEĞİŞİKLİK: Anlık sıcaklığı 10'a bölerek ondalıklı hale getir
-                    decimal anlikSicaklikDecimal = status.AnlikSicaklik / 10.0m;
+                    // Sıcaklık verisi (decimal olarak Tag'e atıyoruz)
+                    decimal anlikSicaklikDecimal = status.AnlikSicaklik / 10.0m;
                     progressTemp.Tag = anlikSicaklikDecimal;
 
-                    // DEĞİŞİKLİK: Label'da ondalıklı ve formatlı göster (F1 -> bir ondalık basamak)
                     lblTempValue.Text = $"{anlikSicaklikDecimal:F1} °C";
-                    lblTempValue.ForeColor = GetTemperatureColor((int)anlikSicaklikDecimal); // Rengi de ondalıklı değere göre al
+                    lblTempValue.ForeColor = GetTemperatureColor((int)anlikSicaklikDecimal);
 
-                 //   lblTempValue.ForeColor = GetTemperatureColor(status.AnlikSicaklik);
-                    progressTemp.Invalidate(); // Panel'in Paint olayını tetikler
+                    // Paneli yeniden çizmeye zorla
+                    progressTemp.Invalidate();
+                    progressTemp.Update();
 
                     waterTankGauge1.Value = status.AnlikSuSeviyesi;
+                    // *** CANLI İLERLEME (SCROLLING) İÇİN YENİ KISIM ***
+                    if (_tempScatter != null)
+                    {
+                        var limits = formsPlotTemp.Plot.Axes.GetLimits();
+                        double span = limits.Right - limits.Left; // Mevcut zoom aralığı
+
+                        double newMaxX;
+                        double newMinX;
+
+                        if (string.IsNullOrEmpty(_lastLoadedBatchIdForChart))
+                        {
+                            // 1. CANLI AKIŞ MODU: Daima anlık zamana ilerle
+                            newMaxX = DateTime.Now.ToOADate();
+                            newMinX = newMaxX - span;
+                        }
+                        else
+                        {
+                            // 2. BATCH MODU: Batch aktifse ilerle
+
+                            // Batch'in hala aktif olup olmadığını kontrol ediyoruz.
+                            // Bu kontrolü, status nesnesinin BatchNumarasi doluysa batch'in aktif olduğu varsayımıyla yapıyoruz.
+                            if (status.BatchNumarasi == _lastLoadedBatchIdForChart)
+                            {
+                                // Batch hala aktif. Grafik, en son veri noktasına (veya anlık zamana) ilerlemelidir.
+                                newMaxX = DateTime.Now.ToOADate(); // Maksimum zamanı anlık zamana getir.
+                                newMinX = newMaxX - span;
+                            }
+                            else
+                            {
+                                // Batch ID'si değişmiş veya batch tamamlanmıştır. İlerleme (pan) durdurulur.
+                                // Mevcut limitleri koru
+                                return;
+                            }
+                        }
+
+                        // Eksenleri yeni limitlere ayarla
+                        formsPlotTemp.Plot.Axes.SetLimitsX(newMinX, newMaxX);
+                        formsPlotRpm.Plot.Axes.SetLimitsX(newMinX, newMaxX);
+                        formsPlotWater.Plot.Axes.SetLimitsX(newMinX, newMaxX);
+
+                        // Grafikleri güncelle
+                        formsPlotTemp.Refresh();
+                        formsPlotRpm.Refresh();
+                        formsPlotWater.Refresh();
+                    }
                 });
             }
         }
 
         private void UpdateUI(FullMachineStatus status)
         {
-            // 1. Temel bilgileri her zaman güncelle
             lblMakineAdi.Text = status.MachineName;
             lblOperator.Text = string.IsNullOrEmpty(status.OperatorIsmi) ? "---" : status.OperatorIsmi;
             lblReceteAdi.Text = string.IsNullOrEmpty(status.RecipeName) ? "---" : status.RecipeName;
@@ -161,7 +372,6 @@ namespace TekstilScada.UI.Views
             lblSiparisNo.Text = string.IsNullOrEmpty(status.SiparisNumarasi) ? "---" : status.SiparisNumarasi;
             lblCalisanAdim.Text = $"#{status.AktifAdimNo} - {status.AktifAdimAdi}";
 
-            // 2. Bağlantı durumunu kontrol et
             if (status.ConnectionState != ConnectionStatus.Connected)
             {
                 ClearAllFieldsWithMessage($"{Resources.baglantibekleniyro}");
@@ -170,17 +380,43 @@ namespace TekstilScada.UI.Views
 
             if (!string.IsNullOrEmpty(status.BatchNumarasi))
             {
-                if (status.BatchNumarasi != _lastLoadedBatchIdForChart)
+                // --- DÜZELTME BURADA BAŞLIYOR ---
+
+                // Batch ID değişti mi kontrolü (Sadece ID değiştiğinde yapılacak ağır işler için)
+                bool isNewBatch = status.BatchNumarasi != _lastLoadedBatchIdForChart;
+                _lastLoadedBatchIdForChart = status.BatchNumarasi;
+
+                // Eğer yeni bir batch başladıysa alarmları ve plotu temizleyerek hazırla
+                if (isNewBatch)
                 {
-                    LoadDataForBatch(status);
+                    var alarms = _alarmRepository.GetAlarmDetailsForBatch(status.BatchNumarasi, _machine.Id);
+                    var alarmStrings = alarms.Any() ? alarms.Select(a => a.AlarmDescription).ToList() : new List<string> { $"{Resources.bupartiicinalarmyok}" };
+
+                    _currentlyDisplayedAlarms = alarmStrings;
+                    lstAlarmlar.DataSource = _currentlyDisplayedAlarms;
+
+                    // Yeni batch ise grafiği temizle ki eskiler kalmasın
+                    formsPlotTemp.Plot.Clear();
+                    formsPlotRpm.Plot.Clear();
+                    formsPlotWater.Plot.Clear();
+
+                    // Scatter nesnelerini null yap ki tekrar oluşturulsun
+                    _tempScatter = null;
+                    _rpmScatter = null;
+                    _waterScatter = null;
                 }
+
+                // Batch ID aynı olsa bile verileri grafiğe YÜKLE (Continuous Update)
+                LoadTimelineChartForBatch(status.BatchNumarasi);
+
+                // --- DÜZELTME BURADA BİTİYOR ---
             }
             else
             {
                 if (_lastLoadedBatchIdForChart != null)
                 {
                     LoadDataForLive(status);
-                    UpdateAlarmList(); // Canlı moda geçildiğinde alarm listesini yenile
+                    UpdateAlarmList();
                 }
                 _lastLoadedBatchIdForChart = null;
                 LoadDataForLive(status);
@@ -189,30 +425,20 @@ namespace TekstilScada.UI.Views
             HighlightCurrentStep(status.AktifAdimNo);
         }
 
-        private void LoadDataForBatch(FullMachineStatus status)
+        // --- GRAFİK & VERİ YÜKLEME ---
+        private void LoadDataForBatch(FullMachineStatus status)
         {
             _lastLoadedBatchIdForChart = status.BatchNumarasi;
-
-            // Partiye özel geçmiş alarmları veritabanından yükle
             var alarms = _alarmRepository.GetAlarmDetailsForBatch(status.BatchNumarasi, _machine.Id);
             var alarmStrings = alarms.Any() ? alarms.Select(a => a.AlarmDescription).ToList() : new List<string> { $"{Resources.bupartiicinalarmyok}" };
 
-            // Geçmiş raporu görüntülerken de mevcut durumu hafızaya al
             _currentlyDisplayedAlarms = alarmStrings;
             lstAlarmlar.DataSource = _currentlyDisplayedAlarms;
-
-
             LoadTimelineChartForBatch(status.BatchNumarasi);
         }
 
         private void LoadDataForLive(FullMachineStatus status)
         {
-
-
-            // PLC'de o an yüklü olan reçetenin adımlarını yükle
-
-
-            // Son 30 dakikanın canlı grafiğini yükle
             LoadTimelineChartForLive();
         }
 
@@ -234,7 +460,7 @@ namespace TekstilScada.UI.Views
                         Array.Copy(rawData, 0, step.StepDataWords, 0, Math.Min(rawData.Length, 6));
                         steps.Add(step);
                     }
-                    else // BYMakinesi
+                    else
                     {
                         for (int i = 0; i < 98; i++)
                         {
@@ -264,13 +490,12 @@ namespace TekstilScada.UI.Views
         {
             SafeInvoke(() =>
             {
-                formsPlot1.Reset();
                 var (startTime, endTime) = _productionRepository.GetBatchTimestamps(batchId, _machine.Id);
 
                 if (!startTime.HasValue)
                 {
-                    formsPlot1.Plot.Title($"{Resources.partibaslangıczamanıkayip}");
-                    formsPlot1.Refresh();
+                    formsPlotTemp.Plot.Title($"{Resources.partibaslangıczamanıkayip}");
+                    formsPlotTemp.Refresh();
                     return;
                 }
 
@@ -279,196 +504,229 @@ namespace TekstilScada.UI.Views
 
                 if (!dataPoints.Any())
                 {
-                    formsPlot1.Plot.Title($"{Resources.bupartihenüzkaydedilmemis}");
-                    formsPlot1.Refresh();
+                    formsPlotTemp.Plot.Title($"{Resources.bupartihenüzkaydedilmemis}");
+                    formsPlotTemp.Refresh();
                     return;
                 }
 
-                formsPlot1.Plot.Title($"{_machine.MachineName} - ${Resources.proseszamancizgisi} ({batchId})");
-                var tempPlot = formsPlot1.Plot.Add.Scatter(
-                    dataPoints.Select(p => p.Timestamp.ToOADate()).ToArray(),
-                   dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray());
+                // Verileri hazırla
+                var xs = dataPoints.Select(p => p.Timestamp.ToOADate()).ToArray();
+                var ysTemp = dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray();
+                var ysRpm = dataPoints.Select(p => (double)p.Rpm).ToArray();
+                var ysWater = dataPoints.Select(p => (double)p.WaterLevel).ToArray();
 
-                tempPlot.Color = ScottPlot.Colors.Red;
-                tempPlot.LegendText = $"{Resources.Temperature}";
-                tempPlot.LineWidth = 2;
+                // --- DÜZELTME: Scatter nesnelerini yönetme ---
 
-                var rpmAxis = formsPlot1.Plot.Axes.AddLeftAxis();
-                rpmAxis.Label.Text = $"{Resources.devir}";
-                var rpmPlot = formsPlot1.Plot.Add.Scatter(
-                    dataPoints.Select(p => p.Timestamp.ToOADate()).ToArray(),
-                    dataPoints.Select(p => (double)p.Rpm).ToArray());
-                rpmPlot.Color = ScottPlot.Colors.Blue;
-                rpmPlot.LegendText = $"{Resources.devir}";
-                rpmPlot.Axes.YAxis = rpmAxis;
+                // Temp Scatter güncelleme veya oluşturma
+                if (_tempScatter == null || !formsPlotTemp.Plot.GetPlottables().Contains(_tempScatter))
+                {
+                    formsPlotTemp.Plot.Clear(); // Temizle
+                    formsPlotTemp.Plot.Title($"{_machine.MachineName} - {Resources.proseszamancizgisi} ({batchId})");
 
-                // YENİ EKLENEN KOD: Su Seviyesi (Water Level) verisini grafiğe ekle
-                var waterLevelAxis = formsPlot1.Plot.Axes.AddRightAxis();
-                waterLevelAxis.Label.Text = $"{Resources.suseviyesi}";
-                var waterLevelPlot = formsPlot1.Plot.Add.Scatter(
-                    dataPoints.Select(p => p.Timestamp.ToOADate()).ToArray(),
-                    dataPoints.Select(p => (double)p.WaterLevel).ToArray());
-                waterLevelPlot.Color = ScottPlot.Colors.Green; // Su seviyesi için yeşil renk
-                waterLevelPlot.LegendText = $"{Resources.suseviyesi}";
-                waterLevelPlot.Axes.YAxis = waterLevelAxis;
+                    _tempScatter = formsPlotTemp.Plot.Add.Scatter(xs, ysTemp);
+                    _tempScatter.Color = ScottPlot.Colors.Red;
+                    _tempScatter.LineWidth = 1;
+                    _tempScatter.MarkerSize = 0;
+                    formsPlotTemp.Plot.Axes.DateTimeTicksBottom();
+                }
+                else
+                {
+                    // Mevcut grafiği güncelle (daha performanslı)
+                    formsPlotTemp.Plot.Remove(_tempScatter);
+                    _tempScatter = formsPlotTemp.Plot.Add.Scatter(xs, ysTemp);
+                    _tempScatter.Color = ScottPlot.Colors.Red;
+                    _tempScatter.LineWidth = 1;
+                    _tempScatter.MarkerSize = 0;
+                }
 
+                // RPM Scatter güncelleme veya oluşturma
+                if (_rpmScatter == null || !formsPlotRpm.Plot.GetPlottables().Contains(_rpmScatter))
+                {
+                    formsPlotRpm.Plot.Clear();
+                    _rpmScatter = formsPlotRpm.Plot.Add.Scatter(xs, ysRpm);
+                    _rpmScatter.Color = ScottPlot.Colors.Green;
+                    _rpmScatter.LineWidth = 1;
+                    _rpmScatter.MarkerSize = 0;
+                    formsPlotRpm.Plot.Axes.DateTimeTicksBottom();
+                }
+                else
+                {
+                    formsPlotRpm.Plot.Remove(_rpmScatter);
+                    _rpmScatter = formsPlotRpm.Plot.Add.Scatter(xs, ysRpm);
+                    _rpmScatter.Color = ScottPlot.Colors.Green;
+                    _rpmScatter.LineWidth = 1;
+                    _rpmScatter.MarkerSize = 0;
+                }
 
-                formsPlot1.Plot.Axes.DateTimeTicksBottom();
-                formsPlot1.Plot.ShowLegend(ScottPlot.Alignment.UpperLeft);
-                formsPlot1.Plot.Axes.AutoScale();
-                formsPlot1.Refresh();
+                // Water Scatter güncelleme veya oluşturma
+                if (_waterScatter == null || !formsPlotWater.Plot.GetPlottables().Contains(_waterScatter))
+                {
+                    formsPlotWater.Plot.Clear();
+                    _waterScatter = formsPlotWater.Plot.Add.Scatter(xs, ysWater);
+                    _waterScatter.Color = ScottPlot.Colors.Blue;
+                    _waterScatter.LineWidth = 1;
+                    _waterScatter.MarkerSize = 0;
+                    formsPlotWater.Plot.Axes.DateTimeTicksBottom();
+                }
+                else
+                {
+                    formsPlotWater.Plot.Remove(_waterScatter);
+                    _waterScatter = formsPlotWater.Plot.Add.Scatter(xs, ysWater);
+                    _waterScatter.Color = ScottPlot.Colors.Blue;
+                    _waterScatter.LineWidth = 1;
+                    _waterScatter.MarkerSize = 0;
+                }
+
+                // Not: AutoScale her seferinde çağrılırsa kullanıcı zoom yapamaz. 
+                // Ancak sürekli akan bir veri olduğu için Y eksenini otomatize edebiliriz.
+                // X eksenini UpdateLiveGauges yönetiyor (Scrolling).
+
+                formsPlotTemp.Plot.Axes.AutoScaleY();
+                formsPlotRpm.Plot.Axes.AutoScaleY();
+                formsPlotWater.Plot.Axes.AutoScaleY();
+
+                formsPlotTemp.Refresh();
+                formsPlotRpm.Refresh();
+                formsPlotWater.Refresh();
             });
         }
 
-        // MakineDetay_Control.cs
         private void LoadTimelineChartForLive()
         {
+            // *** DEĞİŞİKLİK BURADA (BAŞLANGIÇ) ***
+            // Veri penceresini 360 dakika (6 saat) olarak ayarlıyoruz
+            int timeWindowMinutes = 360;
 
             SafeInvoke(() =>
             {
-                formsPlot1.Plot.Clear();
                 DateTime endTime = DateTime.Now;
-                // Son 5 saati (300 dakika) kapsayacak şekilde başlangıç zamanı
-                DateTime startTime = endTime.AddMinutes(-100);
+                DateTime startTime = endTime.AddMinutes(-timeWindowMinutes); // Geriye dönük 360 dakikalık veri
 
-                var dataPoints = _logRepository.GetManualLogs(_machine.Id, startTime, endTime);
-              
+                var dataPoints = _logRepository.GetManualLogs(_machine.Id, startTime, endTime);
+
                 if (!dataPoints.Any())
                 {
-                    formsPlot1.Plot.Clear();
-                    formsPlot1.Plot.Title($"{Resources.canlidata}");
-                    formsPlot1.Refresh();
+                    formsPlotTemp.Plot.Title($"{Resources.canlidata} (Veri Yok)");
+                    formsPlotTemp.Refresh();
+                    formsPlotRpm.Refresh();
+                    formsPlotWater.Refresh();
                     return;
                 }
 
                 double[] timeData = dataPoints.Select(p => p.Timestamp.ToOADate()).ToArray();
-                double[] tempData = dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray(); // DEĞİŞİKLİK
+                double[] tempData = dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray();
                 double[] rpmData = dataPoints.Select(p => (double)p.Rpm).ToArray();
                 double[] waterLevelData = dataPoints.Select(p => (double)p.WaterLevel).ToArray();
 
-                // Grafik nesneleri henüz oluşturulmadıysa (yani proses detay sayfası yeni açıldıysa)
-                if (_tempPlot == null)
+                if (_tempScatter == null)
                 {
-                    formsPlot1.Plot.Clear(); // İlk oluşturmada her şeyi temizle
-                    formsPlot1.Plot.Title($"{_machine.MachineName} - ${Resources.canliprosesdata}");
-                    formsPlot1.Plot.Axes.DateTimeTicksBottom();
-                    formsPlot1.Plot.ShowLegend(ScottPlot.Alignment.UpperLeft);
+                    formsPlotTemp.Plot.Clear(); formsPlotRpm.Plot.Clear(); formsPlotWater.Plot.Clear();
 
-                    // Sıcaklık Çizgisi
-                    _tempPlot = formsPlot1.Plot.Add.Scatter(timeData, tempData);
-                    _tempPlot.Color = ScottPlot.Colors.Red;
-                    _tempPlot.LegendText = $"{Resources.Temperature}";
-                    _tempPlot.LineWidth = 2;
+                    formsPlotTemp.Plot.Axes.DateTimeTicksBottom();
+                    formsPlotRpm.Plot.Axes.DateTimeTicksBottom();
+                    formsPlotWater.Plot.Axes.DateTimeTicksBottom();
 
-                    // Devir Çizgisi
-                    _rpmPlot = formsPlot1.Plot.Add.Scatter(timeData, rpmData);
-                    _rpmPlot.Color = ScottPlot.Colors.Blue;
-                    _rpmPlot.LegendText = $"{Resources.devir}";
+                    formsPlotTemp.Plot.Title($"{_machine.MachineName} - {Resources.canliprosesdata}");
 
-                    // Su Seviyesi Çizgisi
-                    _waterLevelPlot = formsPlot1.Plot.Add.Scatter(timeData, waterLevelData);
-                    _waterLevelPlot.Color = ScottPlot.Colors.Green;
-                    _waterLevelPlot.LegendText = $"{Resources.suseviyesi}";
+                    _tempScatter = formsPlotTemp.Plot.Add.Scatter(timeData, tempData);
+                    _tempScatter.Color = ScottPlot.Colors.Red;
+                    _tempScatter.LineWidth = 1;
+                    _tempScatter.MarkerSize = 0;
+                    formsPlotTemp.Plot.Axes.Left.Label.Text = Resources.Temperature;
+                    formsPlotTemp.Plot.Axes.Left.Label.ForeColor = ScottPlot.Colors.Red;
+                    formsPlotTemp.Plot.Axes.Left.TickLabelStyle.ForeColor = ScottPlot.Colors.Red;
 
-                    // SADECE İLK AÇILIŞTA EKSEN REFERANSLAMASI
-                    // X eksenini endTime'a (şu anki zamana) göre ayarla ve geçmiş 5 saati göster
-                    formsPlot1.Plot.Axes.SetLimitsX(startTime.ToOADate(), endTime.ToOADate());
+                    _rpmScatter = formsPlotRpm.Plot.Add.Scatter(timeData, rpmData);
+                    _rpmScatter.Color = ScottPlot.Colors.Green;
+                    _rpmScatter.LineWidth = 1;
+                    _rpmScatter.MarkerSize = 0;
+                    formsPlotRpm.Plot.Axes.Left.Label.Text = Resources.devir;
+                    formsPlotRpm.Plot.Axes.Left.Label.ForeColor = ScottPlot.Colors.Green;
+                    formsPlotRpm.Plot.Axes.Left.TickLabelStyle.ForeColor = ScottPlot.Colors.Green;
 
-                    // Y eksenlerini mevcut verilere göre otomatik ölçeklendir
-                    formsPlot1.Plot.Axes.AutoScaleY();
+                    _waterScatter = formsPlotWater.Plot.Add.Scatter(timeData, waterLevelData);
+                    _waterScatter.Color = ScottPlot.Colors.Blue;
+                    _waterScatter.LineWidth = 1;
+                    _waterScatter.MarkerSize = 0;
+                    formsPlotWater.Plot.Axes.Left.Label.Text = Resources.suseviyesi;
+                    formsPlotWater.Plot.Axes.Left.Label.ForeColor = ScottPlot.Colors.Blue;
+                    formsPlotWater.Plot.Axes.Left.TickLabelStyle.ForeColor = ScottPlot.Colors.Blue;
+
+                    // Sayfa ilk açıldığında otomatik 5 dakikalık zoom yapılıyor
+                    double startZoomOA = endTime.AddMinutes(-5).ToOADate(); // Son 5 dakikanın başlangıcı
+                    double endOA = endTime.ToOADate();
+
+                    // Grafik X eksen limitlerini son 5 dakikaya ayarla (otomatik zoom)
+                    formsPlotTemp.Plot.Axes.SetLimitsX(startZoomOA, endOA);
+                    formsPlotRpm.Plot.Axes.SetLimitsX(startZoomOA, endOA);
+                    formsPlotWater.Plot.Axes.SetLimitsX(startZoomOA, endOA);
+
+                    formsPlotTemp.Plot.Axes.AutoScaleY();
+                    formsPlotRpm.Plot.Axes.AutoScaleY();
+                    formsPlotWater.Plot.Axes.AutoScaleY();
                 }
                 else
                 {
-                    // Eğer grafik nesneleri zaten oluşturulduysa (yani sayfa açıkken sonraki güncellemeler geliyorsa)
-                    // Mevcut çizgi grafiklerini kaldır
-                    formsPlot1.Plot.Remove(_tempPlot);
-                    formsPlot1.Plot.Remove(_rpmPlot);
-                    formsPlot1.Plot.Remove(_waterLevelPlot);
+                    formsPlotTemp.Plot.Remove(_tempScatter);
+                    formsPlotRpm.Plot.Remove(_rpmScatter);
+                    formsPlotWater.Plot.Remove(_waterScatter);
 
-                    // Yeni verilerle çizgi grafiklerini yeniden oluştur ve formsPlot1.Plot'a ekle
-                    _tempPlot = formsPlot1.Plot.Add.Scatter(timeData, tempData);
-                    _tempPlot.Color = ScottPlot.Colors.Red;
-                    _tempPlot.LegendText = $"{Resources.Temperature}";
-                    _tempPlot.LineWidth = 2;
+                    _tempScatter = formsPlotTemp.Plot.Add.Scatter(timeData, tempData);
+                    _tempScatter.Color = ScottPlot.Colors.Red;
+                    _tempScatter.LineWidth = 1;
+                    _tempScatter.MarkerSize = 0;
+                    _rpmScatter = formsPlotRpm.Plot.Add.Scatter(timeData, rpmData);
+                    _rpmScatter.Color = ScottPlot.Colors.Green;
+                    _rpmScatter.LineWidth = 1;
+                    _rpmScatter.MarkerSize = 0;
+                    _waterScatter = formsPlotWater.Plot.Add.Scatter(timeData, waterLevelData);
+                    _waterScatter.Color = ScottPlot.Colors.Blue;
+                    _waterScatter.LineWidth = 1;
+                    _waterScatter.MarkerSize = 0;
 
-                    _rpmPlot = formsPlot1.Plot.Add.Scatter(timeData, rpmData);
-                    _rpmPlot.Color = ScottPlot.Colors.Blue;
-                    _rpmPlot.LegendText = $"{Resources.devir}";
+                    // Not: Yenilemelerde X ekseni limitleri SyncAxes metodu sayesinde korunur.
+                    // Bu nedenle burada tekrar zoom yapmaya gerek yoktur.
+                }
+                // *** DEĞİŞİKLİK BURADA (SON) ***
 
-                    _waterLevelPlot = formsPlot1.Plot.Add.Scatter(timeData, waterLevelData);
-                    _waterLevelPlot.Color = ScottPlot.Colors.Green;
-                    _waterLevelPlot.LegendText = $"{Resources.suseviyesi}";
-
-                    // Sonraki güncellemelerde eksen limitlerini otomatik olarak değiştirmeyin,
-                    // kullanıcının yaptığı zoom ve kaydırmaları koruyun.
-                    // Sadece yeni veri mevcut görünümün dışına taştığında X eksenini biraz kaydırabilirsiniz.
-                    // Bu kısım, kullanıcı etkileşimini korumak için önemlidir.
-
-                    // Opsiyonel: Eğer kullanıcı herhangi bir zoom veya kaydırma yapmadıysa ve son veri
-                    // görünür alanın dışına çıktıysa, görünümü son veriye kaydırabiliriz.
-                    var xRange = formsPlot1.Plot.Axes.Bottom.Range;
-                    if (timeData.Any() && timeData.Last() > xRange.Max)
-                    {
-                        // Mevcut aralığı koruyarak sadece sonuna eklemek için
-                        // formsPlot1.Plot.Axes.SetLimitsX(xRange.Min, timeData.Last() + xRange.Span * 0.05);
-                        // Veya daha basitçe, tüm aralığı en yeni veriye göre güncelle:
-                        formsPlot1.Plot.Axes.SetLimitsX(startTime.ToOADate(), endTime.ToOADate());
-                        // Y ekseni için de benzer bir mantık düşünebilirsiniz veya AutoScaleY() çağırarak güncelleyebilirsiniz.
-                        // formsPlot1.Plot.Axes.AutoScaleY(); 
-                    }
-                }
-
-                formsPlot1.Refresh();
+                formsPlotTemp.Refresh();
+                formsPlotRpm.Refresh();
+                formsPlotWater.Refresh();
             });
-        }
-
-        private void ClearAllFieldsWithMessage(string message)
-        {
-            ClearBatchSpecificFieldsWithMessage(message);
-            lblReceteAdi.Text = "---";
-            lblOperator.Text = "---";
-            lblMusteriNo.Text = "---";
-            lblBatchNo.Text = "---";
-            lblSiparisNo.Text = "---";
-            lblCalisanAdim.Text = "---";
         }
 
         private void ClearBatchSpecificFieldsWithMessage(string message)
         {
             lstAlarmlar.DataSource = new List<string> { message };
             dgvAdimlar.DataSource = null;
-            formsPlot1.Plot.Clear();
-            formsPlot1.Plot.Title(message);
-            formsPlot1.Refresh();
+            formsPlotTemp.Plot.Clear(); formsPlotTemp.Plot.Title(message); formsPlotTemp.Refresh();
+            formsPlotRpm.Plot.Clear(); formsPlotRpm.Refresh();
+            formsPlotWater.Plot.Clear(); formsPlotWater.Refresh();
         }
 
         private void HighlightCurrentStep(int currentStepNumber)
         {
             foreach (DataGridViewRow row in dgvAdimlar.Rows)
             {
-                // Önce hücrenin ve değerinin null olup olmadığını kontrol et
                 if (row.Cells["Adım"] != null && row.Cells["Adım"].Value != null)
                 {
-                    // Güvenli çevirme için int.TryParse kullan
                     if (int.TryParse(row.Cells["Adım"].Value.ToString(), out int stepValue))
                     {
-                        // Eğer çevirme başarılı olursa, mevcut adımla karşılaştır
                         if (stepValue == currentStepNumber)
                         {
-                            row.DefaultCellStyle.BackColor = Color.LightGreen;
-                            row.DefaultCellStyle.Font = new Font(dgvAdimlar.Font, FontStyle.Bold);
+                            row.DefaultCellStyle.BackColor = System.Drawing.Color.LightGreen;
+                            row.DefaultCellStyle.Font = new System.Drawing.Font(dgvAdimlar.Font, System.Drawing.FontStyle.Bold);
                         }
                         else
                         {
-                            row.DefaultCellStyle.BackColor = Color.White;
-                            row.DefaultCellStyle.Font = new Font(dgvAdimlar.Font, FontStyle.Regular);
+                            row.DefaultCellStyle.BackColor = System.Drawing.Color.White;
+                            row.DefaultCellStyle.Font = new System.Drawing.Font(dgvAdimlar.Font, System.Drawing.FontStyle.Regular);
                         }
                     }
                     else
                     {
-                        // Değer bir sayı değilse (örn: "...", "!"), satırı varsayılan renge boya
-                        row.DefaultCellStyle.BackColor = Color.White;
-                        row.DefaultCellStyle.Font = new Font(dgvAdimlar.Font, FontStyle.Regular);
+                        row.DefaultCellStyle.BackColor = System.Drawing.Color.White;
+                        row.DefaultCellStyle.Font = new System.Drawing.Font(dgvAdimlar.Font, System.Drawing.FontStyle.Regular);
                     }
                 }
             }
@@ -487,96 +745,96 @@ namespace TekstilScada.UI.Views
             return string.Join(" + ", stepTypes);
         }
 
-        private Color GetTemperatureColor(int temp)
+        // --- RENK HESAPLAMA ---
+        private System.Drawing.Color GetTemperatureColor(int temp)
         {
-            if (temp < 40) return Color.DodgerBlue;
-            if (temp < 60) return Color.SeaGreen;
-            if (temp < 90) return Color.Orange;
-            return Color.Crimson;
+            if (temp < 40) return System.Drawing.Color.DodgerBlue;
+            if (temp < 60) return System.Drawing.Color.SeaGreen;
+            if (temp < 90) return System.Drawing.Color.Orange;
+            return System.Drawing.Color.Crimson;
         }
 
-        private void progressTemp_Paint(object sender, PaintEventArgs e)
+        // --- CUSTOM PAINT METODU (DİKEY BAR) ---
+        private void progressTemp_Paint(object sender, PaintEventArgs e)
         {
-            // Sender'ı bir Panel olarak alıyoruz
-            Panel barPanel = sender as Panel;
-            if (barPanel == null || barPanel.Tag == null) return; // Tag kontrolü eklendi
+            // Panel olup olmadığını kontrol et (Eğer hala ProgressBar ise Panel'e çevirin!)
+            Control barControl = sender as Control;
+            if (barControl == null) return;
 
-            // Tag'den anlık değeri alıyoruz (eğer short atadıysanız short, int atadıysanız int olarak çekin)
-            int currentValue = Convert.ToInt32(barPanel.Tag);
-            int maximumValue = 1500; // Max değeri burada sabit tuttuk (önceki gibi 150)
-
-            // Değerin ProgressBar aralığında olduğundan emin olalım
-            currentValue = Math.Max(0, Math.Min(maximumValue, currentValue));
-
-            int controlWidth = barPanel.Width;
-            int controlHeight = barPanel.Height;
-
-            // Tüm arka planı temizle (varsayılan çizim müdahalesi olmayacak)
-            e.Graphics.FillRectangle(new SolidBrush(Color.WhiteSmoke), 0, 0, controlWidth, controlHeight);
-
-            // Dolu olması gereken yüksekliği hesapla
-            int filledHeight = (int)(controlHeight * ((double)currentValue / maximumValue));
-
-            // Dolu alanı çizeceğimiz dikdörtgeni tanımla
-            Rectangle filledRect = new Rectangle(
-                0, // X başlangıcı: Kontrolün sol kenarından başla
-                controlHeight - filledHeight, // Y başlangıcı: Aşağıdan yukarıya dolum için
-                controlWidth, // Genişlik: Kontrolün tam genişliğini kullan
-                filledHeight // Yükseklik: Hesaplanan dolu alan yüksekliği
-            );
-
-            // Dolu alanı çiz
-            e.Graphics.FillRectangle(new SolidBrush(GetTemperatureColor(currentValue)), filledRect);
-
-            // Kenarlık çiz
-            using (Pen borderPen = new Pen(Color.LightGray, 1))
+            // Değeri Tag'den oku
+            float currentValue = 0;
+            if (barControl.Tag != null)
             {
-                e.Graphics.DrawRectangle(borderPen, 0, 0, controlWidth - 1, controlHeight - 1);
+                try { currentValue = Convert.ToSingle(barControl.Tag); } catch { }
+            }
+
+            // Maksimum değer (Termometre için 150 mantıklıdır, ancak kodunuzda 100f kullanılmış)
+            float maximumValue = 100f; // Burayı 150f yapmak isterseniz değiştirebilirsiniz
+
+            // Sınırla
+            currentValue = Math.Max(0, Math.Min(maximumValue, currentValue));
+
+            // Boyutlar
+            int w = barControl.Width;
+            int h = barControl.Height;
+
+            // Arka Plan (Temizle)
+            e.Graphics.FillRectangle(new SolidBrush(System.Drawing.Color.WhiteSmoke), 0, 0, w, h);
+
+            // Doluluk Oranı
+            float ratio = currentValue / maximumValue;
+            int fillHeight = (int)(h * ratio);
+
+            // Y Koordinatı (Aşağıdan yukarı dolması için: Toplam Boy - Dolu Boy)
+            int yPos = h - fillHeight;
+
+            // Çizim
+            Rectangle filledRect = new Rectangle(0, yPos, w, fillHeight);
+
+            // *** BURADA DEĞİŞİKLİK YAPILDI ***
+            // Sabit kırmızı renk (System.Drawing.Color.Red) kullanılıyor
+            using (SolidBrush brush = new SolidBrush(System.Drawing.Color.Red)) // Rengi direkt kırmızı yaptık
+            {
+                e.Graphics.FillRectangle(brush, filledRect);
+            }
+            // **********************************
+
+            // Çerçeve
+            using (Pen borderPen = new Pen(System.Drawing.Color.LightGray, 1))
+            {
+                e.Graphics.DrawRectangle(borderPen, 0, 0, w - 1, h - 1);
             }
         }
 
-        private void lblMakineAdi_Click(object sender, EventArgs e)
-        {
-
-        }
+        // ... Kalan olaylar ...
+        private void lblMakineAdi_Click(object sender, EventArgs e) { }
 
         private void SafeInvoke(Action action)
         {
             if (this.IsHandleCreated && !this.IsDisposed)
             {
-                try { this.BeginInvoke(action); }
-                catch (Exception) { /* Form kapatılırken oluşabilecek hataları yoksay */ }
+                try { this.BeginInvoke(action); } catch (Exception) { }
             }
         }
-        // Bu iki yeni metodu sınıfın içine ekleyin
+
         private void OnAlarmStateChanged(int machineId, FullMachineStatus status)
         {
-            // Sadece ilgili makinede ve form açıkken çalış
             if (machineId == _machine.Id && this.IsHandleCreated && !this.IsDisposed)
-            {
-                // Sadece alarm durumu değiştiğinde listeyi güncellemek için UI thread'ine güvenli bir çağrı yap
                 this.BeginInvoke(new Action(UpdateAlarmList));
-            }
         }
 
         private void UpdateAlarmList()
         {
-            // Sadece canlı izleme modundaysak (geçmiş bir rapora bakmıyorsak) çalış
             if (string.IsNullOrEmpty(_lastLoadedBatchIdForChart))
             {
                 var activeAlarms = _pollingService.GetActiveAlarmsForMachine(_machine.Id);
                 List<string> newAlarmList;
 
                 if (activeAlarms.Any())
-                {
                     newAlarmList = activeAlarms.Select(a => $"#{a.AlarmNumber}: {a.AlarmText}").ToList();
-                }
                 else
-                {
                     newAlarmList = new List<string> { $"{Resources.aktifalarmyok}" };
-                }
 
-                // Sadece yeni alarm listesi eskisinden farklıysa arayüzü güncelle
                 if (!_currentlyDisplayedAlarms.SequenceEqual(newAlarmList))
                 {
                     _currentlyDisplayedAlarms = newAlarmList;
@@ -584,22 +842,20 @@ namespace TekstilScada.UI.Views
                 }
             }
         }
+
         protected override void OnHandleDestroyed(EventArgs e)
         {
             if (_pollingService != null)
             {
                 _pollingService.OnMachineDataRefreshed -= OnDataRefreshed;
                 _pollingService.OnMachineConnectionStateChanged -= OnConnectionStateChanged;
-                _pollingService.OnActiveAlarmStateChanged -= OnAlarmStateChanged; // BU SATIRI EKLEYİN
+                _pollingService.OnActiveAlarmStateChanged -= OnAlarmStateChanged;
             }
             _uiUpdateTimer?.Stop();
             _uiUpdateTimer?.Dispose();
             base.OnHandleDestroyed(e);
         }
 
-        private void pnlAlarmsAndSteps_Paint(object sender, PaintEventArgs e)
-        {
-
-        }
+        private void pnlAlarmsAndSteps_Paint(object sender, PaintEventArgs e) { }
     }
 }

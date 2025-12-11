@@ -7,279 +7,271 @@
         #region Component Designer generated code
         private void InitializeComponent()
         {
-            this.pnlHeader = new System.Windows.Forms.Panel();
-            this.flpTopKpis = new System.Windows.Forms.FlowLayoutPanel();
-            this.pnlMain = new System.Windows.Forms.Panel();
-            this.tlpMainLayout = new System.Windows.Forms.TableLayoutPanel();
-            this.flpMachineGroups = new System.Windows.Forms.FlowLayoutPanel();
-            this.pnlSidebar = new System.Windows.Forms.Panel();
-            this.tlpSidebarLayout = new System.Windows.Forms.TableLayoutPanel();
-            this.gbTopAlarms = new System.Windows.Forms.GroupBox();
-            this.formsPlotTopAlarms = new ScottPlot.WinForms.FormsPlot();
-            this.gbHourlyConsumptionSteam = new System.Windows.Forms.GroupBox();
-            this.formsPlotHourlySteam = new ScottPlot.WinForms.FormsPlot();
-            this.gbHourlyConsumptionWater = new System.Windows.Forms.GroupBox();
-            this.formsPlotHourlyWater = new ScottPlot.WinForms.FormsPlot();
-            this.gbHourlyConsumption = new System.Windows.Forms.GroupBox();
-            this.formsPlotHourly = new ScottPlot.WinForms.FormsPlot();
-            // YENİ KOD BAŞLANGICI
-            this.gbHourlyOee = new System.Windows.Forms.GroupBox();
-            this.formsPlotHourlyOee = new ScottPlot.WinForms.FormsPlot();
-            // YENİ KOD BİTİŞİ
-            this.pnlHeader.SuspendLayout();
-            this.pnlMain.SuspendLayout();
-            this.tlpMainLayout.SuspendLayout();
-            this.pnlSidebar.SuspendLayout();
-            this.tlpSidebarLayout.SuspendLayout();
-            this.gbTopAlarms.SuspendLayout();
-            this.gbHourlyConsumptionSteam.SuspendLayout();
-            this.gbHourlyConsumptionWater.SuspendLayout();
-            this.gbHourlyConsumption.SuspendLayout();
-            // YENİ KOD BAŞLANGICI
-            this.gbHourlyOee.SuspendLayout();
-            // YENİ KOD BİTİŞİ
-            this.SuspendLayout();
+            pnlHeader = new Panel();
+            flpTopKpis = new FlowLayoutPanel();
+            pnlMain = new Panel();
+            tlpMainLayout = new TableLayoutPanel();
+            flpMachineGroups = new FlowLayoutPanel();
+            pnlSidebar = new Panel();
+            tlpSidebarLayout = new TableLayoutPanel();
+            gbTopAlarms = new GroupBox();
+            formsPlotTopAlarms = new ScottPlot.WinForms.FormsPlot();
+            gbHourlyConsumptionSteam = new GroupBox();
+            formsPlotHourlySteam = new ScottPlot.WinForms.FormsPlot();
+            gbHourlyConsumptionWater = new GroupBox();
+            formsPlotHourlyWater = new ScottPlot.WinForms.FormsPlot();
+            gbHourlyConsumption = new GroupBox();
+            formsPlotHourly = new ScottPlot.WinForms.FormsPlot();
+            gbHourlyOee = new GroupBox();
+            formsPlotHourlyOee = new ScottPlot.WinForms.FormsPlot();
+            pnlHeader.SuspendLayout();
+            pnlMain.SuspendLayout();
+            tlpMainLayout.SuspendLayout();
+            pnlSidebar.SuspendLayout();
+            tlpSidebarLayout.SuspendLayout();
+            gbTopAlarms.SuspendLayout();
+            gbHourlyConsumptionSteam.SuspendLayout();
+            gbHourlyConsumptionWater.SuspendLayout();
+            gbHourlyConsumption.SuspendLayout();
+            gbHourlyOee.SuspendLayout();
+            SuspendLayout();
             // 
             // pnlHeader
             // 
-            this.pnlHeader.BackColor = System.Drawing.Color.White;
-            this.pnlHeader.Controls.Add(this.flpTopKpis);
-            this.pnlHeader.Dock = System.Windows.Forms.DockStyle.Top;
-            this.pnlHeader.Location = new System.Drawing.Point(9, 8);
-            this.pnlHeader.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.pnlHeader.Name = "pnlHeader";
-            this.pnlHeader.Padding = new System.Windows.Forms.Padding(4);
-            this.pnlHeader.Size = new System.Drawing.Size(1032, 75);
-            this.pnlHeader.TabIndex = 0;
+            pnlHeader.BackColor = Color.White;
+            pnlHeader.Controls.Add(flpTopKpis);
+            pnlHeader.Dock = DockStyle.Top;
+            pnlHeader.Location = new Point(9, 8);
+            pnlHeader.Margin = new Padding(3, 2, 3, 2);
+            pnlHeader.Name = "pnlHeader";
+            pnlHeader.Padding = new Padding(4);
+            pnlHeader.Size = new Size(1032, 75);
+            pnlHeader.TabIndex = 0;
             // 
             // flpTopKpis
             // 
-            this.flpTopKpis.BackColor = System.Drawing.Color.White;
-            this.flpTopKpis.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.flpTopKpis.Location = new System.Drawing.Point(4, 4);
-            this.flpTopKpis.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.flpTopKpis.Name = "flpTopKpis";
-            this.flpTopKpis.Size = new System.Drawing.Size(1024, 67);
-            this.flpTopKpis.TabIndex = 0;
+            flpTopKpis.BackColor = Color.White;
+            flpTopKpis.Dock = DockStyle.Fill;
+            flpTopKpis.Location = new Point(4, 4);
+            flpTopKpis.Margin = new Padding(3, 2, 3, 2);
+            flpTopKpis.Name = "flpTopKpis";
+            flpTopKpis.Size = new Size(1024, 67);
+            flpTopKpis.TabIndex = 0;
             // 
             // pnlMain
             // 
-            this.pnlMain.Controls.Add(this.tlpMainLayout);
-            this.pnlMain.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pnlMain.Location = new System.Drawing.Point(9, 83);
-            this.pnlMain.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.pnlMain.Name = "pnlMain";
-            this.pnlMain.Size = new System.Drawing.Size(1032, 509);
-            this.pnlMain.TabIndex = 2;
+            pnlMain.Controls.Add(tlpMainLayout);
+            pnlMain.Dock = DockStyle.Fill;
+            pnlMain.Location = new Point(9, 83);
+            pnlMain.Margin = new Padding(3, 2, 3, 2);
+            pnlMain.Name = "pnlMain";
+            pnlMain.Size = new Size(1032, 509);
+            pnlMain.TabIndex = 2;
             // 
             // tlpMainLayout
             // 
-            this.tlpMainLayout.ColumnCount = 2;
-            this.tlpMainLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tlpMainLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 306F));
-            this.tlpMainLayout.Controls.Add(this.flpMachineGroups, 0, 0);
-            this.tlpMainLayout.Controls.Add(this.pnlSidebar, 1, 0);
-            this.tlpMainLayout.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tlpMainLayout.Location = new System.Drawing.Point(0, 0);
-            this.tlpMainLayout.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.tlpMainLayout.Name = "tlpMainLayout";
-            this.tlpMainLayout.RowCount = 1;
-            this.tlpMainLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tlpMainLayout.Size = new System.Drawing.Size(1032, 509);
-            this.tlpMainLayout.TabIndex = 0;
+            tlpMainLayout.ColumnCount = 2;
+            tlpMainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            tlpMainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 306F));
+            tlpMainLayout.Controls.Add(flpMachineGroups, 0, 0);
+            tlpMainLayout.Controls.Add(pnlSidebar, 1, 0);
+            tlpMainLayout.Dock = DockStyle.Fill;
+            tlpMainLayout.Location = new Point(0, 0);
+            tlpMainLayout.Margin = new Padding(3, 2, 3, 2);
+            tlpMainLayout.Name = "tlpMainLayout";
+            tlpMainLayout.RowCount = 1;
+            tlpMainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            tlpMainLayout.Size = new Size(1032, 509);
+            tlpMainLayout.TabIndex = 0;
             // 
             // flpMachineGroups
             // 
-            this.flpMachineGroups.AutoScroll = true;
-            this.flpMachineGroups.BackColor = System.Drawing.SystemColors.Control;
-            this.flpMachineGroups.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.flpMachineGroups.Location = new System.Drawing.Point(3, 2);
-            this.flpMachineGroups.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.flpMachineGroups.Name = "flpMachineGroups";
-            this.flpMachineGroups.Padding = new System.Windows.Forms.Padding(4);
-            this.flpMachineGroups.Size = new System.Drawing.Size(720, 505);
-            this.flpMachineGroups.TabIndex = 1;
+            flpMachineGroups.AutoScroll = true;
+            flpMachineGroups.BackColor = SystemColors.Control;
+            flpMachineGroups.Dock = DockStyle.Fill;
+            flpMachineGroups.Location = new Point(3, 2);
+            flpMachineGroups.Margin = new Padding(3, 2, 3, 2);
+            flpMachineGroups.Name = "flpMachineGroups";
+            flpMachineGroups.Padding = new Padding(4);
+            flpMachineGroups.Size = new Size(720, 505);
+            flpMachineGroups.TabIndex = 1;
             // 
             // pnlSidebar
             // 
-            this.pnlSidebar.Controls.Add(this.tlpSidebarLayout);
-            this.pnlSidebar.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pnlSidebar.Location = new System.Drawing.Point(729, 2);
-            this.pnlSidebar.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.pnlSidebar.Name = "pnlSidebar";
-            this.pnlSidebar.Size = new System.Drawing.Size(300, 505);
-            this.pnlSidebar.TabIndex = 2;
+            pnlSidebar.Controls.Add(tlpSidebarLayout);
+            pnlSidebar.Dock = DockStyle.Fill;
+            pnlSidebar.Location = new Point(729, 2);
+            pnlSidebar.Margin = new Padding(3, 2, 3, 2);
+            pnlSidebar.Name = "pnlSidebar";
+            pnlSidebar.Size = new Size(300, 505);
+            pnlSidebar.TabIndex = 2;
             // 
             // tlpSidebarLayout
             // 
-            this.tlpSidebarLayout.ColumnCount = 1;
-            // GÜNCELLENDİ: Satır sayısı 4'ten 5'e çıkarıldı
-            this.tlpSidebarLayout.RowCount = 5;
-            this.tlpSidebarLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            // GÜNCELLENDİ: Tüm satırların boyutu %20 olarak ayarlandı
-            this.tlpSidebarLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
-            this.tlpSidebarLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
-            this.tlpSidebarLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
-            this.tlpSidebarLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
-            this.tlpSidebarLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F)); // YENİ SATIR
-            this.tlpSidebarLayout.Controls.Add(this.gbTopAlarms, 0, 3);
-            this.tlpSidebarLayout.Controls.Add(this.gbHourlyConsumptionSteam, 0, 2);
-            this.tlpSidebarLayout.Controls.Add(this.gbHourlyConsumptionWater, 0, 1);
-            this.tlpSidebarLayout.Controls.Add(this.gbHourlyConsumption, 0, 0);
-            this.tlpSidebarLayout.Controls.Add(this.gbHourlyOee, 0, 4); // YENİ: Grup kutusu 5. satıra eklendi
-            this.tlpSidebarLayout.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tlpSidebarLayout.Location = new System.Drawing.Point(0, 0);
-            this.tlpSidebarLayout.Name = "tlpSidebarLayout";
-            this.tlpSidebarLayout.Size = new System.Drawing.Size(300, 505);
-            this.tlpSidebarLayout.TabIndex = 0;
+            tlpSidebarLayout.ColumnCount = 1;
+            tlpSidebarLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            tlpSidebarLayout.Controls.Add(gbTopAlarms, 0, 3);
+            tlpSidebarLayout.Controls.Add(gbHourlyConsumptionSteam, 0, 2);
+            tlpSidebarLayout.Controls.Add(gbHourlyConsumptionWater, 0, 1);
+            tlpSidebarLayout.Controls.Add(gbHourlyConsumption, 0, 0);
+            tlpSidebarLayout.Controls.Add(gbHourlyOee, 0, 4);
+            tlpSidebarLayout.Dock = DockStyle.Fill;
+            tlpSidebarLayout.Location = new Point(0, 0);
+            tlpSidebarLayout.Name = "tlpSidebarLayout";
+            tlpSidebarLayout.RowCount = 5;
+            tlpSidebarLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 20F));
+            tlpSidebarLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 20F));
+            tlpSidebarLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 20F));
+            tlpSidebarLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 20F));
+            tlpSidebarLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 20F));
+            tlpSidebarLayout.Size = new Size(300, 505);
+            tlpSidebarLayout.TabIndex = 0;
             // 
             // gbTopAlarms
             // 
-            this.gbTopAlarms.Controls.Add(this.formsPlotTopAlarms);
-            this.gbTopAlarms.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.gbTopAlarms.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold);
-            this.gbTopAlarms.Location = new System.Drawing.Point(3, 303);
-            this.gbTopAlarms.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.gbTopAlarms.Name = "gbTopAlarms";
-            this.gbTopAlarms.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.gbTopAlarms.Size = new System.Drawing.Size(294, 98);
-            this.gbTopAlarms.TabIndex = 3;
-            this.gbTopAlarms.TabStop = false;
-            this.gbTopAlarms.Text = "Son 24 Saatin Popüler Alarmları";
+            gbTopAlarms.Controls.Add(formsPlotTopAlarms);
+            gbTopAlarms.Dock = DockStyle.Fill;
+            gbTopAlarms.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
+            gbTopAlarms.Location = new Point(3, 305);
+            gbTopAlarms.Margin = new Padding(3, 2, 3, 2);
+            gbTopAlarms.Name = "gbTopAlarms";
+            gbTopAlarms.Padding = new Padding(3, 2, 3, 2);
+            gbTopAlarms.Size = new Size(294, 97);
+            gbTopAlarms.TabIndex = 3;
+            gbTopAlarms.TabStop = false;
+            gbTopAlarms.Text = "Son 24 Saatin Popüler Alarmları";
             // 
             // formsPlotTopAlarms
             // 
-            this.formsPlotTopAlarms.DisplayScale = 1F;
-            this.formsPlotTopAlarms.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.formsPlotTopAlarms.Location = new System.Drawing.Point(3, 20);
-            this.formsPlotTopAlarms.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.formsPlotTopAlarms.Name = "formsPlotTopAlarms";
-            this.formsPlotTopAlarms.Size = new System.Drawing.Size(288, 76);
-            this.formsPlotTopAlarms.TabIndex = 0;
+            formsPlotTopAlarms.DisplayScale = 1F;
+            formsPlotTopAlarms.Dock = DockStyle.Fill;
+            formsPlotTopAlarms.Location = new Point(3, 20);
+            formsPlotTopAlarms.Margin = new Padding(3, 2, 3, 2);
+            formsPlotTopAlarms.Name = "formsPlotTopAlarms";
+            formsPlotTopAlarms.Size = new Size(288, 75);
+            formsPlotTopAlarms.TabIndex = 0;
             // 
             // gbHourlyConsumptionSteam
             // 
-            this.gbHourlyConsumptionSteam.Controls.Add(this.formsPlotHourlySteam);
-            this.gbHourlyConsumptionSteam.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.gbHourlyConsumptionSteam.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold);
-            this.gbHourlyConsumptionSteam.Location = new System.Drawing.Point(3, 203);
-            this.gbHourlyConsumptionSteam.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.gbHourlyConsumptionSteam.Name = "gbHourlyConsumptionSteam";
-            this.gbHourlyConsumptionSteam.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.gbHourlyConsumptionSteam.Size = new System.Drawing.Size(294, 98);
-            this.gbHourlyConsumptionSteam.TabIndex = 2;
-            this.gbHourlyConsumptionSteam.TabStop = false;
-            this.gbHourlyConsumptionSteam.Text = "Saatlik Buhar Tüketimi";
+            gbHourlyConsumptionSteam.Controls.Add(formsPlotHourlySteam);
+            gbHourlyConsumptionSteam.Dock = DockStyle.Fill;
+            gbHourlyConsumptionSteam.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
+            gbHourlyConsumptionSteam.Location = new Point(3, 204);
+            gbHourlyConsumptionSteam.Margin = new Padding(3, 2, 3, 2);
+            gbHourlyConsumptionSteam.Name = "gbHourlyConsumptionSteam";
+            gbHourlyConsumptionSteam.Padding = new Padding(3, 2, 3, 2);
+            gbHourlyConsumptionSteam.Size = new Size(294, 97);
+            gbHourlyConsumptionSteam.TabIndex = 2;
+            gbHourlyConsumptionSteam.TabStop = false;
+            gbHourlyConsumptionSteam.Text = "Saatlik Buhar Tüketimi";
             // 
             // formsPlotHourlySteam
             // 
-            this.formsPlotHourlySteam.DisplayScale = 1F;
-            this.formsPlotHourlySteam.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.formsPlotHourlySteam.Location = new Point(3, 20);
-            this.formsPlotHourlySteam.Margin = new Padding(3, 2, 3, 2);
-            this.formsPlotHourlySteam.Name = "formsPlotHourlySteam";
-            this.formsPlotHourlySteam.Size = new Size(288, 76);
-            this.formsPlotHourlySteam.TabIndex = 0;
+            formsPlotHourlySteam.DisplayScale = 1F;
+            formsPlotHourlySteam.Dock = DockStyle.Fill;
+            formsPlotHourlySteam.Location = new Point(3, 20);
+            formsPlotHourlySteam.Margin = new Padding(3, 2, 3, 2);
+            formsPlotHourlySteam.Name = "formsPlotHourlySteam";
+            formsPlotHourlySteam.Size = new Size(288, 75);
+            formsPlotHourlySteam.TabIndex = 0;
             // 
             // gbHourlyConsumptionWater
             // 
-            this.gbHourlyConsumptionWater.Controls.Add(this.formsPlotHourlyWater);
-            this.gbHourlyConsumptionWater.Dock = DockStyle.Fill;
-            this.gbHourlyConsumptionWater.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
-            this.gbHourlyConsumptionWater.Location = new Point(3, 103);
-            this.gbHourlyConsumptionWater.Margin = new Padding(3, 2, 3, 2);
-            this.gbHourlyConsumptionWater.Name = "gbHourlyConsumptionWater";
-            this.gbHourlyConsumptionWater.Padding = new Padding(3, 2, 3, 2);
-            this.gbHourlyConsumptionWater.Size = new Size(294, 98);
-            this.gbHourlyConsumptionWater.TabIndex = 1;
-            this.gbHourlyConsumptionWater.TabStop = false;
-            this.gbHourlyConsumptionWater.Text = "Saatlik Su Tüketimi";
+            gbHourlyConsumptionWater.Controls.Add(formsPlotHourlyWater);
+            gbHourlyConsumptionWater.Dock = DockStyle.Fill;
+            gbHourlyConsumptionWater.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
+            gbHourlyConsumptionWater.Location = new Point(3, 103);
+            gbHourlyConsumptionWater.Margin = new Padding(3, 2, 3, 2);
+            gbHourlyConsumptionWater.Name = "gbHourlyConsumptionWater";
+            gbHourlyConsumptionWater.Padding = new Padding(3, 2, 3, 2);
+            gbHourlyConsumptionWater.Size = new Size(294, 97);
+            gbHourlyConsumptionWater.TabIndex = 1;
+            gbHourlyConsumptionWater.TabStop = false;
+            gbHourlyConsumptionWater.Text = "Saatlik Su Tüketimi";
             // 
             // formsPlotHourlyWater
             // 
-            this.formsPlotHourlyWater.DisplayScale = 1F;
-            this.formsPlotHourlyWater.Dock = DockStyle.Fill;
-            this.formsPlotHourlyWater.Location = new Point(3, 20);
-            this.formsPlotHourlyWater.Margin = new Padding(3, 2, 3, 2);
-            this.formsPlotHourlyWater.Name = "formsPlotHourlyWater";
-            this.formsPlotHourlyWater.Size = new Size(288, 76);
-            this.formsPlotHourlyWater.TabIndex = 0;
+            formsPlotHourlyWater.DisplayScale = 1F;
+            formsPlotHourlyWater.Dock = DockStyle.Fill;
+            formsPlotHourlyWater.Location = new Point(3, 20);
+            formsPlotHourlyWater.Margin = new Padding(3, 2, 3, 2);
+            formsPlotHourlyWater.Name = "formsPlotHourlyWater";
+            formsPlotHourlyWater.Size = new Size(288, 75);
+            formsPlotHourlyWater.TabIndex = 0;
             // 
             // gbHourlyConsumption
             // 
-            this.gbHourlyConsumption.Controls.Add(this.formsPlotHourly);
-            this.gbHourlyConsumption.Dock = DockStyle.Fill;
-            this.gbHourlyConsumption.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
-            this.gbHourlyConsumption.Location = new Point(3, 3);
-            this.gbHourlyConsumption.Margin = new Padding(3, 2, 3, 2);
-            this.gbHourlyConsumption.Name = "gbHourlyConsumption";
-            this.gbHourlyConsumption.Padding = new Padding(3, 2, 3, 2);
-            this.gbHourlyConsumption.Size = new Size(294, 98);
-            this.gbHourlyConsumption.TabIndex = 0;
-            this.gbHourlyConsumption.TabStop = false;
-            this.gbHourlyConsumption.Text = "Saatlik Elektrik Tüketimi";
+            gbHourlyConsumption.Controls.Add(formsPlotHourly);
+            gbHourlyConsumption.Dock = DockStyle.Fill;
+            gbHourlyConsumption.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
+            gbHourlyConsumption.Location = new Point(3, 2);
+            gbHourlyConsumption.Margin = new Padding(3, 2, 3, 2);
+            gbHourlyConsumption.Name = "gbHourlyConsumption";
+            gbHourlyConsumption.Padding = new Padding(3, 2, 3, 2);
+            gbHourlyConsumption.Size = new Size(294, 97);
+            gbHourlyConsumption.TabIndex = 0;
+            gbHourlyConsumption.TabStop = false;
+            gbHourlyConsumption.Text = "Saatlik Elektrik Tüketimi";
             // 
             // formsPlotHourly
             // 
-            this.formsPlotHourly.DisplayScale = 1F;
-            this.formsPlotHourly.Dock = DockStyle.Fill;
-            this.formsPlotHourly.Location = new Point(3, 20);
-            this.formsPlotHourly.Margin = new Padding(3, 2, 3, 2);
-            this.formsPlotHourly.Name = "formsPlotHourly";
-            this.formsPlotHourly.Size = new Size(288, 76);
-            this.formsPlotHourly.TabIndex = 0;
+            formsPlotHourly.DisplayScale = 1F;
+            formsPlotHourly.Dock = DockStyle.Fill;
+            formsPlotHourly.Location = new Point(3, 20);
+            formsPlotHourly.Margin = new Padding(3, 2, 3, 2);
+            formsPlotHourly.Name = "formsPlotHourly";
+            formsPlotHourly.Size = new Size(288, 75);
+            formsPlotHourly.TabIndex = 0;
             // 
-            // YENİ KOD BAŞLANGICI
             // gbHourlyOee
             // 
-            this.gbHourlyOee.Controls.Add(this.formsPlotHourlyOee);
-            this.gbHourlyOee.Dock = DockStyle.Fill;
-            this.gbHourlyOee.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
-            this.gbHourlyOee.Location = new Point(3, 403);
-            this.gbHourlyOee.Margin = new Padding(3, 2, 3, 2);
-            this.gbHourlyOee.Name = "gbHourlyOee";
-            this.gbHourlyOee.Padding = new Padding(3, 2, 3, 2);
-            this.gbHourlyOee.Size = new Size(294, 100);
-            this.gbHourlyOee.TabIndex = 4;
-            this.gbHourlyOee.TabStop = false;
-            this.gbHourlyOee.Text = "Son 24 Saatin OEE Ortalaması";
+            gbHourlyOee.Controls.Add(formsPlotHourlyOee);
+            gbHourlyOee.Dock = DockStyle.Fill;
+            gbHourlyOee.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
+            gbHourlyOee.Location = new Point(3, 406);
+            gbHourlyOee.Margin = new Padding(3, 2, 3, 2);
+            gbHourlyOee.Name = "gbHourlyOee";
+            gbHourlyOee.Padding = new Padding(3, 2, 3, 2);
+            gbHourlyOee.Size = new Size(294, 97);
+            gbHourlyOee.TabIndex = 4;
+            gbHourlyOee.TabStop = false;
+            gbHourlyOee.Text = "Son 24 Saatin OEE Ortalaması";
+            gbHourlyOee.Visible = false;
             // 
             // formsPlotHourlyOee
             // 
-            this.formsPlotHourlyOee.DisplayScale = 1F;
-            this.formsPlotHourlyOee.Dock = DockStyle.Fill;
-            this.formsPlotHourlyOee.Location = new Point(3, 20);
-            this.formsPlotHourlyOee.Margin = new Padding(3, 2, 3, 2);
-            this.formsPlotHourlyOee.Name = "formsPlotHourlyOee";
-            this.formsPlotHourlyOee.Size = new Size(288, 78);
-            this.formsPlotHourlyOee.TabIndex = 0;
-            // YENİ KOD BİTİŞİ
+            formsPlotHourlyOee.DisplayScale = 1F;
+            formsPlotHourlyOee.Dock = DockStyle.Fill;
+            formsPlotHourlyOee.Location = new Point(3, 20);
+            formsPlotHourlyOee.Margin = new Padding(3, 2, 3, 2);
+            formsPlotHourlyOee.Name = "formsPlotHourlyOee";
+            formsPlotHourlyOee.Size = new Size(288, 75);
+            formsPlotHourlyOee.TabIndex = 0;
+            formsPlotHourlyOee.Visible = false;
             // 
             // GenelBakis_Control
             // 
-            this.AutoScaleDimensions = new SizeF(7F, 15F);
-            this.AutoScaleMode = AutoScaleMode.Font;
-            this.BackColor = System.Drawing.SystemColors.ControlLight;
-            this.Controls.Add(this.pnlMain);
-            this.Controls.Add(this.pnlHeader);
-            this.Margin = new Padding(9, 8, 9, 8);
-            this.Name = "GenelBakis_Control";
-            this.Padding = new System.Windows.Forms.Padding(9, 8, 9, 8);
-            this.Size = new Size(1050, 600);
-            this.Load += new System.EventHandler(this.GenelBakis_Control_Load);
-            this.pnlHeader.ResumeLayout(false);
-            this.pnlMain.ResumeLayout(false);
-            this.tlpMainLayout.ResumeLayout(false);
-            this.pnlSidebar.ResumeLayout(false);
-            this.tlpSidebarLayout.ResumeLayout(false);
-            this.gbTopAlarms.ResumeLayout(false);
-            this.gbHourlyConsumptionSteam.ResumeLayout(false);
-            this.gbHourlyConsumptionWater.ResumeLayout(false);
-            this.gbHourlyConsumption.ResumeLayout(false);
-            // YENİ KOD BAŞLANGICI
-            this.gbHourlyOee.ResumeLayout(false);
-            // YENİ KOD BİTİŞİ
-            this.ResumeLayout(false);
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            BackColor = SystemColors.ControlLight;
+            Controls.Add(pnlMain);
+            Controls.Add(pnlHeader);
+            Margin = new Padding(9, 8, 9, 8);
+            Name = "GenelBakis_Control";
+            Padding = new Padding(9, 8, 9, 8);
+            Size = new Size(1050, 600);
+            Load += GenelBakis_Control_Load;
+            pnlHeader.ResumeLayout(false);
+            pnlMain.ResumeLayout(false);
+            tlpMainLayout.ResumeLayout(false);
+            pnlSidebar.ResumeLayout(false);
+            tlpSidebarLayout.ResumeLayout(false);
+            gbTopAlarms.ResumeLayout(false);
+            gbHourlyConsumptionSteam.ResumeLayout(false);
+            gbHourlyConsumptionWater.ResumeLayout(false);
+            gbHourlyConsumption.ResumeLayout(false);
+            gbHourlyOee.ResumeLayout(false);
+            ResumeLayout(false);
         }
         #endregion
         private System.Windows.Forms.Panel pnlHeader;

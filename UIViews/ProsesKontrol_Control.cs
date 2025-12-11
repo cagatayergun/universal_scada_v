@@ -31,6 +31,8 @@ namespace TekstilScada.UI.Views
         private FtpSync_Form _ftpFormInstance; // YENİ EKLENEN SATIR
         private PlcPollingService _plcPollingService;
         private FtpTransferService _ftpTransferService;
+        private short[] _copiedStepData = null;
+        private List<ScadaRecipe> _copiedRecipes = new List<ScadaRecipe>();
         public ProsesKontrol_Control()
         {
             InitializeComponent();
@@ -45,6 +47,8 @@ namespace TekstilScada.UI.Views
             cmbTargetMachine.SelectedIndexChanged += CmbTargetMachine_SelectedIndexChanged;
             btnFtpSync.Click += BtnFtpSync_Click;
             this.Load += ProsesKontrol_Control_Load;
+            // --- YENİ EKLENEN KLAVYE OLAY YÖNETİCİSİ ---
+            lstRecipes.KeyDown += LstRecipes_KeyDown;
         }
 
         public void InitializeControl(RecipeRepository recipeRepo, MachineRepository machineRepo, Dictionary<int, IPlcManager> plcManagers, PlcPollingService plcPollingService, FtpTransferService ftpTransferService)
@@ -212,29 +216,43 @@ namespace TekstilScada.UI.Views
 
         private void CmbTargetMachine_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // Önce seçime göre reçete listesini filtrele
+            // 1. Önce seçime göre reçete listesini filtrele (Mevcut Kod)
             FilterRecipeList();
 
-            // Eğer ekranda hala yüklü bir reçete varsa, yeni seçilen makine tipiyle uyumlu mu diye kontrol et
-            if (_currentRecipe != null && cmbTargetMachine.SelectedItem is Machine selectedMachine)
+            // 2. Makine seçimi kontrolü ve Buton Gizleme/Gösterme Mantığı (YENİ EKLENEN KISIM)
+            if (cmbTargetMachine.SelectedItem is Machine selectedMachine)
             {
-                string machineTypeForRecipe = !string.IsNullOrEmpty(selectedMachine.MachineSubType)
-                                              ? selectedMachine.MachineSubType
-                                              : selectedMachine.MachineType;
+                // Eğer makine tipi "BYMakinesi" ise butonları gizle, değilse göster.
+                bool isByMachine = selectedMachine.MachineType == "BYMakinesi";
 
-                // Mevcut reçete, yeni seçilen makine tipiyle uyumlu değilse...
-                if (_currentRecipe.TargetMachineType != machineTypeForRecipe)
+                btnReadFromPlc.Visible = !isByMachine; // BYMakinesi ise false olur (gizlenir)
+                btnSendToPlc.Visible = !isByMachine;   // BYMakinesi ise false olur (gizlenir)
+
+                // 3. Reçete uyumluluk kontrolü (Mevcut Kod)
+                if (_currentRecipe != null)
                 {
-                    _currentRecipe = null; // Aktif reçeteyi temizle
-                    lstRecipes.ClearSelected(); // Listeden seçimi kaldır
-                    DisplayCurrentRecipe(); // Editör panelini temizle
+                    string machineTypeForRecipe = !string.IsNullOrEmpty(selectedMachine.MachineSubType)
+                                                  ? selectedMachine.MachineSubType
+                                                  : selectedMachine.MachineType;
+
+                    // Mevcut reçete, yeni seçilen makine tipiyle uyumlu değilse...
+                    if (_currentRecipe.TargetMachineType != machineTypeForRecipe)
+                    {
+                        _currentRecipe = null; // Aktif reçeteyi temizle
+                        lstRecipes.ClearSelected(); // Listeden seçimi kaldır
+                        DisplayCurrentRecipe(); // Editör panelini temizle
+                    }
                 }
             }
             else
             {
-                // Eğer makine seçimi sonrası listede hiç reçete kalmadıysa veya seçim boşsa, editörü temizle
+                // Eğer makine seçimi boşsa veya listede hiç reçete kalmadıysa editörü temizle (Mevcut Kod)
                 _currentRecipe = null;
                 DisplayCurrentRecipe();
+
+                // Makine seçili değilse butonların varsayılan durumu (isteğe bağlı, genelde açık kalabilir veya kapanabilir)
+                btnReadFromPlc.Visible = true;
+                btnSendToPlc.Visible = true;
             }
         }
         private string ShowFtpRecipeNumberDialog()
@@ -314,7 +332,30 @@ namespace TekstilScada.UI.Views
             dgvRecipeSteps.MultiSelect = false;
             dgvRecipeSteps.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvRecipeSteps.CellClick += DgvRecipeSteps_CellClick;
+            // --- YENİ EKLENEN OLAY YÖNETİCİSİ BURAYA GELİYOR ---
+            dgvRecipeSteps.CellMouseDown += DgvRecipeSteps_CellMouseDown; // <--- BU SATIRI EKLEYİN
+                                                                          // -----------------------------------------------------
+                                                                          // --- YENİ EKLENEN KISIM: SAĞ TIK MENÜSÜ ---
+            ContextMenuStrip ctxMenu = new ContextMenuStrip();
 
+            var itemInsert = ctxMenu.Items.Add("Insert Step (Araya Ekle)");
+            itemInsert.Click += BtnInsertStep_Click;
+            // İkon eklemek isterseniz: itemInsert.Image = Properties.Resources.AddIcon;
+
+            var itemDelete = ctxMenu.Items.Add("Delete Step (Sil)");
+            itemDelete.Click += BtnDeleteStep_Click;
+
+            ctxMenu.Items.Add(new ToolStripSeparator()); // Çizgi çek
+
+            var itemCopy = ctxMenu.Items.Add("Copy Step (Kopyala)");
+            itemCopy.Click += BtnCopyStep_Click;
+
+            var itemPaste = ctxMenu.Items.Add("Paste Step (Yapıştır)");
+            itemPaste.Click += BtnPasteStep_Click;
+
+            // Menüyü tabloya bağla
+            dgvRecipeSteps.ContextMenuStrip = ctxMenu;
+            // -------------------------------------------
             pnlStepDetails.Dock = DockStyle.Fill;
             pnlStepDetails.BorderStyle = BorderStyle.FixedSingle;
             pnlStepDetails.Controls.Add(lblStepDetailsTitle);
@@ -326,7 +367,118 @@ namespace TekstilScada.UI.Views
 
             SetupStepsGridView();
         }
+        private void DgvRecipeSteps_CellMouseDown(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            // Sadece sağ tıklama için (e.Button == MouseButtons.Right) ve geçerli bir satır için kontrol yapıyoruz.
+            if (e.Button == MouseButtons.Right && e.RowIndex >= 0)
+            {
+                // 1. Sağ tıklanan satırı seç
+                dgvRecipeSteps.ClearSelection();
+                dgvRecipeSteps.Rows[e.RowIndex].Selected = true;
 
+                // 2. DataGridView'in CurrentCell özelliğini tıklanan hücreye ayarla (opsiyonel ama önerilir)
+                dgvRecipeSteps.CurrentCell = dgvRecipeSteps.Rows[e.RowIndex].Cells[e.ColumnIndex];
+
+                // 3. ContextMenuStrip'i aç (DataGridView'e bağlı olduğu için otomatik olarak açılacaktır).
+                // Ancak konum kontrolü veya ek özelleştirme gerekirse:
+                // dgvRecipeSteps.ContextMenuStrip.Show(dgvRecipeSteps, e.Location);
+            }
+        }
+        private void BtnInsertStep_Click(object sender, EventArgs e)
+        {
+            if (dgvRecipeSteps.CurrentRow == null || _currentRecipe == null) return;
+
+            int selectedIndex = dgvRecipeSteps.CurrentRow.Index; // Örn: 7 (Adım 8)
+            int totalSteps = _currentRecipe.Steps.Count; // 99
+
+            // Onay al
+            var result = MessageBox.Show($"Step {selectedIndex + 1} will be inserted. The last step (99) will be lost. Continue?", "Insert Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (result != DialogResult.Yes) return;
+
+            // SONDAN BAŞLAYARAK KAYDIR (99. adım 98. adımdan veriyi alır)
+            // List indexi 0-98 arasıdır (Toplam 99 adım)
+            for (int i = totalSteps - 1; i > selectedIndex; i--)
+            {
+                // Bir önceki adımın verisini kopyala
+                // Array.Copy kullanıyoruz ki referanslar karışmasın (Deep Copy)
+                Array.Copy(_currentRecipe.Steps[i - 1].StepDataWords, _currentRecipe.Steps[i].StepDataWords, 25);
+            }
+
+            // Seçili adımı temizle (Boş yeni adım)
+            Array.Clear(_currentRecipe.Steps[selectedIndex].StepDataWords, 0, 25);
+
+            // Tabloyu yenile
+            PopulateStepsGridView();
+
+            // Seçili satırı koru ve detay panelini temizle
+            dgvRecipeSteps.Rows[selectedIndex].Selected = true;
+            DisplayCurrentRecipe(); // Detayları yenilemek için (veya sadece o anki editorü resetle)
+        }
+
+        private void BtnDeleteStep_Click(object sender, EventArgs e)
+        {
+            if (dgvRecipeSteps.CurrentRow == null || _currentRecipe == null) return;
+
+            int selectedIndex = dgvRecipeSteps.CurrentRow.Index;
+            int totalSteps = _currentRecipe.Steps.Count;
+
+            var result = MessageBox.Show($"Step {selectedIndex + 1} will be deleted. Steps below will move up. Continue?", "Delete Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+            if (result != DialogResult.Yes) return;
+
+            // SEÇİLİ YERDEN BAŞLAYARAK YUKARI KAYDIR
+            for (int i = selectedIndex; i < totalSteps - 1; i++)
+            {
+                // Bir sonraki adımın verisini buraya kopyala
+                Array.Copy(_currentRecipe.Steps[i + 1].StepDataWords, _currentRecipe.Steps[i].StepDataWords, 25);
+            }
+
+            // Son adımı temizle (Veriler yukarı kaydığı için sonuncu boşalmalı)
+            Array.Clear(_currentRecipe.Steps[totalSteps - 1].StepDataWords, 0, 25);
+
+            // Tabloyu yenile
+            PopulateStepsGridView();
+        }
+
+        private void BtnCopyStep_Click(object sender, EventArgs e)
+        {
+            if (dgvRecipeSteps.CurrentRow == null || _currentRecipe == null) return;
+
+            int selectedIndex = dgvRecipeSteps.CurrentRow.Index;
+
+            // Hafızayı başlat
+            _copiedStepData = new short[25];
+
+            // Seçili adımın verilerini hafızaya kopyala
+            Array.Copy(_currentRecipe.Steps[selectedIndex].StepDataWords, _copiedStepData, 25);
+
+            // Kullanıcıya bilgi ver (İsteğe bağlı, StatusBar varsa oraya yazılabilir)
+            // MessageBox.Show("Step copied to clipboard.", "Info"); 
+        }
+
+        private void BtnPasteStep_Click(object sender, EventArgs e)
+        {
+            if (dgvRecipeSteps.CurrentRow == null || _currentRecipe == null) return;
+
+            if (_copiedStepData == null)
+            {
+                MessageBox.Show("No step data found in clipboard. Please copy a step first.", "Warning");
+                return;
+            }
+
+            int selectedIndex = dgvRecipeSteps.CurrentRow.Index;
+
+            // Hafızadaki veriyi seçili adıma yapıştır
+            Array.Copy(_copiedStepData, _currentRecipe.Steps[selectedIndex].StepDataWords, 25);
+
+            // Tabloyu yenile (Adım tipi değişmiş olabilir)
+            // Sadece ilgili satırı güncellemek performans için daha iyidir:
+            string newStepName = GetStepTypeName(_currentRecipe.Steps[selectedIndex]);
+            dgvRecipeSteps.Rows[selectedIndex].Cells["StepType"].Value = newStepName;
+
+            // Eğer o an detay paneli açıksa onu da güncellemek gerekir
+            // Basitçe o satıra tekrar tıklanmış gibi tetikleyebiliriz:
+            DgvRecipeSteps_CellClick(dgvRecipeSteps, new DataGridViewCellEventArgs(0, selectedIndex));
+        }
         private void SetupStepsGridView()
         {
             if (dgvRecipeSteps == null) return;
@@ -335,8 +487,30 @@ namespace TekstilScada.UI.Views
             dgvRecipeSteps.Columns.Clear();
             dgvRecipeSteps.AutoGenerateColumns = false;
 
-            dgvRecipeSteps.Columns.Add(new DataGridViewTextBoxColumn { Name = "StepNumber", HeaderText = "Step No", DataPropertyName = "StepNumber", Width = 40 });
-            dgvRecipeSteps.Columns.Add(new DataGridViewTextBoxColumn { Name = "StepType", HeaderText = "Step Type", Width = 300 });
+            // DataGridView'in sütun başlıklarına tıklanınca sıralama yapmasını kapatıyoruz (isteğe bağlı)
+            dgvRecipeSteps.AllowUserToResizeColumns = false;
+            dgvRecipeSteps.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+
+
+            // 1. ADIM NO SÜTUNU (Küçük ve sabit olmalı)
+            // Absolute (sabit piksel) yerine Minimum/NotSet (40) kullanıyoruz.
+            dgvRecipeSteps.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "StepNumber",
+                HeaderText = "Step No",
+                DataPropertyName = "StepNumber",
+                Width = 60, // Görünüm için biraz büyütüldü
+                MinimumWidth = 60
+            });
+
+            // 2. ADIM TİPİ SÜTUNU (Geri kalan tüm alanı doldurmalı)
+            dgvRecipeSteps.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "StepType",
+                HeaderText = "Step Type",
+                // *** EN ÖNEMLİ DEĞİŞİKLİK BURADA: FILL modu tüm kalan alanı kullanır ***
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
+            });
         }
 
         private void PopulateStepsGridView()
@@ -357,7 +531,7 @@ namespace TekstilScada.UI.Views
             if ((controlWord & 1) != 0) stepTypes.Add("Water Intake");
             if ((controlWord & 2) != 0) stepTypes.Add("Heating");
             if ((controlWord & 4) != 0) stepTypes.Add("Working");
-            if ((controlWord & 8) != 0) stepTypes.Add("Dozage");
+            if ((controlWord & 8) != 0) stepTypes.Add("Dosage");
             if ((controlWord & 16) != 0) stepTypes.Add("Unloading");
             if ((controlWord & 32) != 0) stepTypes.Add("Squeezing");
             return string.Join(" + ", stepTypes);
@@ -761,6 +935,23 @@ namespace TekstilScada.UI.Views
                 MessageBox.Show($"An error occurred while calculating the cost: {ex.Message}", "Error");
             }
         }
+        private void txtSearchRecipe_TextChanged(object sender, EventArgs e)
+        {
+            // Her harf girişinde listeyi filtrele
+            FilterRecipeList();
+        }
+
+        private void SortOption_CheckedChanged(object sender, EventArgs e)
+        {
+            // Sadece "Checked" olan tetiklediğinde çalışsın (gereksiz çift çalışmayı önler)
+            if (((RadioButton)sender).Checked)
+            {
+                FilterRecipeList();
+            }
+        }
+
+        // --- GÜNCELLENMİŞ FILTER METODU ---
+
         private void FilterRecipeList()
         {
             if (cmbTargetMachine.SelectedItem is not Machine selectedMachine || _recipeList == null)
@@ -773,23 +964,45 @@ namespace TekstilScada.UI.Views
                                 ? selectedMachine.MachineSubType
                                 : selectedMachine.MachineType;
 
-            // Uyumlu reçeteleri filtrele
-            var compatibleRecipes = _recipeList
-                .Where(r => r.TargetMachineType == filterType)
-                .ToList();
+            // 1. MAKİNE TİPİNE GÖRE FİLTRELEME
+            var filteredRecipes = _recipeList
+                .Where(r => r.TargetMachineType == filterType);
 
-            // DataGridView'in seçim olayını geçici olarak kaldır
+            // 2. ARAMA METNİNE GÖRE FİLTRELEME (YENİ)
+            string searchText = txtSearchRecipe.Text.Trim();
+            if (!string.IsNullOrEmpty(searchText))
+            {
+                filteredRecipes = filteredRecipes.Where(r =>
+                    r.RecipeName.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0);
+            }
+
+            // 3. SIRALAMA (YENİ)
+            if (radioSortName.Checked)
+            {
+                // A'dan Z'ye Sıralama
+                filteredRecipes = filteredRecipes.OrderBy(r => r.RecipeName);
+            }
+            else if (radioSortDate.Checked)
+            {
+                // Eklenme/Güncellenme Sırasına Göre (Id genelde bu sırayı verir)
+                // En yeni en üstte olsun istiyorsanız OrderByDescending
+                filteredRecipes = filteredRecipes.OrderByDescending(r => r.Id);
+            }
+
+            // Listeye çevir
+            var finalRecipeList = filteredRecipes.ToList();
+
+            // UI GÜNCELLEME
             lstRecipes.SelectedIndexChanged -= LstRecipes_SelectedIndexChanged;
 
             lstRecipes.DataSource = null;
-            lstRecipes.DataSource = compatibleRecipes;
+            lstRecipes.DataSource = finalRecipeList;
             lstRecipes.DisplayMember = "RecipeName";
             lstRecipes.ValueMember = "Id";
 
-            // Olayı geri ekle
             lstRecipes.SelectedIndexChanged += LstRecipes_SelectedIndexChanged;
 
-            // Filtreleme sonrası seçili bir reçete kalmadıysa editörü temizle
+            // Filtreleme sonrası durum kontrolü
             if (lstRecipes.Items.Count == 0 || lstRecipes.SelectedIndex == -1)
             {
                 _currentRecipe = null;
@@ -800,6 +1013,121 @@ namespace TekstilScada.UI.Views
         private void yenile_Click(object sender, EventArgs e)
         {
             LoadRecipeList();
+        }
+        private void ProsesKontrol_Control_KeyDown(object sender, KeyEventArgs e)
+        {
+            // Yalnızca klavye odağı bu UserControl'deyken çalışır.
+            // Eğer listbox'a odaklanılırsa bu olay çalışmayabilir.
+            // Daha güvenilir yöntem için 2. adıma bakınız.
+        }
+
+
+        private void LstRecipes_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Control && e.KeyCode == Keys.C)
+            {
+                BtnCopyRecipes_Click(null, null);
+                e.Handled = true; // Olayın daha fazla işlenmesini engeller
+            }
+            else if (e.Control && e.KeyCode == Keys.V)
+            {
+                BtnPasteRecipes_Click(null, null);
+                e.Handled = true;
+            }
+        }
+        // Ctrl+C İşlevi
+        private void BtnCopyRecipes_Click(object sender, EventArgs e)
+        {
+            // Listeden seçili olan tüm reçeteleri al
+            var selectedRecipes = lstRecipes.SelectedItems.Cast<ScadaRecipe>().ToList();
+
+            if (!selectedRecipes.Any())
+            {
+                MessageBox.Show("Please select the recipes to copy.", "Warning");
+                return;
+            }
+
+            // Listeyi temizle ve yeni kopyalanacak reçeteleri içine ekle
+            _copiedRecipes.Clear();
+
+            // Not: Burada sadece referans değil, nesnenin kendisini kopyalamak önemlidir (Deep Copy ihtiyacı olabilir)
+            // Varsayım: ScadaRecipe ve Steps listesi, ListBox'a yüklenmeden önce veritabanından tamamen çekildiği için
+            // buradaki listenin kopyalanması yeterli olacaktır. Eğer RecipeRepository.GetRecipeById(id) deep copy yapıyorsa sorun yok.
+            // En güvenli yöntem: Tüm seçili reçeteleri veritabanından tekrar çekmek veya bir kopyalama metodu kullanmak.
+
+            foreach (var recipe in selectedRecipes)
+            {
+                // Detaylı reçeteyi tekrar çekip kopyasına kaydedelim
+                var fullRecipe = _recipeRepository.GetRecipeById(recipe.Id);
+                _copiedRecipes.Add(fullRecipe);
+            }
+
+            MessageBox.Show($"{_copiedRecipes.Count} recipe(s) copied. (Ctrl+V to paste)", "Success");
+        }
+
+        // Ctrl+V İşlevi
+        private void BtnPasteRecipes_Click(object sender, EventArgs e)
+        {
+            if (!_copiedRecipes.Any())
+            {
+                MessageBox.Show("There is no copied recipe to paste. Please copy one or more recipes first (Ctrl+C).", "Warning");
+                return;
+            }
+
+            int pasteCount = 0;
+            try
+            {
+                foreach (var originalRecipe in _copiedRecipes)
+                {
+                    // Yeni bir kopya reçete oluştur (DB'ye kaydetmek için ID'yi sıfırla)
+                    var newRecipe = new ScadaRecipe
+                    {
+                        Id = 0, // Yeni kayıt olacağını belirtir
+                        TargetMachineType = originalRecipe.TargetMachineType,
+                        Steps = new List<ScadaRecipeStep>()
+                    };
+
+                    // Yeni ismi belirle: "Copy_1_RecipeName" veya "Copy_2_RecipeName"
+                    string originalName = originalRecipe.RecipeName.StartsWith("Copy_")
+                                        ? originalRecipe.RecipeName.Substring(originalRecipe.RecipeName.IndexOf('_', originalRecipe.RecipeName.IndexOf('_') + 1) + 1) // Copy_n_Name kısmından sonraki adı alır
+                                        : originalRecipe.RecipeName;
+
+                    // Veritabanında mevcut en yüksek 'Copy_n' sayısını bulalım
+                    int copyIndex = 1;
+                    while (_recipeRepository.GetRecipeByName($"Copy_{copyIndex}_{originalName}") != null)
+                    {
+                        copyIndex++;
+                    }
+
+                    newRecipe.RecipeName = $"Copy_{copyIndex}_{originalName}";
+
+                    // Adımların derin kopyasını yap
+                    foreach (var step in originalRecipe.Steps)
+                    {
+                        var newStep = new ScadaRecipeStep
+                        {
+                            StepNumber = step.StepNumber,
+                            StepDataWords = new short[25] // 25'lik dizi olduğu varsayılıyor
+                        };
+                        // Diziyi kopyala
+                        Array.Copy(step.StepDataWords, newStep.StepDataWords, 25);
+                        newRecipe.Steps.Add(newStep);
+                    }
+
+                    // Veritabanına kaydet
+                    _recipeRepository.SaveRecipe(newRecipe);
+                    pasteCount++;
+                }
+
+                MessageBox.Show($"{pasteCount} recipe(s) successfully created and saved.", "Successful");
+
+                // Listeyi yenile
+                LoadRecipeList();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred while pasting the recipe: {ex.Message}", "Error");
+            }
         }
     }
 }

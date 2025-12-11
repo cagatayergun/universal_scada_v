@@ -271,7 +271,7 @@
     <value>OEE Report</value>
   </data>
   <data name="Operator" xml:space="preserve">
-    <value>OPERATOR:</value>
+    <value>Operator:</value>
   </data>
   <data name="OrderNo" xml:space="preserve">
     <value>Order No:</value>
@@ -307,7 +307,7 @@
     <value>Quantity (Liters):</value>
   </data>
   <data name="RecipeName" xml:space="preserve">
-    <value>RECIPE NAME:</value>
+    <value>Recipe Name:</value>
   </data>
   <data name="RecipeOptimization" xml:space="preserve">
     <value>Recipe Optimization</value>
@@ -331,7 +331,7 @@
     <value>Save</value>
   </data>
   <data name="ScadaSystem" xml:space="preserve">
-    <value>Textile SCADA System</value>
+    <value>YILMAK TELEMETRY</value>
   </data>
   <data name="Settings" xml:space="preserve">
     <value>Settings</value>
@@ -370,7 +370,7 @@
     <value>Tank Water Amount:</value>
   </data>
   <data name="Temperature" xml:space="preserve">
-    <value>Temperature (°C):</value>
+    <value>Temperature (°C)</value>
   </data>
   <data name="TemperatureControl" xml:space="preserve">
     <value>Temperature Control</value>
@@ -526,16 +526,16 @@
     <value>Manual Consumption</value>
   </data>
   <data name="ortalamabuhartuketimi" xml:space="preserve">
-    <value>Average Steam Consumption</value>
+    <value>Hourly Steam Consumption</value>
   </data>
   <data name="ortalamacevrimsuresi" xml:space="preserve">
     <value>Average Cycle Time</value>
   </data>
   <data name="ortalamaelektriktuketimi" xml:space="preserve">
-    <value>Average Electricity Consumption</value>
+    <value>Hourly Electricity Consumption</value>
   </data>
   <data name="ortalamasutuketimi" xml:space="preserve">
-    <value>Average Water Consumption</value>
+    <value>Hourly Water Consumption</value>
   </data>
   <data name="suseviyesi" xml:space="preserve">
     <value>Water Level</value>
@@ -604,7 +604,7 @@
     <value>Idle Waiting</value>
   </data>
   <data name="Saatlikelektrik" xml:space="preserve">
-    <value>Average Electricity Consumption
+    <value>Hourly Electricity Consumption
 </value>
   </data>
   <data name="ensikalarm" xml:space="preserve">

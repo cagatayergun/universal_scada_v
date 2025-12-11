@@ -3,7 +3,8 @@ using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using TekstilScada.Models;
-using TekstilScada.Core; // Bu satırı ekleyin
+using TekstilScada.Core;
+
 namespace TekstilScada.Repositories
 {
     public class PlcOperatorRepository
@@ -24,38 +25,52 @@ namespace TekstilScada.Repositories
                     {
                         operators.Add(new PlcOperator
                         {
-                            // Bu Id veritabanı Id'sidir, SlotIndex değil.
+                            // SlotIndex veritabanındaki benzersiz ID'yi tutar
                             SlotIndex = reader.GetInt32("Id"),
-                            Name = reader.GetString("Name"),
-                            UserId = reader.GetInt16("UserId"),
-                            Password = reader.GetInt16("Password")
+
+                            // Null kontrolü ile string okuma
+                            Name = reader.IsDBNull(reader.GetOrdinal("Name")) ? "" : reader.GetString("Name"),
+
+                            // DÜZELTME: GetInt16 yerine Convert.ToInt16 kullanıldı.
+                            // Veritabanında sütun INT olsa bile C# tarafında short'a güvenli çevirir.
+                            UserId = reader.IsDBNull(reader.GetOrdinal("UserId")) ? (short)0 : Convert.ToInt16(reader["UserId"]),
+                            Password = reader.IsDBNull(reader.GetOrdinal("Password")) ? (short)0 : Convert.ToInt16(reader["Password"])
                         });
                     }
                 }
             }
             return operators;
         }
+
         public void AddDefaultOperator()
         {
             using (var connection = new MySqlConnection(_connectionString))
             {
                 connection.Open();
-                // Yeni boş bir operatör şablonu ekle
                 string query = "INSERT INTO plc_operator_templates (Name, UserId, Password) VALUES (@Name, @UserId, @Password);";
                 var cmd = new MySqlCommand(query, connection);
-                // Varsayılan boş veya sıfır değerleri ekliyoruz.
-                cmd.Parameters.AddWithValue("@Name", "");
+
+                // DÜZELTME: Benzersizlik hatası almamak için rastgele bir isim oluşturuyoruz.
+                // Kullanıcı daha sonra bunu listeden seçip değiştirebilir.
+                string uniqueName = "New Operator " + DateTime.Now.ToString("HHmmss");
+
+                cmd.Parameters.AddWithValue("@Name", uniqueName);
                 cmd.Parameters.AddWithValue("@UserId", 0);
                 cmd.Parameters.AddWithValue("@Password", 0);
+
                 cmd.ExecuteNonQuery();
             }
         }
+
         public void SaveOrUpdate(PlcOperator op)
         {
-            // Aynı isim ve ID'ye sahip bir kayıt var mı diye kontrol et
             using (var connection = new MySqlConnection(_connectionString))
             {
                 connection.Open();
+
+                // Kontrol sorgusu: İsim veya ID çakışması var mı? (Kendi ID'si hariç)
+                // Not: PLC'den okunan veriyi kaydederken SlotIndex (DB ID) elimizde olmayabilir,
+                // bu yüzden UserId ve Name üzerinden kontrol etmek mantıklıdır.
                 string checkQuery = "SELECT Id FROM plc_operator_templates WHERE Name = @Name AND UserId = @UserId;";
                 var checkCmd = new MySqlCommand(checkQuery, connection);
                 checkCmd.Parameters.AddWithValue("@Name", op.Name);
@@ -64,7 +79,7 @@ namespace TekstilScada.Repositories
 
                 if (existingId != null)
                 {
-                    // Varsa güncelle (üstüne yaz)
+                    // Varsa Şifreyi Güncelle
                     string updateQuery = "UPDATE plc_operator_templates SET Password = @Password WHERE Id = @Id;";
                     var updateCmd = new MySqlCommand(updateQuery, connection);
                     updateCmd.Parameters.AddWithValue("@Password", op.Password);
@@ -73,7 +88,7 @@ namespace TekstilScada.Repositories
                 }
                 else
                 {
-                    // Yoksa yeni ekle
+                    // Yoksa Yeni Ekle
                     string insertQuery = "INSERT INTO plc_operator_templates (Name, UserId, Password) VALUES (@Name, @UserId, @Password);";
                     var insertCmd = new MySqlCommand(insertQuery, connection);
                     insertCmd.Parameters.AddWithValue("@Name", op.Name);

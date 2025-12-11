@@ -12,7 +12,7 @@ using TekstilScada.UI;
 using TekstilScada.UI.Controls;
 using TekstilScada.UI.Views;
 using TekstilScada.Properties;
-
+using Microsoft.Extensions.Logging.Abstractions;
 namespace TekstilScada
 {
     public partial class MainForm : Form
@@ -52,7 +52,13 @@ namespace TekstilScada
             _processLogRepository = new ProcessLogRepository();
             _alarmRepository = new AlarmRepository();
             _productionRepository = new ProductionRepository();
-            _pollingService = new PlcPollingService(_alarmRepository, _processLogRepository, _productionRepository, _recipeRepository, _machineRepository);
+            _pollingService = new PlcPollingService(
+    _alarmRepository,
+    _processLogRepository,
+    _productionRepository,
+    _recipeRepository,
+    _machineRepository,
+    new NullLogger<PlcPollingService>()  );
             _dashboardRepository = new DashboardRepository(_recipeRepository);
             _costRepository = new CostRepository(); // YENÝ: Nesneyi oluþturun
                                                  // DÜZELTME: FtpTransferService nesnesini burada oluþturun ve baðýmlýlýðý enjekte edin.
@@ -131,10 +137,16 @@ namespace TekstilScada
             btnRaporlar.Visible = PermissionService.HasAnyPermission(new List<int> { 2 });
             btnRaporlar.Enabled = btnRaporlar.Visible; // Yetkisi yoksa butonun týklanmasýný engelle
 
+            btnProsesIzleme.Visible = PermissionService.HasAnyPermission(new List<int> { 1 });
+            btnProsesIzleme.Enabled = btnProsesKontrol.Visible; // Yetkisi yoksa butonun týklanmasýný engelle
+
+            btnProsesIzleme.Visible = PermissionService.HasAnyPermission(new List<int> { 2 });
+            btnProsesIzleme.Enabled = btnRaporlar.Visible; // Yetkisi yoksa butonun týklanmasýný engelle
             // 8 numaralý role sahip kullanýcýlar ayarlar ekranýna eriþebilir
             btnAyarlar.Visible = PermissionService.HasAnyPermission(new List<int> { 3 });
             btnAyarlar.Enabled = btnAyarlar.Visible; // Yetkisi yoksa butonun týklanmasýný engelle
-
+            btnProsesIzleme.Visible = PermissionService.HasAnyPermission(new List<int> { 3 });
+            btnProsesIzleme.Enabled = btnRaporlar.Visible; // Yetkisi yoksa butonun týklanmasýný engelle
             // === ANA MENÜ BUTONLARI ÝÇÝN YETKÝLENDÝRME ===
             var master = PermissionService.HasAnyPermission(new List<int> { 1000 });
             if (master == true)
@@ -150,6 +162,8 @@ namespace TekstilScada
                 // 8 numaralý role sahip kullanýcýlar ayarlar ekranýna eriþebilir
                 btnAyarlar.Visible = PermissionService.HasAnyPermission(new List<int> { 1000 });
                 btnAyarlar.Enabled = btnAyarlar.Visible; // Yetkisi yoksa butonun týklanmasýný engelle
+                btnProsesIzleme.Visible = PermissionService.HasAnyPermission(new List<int> { 1000 });
+                btnProsesIzleme.Enabled = btnRaporlar.Visible; // Yetkisi yoksa butonun týklanmasýný engelle
             }
             _ayarlarView.ApplyPermissions1();
             _user_setting.LoadAllRoles();
@@ -359,7 +373,7 @@ namespace TekstilScada
                 {
                     if (CurrentUser.IsLoggedIn && CurrentUser.User != null)
                     {
-                        _userRepository.LogAction(CurrentUser.User.Id, "VNC Baðlantýsý", $"{machine.MachineName} makinesine VNC ile baðlandý.");
+                        _userRepository.LogAction(CurrentUser.User.Id, "VNC Connection", $"{machine.MachineName} connected to the machine via VNC.");
                     }
                 }
                 catch (Exception logEx)

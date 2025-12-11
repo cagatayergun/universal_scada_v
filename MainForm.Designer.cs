@@ -18,6 +18,7 @@ namespace TekstilScada
 
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             pnlNavigation = new Panel();
             pictureBox2 = new PictureBox();
             pictureBox1 = new PictureBox();
@@ -225,7 +226,7 @@ namespace TekstilScada
             // çıkışYapToolStripMenuItem
             // 
             çıkışYapToolStripMenuItem.Name = "çıkışYapToolStripMenuItem";
-            çıkışYapToolStripMenuItem.Size = new Size(121, 22);
+            çıkışYapToolStripMenuItem.Size = new Size(116, 22);
             çıkışYapToolStripMenuItem.Text = "Oturum";
             çıkışYapToolStripMenuItem.Click += çıkışYapToolStripMenuItem_Click;
             // 
@@ -269,6 +270,7 @@ namespace TekstilScada
             Controls.Add(pnlNavigation);
             Controls.Add(statusStrip1);
             Controls.Add(menuStrip1);
+            Icon = (Icon)resources.GetObject("$this.Icon");
             MainMenuStrip = menuStrip1;
             Margin = new Padding(3, 2, 3, 2);
             Name = "MainForm";

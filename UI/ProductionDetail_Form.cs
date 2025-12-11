@@ -41,8 +41,46 @@ namespace TekstilScada.UI
             txtOperator.Text = _reportItem.OperatorName;
             txtStartTime.Text = _reportItem.StartTime.ToString("dd.MM.yyyy HH:mm:ss");
             txtStopTime.Text = _reportItem.EndTime.ToString("dd.MM.yyyy HH:mm:ss");
+            var elektrikvalue = _reportItem.TotalElectricity / 1000m;
+            txtElectricity.Text = elektrikvalue.ToString();
+            var suvale = _reportItem.TotalWater / 1000m;
+            txtWater.Text = suvale.ToString();
+            var steamvalue = _reportItem.TotalSteam / 1000m;
+            txtSteam.Text = steamvalue.ToString();
             txtTotalDuration.Text = _reportItem.CycleTime;
+            // --- YENİ HESAPLAMA KISMI ---
+            // Teorik Süreyi Yaz
+            TimeSpan theoreticalSpan = TimeSpan.FromSeconds(_reportItem.TheoreticalCycleTimeSeconds);
+            txtTheoreticalDuration.Text = theoreticalSpan.ToString(@"hh\:mm\:ss");
 
+            // Gerçekleşen Süreyi Hesapla (CycleTime string formatında olduğu için TimeSpan'a çeviriyoruz)
+            TimeSpan actualSpan;
+            if (TimeSpan.TryParse(_reportItem.CycleTime, out actualSpan))
+            {
+                // Farkı Hesapla (Gerçekleşen - Teorik)
+                TimeSpan diff = actualSpan - theoreticalSpan;
+
+                // Farkı Göster (+/- işaretiyle)
+                string sign = diff.TotalSeconds >= 0 ? "+" : "-";
+                txtDurationDiff.Text = $"{sign}{diff.Duration():hh\\:mm\\:ss}";
+
+                // Renklendirme (Gecikme varsa kırmızı, erken bittiyse yeşil)
+                if (diff.TotalSeconds > 60) // 1 dakikadan fazla gecikme
+                {
+                    txtDurationDiff.ForeColor = System.Drawing.Color.Red;
+                    txtDurationDiff.BackColor = System.Drawing.Color.MistyRose;
+                }
+                else if (diff.TotalSeconds < -60) // 1 dakikadan fazla erken bitiş
+                {
+                    txtDurationDiff.ForeColor = System.Drawing.Color.Green;
+                    txtDurationDiff.BackColor = System.Drawing.Color.Honeydew;
+                }
+            }
+            else
+            {
+                txtDurationDiff.Text = "---";
+            }
+            // ----------------------------
             // Diğer bilgileri de doldur
             txtCustomerNo.Text = _reportItem.MusteriNo;
             txtOrderNo.Text = _reportItem.SiparisNo;
@@ -214,6 +252,7 @@ namespace TekstilScada.UI
                 var tempPlot = formsPlot1.Plot.Add.Scatter(timeData, tempData);
                 tempPlot.Color = ScottPlot.Colors.Red;
                 tempPlot.LegendText = "Temperature";
+                tempPlot.MarkerSize = 0;
                 // 2. YENİ: Teorik Veri Grafiğini Çiz
                 var productionRepo = new ProductionRepository();
                 var batchRecipe = productionRepo.GetBatchRecipe(_reportItem.MachineId, _reportItem.BatchId);

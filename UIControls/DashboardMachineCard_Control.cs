@@ -1,22 +1,27 @@
-﻿// Bu dosyanın içeriğini tamamen aşağıdakiyle değiştirin
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Windows.Forms;
 using TekstilScada.Models;
-using TekstilScada.Repositories; // <-- BU SATIRI EKLEYİN
+using TekstilScada.Repositories;
+using System.Threading.Tasks; // EKLENDİ
+using System.Text.Json;       // EKLENDİ
+using static TekstilScada.Repositories.ProcessLogRepository;
+
 namespace TekstilScada.UI.Controls
 {
     public partial class DashboardMachineCard_Control : UserControl
     {
         private readonly Machine _machine;
+        private readonly RecipeConfigurationRepository _configRepo = new RecipeConfigurationRepository();
         private List<PointF> _sparklinePoints = new List<PointF>();
         private readonly Color _colorAlarm = Color.FromArgb(231, 76, 60);
         private readonly Color _colorRunning = Color.FromArgb(46, 204, 113);
         private readonly Color _colorIdle = Color.FromArgb(243, 156, 18);
         private readonly Color _colorStopped = Color.SlateGray;
+        private int _lastValidProgress = 0;
 
         public DashboardMachineCard_Control(Machine machine)
         {
@@ -24,16 +29,86 @@ namespace TekstilScada.UI.Controls
             _machine = machine;
             lblMachineName.Text = _machine.MachineName;
 
-            // Daha akıcı çizim için Double Buffering
             this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
-            // YENİ DÜZENLEME: Tüm etiketlerin metin rengini siyah yapıyoruz.
+
+            // Renk ayarları
             lblMachineName.ForeColor = Color.Black;
             lblRecipeName.ForeColor = Color.Black;
             lblBatchId.ForeColor = Color.Black;
-            lblTemperature.ForeColor = Color.Black;
+            lblTemperature.ForeColor = Color.Red;
             gaugeRpm.ForeColor = Color.Black;
+            lblPercentage.ForeColor = Color.Black;
+            lblHumidity.ForeColor = Color.Blue;
+            lblhumudity.ForeColor = Color.Black;
+            label2.ForeColor = Color.Black;
+            SetRpmGaugeLimitAsync();
         }
+        private async void SetRpmGaugeLimitAsync()
+        {
+            try
+            {
+                // 1. Veritabanından adım tiplerini çek
+                var stepTypesTable = await Task.Run(() => _configRepo.GetStepTypes());
+                int rpmStepTypeId = -1;
 
+                // 2. "Sıkma" (Squeezing) adımının ID'sini bul
+                foreach (System.Data.DataRow row in stepTypesTable.Rows)
+                {
+                    string stepName = row["StepName"].ToString();
+                    if (stepName.Contains("Sıkma") || stepName.Contains("Squeezing"))
+                    {
+                        rpmStepTypeId = Convert.ToInt32(row["Id"]);
+                        break;
+                    }
+                }
+
+                // Eğer Sıkma adımı bulunduysa
+                if (rpmStepTypeId != -1)
+                {
+                    // 3. KRİTİK NOKTA: Bu kartın ait olduğu makinenin alt tipini kullanıyoruz
+                    // _machine.MachineSubType -> Örn: "Boyama", "Yıkama"
+                    string layoutJson = await Task.Run(() =>
+                        _configRepo.GetLayoutJson(_machine.MachineSubType, rpmStepTypeId));
+
+                    if (!string.IsNullOrEmpty(layoutJson))
+                    {
+                        var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                        var controls = System.Text.Json.JsonSerializer.Deserialize<List<ControlMetadata>>(layoutJson, options);
+
+                        // 4. Tasarım içindeki RPM kontrolünü bul
+                        var rpmControl = controls.FirstOrDefault(c =>
+                            c.Maximum > 50 &&
+                            (
+                                (c.Name != null && (c.Name.IndexOf("numSikmaDevri", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                    c.Name.IndexOf("Rpm", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                    c.Name.IndexOf("Squeezing Speed", StringComparison.OrdinalIgnoreCase) >= 0)) ||
+                                (c.Text != null && c.Text.IndexOf("Devir", StringComparison.OrdinalIgnoreCase) >= 0)
+                            )
+                        );
+
+                        if (rpmControl != null)
+                        {
+                            // 5. Değeri ata (1.33 katı ile)
+                            int newMax = (int)(rpmControl.Maximum * 1.33m);
+
+                            if (gaugeRpm.InvokeRequired)
+                            {
+                                gaugeRpm.Invoke(new Action(() => gaugeRpm.Maximum = newMax));
+                            }
+                            else
+                            {
+                                gaugeRpm.Maximum = newMax;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Dashboard'da çok kart olduğu için hata patlatmayalım, loglayalım
+                System.Diagnostics.Debug.WriteLine($"RPM limiti ayarlanamadı ({_machine.MachineName}): {ex.Message}");
+            }
+        }
         public void UpdateData(FullMachineStatus status, List<ProcessDataPoint> trendData)
         {
             if (this.InvokeRequired)
@@ -48,67 +123,56 @@ namespace TekstilScada.UI.Controls
             gaugeRpm.Value = status.AnlikDevirRpm;
             gaugeRpm.Text = status.AnlikDevirRpm.ToString();
 
-            // Durum ve Renk Ayarları
+            // --- YENİ: Kurutma Makinesi Kontrolü ---
+            bool isDrying = _machine.MachineType == "Kurutma Makinesi";
+
+            // Kurutma makinesi ise barı gizle, nemi göster
+            progressBar.Visible = !isDrying;
+            lblPercentage.Visible = !isDrying;
+            lblProcessing.Visible = !isDrying;
+            lblHumidity.Visible = isDrying;
+            lblhumudity.Visible = isDrying;
+            if (isDrying)
+            {
+                // Not: Modelde Nem alanını ekleyince burayı status.AnlikNem yaparsınız.
+                // Şimdilik mevcut yapıyı koruyoruz.
+                lblHumidity.Text = $"{status.AnlikSuSeviyesi} %";
+            }
+            // ---------------------------------------
+
             if (status.HasActiveAlarm)
             {
+                if (progressBar.Value > 0) _lastValidProgress = progressBar.Value;
+                progressBar.Value = _lastValidProgress;
+                lblPercentage.Text = $"{_lastValidProgress} %";
+
                 pnlStatusIndicator.BackColor = _colorAlarm;
                 lblStatus.Text = $"ALARM #{status.ActiveAlarmNumber}";
                 lblStatus.ForeColor = _colorAlarm;
             }
-            else if (status.IsInRecipeMode)
-            {
-                pnlStatusIndicator.BackColor = _colorRunning;
-                lblStatus.Text = $"Working - Step {status.AktifAdimNo}";
-                lblStatus.ForeColor = _colorRunning;
-            }
             else
             {
-                pnlStatusIndicator.BackColor = _colorStopped;
-                lblStatus.Text = "Stops";
-                lblStatus.ForeColor = _colorStopped;
+                _lastValidProgress = Math.Max(0, Math.Min(100, (int)status.ProsesYuzdesi));
+                progressBar.Value = _lastValidProgress;
+                lblPercentage.Text = $"{_lastValidProgress} %";
+
+                if (status.IsInRecipeMode)
+                {
+                    pnlStatusIndicator.BackColor = _colorRunning;
+                    lblStatus.Text = $"Working - Step {status.AktifAdimNo}";
+                    lblStatus.ForeColor = _colorRunning;
+                }
+                else
+                {
+                    pnlStatusIndicator.BackColor = _colorStopped;
+                    lblStatus.Text = "Stops";
+                    lblStatus.ForeColor = _colorStopped;
+                }
             }
 
-            // Sparkline verisini güncelle
-            UpdateSparkline(trendData);
+            
         }
 
-        private void UpdateSparkline(List<ProcessDataPoint> trendData)
-        {
-            _sparklinePoints.Clear();
-            if (trendData == null || trendData.Count < 2)
-            {
-                pnlSparkline.Invalidate();
-                return;
-            }
-
-            var minTime = trendData.First().Timestamp;
-            var maxTime = trendData.Last().Timestamp;
-            var timeRange = (maxTime - minTime).TotalSeconds;
-            if (timeRange == 0) timeRange = 1;
-
-            var minTemp = trendData.Min(p => p.Temperature / 10.0m);
-            var maxTemp = trendData.Max(p => p.Temperature / 10.0m);
-            var tempRange = maxTemp - minTemp;
-            if (tempRange == 0) tempRange = 1;
-
-            foreach (var p in trendData)
-            {
-                float x = (float)(((p.Timestamp - minTime).TotalSeconds / timeRange) * pnlSparkline.Width);
-                float y = (float)(pnlSparkline.Height - ((p.Temperature / 10.0m - minTemp) / tempRange) * pnlSparkline.Height);
-                _sparklinePoints.Add(new PointF(x, y));
-            }
-            pnlSparkline.Invalidate(); // Paneli yeniden çizdir
-        }
-
-        private void pnlSparkline_Paint(object sender, PaintEventArgs e)
-        {
-            if (_sparklinePoints.Count < 2) return;
-
-            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            using (var pen = new Pen(_colorRunning, 2))
-            {
-                e.Graphics.DrawLines(pen, _sparklinePoints.ToArray());
-            }
-        }
+      
     }
 }

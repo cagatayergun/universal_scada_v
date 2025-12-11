@@ -62,6 +62,7 @@ namespace TekstilScada.UI.Views
                 var reportData = _productionRepository.GetProductionReport(filters);
                 dgvProductionReport.DataSource = null;
                 dgvProductionReport.DataSource = reportData;
+                CustomizeGridHeaders();
                 // --- YENİ EKLENECEK KOD BAŞLANGICI ---
                 try
                 {
@@ -107,7 +108,73 @@ namespace TekstilScada.UI.Views
                 this.Cursor = Cursors.Default;
             }
         }
+        private void CustomizeGridHeaders()
+        {
+            // DataGridView isminiz muhtemelen 'dgvReport' veya 'dgvProduction'. 
+            // Lütfen kendi kodunuzdaki isme göre burayı güncelleyin.
+            var grid = dgvProductionReport; // <-- BURAYI KONTROL EDİN
 
+            if (grid.DataSource == null) return;
+
+            // --- GENEL BİLGİLER ---
+            SetColumnHeader(grid, "MachineId", "Machine ID");
+            SetColumnHeader(grid, "MachineName", "Machine Name");
+            SetColumnHeader(grid, "MakineAdi", "Machine Name");
+
+            SetColumnHeader(grid, "BatchNumarasi", "Batch No");
+            SetColumnHeader(grid, "BatchNo", "Batch No");
+            SetColumnHeader(grid, "PartiNo", "Batch No");
+
+            SetColumnHeader(grid, "RecipeName", "Recipe Name");
+            SetColumnHeader(grid, "ReceteAdi", "Recipe Name");
+
+            SetColumnHeader(grid, "OrderNo", "Order No");
+            SetColumnHeader(grid, "SiparisNo", "Order No");
+
+            SetColumnHeader(grid, "Customer", "Customer");
+            SetColumnHeader(grid, "MusteriNo", "Customer");
+
+            SetColumnHeader(grid, "OperatorName", "Operator Name");
+            SetColumnHeader(grid, "Operator", "Operator Name");
+
+            // --- ZAMANLAMALAR ---
+            SetColumnHeader(grid, "StartTime", "Start Time");
+            SetColumnHeader(grid, "BaslangicZamani", "Start Time");
+            SetColumnHeader(grid, "Baslangic", "Start Time");
+
+            SetColumnHeader(grid, "EndTime", "End Time");
+            SetColumnHeader(grid, "BitisZamani", "End Time");
+            SetColumnHeader(grid, "Bitis", "End Time");
+
+            SetColumnHeader(grid, "Duration", "Duration");
+            SetColumnHeader(grid, "Sure", "Duration");
+            SetColumnHeader(grid, "TotalDuration", "Total Duration");
+
+            // --- TÜKETİMLER ---
+          
+
+            SetColumnHeader(grid, "Cost", "Total Cost");
+            SetColumnHeader(grid, "Maliyet", "Total Cost");
+
+            // --- GÖRÜNÜM AYARLARI ---
+            // Tarih formatlarını düzeltelim
+            if (grid.Columns.Contains("StartTime")) grid.Columns["StartTime"].DefaultCellStyle.Format = "dd.MM.yyyy HH:mm:ss";
+            if (grid.Columns.Contains("EndTime")) grid.Columns["EndTime"].DefaultCellStyle.Format = "dd.MM.yyyy HH:mm:ss";
+
+            
+       
+        }
+
+        // Yardımcı Metot: Kolon varsa başlığını değiştirir
+        private void SetColumnHeader(DataGridView grid, string dbColumnName, string newHeaderName)
+        {
+            if (grid.Columns.Contains(dbColumnName))
+            {
+                grid.Columns[dbColumnName].HeaderText = newHeaderName;
+            }
+        }
+
+        
         private void dgvProductionReport_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex >= 0)

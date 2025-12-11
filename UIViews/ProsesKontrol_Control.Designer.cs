@@ -26,6 +26,7 @@ namespace TekstilScada.UI.Views
             splitContainer1 = new SplitContainer();
             lstRecipes = new ListBox();
             panel1 = new Panel();
+            yenile = new Button();
             btnDeleteRecipe = new Button();
             btnNewRecipe = new Button();
             label1 = new Label();
@@ -43,9 +44,16 @@ namespace TekstilScada.UI.Views
             pnlCost = new Panel();
             lblTotalCost = new Label();
             lblCostTitle = new Label();
-            yenile = new Button();
+            this.pnlSearch = new System.Windows.Forms.Panel();
+            this.txtSearchRecipe = new System.Windows.Forms.TextBox();
+            this.lblSearch = new System.Windows.Forms.Label();
+            this.pnlSort = new System.Windows.Forms.Panel();
+            this.radioSortName = new System.Windows.Forms.RadioButton();
+            this.radioSortDate = new System.Windows.Forms.RadioButton();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
+            this.pnlSearch.SuspendLayout(); // YENİ
+            this.pnlSort.SuspendLayout();   // YENİ
             splitContainer1.Panel2.SuspendLayout();
             splitContainer1.SuspendLayout();
             panel1.SuspendLayout();
@@ -64,6 +72,11 @@ namespace TekstilScada.UI.Views
             // 
             splitContainer1.Panel1.Controls.Add(lstRecipes);
             splitContainer1.Panel1.Controls.Add(panel1);
+            this.splitContainer1.Panel1.Controls.Add(this.lstRecipes); // Fill (En altta kalacak, diğerleri üstüne binecek)
+            this.splitContainer1.Panel1.Controls.Add(this.pnlSort);    // Top (Aramanın altında)
+            this.splitContainer1.Panel1.Controls.Add(this.pnlSearch);  // Top (Başlığın altında)
+            this.splitContainer1.Panel1.Controls.Add(this.label1);     // Top (En üstte)
+            this.splitContainer1.Panel1.Controls.Add(this.panel1);     // Bottom (Butonlar)
             splitContainer1.Panel1.Controls.Add(label1);
             // 
             // splitContainer1.Panel2
@@ -76,7 +89,8 @@ namespace TekstilScada.UI.Views
             // 
             // lstRecipes
             // 
-            lstRecipes.Dock = DockStyle.Fill;
+            this.lstRecipes.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lstRecipes.BringToFront(); // En öne getir ki diğer panellerin altında kalmasın (Fill mantığı)
             lstRecipes.FormattingEnabled = true;
             lstRecipes.ItemHeight = 15;
             lstRecipes.Location = new Point(0, 22);
@@ -97,6 +111,87 @@ namespace TekstilScada.UI.Views
             panel1.Name = "panel1";
             panel1.Size = new Size(169, 38);
             panel1.TabIndex = 2;
+            // 
+            // yenile
+            // 
+            yenile.Dock = DockStyle.Left;
+            yenile.Location = new Point(164, 0);
+            yenile.Margin = new Padding(3, 2, 3, 2);
+            yenile.Name = "yenile";
+            yenile.Size = new Size(82, 38);
+            yenile.TabIndex = 2;
+            yenile.Text = "Refresh";
+            yenile.UseVisualStyleBackColor = true;
+            yenile.Click += yenile_Click;
+            // 
+            // pnlSearch (YENİ - Arama Paneli)
+            // 
+            this.pnlSearch.Controls.Add(this.txtSearchRecipe);
+            this.pnlSearch.Controls.Add(this.lblSearch);
+            this.pnlSearch.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlSearch.Location = new System.Drawing.Point(0, 22); // label1'in altı
+            this.pnlSearch.Name = "pnlSearch";
+            this.pnlSearch.Padding = new System.Windows.Forms.Padding(5);
+            this.pnlSearch.Size = new System.Drawing.Size(169, 50);
+            this.pnlSearch.TabIndex = 3;
+
+            // 
+            // lblSearch
+            // 
+            this.lblSearch.AutoSize = true;
+            this.lblSearch.Dock = System.Windows.Forms.DockStyle.Top;
+            this.lblSearch.Location = new System.Drawing.Point(5, 5);
+            this.lblSearch.Name = "lblSearch";
+            this.lblSearch.Size = new System.Drawing.Size(45, 15);
+            this.lblSearch.TabIndex = 0;
+            this.lblSearch.Text = "Search:";
+
+            // 
+            // txtSearchRecipe
+            // 
+            this.txtSearchRecipe.Dock = System.Windows.Forms.DockStyle.Top;
+            this.txtSearchRecipe.Location = new System.Drawing.Point(5, 20);
+            this.txtSearchRecipe.Name = "txtSearchRecipe";
+            this.txtSearchRecipe.Size = new System.Drawing.Size(159, 23);
+            this.txtSearchRecipe.TabIndex = 1;
+            this.txtSearchRecipe.TextChanged += new System.EventHandler(this.txtSearchRecipe_TextChanged);
+
+            // 
+            // pnlSort (YENİ - Sıralama Paneli)
+            // 
+            this.pnlSort.Controls.Add(this.radioSortDate);
+            this.pnlSort.Controls.Add(this.radioSortName);
+            this.pnlSort.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlSort.Location = new System.Drawing.Point(0, 72); // pnlSearch'in altı
+            this.pnlSort.Name = "pnlSort";
+            this.pnlSort.Size = new System.Drawing.Size(169, 30);
+            this.pnlSort.TabIndex = 4;
+
+            // 
+            // radioSortName
+            // 
+            this.radioSortName.AutoSize = true;
+            this.radioSortName.Checked = true; // Varsayılan: İsim
+            this.radioSortName.Location = new System.Drawing.Point(5, 5);
+            this.radioSortName.Name = "radioSortName";
+            this.radioSortName.Size = new System.Drawing.Size(53, 19);
+            this.radioSortName.TabIndex = 0;
+            this.radioSortName.TabStop = true;
+            this.radioSortName.Text = "A-Z";
+            this.radioSortName.UseVisualStyleBackColor = true;
+            this.radioSortName.CheckedChanged += new System.EventHandler(this.SortOption_CheckedChanged);
+
+            // 
+            // radioSortDate
+            // 
+            this.radioSortDate.AutoSize = true;
+            this.radioSortDate.Location = new System.Drawing.Point(70, 5);
+            this.radioSortDate.Name = "radioSortDate";
+            this.radioSortDate.Size = new System.Drawing.Size(73, 19);
+            this.radioSortDate.TabIndex = 1;
+            this.radioSortDate.Text = "Newest"; // Veya "Date"
+            this.radioSortDate.UseVisualStyleBackColor = true;
+            this.radioSortDate.CheckedChanged += new System.EventHandler(this.SortOption_CheckedChanged);
             // 
             // btnDeleteRecipe
             // 
@@ -167,7 +262,7 @@ namespace TekstilScada.UI.Views
             btnFtpSync.Location = new Point(359, 6);
             btnFtpSync.Margin = new Padding(3, 2, 3, 2);
             btnFtpSync.Name = "btnFtpSync";
-            btnFtpSync.Size = new Size(280, 22);
+            btnFtpSync.Size = new Size(386, 37);
             btnFtpSync.TabIndex = 7;
             btnFtpSync.Text = "REMOTE MACHINE OPERATIONS";
             btnFtpSync.UseVisualStyleBackColor = false;
@@ -176,7 +271,7 @@ namespace TekstilScada.UI.Views
             // 
             cmbTargetMachine.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbTargetMachine.FormattingEnabled = true;
-            cmbTargetMachine.Location = new Point(107, 8);
+            cmbTargetMachine.Location = new Point(107, 13);
             cmbTargetMachine.Margin = new Padding(3, 2, 3, 2);
             cmbTargetMachine.Name = "cmbTargetMachine";
             cmbTargetMachine.Size = new Size(246, 23);
@@ -186,7 +281,7 @@ namespace TekstilScada.UI.Views
             // 
             label4.AutoSize = true;
             label4.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label4.Location = new Point(10, 10);
+            label4.Location = new Point(10, 17);
             label4.Name = "label4";
             label4.Size = new Size(96, 15);
             label4.TabIndex = 5;
@@ -194,37 +289,37 @@ namespace TekstilScada.UI.Views
             // 
             // btnReadFromPlc
             // 
-            btnReadFromPlc.Location = new Point(359, 35);
+            btnReadFromPlc.Location = new Point(359, 47);
             btnReadFromPlc.Margin = new Padding(3, 2, 3, 2);
             btnReadFromPlc.Name = "btnReadFromPlc";
-            btnReadFromPlc.Size = new Size(88, 22);
+            btnReadFromPlc.Size = new Size(88, 47);
             btnReadFromPlc.TabIndex = 4;
             btnReadFromPlc.Text = "Read from PLC";
             btnReadFromPlc.UseVisualStyleBackColor = true;
             // 
             // btnSendToPlc
             // 
-            btnSendToPlc.Location = new Point(551, 35);
+            btnSendToPlc.Location = new Point(657, 47);
             btnSendToPlc.Margin = new Padding(3, 2, 3, 2);
             btnSendToPlc.Name = "btnSendToPlc";
-            btnSendToPlc.Size = new Size(88, 22);
+            btnSendToPlc.Size = new Size(88, 47);
             btnSendToPlc.TabIndex = 3;
             btnSendToPlc.Text = "Send to PLC";
             btnSendToPlc.UseVisualStyleBackColor = true;
             // 
             // btnSaveRecipe
             // 
-            btnSaveRecipe.Location = new Point(455, 35);
+            btnSaveRecipe.Location = new Point(511, 47);
             btnSaveRecipe.Margin = new Padding(3, 2, 3, 2);
             btnSaveRecipe.Name = "btnSaveRecipe";
-            btnSaveRecipe.Size = new Size(82, 22);
+            btnSaveRecipe.Size = new Size(82, 47);
             btnSaveRecipe.TabIndex = 2;
             btnSaveRecipe.Text = "Save";
             btnSaveRecipe.UseVisualStyleBackColor = true;
             // 
             // txtRecipeName
             // 
-            txtRecipeName.Location = new Point(107, 34);
+            txtRecipeName.Location = new Point(107, 59);
             txtRecipeName.Margin = new Padding(3, 2, 3, 2);
             txtRecipeName.Name = "txtRecipeName";
             txtRecipeName.Size = new Size(246, 23);
@@ -234,7 +329,7 @@ namespace TekstilScada.UI.Views
             // 
             label3.AutoSize = true;
             label3.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label3.Location = new Point(10, 36);
+            label3.Location = new Point(10, 63);
             label3.Name = "label3";
             label3.Size = new Size(84, 15);
             label3.TabIndex = 0;
@@ -251,6 +346,7 @@ namespace TekstilScada.UI.Views
             btnCalculateCost.TabIndex = 8;
             btnCalculateCost.Text = "Calculate Estimated Cost";
             btnCalculateCost.UseVisualStyleBackColor = false;
+            btnCalculateCost.Visible = false;
             btnCalculateCost.Click += btnCalculateCost_Click;
             // 
             // pnlCost
@@ -262,6 +358,7 @@ namespace TekstilScada.UI.Views
             pnlCost.Name = "pnlCost";
             pnlCost.Size = new Size(100, 90);
             pnlCost.TabIndex = 9;
+            pnlCost.Visible = false;
             // 
             // lblTotalCost
             // 
@@ -285,18 +382,6 @@ namespace TekstilScada.UI.Views
             lblCostTitle.TabIndex = 0;
             lblCostTitle.Text = "Estimated Cost";
             lblCostTitle.TextAlign = ContentAlignment.MiddleCenter;
-            // 
-            // yenile
-            // 
-            yenile.Dock = DockStyle.Left;
-            yenile.Location = new Point(164, 0);
-            yenile.Margin = new Padding(3, 2, 3, 2);
-            yenile.Name = "yenile";
-            yenile.Size = new Size(82, 38);
-            yenile.TabIndex = 2;
-            yenile.Text = "Refresh";
-            yenile.UseVisualStyleBackColor = true;
-            yenile.Click += yenile_Click;
             // 
             // ProsesKontrol_Control
             // 
@@ -339,5 +424,11 @@ namespace TekstilScada.UI.Views
         private System.Windows.Forms.Label lblCostTitle;
         private System.Windows.Forms.Button btnCalculateCost;
         private Button yenile;
+        private System.Windows.Forms.Panel pnlSearch;
+        private System.Windows.Forms.TextBox txtSearchRecipe;
+        private System.Windows.Forms.Label lblSearch;
+        private System.Windows.Forms.Panel pnlSort;
+        private System.Windows.Forms.RadioButton radioSortName;
+        private System.Windows.Forms.RadioButton radioSortDate;
     }
 }

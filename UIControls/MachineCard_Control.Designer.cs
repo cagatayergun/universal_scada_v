@@ -306,7 +306,7 @@ namespace TekstilScada.UI.Controls
             btnVnc.Name = "btnVnc";
             btnVnc.Size = new Size(26, 22);
             btnVnc.TabIndex = 0;
-            btnVnc.Text = "V";
+            btnVnc.Text = "M";
             btnVnc.UseVisualStyleBackColor = true;
             btnVnc.Click += btnVnc_Click;
             // 

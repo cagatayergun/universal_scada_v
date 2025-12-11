@@ -44,7 +44,7 @@ namespace TekstilScada.UI.Views
             tabPageProductionReport.Controls.Add(_productionReport);
 
             _oeeReport.Dock = DockStyle.Fill;
-            tabPageOeeReport.Controls.Add(_oeeReport);
+            //tabPageOeeReport.Controls.Add(_oeeReport);
 
             _trendAnaliz.Dock = DockStyle.Fill;
             tabPageTrendAnalysis.Controls.Add(_trendAnaliz);
@@ -69,7 +69,7 @@ namespace TekstilScada.UI.Views
             tabPageAlarmReport.Text = Resources.alarmrapor;
             tabPageGenelUretim.Text = Resources.geneltüketim;
             tabPageManualReport.Text = Resources.manuelrapor;
-            tabPageOeeReport.Text = Resources.OeeReport;
+            //tabPageOeeReport.Text = Resources.OeeReport;
             tabPageRecipeOptimization.Text = Resources.RecipeOptimization;
             tabPageTrendAnalysis.Text = Resources.TrendAnalysis;
         }
@@ -85,7 +85,7 @@ namespace TekstilScada.UI.Views
             CostRepository costRepo
            ) // YENİ: CostRepository parametresi eklendi
         {
-            _genelUretimRaporu.InitializeControl(machineRepo, productionRepo, costRepo); // YENİ: costRepo parametresi geçildi
+            _genelUretimRaporu.InitializeControl(machineRepo, productionRepo); // YENİ: costRepo parametresi geçildi
             _alarmReport.InitializeControl(machineRepo, alarmRepo);
             _productionReport.InitializeControl(machineRepo, productionRepo, recipeRepo, processLogRepo, alarmRepo);
             _oeeReport.InitializeControl(machineRepo, dashboardRepo);
