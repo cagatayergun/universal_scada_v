@@ -155,8 +155,15 @@ namespace TekstilScada.UI.Controls
                 _lastValidProgress = Math.Max(0, Math.Min(100, (int)status.ProsesYuzdesi));
                 progressBar.Value = _lastValidProgress;
                 lblPercentage.Text = $"{_lastValidProgress} %";
-
-                if (status.IsInRecipeMode)
+                if (status.manuel_status)
+                {
+                    pnlStatusIndicator.BackColor = _colorRunning;
+                    lblStatus.Text = $"Working - Manuel";
+                    lblStatus.ForeColor = _colorRunning;
+                }
+                else
+                {
+                    if (status.IsInRecipeMode)
                 {
                     pnlStatusIndicator.BackColor = _colorRunning;
                     lblStatus.Text = $"Working - Step {status.AktifAdimNo}";
@@ -168,7 +175,9 @@ namespace TekstilScada.UI.Controls
                     lblStatus.Text = "Stops";
                     lblStatus.ForeColor = _colorStopped;
                 }
+                }
             }
+
 
             
         }

@@ -801,7 +801,7 @@ namespace TekstilScada.UI.Views
 
             if (_plcManagers == null || !_plcManagers.TryGetValue(selectedMachine.Id, out var plcManager))
             {
-                MessageBox.Show($"'{selectedMachine.MachineName}' No active PLC connection found for .", "Connection Error");
+                MessageBox.Show($"'{selectedMachine.MachineName}' No active PLC connection found.", "Connection Error");
                 return;
             }
 
@@ -812,36 +812,76 @@ namespace TekstilScada.UI.Views
                 var result = await plcManager.ReadRecipeFromPlcAsync();
                 if (result.IsSuccess)
                 {
-                    var recipeFromPlc = new ScadaRecipe { RecipeName = $"PLC_{selectedMachine.MachineUserDefinedId}_{DateTime.Now:HHmm}" };
+                    var recipeFromPlc = new ScadaRecipe
+                    {
+                        Id = 0,
+                        RecipeName = $"PLC_{selectedMachine.MachineUserDefinedId}_{DateTime.Now:HHmm}",
+                       
+                    };
+
+                    // --- DÜZELTME BURADA BAŞLIYOR ---
+                    // Reçetenin makine tipini, o an seçili olan makinenin filtreleme mantığıyla birebir aynı yapıyoruz.
+                    // Böylece kaydedince listede görünür.
+                    string targetType = !string.IsNullOrEmpty(selectedMachine.MachineSubType)
+                                        ? selectedMachine.MachineSubType
+                                        : selectedMachine.MachineType;
+
+                    recipeFromPlc.TargetMachineType = targetType;
+                    // --- DÜZELTME BİTİŞİ ---
 
                     if (selectedMachine.MachineType == "Kurutma Makinesi")
                     {
-                        var step = new ScadaRecipeStep { StepNumber = 1 };
-                        // Kurutma makinesi 5 word + 1 kontrol word'ü okur
-                        Array.Copy(result.Content, 0, step.StepDataWords, 0, Math.Min(result.Content.Length, 6));
+                        var step = new ScadaRecipeStep
+                        {
+                            StepNumber = 1,
+                            StepDataWords = new short[25]
+                        };
+
+                        if (result.Content != null && result.Content.Length > 0)
+                        {
+                            Array.Copy(result.Content, 0, step.StepDataWords, 0, Math.Min(result.Content.Length, 25));
+                        }
                         recipeFromPlc.Steps.Add(step);
                     }
-                    else
+                    else // BY Makinesi
                     {
                         for (int i = 0; i < 98; i++)
                         {
-                            var step = new ScadaRecipeStep { StepNumber = i + 1 };
-                            Array.Copy(result.Content, i * 25, step.StepDataWords, 0, 25);
+                            var step = new ScadaRecipeStep
+                            {
+                                StepNumber = i + 1,
+                                StepDataWords = new short[25]
+                            };
+
+                            if (result.Content != null && result.Content.Length >= (i * 25) + 25)
+                            {
+                                Array.Copy(result.Content, i * 25, step.StepDataWords, 0, 25);
+                            }
                             recipeFromPlc.Steps.Add(step);
                         }
                     }
 
                     _currentRecipe = recipeFromPlc;
                     DisplayCurrentRecipe();
-                    MessageBox.Show($"'{selectedMachine.MachineName}' The recipe in the machine was read successfully.Please give a new name and save it.", "Successful");
+
+                    MessageBox.Show($"Recipe read successfully from '{selectedMachine.MachineName}'.\nPlease rename and save it.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    txtRecipeName.Focus();
+                    txtRecipeName.SelectAll();
                 }
-                else { MessageBox.Show($"Error reading prescription: {result.Message}", "Error"); }
+                else
+                {
+                    MessageBox.Show($"Error reading prescription: {result.Message}", "Error");
+                }
             }
             catch (NotImplementedException)
             {
-                MessageBox.Show($"'{selectedMachine.MachineType}' The recipe reading feature for the type is not yet complete.", "Under Development");
+                MessageBox.Show($"Reading feature not implemented for '{selectedMachine.MachineType}'.", "Info");
             }
-            catch (Exception ex) { MessageBox.Show($"An unexpected error occurred: {ex.Message}", "System Error"); }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An unexpected error occurred: {ex.Message}", "System Error");
+            }
             finally
             {
                 this.Cursor = Cursors.Default;

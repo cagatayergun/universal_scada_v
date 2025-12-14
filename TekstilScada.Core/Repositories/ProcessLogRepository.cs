@@ -215,7 +215,7 @@ namespace TekstilScada.Repositories
                 string sql = @"
                     SELECT 
                         LogTimestamp as Timestamp, 
-                        TotalWater as totalwatermanuel, 
+                        LiveWaterLevel as totalwatermanuel, 
                         LiveElectricity as totalelectritymanuel, 
                         LiveSteam as totalsteammanuel 
                     FROM manual_mode_log 
@@ -249,12 +249,13 @@ namespace TekstilScada.Repositories
         // Düzeltilmiş Manuel Tüketim Özeti Mantığı
         public ManualConsumptionSummary GetManualConsumptionSummary(int machineId, string machineName, DateTime startTime, DateTime endTime)
         {
+            // 1. Verileri Çek (Sıcaklık/Devir ve Tüketimler ayrı tablolardan veya sorgulardan geliyor olabilir)
             var dataPoints = GetManualLogs(machineId, startTime, endTime);
             var dataPoints1 = GetManualLogs1(machineId, startTime, endTime);
 
+            // Veri kontrolü
             if (dataPoints == null || !dataPoints.Any() || dataPoints1 == null || !dataPoints1.Any())
             {
-                // Veri yoksa boş ama güvenli bir nesne dön
                 return new ManualConsumptionSummary
                 {
                     Makine = machineName,
@@ -268,8 +269,36 @@ namespace TekstilScada.Repositories
                 };
             }
 
-            // Yardımcı Metot: Kümülatif artan sayaçların toplam tüketimini hesaplar.
-            // Sayaç sıfırlanırsa (reset), önceki maksimum değeri toplama ekler.
+            // --- YENİ SÜRE HESAPLAMA METODU (Gap Analysis) ---
+            // Loglar 1 sn (aktif) ve 7 sn (pasif) aralıklarla atıldığı için;
+            // İki kayıt arasındaki fark 2.5 saniyeden az ise bu "Aktif Çalışma" süresidir.
+            TimeSpan CalculateAccurateDuration(List<ProcessDataPoint> points)
+            {
+                if (points == null || points.Count == 0) return TimeSpan.Zero;
+
+                TimeSpan duration = TimeSpan.Zero;
+                double activeThresholdSeconds = 4; // 1 saniyelik logları yakalamak için toleranslı eşik
+
+                for (int i = 0; i < points.Count - 1; i++)
+                {
+                    var diff = points[i + 1].Timestamp - points[i].Timestamp;
+
+                    // Eğer iki log arası 2.5 saniyeden kısaysa (yani 1 sn modundaysa) süreye ekle.
+                    // 7 sn modundaysa (bekleme) süreye ekleme.
+                    if (diff.TotalSeconds <= activeThresholdSeconds)
+                    {
+                        duration += diff;
+                    }
+                }
+
+                // Döngü son kaydı kapsamadığı için, son kayıt için de varsayılan 1 sn ekleyebiliriz (opsiyonel)
+                if (duration.TotalSeconds > 0)
+                    duration += TimeSpan.FromSeconds(1);
+
+                return duration;
+            }
+
+            // --- TÜKETİM HESAPLAMA METODU (Reset ve Gürültü Kontrolü) ---
             decimal CalculateConsumption(List<ProcessDataManuel> data, Func<ProcessDataManuel, decimal> selector)
             {
                 if (data.Count == 0) return 0;
@@ -281,37 +310,41 @@ namespace TekstilScada.Repositories
                 {
                     decimal currentValue = selector(data[i]);
 
+                    // Sayaç artıyorsa farkı ekle (Normal Tüketim)
                     if (currentValue >= previousValue)
                     {
-                        // Sayaç artıyor, normal durum. Farkı alıyoruz.
-                        // Not: Eğer sayaç kümülatif değil anlık ise bu mantık değişmelidir. 
-                        // Buradaki mantık: Sayaç kümülatif artıyor (örn: su sayacı).
                         totalConsumption += (currentValue - previousValue);
                     }
                     else
                     {
-                        // Sayaç düşmüş (Resetlenmiş). 
-                        // Önceki değer o ana kadarki tüketime dahildi, zaten ekledik.
-                        // Şimdi yeni başlangıç değerini (currentValue) tüketim kabul ediyoruz (eğer 0'dan başladıysa).
-                        totalConsumption += currentValue;
+                        // Sayaç düşmüşse kontrol et:
+                        // Eğer düşüş çok keskinse (örneğin önceki değerin %50'sinden küçükse) bu bir RESET'tir.
+                        // Sensör gürültüsü (100.5 -> 100.4) ise RESET değildir, işlem yapma.
+                        if (previousValue > 0 && currentValue < (previousValue * 0.5m))
+                        {
+                            totalConsumption += currentValue; // Reset sonrası yeni değeri ekle
+                        }
+                        // Aksi takdirde (küçük düşüşlerde) gürültü sayılır, toplama bir şey eklenmez.
                     }
                     previousValue = currentValue;
                 }
                 return totalConsumption;
             }
 
-            // Eğer veriler "Toplam Tüketim" değil de "Anlık Değer" ise SumPeaks yerine doğrudan Average veya Sum kullanılmalıdır.
-            // Ancak TotalWater gibi alanlar genelde kümülatiftir.
-
+            // --- SONUÇ NESNESİNİN OLUŞTURULMASI ---
             var summary = new ManualConsumptionSummary
             {
                 Makine = machineName,
                 RaporAraligi = $"{startTime:dd.MM.yy HH:mm} - {endTime:dd.MM.yy HH:mm}",
-                ToplamManuelSure = TimeSpan.FromSeconds(dataPoints.Count * 5).ToString(@"hh\:mm\:ss"), // 5 saniyelik periyot varsayımı
-                OrtalamaSicaklik = dataPoints.Average(p => (double)p.Temperature/10.0), // /10.0 gerekip gerekmediğini kontrol edin
+
+                // Yeni mantık ile hesaplanan süre
+                ToplamManuelSure = CalculateAccurateDuration(dataPoints).ToString(@"hh\:mm\:ss"),
+
+                // Ortalamalar
+                OrtalamaSicaklik = dataPoints.Average(p => (double)p.Temperature / 10.0), // PLC verisi 10 ile çarpılmış geliyorsa
                 OrtalamaDevir = dataPoints.Average(p => p.Rpm),
 
-                // Kümülatif hesaplama
+                // Tüketimler
                 ToplamSuTuketimi_Litre = CalculateConsumption(dataPoints1, p => p.totalwatermanuel),
                 ToplamElektrikTuketimi_kW = CalculateConsumption(dataPoints1, p => p.totalelectritymanuel),
                 ToplamBuharTuketimi_kg = CalculateConsumption(dataPoints1, p => p.totalsteammanuel)

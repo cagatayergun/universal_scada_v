@@ -2,8 +2,15 @@
 {
     partial class ManualUsageReport_Control
     {
+        /// <summary> 
+        /// Required designer variable.
+        /// </summary>
         private System.ComponentModel.IContainer components = null;
 
+        /// <summary> 
+        /// Clean up any resources being used.
+        /// </summary>
+        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -15,162 +22,155 @@
 
         #region Component Designer generated code
 
+        /// <summary> 
+        /// Required method for Designer support - do not modify 
+        /// the contents of this method with the code editor.
+        /// </summary>
         private void InitializeComponent()
         {
-            pnlFilters = new Panel();
-            btnGenerateReport = new Button();
-            cmbMachines = new ComboBox();
-            label3 = new Label();
-            dtpEndTime = new DateTimePicker();
-            label2 = new Label();
-            dtpStartTime = new DateTimePicker();
-            label1 = new Label();
-            btnExportToExcel = new Button();
-            dgvManualUsage = new DataGridView();
-            pnlFilters.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)dgvManualUsage).BeginInit();
-            SuspendLayout();
+            this.pnlFilters = new System.Windows.Forms.Panel();
+            this.btnGenerateReport = new System.Windows.Forms.Button();
+            this.dtpEndTime = new System.Windows.Forms.DateTimePicker();
+            this.label2 = new System.Windows.Forms.Label();
+            this.dtpStartTime = new System.Windows.Forms.DateTimePicker();
+            this.label1 = new System.Windows.Forms.Label();
+            this.btnExportToExcel = new System.Windows.Forms.Button();
+            this.dgvManualUsage = new System.Windows.Forms.DataGridView();
+            this.flpMachineGroups = new System.Windows.Forms.FlowLayoutPanel();
+            this.pnlFilters.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvManualUsage)).BeginInit();
+            this.SuspendLayout();
             // 
             // pnlFilters
             // 
-            pnlFilters.Controls.Add(btnGenerateReport);
-            pnlFilters.Controls.Add(cmbMachines);
-            pnlFilters.Controls.Add(label3);
-            pnlFilters.Controls.Add(dtpEndTime);
-            pnlFilters.Controls.Add(label2);
-            pnlFilters.Controls.Add(dtpStartTime);
-            pnlFilters.Controls.Add(label1);
-            pnlFilters.Controls.Add(btnExportToExcel);
-            pnlFilters.Dock = DockStyle.Top;
-            pnlFilters.Location = new Point(0, 0);
-            pnlFilters.Margin = new Padding(3, 2, 3, 2);
-            pnlFilters.Name = "pnlFilters";
-            pnlFilters.Size = new Size(788, 48);
-            pnlFilters.TabIndex = 1;
+            this.pnlFilters.Controls.Add(this.btnGenerateReport);
+            this.pnlFilters.Controls.Add(this.dtpEndTime);
+            this.pnlFilters.Controls.Add(this.label2);
+            this.pnlFilters.Controls.Add(this.dtpStartTime);
+            this.pnlFilters.Controls.Add(this.label1);
+            this.pnlFilters.Controls.Add(this.btnExportToExcel);
+            this.pnlFilters.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlFilters.Location = new System.Drawing.Point(0, 0);
+            this.pnlFilters.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.pnlFilters.Name = "pnlFilters";
+            this.pnlFilters.Size = new System.Drawing.Size(788, 48);
+            this.pnlFilters.TabIndex = 1;
             // 
             // btnGenerateReport
             // 
-            btnGenerateReport.Location = new Point(570, 19);
-            btnGenerateReport.Margin = new Padding(3, 2, 3, 2);
-            btnGenerateReport.Name = "btnGenerateReport";
-            btnGenerateReport.Size = new Size(105, 22);
-            btnGenerateReport.TabIndex = 6;
-            btnGenerateReport.Text = "Report";
-            btnGenerateReport.UseVisualStyleBackColor = true;
-            btnGenerateReport.Click += btnGenerateReport_Click;
-            // 
-            // cmbMachines
-            // 
-            cmbMachines.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbMachines.FormattingEnabled = true;
-            cmbMachines.Location = new Point(370, 19);
-            cmbMachines.Margin = new Padding(3, 2, 3, 2);
-            cmbMachines.Name = "cmbMachines";
-            cmbMachines.Size = new Size(193, 23);
-            cmbMachines.TabIndex = 5;
-            // 
-            // label3
-            // 
-            label3.AutoSize = true;
-            label3.Location = new Point(312, 23);
-            label3.Name = "label3";
-            label3.Size = new Size(56, 15);
-            label3.TabIndex = 4;
-            label3.Text = "Machine:";
+            this.btnGenerateReport.Location = new System.Drawing.Point(320, 19);
+            this.btnGenerateReport.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnGenerateReport.Name = "btnGenerateReport";
+            this.btnGenerateReport.Size = new System.Drawing.Size(105, 22);
+            this.btnGenerateReport.TabIndex = 4;
+            this.btnGenerateReport.Text = "Report";
+            this.btnGenerateReport.UseVisualStyleBackColor = true;
+            this.btnGenerateReport.Click += new System.EventHandler(this.btnGenerateReport_Click);
             // 
             // dtpEndTime
             // 
-            dtpEndTime.CustomFormat = "dd.MM.yyyy HH:mm";
-            dtpEndTime.Format = DateTimePickerFormat.Custom;
-            dtpEndTime.Location = new Point(167, 19);
-            dtpEndTime.Margin = new Padding(3, 2, 3, 2);
-            dtpEndTime.Name = "dtpEndTime";
-            dtpEndTime.Size = new Size(132, 23);
-            dtpEndTime.TabIndex = 3;
+            this.dtpEndTime.CustomFormat = "dd.MM.yyyy HH:mm";
+            this.dtpEndTime.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
+            this.dtpEndTime.Location = new System.Drawing.Point(167, 19);
+            this.dtpEndTime.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.dtpEndTime.Name = "dtpEndTime";
+            this.dtpEndTime.Size = new System.Drawing.Size(132, 23);
+            this.dtpEndTime.TabIndex = 3;
             // 
             // label2
             // 
-            label2.AutoSize = true;
-            label2.Location = new Point(149, 23);
-            label2.Name = "label2";
-            label2.Size = new Size(12, 15);
-            label2.TabIndex = 2;
-            label2.Text = "-";
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(149, 23);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(12, 15);
+            this.label2.TabIndex = 2;
+            this.label2.Text = "-";
             // 
             // dtpStartTime
             // 
-            dtpStartTime.CustomFormat = "dd.MM.yyyy HH:mm";
-            dtpStartTime.Format = DateTimePickerFormat.Custom;
-            dtpStartTime.Location = new Point(12, 19);
-            dtpStartTime.Margin = new Padding(3, 2, 3, 2);
-            dtpStartTime.Name = "dtpStartTime";
-            dtpStartTime.Size = new Size(132, 23);
-            dtpStartTime.TabIndex = 1;
+            this.dtpStartTime.CustomFormat = "dd.MM.yyyy HH:mm";
+            this.dtpStartTime.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
+            this.dtpStartTime.Location = new System.Drawing.Point(12, 19);
+            this.dtpStartTime.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.dtpStartTime.Name = "dtpStartTime";
+            this.dtpStartTime.Size = new System.Drawing.Size(132, 23);
+            this.dtpStartTime.TabIndex = 1;
             // 
             // label1
             // 
-            label1.AutoSize = true;
-            label1.Location = new Point(12, 2);
-            label1.Name = "label1";
-            label1.Size = new Size(70, 15);
-            label1.TabIndex = 0;
-            label1.Text = "Date Range:";
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(12, 2);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(70, 15);
+            this.label1.TabIndex = 0;
+            this.label1.Text = "Date Range:";
             // 
             // btnExportToExcel
             // 
-            btnExportToExcel.Location = new Point(678, 19);
-            btnExportToExcel.Margin = new Padding(3, 2, 3, 2);
-            btnExportToExcel.Name = "btnExportToExcel";
-            btnExportToExcel.Size = new Size(106, 22);
-            btnExportToExcel.TabIndex = 7;
-            btnExportToExcel.Text = "Export to Excel";
-            btnExportToExcel.UseVisualStyleBackColor = true;
-            btnExportToExcel.Click += btnExportToExcel_Click;
+            this.btnExportToExcel.Location = new System.Drawing.Point(431, 19);
+            this.btnExportToExcel.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnExportToExcel.Name = "btnExportToExcel";
+            this.btnExportToExcel.Size = new System.Drawing.Size(106, 22);
+            this.btnExportToExcel.TabIndex = 5;
+            this.btnExportToExcel.Text = "Export to Excel";
+            this.btnExportToExcel.UseVisualStyleBackColor = true;
+            this.btnExportToExcel.Click += new System.EventHandler(this.btnExportToExcel_Click);
             // 
             // dgvManualUsage
             // 
-            dgvManualUsage.AllowUserToAddRows = false;
-            dgvManualUsage.AllowUserToDeleteRows = false;
-            dgvManualUsage.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgvManualUsage.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvManualUsage.Dock = DockStyle.Fill;
-            dgvManualUsage.Location = new Point(0, 48);
-            dgvManualUsage.Margin = new Padding(3, 2, 3, 2);
-            dgvManualUsage.Name = "dgvManualUsage";
-            dgvManualUsage.ReadOnly = true;
-            dgvManualUsage.RowHeadersWidth = 51;
-            dgvManualUsage.RowTemplate.Height = 29;
-            dgvManualUsage.Size = new Size(788, 402);
-            dgvManualUsage.TabIndex = 2;
+            this.dgvManualUsage.AllowUserToAddRows = false;
+            this.dgvManualUsage.AllowUserToDeleteRows = false;
+            this.dgvManualUsage.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dgvManualUsage.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvManualUsage.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dgvManualUsage.Location = new System.Drawing.Point(230, 48);
+            this.dgvManualUsage.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.dgvManualUsage.Name = "dgvManualUsage";
+            this.dgvManualUsage.ReadOnly = true;
+            this.dgvManualUsage.RowHeadersWidth = 51;
+            this.dgvManualUsage.RowTemplate.Height = 29;
+            this.dgvManualUsage.Size = new System.Drawing.Size(558, 402);
+            this.dgvManualUsage.TabIndex = 3;
+            // 
+            // flpMachineGroups
+            // 
+            this.flpMachineGroups.AutoScroll = true;
+            this.flpMachineGroups.BackColor = System.Drawing.SystemColors.ControlLight;
+            this.flpMachineGroups.Dock = System.Windows.Forms.DockStyle.Left;
+            this.flpMachineGroups.Location = new System.Drawing.Point(0, 48);
+            this.flpMachineGroups.Name = "flpMachineGroups";
+            this.flpMachineGroups.Padding = new System.Windows.Forms.Padding(5);
+            this.flpMachineGroups.Size = new System.Drawing.Size(230, 402);
+            this.flpMachineGroups.TabIndex = 2;
             // 
             // ManualUsageReport_Control
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            Controls.Add(dgvManualUsage);
-            Controls.Add(pnlFilters);
-            Margin = new Padding(3, 2, 3, 2);
-            Name = "ManualUsageReport_Control";
-            Size = new Size(788, 450);
-            Load += ManualUsageReport_Control_Load;
-            pnlFilters.ResumeLayout(false);
-            pnlFilters.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)dgvManualUsage).EndInit();
-            ResumeLayout(false);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this.dgvManualUsage);
+            this.Controls.Add(this.flpMachineGroups);
+            this.Controls.Add(this.pnlFilters);
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.Name = "ManualUsageReport_Control";
+            this.Size = new System.Drawing.Size(788, 450);
+            this.Load += new System.EventHandler(this.ManualUsageReport_Control_Load);
+            this.pnlFilters.ResumeLayout(false);
+            this.pnlFilters.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvManualUsage)).EndInit();
+            this.ResumeLayout(false);
+
         }
 
         #endregion
 
         private System.Windows.Forms.Panel pnlFilters;
         private System.Windows.Forms.Button btnGenerateReport;
-        private System.Windows.Forms.ComboBox cmbMachines;
-        private System.Windows.Forms.Label label3;
         private System.Windows.Forms.DateTimePicker dtpEndTime;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.DateTimePicker dtpStartTime;
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.DataGridView dgvManualUsage; // HATA GİDERİLDİ
+        private System.Windows.Forms.DataGridView dgvManualUsage;
         private System.Windows.Forms.Button btnExportToExcel;
-
+        private System.Windows.Forms.FlowLayoutPanel flpMachineGroups;
     }
 }

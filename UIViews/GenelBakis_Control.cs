@@ -106,6 +106,11 @@ namespace TekstilScada.UI.Views
             {
                 InitializeKpiCards();
 
+                // Ana Panel Ayarları (Dikey Sıralama)
+                flpMachineGroups.FlowDirection = FlowDirection.TopDown;
+                flpMachineGroups.WrapContents = false;
+                flpMachineGroups.AutoScroll = true;
+
                 _previousBatchStatuses = _pollingService.MachineDataCache
                     .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.IsInRecipeMode);
 
@@ -158,6 +163,7 @@ namespace TekstilScada.UI.Views
         {
             if (_machineRepository == null || _pollingService == null) return;
 
+            // Paneli dondur (Performans için)
             flpMachineGroups.SuspendLayout();
 
             _machineCards.Clear();
@@ -166,56 +172,53 @@ namespace TekstilScada.UI.Views
             var allMachines = _machineRepository.GetAllEnabledMachines();
             var machineCache = _pollingService.MachineDataCache;
 
+            // 1. Makineleri Alt Tipe Göre Grupla
             var groupedMachines = allMachines
-                .GroupBy(m => m.MachineSubType ?? $"{Resources.diger}")
+                .GroupBy(m => m.MachineSubType ?? "Other") // Alt tip yoksa "Diğer"
                 .OrderBy(g => g.Key);
 
             _colorIndex = 0;
 
             foreach (var group in groupedMachines)
             {
-                var sortedGroupMachines = group
-                    .OrderByDescending(m =>
-                    {
-                        if (machineCache.TryGetValue(m.Id, out var status)) return status.IsInRecipeMode;
-                        return false;
-                    })
-                    .ThenByDescending(m =>
-                    {
-                        if (machineCache.TryGetValue(m.Id, out var status) && status.IsInRecipeMode)
-                        {
-                            var batchTimes = _productionRepository?.GetBatchTimestamps(status.BatchNumarasi, m.Id);
-                            return batchTimes?.StartTime ?? DateTime.MinValue;
-                        }
-                        return DateTime.MinValue;
-                    })
-                    .ThenBy(m => m.MachineName);
-
+                // 2. Her Grup İçin Başlık (GroupBox) Oluştur
                 var groupPanel = new GroupBox
                 {
                     Text = group.Key,
-                    Width = flpMachineGroups.Width - 25,
-                    AutoSize = true,
-                    Font = new Font("Times New Roman", 13F, FontStyle.Bold),
+                    Width = flpMachineGroups.ClientSize.Width*2 - 50, // Scroll bar payı
+                    Height = 320, // Kart yüksekliğine göre ayarlanmalı (Kartlar ~280px ise)
+                    Font = new Font("Segoe UI", 12F, FontStyle.Bold),
                     ForeColor = Color.White,
+                    BackColor = _darkColors[_colorIndex % _darkColors.Count],
+                    Padding = new Padding(5, 25, 5, 5) // Başlık için üst boşluk
                 };
 
-                Color groupColor = _darkColors[_colorIndex % _darkColors.Count];
-                groupPanel.BackColor = groupColor;
-
+                // 3. Grup İçin Yatay Scroll Paneli (Inner FlowLayoutPanel)
                 var innerPanel = new FlowLayoutPanel
                 {
                     Dock = DockStyle.Fill,
-                    AutoSize = true,
-                    Padding = new Padding(5),
                     FlowDirection = FlowDirection.LeftToRight,
-                    WrapContents = false,
-                    AutoScroll = true
+                    WrapContents = false, // Tek satırda devam etsin
+                    AutoScroll = true,    // Yatay scroll çıksın
+                    BackColor = Color.WhiteSmoke
                 };
 
-                foreach (var machine in sortedGroupMachines)
+                // Makineleri öncelik sırasına göre panele ekle
+                // İlk açılışta da sıralı gelmesi için burada sıralama yapıyoruz
+                var sortedMachines = group.OrderBy(m =>
+                {
+                    if (machineCache.TryGetValue(m.Id, out var status))
+                        return GetSortPriority(status);
+                    return 100;
+                }).ToList();
+
+                foreach (var machine in sortedMachines)
                 {
                     var card = new DashboardMachineCard_Control(machine);
+
+                    // ÖNEMLİ: Sıralama algoritmasının çalışabilmesi için ID'yi Tag'e atıyoruz
+                    card.Tag = machine.Id;
+
                     _machineCards.Add(machine.Id, card);
                     innerPanel.Controls.Add(card);
                 }
@@ -234,12 +237,16 @@ namespace TekstilScada.UI.Views
 
             if (!_isDashboardSetup || _pollingService == null) return;
 
+            // Reçete modu değişikliklerini kontrol et (Gerekirse tüm yapıyı yeniden kurmak için)
             var currentBatchStatuses = _pollingService.MachineDataCache
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.IsInRecipeMode);
 
+            // Eğer makine eklenip çıkarılmadıysa BuildMachineCards çağırmaya gerek yok,
+            // sıralamayı OnMachineDataRefreshed içinde hallediyoruz. 
+            // Ancak yeni bir reçete başlangıcında kart yapısı değişiyorsa burası kalabilir.
             if (_previousBatchStatuses != null && !_previousBatchStatuses.SequenceEqual(currentBatchStatuses))
             {
-                BuildMachineCards();
+                // BuildMachineCards(); // Sıralamayı dinamik yaptığımız için full rebuild gerekmeyebilir.
                 _previousBatchStatuses = currentBatchStatuses;
             }
 
@@ -251,11 +258,18 @@ namespace TekstilScada.UI.Views
         {
             if (_logRepository == null) return;
 
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new Action(() => PollingService_OnMachineDataRefreshed(machineId, status)));
+                return;
+            }
+
             if (_machineCards.TryGetValue(machineId, out var cardToUpdate))
             {
                 List<ProcessDataPoint> trendData;
                 try
                 {
+                    // Trend verisi çekme (Varsa)
                     if (!string.IsNullOrEmpty(status.BatchNumarasi))
                     {
                         trendData = _logRepository.GetLogsForBatch(machineId, status.BatchNumarasi, DateTime.Now.AddMinutes(-15), DateTime.Now);
@@ -270,8 +284,63 @@ namespace TekstilScada.UI.Views
                     trendData = new List<ProcessDataPoint>();
                 }
 
+                // Kart verisini güncelle
                 cardToUpdate.UpdateData(status, trendData);
+
+                // --- SIRALAMA GÜNCELLEME ---
+                // Kartın bulunduğu paneli bul (Inner FlowLayoutPanel)
+                if (cardToUpdate.Parent is FlowLayoutPanel parentPanel)
+                {
+                    SortMachinesInPanel(parentPanel);
+                }
             }
+        }
+
+        // --- YENİ: PANEL İÇİ SIRALAMA MANTIĞI ---
+        private void SortMachinesInPanel(FlowLayoutPanel panel)
+        {
+            // Paneldeki kartları al
+            var cards = panel.Controls.OfType<DashboardMachineCard_Control>().ToList();
+
+            // Puanlamaya göre sırala
+            var sortedCards = cards.OrderBy(c =>
+            {
+                if (c.Tag is int mId && _pollingService.MachineDataCache.TryGetValue(mId, out var status))
+                {
+                    return GetSortPriority(status);
+                }
+                return 100; // Bilinmeyen durum en sona
+            }).ToList();
+
+            // UI'daki sırasını güncelle (SetChildIndex ile)
+            for (int i = 0; i < sortedCards.Count; i++)
+            {
+                if (panel.Controls.GetChildIndex(sortedCards[i]) != i)
+                {
+                    panel.Controls.SetChildIndex(sortedCards[i], i);
+                }
+            }
+        }
+
+        // --- YENİ: SIRALAMA PUANLAMA MANTIĞI ---
+        private int GetSortPriority(FullMachineStatus status)
+        {
+            if (status == null) return 100;
+
+            // 1. Öncelik: Üretim (Reçete veya Manuel Mod) -> EN BAŞA
+            if (status.ConnectionState == ConnectionStatus.Connected && (status.IsInRecipeMode || status.manuel_status))
+                return 1;
+
+            // 2. Öncelik: Alarm Durumu -> İKİNCİ
+            if (status.ConnectionState == ConnectionStatus.Connected && status.HasActiveAlarm)
+                return 2;
+
+            // 3. Öncelik: Bekleme (Boşta) -> ÜÇÜNCÜ
+            if (status.ConnectionState == ConnectionStatus.Connected)
+                return 3;
+
+            // 4. Öncelik: Bağlantı Yok -> EN SONA
+            return 4;
         }
 
         private void UpdateKpiCards()
@@ -313,15 +382,11 @@ namespace TekstilScada.UI.Views
                 if (hourlyElecData != null && hourlyElecData.Rows.Count > 0)
                 {
                     double[] hours = hourlyElecData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
-
-                    // 1000'e bölerek kW'a çeviriyoruz
                     double[] consumption = hourlyElecData.AsEnumerable().Select(row => row.IsNull("ToplamElektrik") ? 0.0 : Convert.ToDouble(row["ToplamElektrik"]) / 1000.0).ToArray();
 
                     var barPlot = formsPlotHourly.Plot.Add.Scatter(hours, consumption);
                     barPlot.Color = ScottPlot.Colors.SteelBlue;
                     barPlot.MarkerSize = 0;
-
-                    // Y Eksenine Birim Ekleme
                     formsPlotHourly.Plot.Axes.Left.Label.Text = "kWh";
                 }
                 formsPlotHourly.Plot.Axes.AutoScale();
@@ -333,15 +398,11 @@ namespace TekstilScada.UI.Views
                 if (hourlyWaterData != null && hourlyWaterData.Rows.Count > 0)
                 {
                     double[] hours = hourlyWaterData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
-
-                    // 1000'e bölerek m³'e çeviriyoruz
                     double[] consumption = hourlyWaterData.AsEnumerable().Select(row => row.IsNull("ToplamSu") ? 0.0 : Convert.ToDouble(row["ToplamSu"]) / 1000.0).ToArray();
 
                     var barPlot = formsPlotHourlyWater.Plot.Add.Scatter(hours, consumption);
                     barPlot.Color = ScottPlot.Colors.CornflowerBlue;
                     barPlot.MarkerSize = 0;
-
-                    // Y Eksenine Birim Ekleme
                     formsPlotHourlyWater.Plot.Axes.Left.Label.Text = "m³";
                 }
                 formsPlotHourlyWater.Plot.Axes.AutoScale();
@@ -353,15 +414,11 @@ namespace TekstilScada.UI.Views
                 if (hourlySteamData != null && hourlySteamData.Rows.Count > 0)
                 {
                     double[] hours = hourlySteamData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
-
-                    // 1000'e bölerek m³'e çeviriyoruz
                     double[] consumption = hourlySteamData.AsEnumerable().Select(row => row.IsNull("ToplamBuhar") ? 0.0 : Convert.ToDouble(row["ToplamBuhar"]) / 1000.0).ToArray();
 
                     var barPlot = formsPlotHourlySteam.Plot.Add.Scatter(hours, consumption);
                     barPlot.Color = ScottPlot.Colors.DimGray;
                     barPlot.MarkerSize = 0;
-
-                    // Y Eksenine Birim Ekleme
                     formsPlotHourlySteam.Plot.Axes.Left.Label.Text = "m³";
                 }
                 formsPlotHourlySteam.Plot.Axes.AutoScale();
@@ -397,7 +454,6 @@ namespace TekstilScada.UI.Views
                     linePlot.LineStyle.Width = 2;
                     linePlot.MarkerStyle.Shape = ScottPlot.MarkerShape.FilledCircle;
                     linePlot.MarkerStyle.Size = 0;
-
                     formsPlotHourlyOee.Plot.Axes.Bottom.Label.Text = "Saat";
                 }
                 formsPlotHourlyOee.Plot.Axes.AutoScale();
@@ -422,7 +478,6 @@ namespace TekstilScada.UI.Views
 
         public void ApplyLocalization()
         {
-            // İngilizce ve Birimli Başlıklar
             gbHourlyConsumption.Text = "Hourly Electricity (kWh)";
             gbTopAlarms.Text = Resources.ensikalarm;
             gbHourlyConsumptionWater.Text = "Hourly Water (m³)";

@@ -2,7 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Drawing;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using TekstilScada.Core;
 using TekstilScada.Models;
@@ -16,12 +18,11 @@ namespace TekstilScada.UI.Views
         private MachineRepository _machineRepository;
         private ProductionRepository _productionRepository;
         private DataTable _reportData;
-        private ListBox _activeSourceListBox;
 
         public GenelUretimRaporu_Control()
         {
-            LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
             InitializeComponent();
+            LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
         }
 
         public void InitializeControl(MachineRepository machineRepo, ProductionRepository productionRepo)
@@ -52,47 +53,107 @@ namespace TekstilScada.UI.Views
         {
             dtpStartTime.Value = DateTime.Today;
             dtpEndTime.Value = DateTime.Today.AddDays(1).AddSeconds(-1);
-            LoadMachineLists();
+
+            // Makineleri dinamik olarak yükle
+            LoadMachineGroups();
 
             // Tablo görünüm ayarları
             dgvReport.Dock = DockStyle.Fill;
             dgvReport.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         }
 
-        private void LoadMachineLists()
+        // --- YENİ: DİNAMİK GRUPLAMA VE LİSTELEME METODU ---
+        private void LoadMachineGroups()
         {
-            var allMachines = _machineRepository.GetAllMachines();
-            var groupedMachines = allMachines
-                .Where(m => !string.IsNullOrEmpty(m.MachineSubType))
-                .GroupBy(m => m.MachineSubType);
-
-            flpMachineGroups.Controls.Clear();
-            foreach (var group in groupedMachines)
+            try
             {
-                var groupBox = new GroupBox
+                // Paneli temizle
+                flpMachineGroups.Controls.Clear();
+
+                // Tüm aktif makineleri getir
+                var allMachines = _machineRepository.GetAllEnabledMachines();
+
+                if (allMachines == null || !allMachines.Any()) return;
+
+                // Makineleri Alt Tipe (SubType) göre grupla. 
+                // Eğer SubType boşsa, Ana Tipi (Type) kullan.
+                var groupedMachines = allMachines
+                    .GroupBy(m => !string.IsNullOrEmpty(m.MachineSubType) ? m.MachineSubType : m.MachineType)
+                    .OrderBy(g => g.Key); // Alfabetik sırala
+
+                foreach (var group in groupedMachines)
                 {
-                    Text = group.Key,
-                    Width = 250,
-                    Height = 220
-                };
-                var listBox = new ListBox
-                {
-                    DataSource = group.ToList(),
-                    DisplayMember = "MachineName",
-                    Dock = DockStyle.Fill,
-                    SelectionMode = SelectionMode.MultiExtended
-                };
-                listBox.Enter += (s, a) => { _activeSourceListBox = s as ListBox; };
-                listBox.DoubleClick += (s, a) => { AddSelectedItems(); };
-                groupBox.Controls.Add(listBox);
-                flpMachineGroups.Controls.Add(groupBox);
+                    // 1. Her grup için bir GroupBox oluştur
+                    GroupBox grpBox = new GroupBox();
+                    grpBox.Text = group.Key; // Grup Başlığı (Örn: "Kurutma-Tip1")
+                    grpBox.Width = 200;      // Genişlik ayarı
+                    grpBox.Height = 150;     // Yükseklik ayarı
+                    grpBox.Font = new Font("Segoe UI", 9, FontStyle.Bold);
+                    grpBox.Margin = new Padding(5); // Kutular arası boşluk
+
+                    // 2. İçine CheckedListBox ekle
+                    CheckedListBox chkList = new CheckedListBox();
+                    chkList.Dock = DockStyle.Fill; // Kutuyu doldur
+                    chkList.CheckOnClick = true;   // Tek tıkla seç
+                    chkList.BorderStyle = BorderStyle.None;
+                    chkList.BackColor = SystemColors.Control; // Arka plan rengi
+                    chkList.Font = new Font("Segoe UI", 9, FontStyle.Regular);
+
+                    // 3. Makineleri listeye ekle
+                    foreach (var machine in group)
+                    {
+                        chkList.Items.Add(machine, false); // Varsayılan olarak seçili değil
+                    }
+
+                    // DisplayMember ayarı (Listede ne görünecek)
+                    chkList.DisplayMember = "MachineName";
+
+                    // 4. Kontrolleri birbirine ekle
+                    grpBox.Controls.Add(chkList);
+                    flpMachineGroups.Controls.Add(grpBox);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Makine listesi yüklenirken hata oluştu: {ex.Message}", "Hata");
             }
         }
 
-        private void btnRaporOlustur_Click(object sender, EventArgs e)
+        // --- YENİ: SEÇİLİ MAKİNELERİ TOPLAYAN METOT ---
+        private List<Machine> GetSelectedMachines()
         {
-            var selectedMachines = listBoxSeciliMakineler.Items.Cast<Machine>().Select(m => m.MachineName).ToList();
-            if (!selectedMachines.Any())
+            var selectedList = new List<Machine>();
+
+            // FlowLayoutPanel içindeki her kontrolü (GroupBox) gez
+            foreach (Control ctrl in flpMachineGroups.Controls)
+            {
+                if (ctrl is GroupBox grp)
+                {
+                    // GroupBox içindeki CheckedListBox'ı bul
+                    var chkList = grp.Controls.OfType<CheckedListBox>().FirstOrDefault();
+                    if (chkList != null)
+                    {
+                        // Seçili olanları listeye ekle
+                        foreach (var item in chkList.CheckedItems)
+                        {
+                            if (item is Machine machine)
+                            {
+                                selectedList.Add(machine);
+                            }
+                        }
+                    }
+                }
+            }
+            return selectedList;
+        }
+
+        private async void btnRaporOlustur_Click(object sender, EventArgs e)
+        {
+            // Yeni çoklu seçim fonksiyonunu kullan
+            var selectedMachineObjects = GetSelectedMachines();
+            var selectedMachineNames = selectedMachineObjects.Select(m => m.MachineName).ToList();
+
+            if (!selectedMachineNames.Any())
             {
                 MessageBox.Show($"{Resources.lütfenbirmakinesec}", $"{Resources.Warning}");
                 return;
@@ -101,13 +162,45 @@ namespace TekstilScada.UI.Views
             try
             {
                 this.Cursor = Cursors.WaitCursor;
-                // Veriyi çek
-                _reportData = _productionRepository.GetGeneralProductionReport(dtpStartTime.Value, dtpEndTime.Value, selectedMachines);
+                btnRaporOlustur.Enabled = false;
 
-                // 1. ADIM: Birimleri Dönüştür (Litre -> m3, Watt -> kW)
-                ConvertUnits(_reportData);
+                // Veriyi asenkron olarak çek (UI donmaması için)
+                await Task.Run(() =>
+                {
+                    _reportData = _productionRepository.GetGeneralProductionReport(dtpStartTime.Value, dtpEndTime.Value, selectedMachineNames);
+
+                    // --- KURUTMA MAKİNESİ İÇİN SU TÜKETİMİNİ SIFIRLA ---
+                    // "MachineName" kolonunu kontrol edip "Kurutma" geçenlerin "TotalWater" değerini 0 yapıyoruz.
+                    // Bu işlem birim dönüşümünden ÖNCE yapılmalıdır.
+                    if (_reportData != null && _reportData.Columns.Contains("MachineName") && _reportData.Columns.Contains("TotalWater"))
+                    {
+                        // Seçilen makineler arasında "Kurutma" tipinde olanları bul
+                        // İsimden kontrol etmek yerine Machine objesinden kontrol etmek daha güvenlidir
+                        var dryingMachineNames = selectedMachineObjects
+                            .Where(m => (m.MachineType != null && m.MachineType.IndexOf("Kurutma", StringComparison.OrdinalIgnoreCase) >= 0) ||
+                                        (m.MachineSubType != null && m.MachineSubType.IndexOf("Kurutma", StringComparison.OrdinalIgnoreCase) >= 0) ||
+                                        m.MachineName.IndexOf("Kurutma", StringComparison.OrdinalIgnoreCase) >= 0) // İsimde kurutma geçiyorsa
+                            .Select(m => m.MachineName)
+                            .ToHashSet();
+
+                        foreach (DataRow row in _reportData.Rows)
+                        {
+                            string machineName = row["MachineName"].ToString();
+                            // Eğer makine ismi kurutma makineleri listesinde varsa veya isminde "Kurutma" geçiyorsa
+                            if (dryingMachineNames.Contains(machineName) || machineName.IndexOf("Kurutma", StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                row["TotalWater"] = 0m;
+                            }
+                        }
+                    }
+                    // -----------------------------------------------------
+
+                    // 1. ADIM: Birimleri Dönüştür (Litre -> m3, Watt -> kW)
+                    ConvertUnits(_reportData);
+                });
 
                 // 2. ADIM: Tabloya Bağla
+                dgvReport.DataSource = null;
                 dgvReport.DataSource = _reportData;
 
                 // 3. ADIM: Başlıkları ve Görünümü Ayarla
@@ -123,10 +216,11 @@ namespace TekstilScada.UI.Views
             finally
             {
                 this.Cursor = Cursors.Default;
+                btnRaporOlustur.Enabled = true;
             }
         }
 
-        // --- YENİ METOT: BİRİM DÖNÜŞÜMÜ ---
+        // --- BİRİM DÖNÜŞÜMÜ ---
         private void ConvertUnits(DataTable table)
         {
             if (table == null || table.Rows.Count == 0) return;
@@ -136,14 +230,12 @@ namespace TekstilScada.UI.Views
             {
                 if (!table.Columns.Contains(columnName)) return;
 
-                // 1. Yeni geçici bir decimal sütun ekle
                 string tempColName = columnName + "_Temp";
                 if (!table.Columns.Contains(tempColName))
                 {
                     table.Columns.Add(tempColName, typeof(decimal));
                 }
 
-                // 2. Verileri dönüştürerek yeni sütuna aktar
                 foreach (DataRow row in table.Rows)
                 {
                     if (row[columnName] != DBNull.Value)
@@ -164,13 +256,10 @@ namespace TekstilScada.UI.Views
                     }
                 }
 
-                // 3. Eski sütunu sil ve yeni sütunun adını eski sütunun adı yap
-                // (Böylece DataGridView ayarlarını bozmamış oluruz)
-                int ordinalIndex = table.Columns[columnName].Ordinal; // Eski sütunun sırasını sakla
-
-                table.Columns.Remove(columnName); // Eski int sütunu sil
-                table.Columns[tempColName].ColumnName = columnName; // Yeni sütuna eski ismini ver
-                table.Columns[columnName].SetOrdinal(ordinalIndex); // Sırasını eski yerine koy
+                int ordinalIndex = table.Columns[columnName].Ordinal;
+                table.Columns.Remove(columnName);
+                table.Columns[tempColName].ColumnName = columnName;
+                table.Columns[columnName].SetOrdinal(ordinalIndex);
             }
 
             // Dönüşümleri Uygula
@@ -179,19 +268,27 @@ namespace TekstilScada.UI.Views
             ConvertColumnToDecimalAndDivide("TotalSteam", 1000m);       // Litre -> m3
         }
 
-        // --- YENİ METOT: BAŞLIK VE FORMAT AYARLARI ---
+        // --- BAŞLIK VE FORMAT AYARLARI ---
         private void ConfigureGridAppearance()
         {
             if (dgvReport.DataSource == null) return;
 
-            // Sütun Başlıklarını İngilizce Yap ve Birim Ekle
             if (dgvReport.Columns.Contains("MachineName"))
                 dgvReport.Columns["MachineName"].HeaderText = "Machine Name";
+
+            if (dgvReport.Columns.Contains("BatchId"))
+                dgvReport.Columns["BatchId"].HeaderText = "Batch No";
+
+            if (dgvReport.Columns.Contains("EndTime"))
+            {
+                dgvReport.Columns["EndTime"].HeaderText = "End Time";
+                dgvReport.Columns["EndTime"].DefaultCellStyle.Format = "dd.MM.yyyy HH:mm";
+            }
 
             if (dgvReport.Columns.Contains("TotalWater"))
             {
                 dgvReport.Columns["TotalWater"].HeaderText = "Total Water (m³)";
-                dgvReport.Columns["TotalWater"].DefaultCellStyle.Format = "N2"; // 2 hane ondalık
+                dgvReport.Columns["TotalWater"].DefaultCellStyle.Format = "N2";
             }
 
             if (dgvReport.Columns.Contains("TotalElectricity"))
@@ -205,26 +302,19 @@ namespace TekstilScada.UI.Views
                 dgvReport.Columns["TotalSteam"].HeaderText = "Total Steam (m³)";
                 dgvReport.Columns["TotalSteam"].DefaultCellStyle.Format = "N2";
             }
-
-            if (dgvReport.Columns.Contains("RecipeCount"))
-                dgvReport.Columns["RecipeCount"].HeaderText = "Recipe Count";
-
-            if (dgvReport.Columns.Contains("TotalDuration"))
-                dgvReport.Columns["TotalDuration"].HeaderText = "Total Duration (Min)";
         }
 
         private void btnExportToExcel_Click(object sender, EventArgs e)
         {
             if (dgvReport.Rows.Count == 0)
             {
-                MessageBox.Show("Empty" ?? "No data to export.", Resources.Warning, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("No data to export.", Resources.Warning, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             try
             {
                 this.Cursor = Cursors.WaitCursor;
-                // DataTable üzerinde dönüşüm yaptığımız için Excel'e doğru birimler gidecektir.
                 ExcelExporter.ExportDataGridViewToExcel(dgvReport);
             }
             catch (Exception ex)
@@ -262,57 +352,6 @@ namespace TekstilScada.UI.Views
             {
                 dgvReport.Columns["TotalSteam"].Visible = true;
             }
-        }
-
-        private void AddSelectedItems()
-        {
-            if (_activeSourceListBox == null || _activeSourceListBox.SelectedItems.Count == 0) return;
-            foreach (var item in _activeSourceListBox.SelectedItems)
-            {
-                if (!listBoxSeciliMakineler.Items.Contains(item))
-                {
-                    listBoxSeciliMakineler.Items.Add(item);
-                }
-            }
-            listBoxSeciliMakineler.DisplayMember = "DisplayInfo";
-        }
-
-        private void btnAdd_Click(object sender, EventArgs e)
-        {
-            AddSelectedItems();
-        }
-
-        private void btnRemove_Click(object sender, EventArgs e)
-        {
-            for (int i = listBoxSeciliMakineler.SelectedIndices.Count - 1; i >= 0; i--)
-            {
-                listBoxSeciliMakineler.Items.RemoveAt(listBoxSeciliMakineler.SelectedIndices[i]);
-            }
-        }
-
-        private void btnAddAll_Click(object sender, EventArgs e)
-        {
-            listBoxSeciliMakineler.Items.Clear();
-            foreach (var groupBox in flpMachineGroups.Controls.OfType<GroupBox>())
-            {
-                var listBox = groupBox.Controls.OfType<ListBox>().FirstOrDefault();
-                if (listBox != null)
-                {
-                    foreach (var item in listBox.Items)
-                    {
-                        if (!listBoxSeciliMakineler.Items.Contains(item))
-                        {
-                            listBoxSeciliMakineler.Items.Add(item);
-                        }
-                    }
-                }
-            }
-            listBoxSeciliMakineler.DisplayMember = "DisplayInfo";
-        }
-
-        private void btnRemoveAll_Click(object sender, EventArgs e)
-        {
-            listBoxSeciliMakineler.Items.Clear();
         }
     }
 }

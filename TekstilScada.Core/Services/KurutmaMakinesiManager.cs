@@ -1,10 +1,11 @@
-﻿// Services/KurutmaMakinesiManager.cs
+﻿// Services/BYMakinesiManager.cs
 using HslCommunication;
 //using HslCommunication.Modbus; // Add HslCommunication.Modbus using for Modbus
 using HslCommunication.ModBus;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TekstilScada.Models;
@@ -17,7 +18,9 @@ namespace TekstilScada.Services
         private readonly ModbusTcpNet _plcClient;
         public string IpAddress { get; private set; }
 
+        #region Modbus Address Constants (Default Modbus addresses corresponding to Lsis addresses)
         // **IMPORTANT**: You must verify these addresses against your PLC's Modbus map.
+        // Assumption: D addresses are converted to Holding Registers, M addresses to Coils.
         private const string STEP_NO = "3000"; // D3568
         private const string RECIPE_MODE = "0"; // Kx30D -> D30.0 -> coil
         private const string MANUAL_MODE = "3"; // Kx30D -> D30.0 -> coil
@@ -46,7 +49,7 @@ namespace TekstilScada.Services
         private const string ACTIVE_STEP_TYPE_WORD = "3085"; // D94
         private const string RECIPE_DATA_ADDRESS = "3086"; // D100
         private const string OPERATOR_TEMPLATE_ADDRESS = "3087"; // D7500
-
+        #endregion
 
         public KurutmaMakinesiManager(string ipAddress, int port)
         {
@@ -58,12 +61,12 @@ namespace TekstilScada.Services
 
         public OperateResult Connect()
         {
-            // Debug.WriteLine($"[{DateTime.Now:HH:mm:ss}] {IpAddress} (Drying) -> Connection being attempted...");
+            // Debug.WriteLine($"[{DateTime.Now:HH:mm:ss}] {IpAddress} (BY) -> Connection being attempted...");
             var result = _plcClient.ConnectServer();
             if (result.IsSuccess)
             { }
             else
-            { }  //Debug.WriteLine($"[{DateTime.Now:HH:mm:ss}] {IpAddress} (Drying) -> Connection FAILED: {result.Message}");
+            { }
             return result;
         }
         public async Task<OperateResult> ConnectAsync()
@@ -75,6 +78,28 @@ namespace TekstilScada.Services
         public OperateResult Disconnect()
         {
             return _plcClient.ConnectClose();
+        }
+
+        private OperateResult<string> ReadStringFromWords(string address, ushort wordLength)
+        {
+            // CHANGE: Modbus read operation is used
+            var readResult = _plcClient.ReadInt16(address, wordLength);
+            if (!readResult.IsSuccess)
+            {
+                return OperateResult.CreateFailedResult<string>(new OperateResult($"Could not read address block: {address}, Error: {readResult.Message}"));
+            }
+
+            try
+            {
+                byte[] byteData = new byte[readResult.Content.Length * 2];
+                Buffer.BlockCopy(readResult.Content, 0, byteData, 0, byteData.Length);
+                string value = Encoding.ASCII.GetString(byteData).Trim('\0', ' ');
+                return OperateResult.CreateSuccessResult(value);
+            }
+            catch (Exception ex)
+            {
+                return new OperateResult<string>($"Error during string conversion: {ex.Message}");
+            }
         }
 
         public OperateResult<FullMachineStatus> ReadLiveStatusData()
@@ -241,114 +266,139 @@ namespace TekstilScada.Services
             // PLC'den cevap beklerken işlemci boşa çıkar ve diğer işlere bakar.
             return await Task.Run(() => ReadLiveStatusData());
         }
-        // ... Modbus-specific addresses and methods are used for other methods ...
-        public async Task<OperateResult> ResetOeeCountersAsync()
-        {
-            throw new NotImplementedException("Drying machines do not support operator management.");
-        }
-
-        public async Task<OperateResult> IncrementProductionCounterAsync()
-        {
-            throw new NotImplementedException("Drying machines do not support operator management.");
-        }
         public Task<OperateResult> AcknowledgeAlarm()
         {
-            throw new NotImplementedException("Alarm acknowledgment is not yet implemented for the Drying Machine.");
+            throw new NotImplementedException("Alarm acknowledgment is not yet implemented for BYMakinesi.");
         }
+
         public async Task<OperateResult> WriteRecipeToPlcAsync(ScadaRecipe recipe, int? recipeSlot = null)
         {
-            // Addresses are assumed to be fixed addresses
-            string setTempAddress = "0";
-            string setHumidityAddress = "1";
-            string setDurationAddress = "2";
-            string setRpmAddress = "3";
-            string setCoolingTimeAddress = "4";
-            string controlWordAddress = "5";
+            // var recipe_write = 1;
+            var recipe_write = await Task.Run(() => _plcClient.Write("3209", 1));
+            if (recipe_write.IsSuccess)
 
-            if (!recipeSlot.HasValue || recipeSlot < 1 || recipeSlot > 20)
-                return new OperateResult("Invalid recipe number (must be between 1-20).");
+                if (recipe.Steps.Count == 0) return new OperateResult("Recipe must have 98 steps.");
 
-            if (recipe.Steps == null || recipe.Steps.Count == 0)
-                return new OperateResult("No recipe step found.");
-
-            try
+            short[] fullRecipeData = new short[2450];
+            foreach (var step in recipe.Steps)
             {
-                var isRunningResult = await Task.Run(() => _plcClient.ReadCoil("1"));
-                if (!isRunningResult.IsSuccess) return isRunningResult;
-                if (isRunningResult.Content)
+                int offset = (step.StepNumber - 1) * 25;
+                if (offset + step.StepDataWords.Length <= fullRecipeData.Length)
                 {
-                    return new OperateResult("Recipe cannot be loaded while the machine is running!");
+                    Array.Copy(step.StepDataWords, 0, fullRecipeData, offset, step.StepDataWords.Length);
+                }
+            }
+
+            ushort chunkSize = 100;
+            for (int i = 0; i < fullRecipeData.Length; i += chunkSize)
+            {
+                // CHANGE: Modbus address calculation
+                string currentAddress = (100 + i).ToString(); // D100
+                ushort readLength = (ushort)Math.Min(chunkSize, fullRecipeData.Length - i);
+
+                var writeResult = await Task.Run(() => _plcClient.Write(currentAddress, fullRecipeData.Skip(i).Take(readLength).ToArray()));
+                if (!writeResult.IsSuccess)
+                {
+                    return new OperateResult($"Recipe write error. Address: {currentAddress}, Error: {writeResult.Message}");
+                }
+            }
+
+            // 1. Önce stringi hazırla (10 karaktere tamamla)
+            string preparedName = recipe.RecipeName.PadRight(10, ' ').Substring(0, 10);
+
+            // 2. ASCII baytlarına çevir
+            byte[] recipeNameBytes = Encoding.ASCII.GetBytes(preparedName);
+
+            // 3. DÜZELTME: Her iki baytın yerini değiştir (Byte Swap)
+            // "AB" -> "BA", "CD" -> "DC" şeklinde çevirir.
+            for (int i = 0; i < recipeNameBytes.Length; i += 2)
+            {
+                byte temp = recipeNameBytes[i];
+                recipeNameBytes[i] = recipeNameBytes[i + 1];
+                recipeNameBytes[i + 1] = temp;
+            }
+
+            // 4. PLC'ye yaz
+            var nameWriteResult = await Task.Run(() => _plcClient.Write("3071", recipeNameBytes));
+            if (!nameWriteResult.IsSuccess)
+            {
+                return new OperateResult($"Recipe name write error: {nameWriteResult.Message}");
+            }
+
+            return OperateResult.CreateSuccessResult();
+        }
+
+        public async Task<OperateResult<short[]>> ReadRecipeFromPlcAsync()
+        {
+            short[] fullRecipeData = new short[2450];
+            ushort chunkSize = 60;
+
+            for (int i = 0; i < fullRecipeData.Length; i += chunkSize)
+            {
+                // CHANGE: Modbus address calculation
+                string currentAddress = (100 + i).ToString(); // D100
+                ushort readLength = (ushort)Math.Min(chunkSize, fullRecipeData.Length - i);
+
+                var readResult = await Task.Run(() => _plcClient.ReadInt16(currentAddress, readLength));
+                if (!readResult.IsSuccess)
+                {
+                    return OperateResult.CreateFailedResult<short[]>(new OperateResult($"Error while reading recipe. Address: {currentAddress}, Error: {readResult.Message}"));
                 }
 
-                var firstStep = recipe.Steps[0];
-                short setTemperature = firstStep.StepDataWords[0];
-                short setHumidity = firstStep.StepDataWords[1];
-                short setDuration = firstStep.StepDataWords[2];
-                short setRpm = firstStep.StepDataWords[3];
-                short setCoolingTime = firstStep.StepDataWords[4];
-                short controlWord = firstStep.StepDataWords[5];
+                int lengthToCopy = Math.Min(readLength, readResult.Content.Length);
+                Array.Copy(readResult.Content, 0, fullRecipeData, i, lengthToCopy);
 
-                await Task.Run(() => _plcClient.Write("3017", (short)recipeSlot.Value));
-                await Task.Delay(500);
-
-                await Task.Run(() => _plcClient.Write("2", true));
-
-                await Task.Run(() => _plcClient.Write(setTempAddress, setTemperature));
-                await Task.Run(() => _plcClient.Write(setHumidityAddress, setHumidity));
-                await Task.Run(() => _plcClient.Write(setDurationAddress, setDuration));
-                await Task.Run(() => _plcClient.Write(setRpmAddress, setRpm));
-                await Task.Run(() => _plcClient.Write(setCoolingTimeAddress, setCoolingTime));
-                await Task.Run(() => _plcClient.Write(controlWordAddress, controlWord));
-
-                // await Task.Run(() => _plcClient.Write("1", false));
-
-                return OperateResult.CreateSuccessResult();
-            }
-            catch (Exception ex)
-            {
-                return new OperateResult($"Error while writing recipe: {ex.Message}");
-            }
-        }
-        private OperateResult<string> ReadStringFromWords(string address, ushort wordLength)
-        {
-            // First read the data as a raw word array
-            var readResult = _plcClient.ReadInt16(address, wordLength);
-            if (!readResult.IsSuccess)
-            {
-                // In case of an error, return with an error message indicating which address block had an issue
-                return OperateResult.CreateFailedResult<string>(new OperateResult($"Could not read address block: {address}, Error: {readResult.Message}"));
+                await Task.Delay(20);
             }
 
-            try
-            {
-                // Convert the read word array to a byte array
-                byte[] byteData = new byte[readResult.Content.Length * 2];
-                Buffer.BlockCopy(readResult.Content, 0, byteData, 0, byteData.Length);
-
-                // Convert the byte array to an ASCII string and clean up unnecessary characters
-                string value = Encoding.ASCII.GetString(byteData).Trim('\0', ' ');
-                return OperateResult.CreateSuccessResult(value);
-            }
-            catch (Exception ex)
-            {
-                return new OperateResult<string>($"Error during string conversion: {ex.Message}");
-            }
+            return OperateResult.CreateSuccessResult(fullRecipeData);
         }
         public async Task<OperateResult<ScadaRecipe>> ReadFullRecipeDataAsync()
         {
-            throw new NotImplementedException("Drying machines do not support operator management.");
+            var readResult = await ReadRecipeFromPlcAsync(); // Call your own method
+            if (!readResult.IsSuccess)
+            {
+                return OperateResult.CreateFailedResult<ScadaRecipe>(readResult);
+            }
+
+            var recipeData = readResult.Content;
+            var recipe = new ScadaRecipe
+            {
+                Steps = new List<ScadaRecipeStep>()
+            };
+
+            const int wordsPerStep = 25; // Assumption of 25 words per step
+            int totalSteps = recipeData.Length / wordsPerStep;
+
+            for (int i = 0; i < totalSteps; i++)
+            {
+                var stepWords = new short[wordsPerStep];
+                Array.Copy(recipeData, i * wordsPerStep, stepWords, 0, wordsPerStep);
+
+                // Pull step number and other data from PLC data
+                var step = new ScadaRecipeStep
+                {
+                    StepNumber = i + 1, // Step number
+                    StepDataWords = stepWords
+                };
+                recipe.Steps.Add(step);
+            }
+
+            return OperateResult.CreateSuccessResult(recipe);
         }
         public async Task<OperateResult<Dictionary<int, string>>> ReadRecipeNamesFromPlcAsync()
         {
             var recipeNames = new Dictionary<int, string>();
             try
             {
-                // Recipe names start from D3212, each name is 6 words (12 bytes)
-                const int startAddress = 4000;
+                // Recipe names are between D3212-D3812, each name is 6 words (12 bytes)
+                const int startAddress = 3212;
                 const int wordsPerName = 6;
-                const int numRecipes = 20;
+                const int numRecipes = 99;
                 const int totalWords = numRecipes * wordsPerName;
+
                 var readResult = await Task.Run(() => _plcClient.ReadInt16(startAddress.ToString(), (ushort)totalWords));
+                await Task.Delay(1000);
                 if (!readResult.IsSuccess)
                 {
                     return OperateResult.CreateFailedResult<Dictionary<int, string>>(readResult);
@@ -362,7 +412,7 @@ namespace TekstilScada.Services
                     short[] nameWords = new short[wordsPerName];
                     Array.Copy(data, i * wordsPerName, nameWords, 0, wordsPerName);
                     Buffer.BlockCopy(nameWords, 0, nameBytes, 0, nameBytes.Length);
-                    string name = Encoding.ASCII.GetString(nameBytes).Trim('\0', ' ');
+                    string name = Encoding.ASCII.GetString(nameBytes).Trim('\uFFFD', ' ');
 
                     if (!string.IsNullOrEmpty(name))
                     {
@@ -376,73 +426,59 @@ namespace TekstilScada.Services
                 return new OperateResult<Dictionary<int, string>>($"Error while reading recipe names: {ex.Message}");
             }
         }
+        // BYMakinesiManager.cs or KurutmaMakinesiManager.cs
+        // ...
+        private string ConvertTurkishCharactersToAscii(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return text;
+
+            return text
+                .Replace("ç", "c").Replace("Ç", "C")
+                .Replace("ğ", "g").Replace("Ğ", "G")
+                .Replace("ı", "i").Replace("İ", "I")
+                .Replace("ö", "o").Replace("Ö", "O")
+                .Replace("ş", "s").Replace("Ş", "S")
+                .Replace("ü", "u").Replace("Ü", "U");
+        }
+        // ...
         public async Task<OperateResult> WriteRecipeNameAsync(int recipeNumber, string recipeName)
         {
             try
             {
-                // Recipe names start from D3212, each name is 6 words (12 bytes)
-                const int startAddress = 4000;
+                const int startAddress = 3212;
                 const int wordsPerName = 6;
+                const int byteLength = wordsPerName * 2;
 
-                // Calculate the PLC address (for recipe number starting from 1)
                 int currentAddress = startAddress + (recipeNumber - 1) * wordsPerName;
+                string cleanName = ConvertTurkishCharactersToAscii(recipeName);
+                // First, adjust the recipe name to fit within 12 bytes (6 words).
+                string paddedName = cleanName.PadRight(byteLength, ' ').Substring(0, byteLength);
+                byte[] nameBytes = Encoding.ASCII.GetBytes(paddedName);
 
-                // Convert the recipe name into a byte array with a length of 12 bytes (6 words).
-                // Truncate if too long, pad with null characters if too short.
-                byte[] dataToWrite = new byte[wordsPerName * 2];
-                byte[] nameBytes = Encoding.ASCII.GetBytes(recipeName);
-                Buffer.BlockCopy(nameBytes, 0, dataToWrite, 0, Math.Min(nameBytes.Length, dataToWrite.Length));
+                // Swap the bytes in groups of 2.
+                byte[] swappedBytes = new byte[byteLength];
+                for (int i = 0; i < byteLength; i += 2)
+                {
+                    swappedBytes[i] = nameBytes[i + 1];
+                    swappedBytes[i + 1] = nameBytes[i];
+                }
 
-                // Start the write operation to the PLC.
-                var writeResult = await Task.Run(() => _plcClient.Write(currentAddress.ToString(), dataToWrite));
+                var writeonay = await Task.Run(() => _plcClient.Write("3813", 1));
+                // await Task.Delay(300);
+                var writeResult = await Task.Run(() => _plcClient.Write(currentAddress.ToString(), swappedBytes));
 
+
+                // await Task.Delay(300);
+                // var writebitti = await Task.Run(() => _plcClient.Write("3813", 0));
+
+
+                // await Task.Delay(100);
                 return writeResult;
             }
             catch (Exception ex)
             {
                 return new OperateResult($"An error occurred while writing the recipe name: {ex.Message}");
-            }
-        }
-        public async Task<OperateResult<short[]>> ReadRecipeFromPlcAsync()
-        {
-            try
-            {
-                // string setTempAddress = "0";
-                // string setHumidityAddress = "1";
-                // string setDurationAddress = "2";
-                // string setRpmAddress = "3";
-                // string setCoolingTimeAddress = "4";
-                // string controlWordAddress = "5";
-                // CHANGE: Modbus address is used
-                var tempResult = await Task.Run(() => _plcClient.ReadInt16("0"));
-                if (!tempResult.IsSuccess) return OperateResult.CreateFailedResult<short[]>(tempResult);
-
-                var humidityResult = await Task.Run(() => _plcClient.ReadInt16("1"));
-                if (!humidityResult.IsSuccess) return OperateResult.CreateFailedResult<short[]>(humidityResult);
-
-                var durationResult = await Task.Run(() => _plcClient.ReadInt16("2"));
-                if (!durationResult.IsSuccess) return OperateResult.CreateFailedResult<short[]>(durationResult);
-
-                var rpmResult = await Task.Run(() => _plcClient.ReadInt16("3"));
-                if (!rpmResult.IsSuccess) return OperateResult.CreateFailedResult<short[]>(rpmResult);
-
-                var coolingResult = await Task.Run(() => _plcClient.ReadInt16("4"));
-                if (!coolingResult.IsSuccess) return OperateResult.CreateFailedResult<short[]>(coolingResult);
-                var controlWordAddress = await Task.Run(() => _plcClient.ReadInt16("5"));
-                if (!controlWordAddress.IsSuccess) return OperateResult.CreateFailedResult<short[]>(controlWordAddress);
-                // Return the read values in a standard array format
-                short[] recipeData = new short[6];
-                recipeData[0] = tempResult.Content;
-                recipeData[1] = humidityResult.Content;
-                recipeData[2] = durationResult.Content;
-                recipeData[3] = rpmResult.Content;
-                recipeData[4] = coolingResult.Content;
-                recipeData[5] = controlWordAddress.Content;
-                return OperateResult.CreateSuccessResult(recipeData);
-            }
-            catch (Exception ex)
-            {
-                return new OperateResult<short[]>($"Error while reading drying machine recipe: {ex.Message}");
             }
         }
 
@@ -577,14 +613,39 @@ namespace TekstilScada.Services
             }
         }
 
-        public Task<OperateResult<List<ChemicalConsumptionData>>> ReadChemicalConsumptionDataAsync()
+        public async Task<OperateResult> ResetOeeCountersAsync()
         {
-            throw new NotImplementedException("");
+            // CHANGE: Modbus address is used
+            var downTimeResetResult = await Task.Run(() => _plcClient.Write(TOTAL_DOWNTIME_SECONDS, 0));
+            if (!downTimeResetResult.IsSuccess)
+            {
+                return new OperateResult($"Downtime counter could not be reset: {downTimeResetResult.Message}");
+            }
+
+            var defectiveResetResult = await Task.Run(() => _plcClient.Write(DEFECTIVE_PRODUCTION_COUNT, 0));
+            if (!defectiveResetResult.IsSuccess)
+            {
+                return new OperateResult($"Defective production counter could not be reset: {defectiveResetResult.Message}");
+            }
+
+            return OperateResult.CreateSuccessResult();
         }
 
-        public Task<OperateResult<List<ProductionStepDetail>>> ReadStepAnalysisDataAsync()
+        public async Task<OperateResult> IncrementProductionCounterAsync()
         {
-            throw new NotImplementedException("");
+            // CHANGE: Modbus address is used
+            var readResult = await Task.Run(() => _plcClient.ReadInt16(TOTAL_PRODUCTION_COUNT));
+            if (!readResult.IsSuccess)
+            {
+                return new OperateResult($"Production counter could not be read: {readResult.Message}");
+            }
+
+            short newCount = (short)(readResult.Content + 1);
+            var writeResult = await Task.Run(() => _plcClient.Write(TOTAL_PRODUCTION_COUNT, newCount));
+
+            return writeResult;
         }
     }
 }
+
+

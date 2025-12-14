@@ -41,11 +41,11 @@ namespace TekstilScada.UI
             txtOperator.Text = _reportItem.OperatorName;
             txtStartTime.Text = _reportItem.StartTime.ToString("dd.MM.yyyy HH:mm:ss");
             txtStopTime.Text = _reportItem.EndTime.ToString("dd.MM.yyyy HH:mm:ss");
-            var elektrikvalue = _reportItem.TotalElectricity / 1000m;
+            var elektrikvalue = _reportItem.TotalElectricity;
             txtElectricity.Text = elektrikvalue.ToString();
-            var suvale = _reportItem.TotalWater / 1000m;
+            var suvale = _reportItem.TotalWater;
             txtWater.Text = suvale.ToString();
-            var steamvalue = _reportItem.TotalSteam / 1000m;
+            var steamvalue = _reportItem.TotalSteam;
             txtSteam.Text = steamvalue.ToString();
             txtTotalDuration.Text = _reportItem.CycleTime;
             // --- YENİ HESAPLAMA KISMI ---

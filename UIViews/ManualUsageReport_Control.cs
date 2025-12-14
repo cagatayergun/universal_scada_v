@@ -6,14 +6,17 @@ using TekstilScada.Core;
 using TekstilScada.Models;
 using TekstilScada.Properties;
 using TekstilScada.Repositories;
-
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Threading.Tasks; // Task kullanımı için gerekli
 namespace TekstilScada.UI.Views
 {
     public partial class ManualUsageReport_Control : UserControl
     {
         private MachineRepository _machineRepository;
         private ProcessLogRepository _processLogRepository;
-
+        private List<Machine> _selectedMachinesCache = new List<Machine>();
         public ManualUsageReport_Control()
         {
             InitializeComponent();
@@ -37,20 +40,99 @@ namespace TekstilScada.UI.Views
         public void ApplyLocalization()
         {
             label1.Text = Resources.DateRange;
-            label3.Text = Resources.Machine;
+            //label3.Text = Resources.Machine;
             btnGenerateReport.Text = Resources.Reports;
             btnExportToExcel.Text = Resources.ExportToExcel;
         }
+        private List<Machine> GetSelectedMachines()
+        {
+            var selectedList = new List<Machine>();
 
+            // FlowLayoutPanel içindeki her kontrolü (GroupBox) gez
+            foreach (Control ctrl in flpMachineGroups.Controls)
+            {
+                if (ctrl is GroupBox grp)
+                {
+                    // GroupBox içindeki CheckedListBox'ı bul
+                    var chkList = grp.Controls.OfType<CheckedListBox>().FirstOrDefault();
+                    if (chkList != null)
+                    {
+                        // Seçili olanları listeye ekle
+                        foreach (var item in chkList.CheckedItems)
+                        {
+                            if (item is Machine machine)
+                            {
+                                selectedList.Add(machine);
+                            }
+                        }
+                    }
+                }
+            }
+            return selectedList;
+        }
+        private void LoadMachineGroups()
+        {
+            try
+            {
+                // Paneli temizle
+                flpMachineGroups.Controls.Clear();
+
+                // Tüm aktif makineleri getir
+                var allMachines = _machineRepository.GetAllEnabledMachines();
+
+                if (allMachines == null || !allMachines.Any()) return;
+
+                // Makineleri Alt Tipe (SubType) göre grupla. 
+                // Eğer SubType boşsa, Ana Tipi (Type) kullan.
+                var groupedMachines = allMachines
+                    .GroupBy(m => !string.IsNullOrEmpty(m.MachineSubType) ? m.MachineSubType : m.MachineType)
+                    .OrderBy(g => g.Key); // Alfabetik sırala
+
+                foreach (var group in groupedMachines)
+                {
+                    // 1. Her grup için bir GroupBox oluştur
+                    GroupBox grpBox = new GroupBox();
+                    grpBox.Text = group.Key; // Grup Başlığı (Örn: "Kurutma-Tip1")
+                    grpBox.Width = 200;      // Genişlik ayarı
+                    grpBox.Height = 150;     // Yükseklik ayarı
+                    grpBox.Font = new Font("Segoe UI", 9, FontStyle.Bold);
+                    grpBox.Margin = new Padding(5); // Kutular arası boşluk
+
+                    // 2. İçine CheckedListBox ekle
+                    CheckedListBox chkList = new CheckedListBox();
+                    chkList.Dock = DockStyle.Fill; // Kutuyu doldur
+                    chkList.CheckOnClick = true;   // Tek tıkla seç
+                    chkList.BorderStyle = BorderStyle.None;
+                    chkList.BackColor = SystemColors.Control; // Arka plan rengi
+                    chkList.Font = new Font("Segoe UI", 9, FontStyle.Regular);
+
+                    // 3. Makineleri listeye ekle
+                    foreach (var machine in group)
+                    {
+                        chkList.Items.Add(machine, false); // Varsayılan olarak seçili değil
+                    }
+
+                    // DisplayMember ayarı (Listede ne görünecek)
+                    chkList.DisplayMember = "MachineName"; // Machine nesnesindeki özellik adı
+
+                    // 4. Kontrolleri birbirine ekle
+                    grpBox.Controls.Add(chkList);
+                    flpMachineGroups.Controls.Add(grpBox);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Makine listesi yüklenirken hata oluştu: {ex.Message}", "Hata");
+            }
+        }
         private void ManualUsageReport_Control_Load(object sender, EventArgs e)
         {
             dtpStartTime.Value = DateTime.Today;
             dtpEndTime.Value = DateTime.Today.AddDays(1).AddSeconds(-1);
 
             var machines = _machineRepository.GetAllMachines();
-            cmbMachines.DataSource = machines;
-            cmbMachines.DisplayMember = "DisplayInfo";
-            cmbMachines.ValueMember = "Id";
+            LoadMachineGroups();
+           
         }
 
         private async void btnGenerateReport_Click(object sender, EventArgs e)
@@ -58,26 +140,57 @@ namespace TekstilScada.UI.Views
             DateTime startTime = dtpStartTime.Value;
             DateTime endTime = dtpEndTime.Value;
 
-            var selectedMachine = cmbMachines.SelectedItem as Machine;
+            // Çoklu seçim fonksiyonunu çağır
+            var selectedMachines = GetSelectedMachines();
 
-            if (selectedMachine == null) return;
+            if (selectedMachines.Count == 0)
+            {
+                MessageBox.Show("Lütfen en az bir makine seçiniz.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
             try
             {
                 this.Cursor = Cursors.WaitCursor;
-                var summary = _processLogRepository.GetManualConsumptionSummary(selectedMachine.Id, selectedMachine.MachineName, startTime, endTime);
+                btnGenerateReport.Enabled = false;
 
+                // Rapor verilerini tutacak liste
                 var reportData = new List<ManualConsumptionSummary>();
-                if (summary != null)
-                {
-                    reportData.Add(summary);
-                }
 
+                // Seçili her makine için veriyi çek (Paralel çalıştırılabilir veya döngü ile)
+                // UI donmaması için Task.Run içinde yapıyoruz
+                await Task.Run(() =>
+                {
+                    foreach (var machine in selectedMachines)
+                    {
+                        // Repository'deki mevcut metodunuzu her makine için çağırıyoruz
+                        var summary = _processLogRepository.GetManualConsumptionSummary(machine.Id, machine.MachineName, startTime, endTime);
+
+                        if (summary != null)
+                        {
+                            reportData.Add(summary);
+                        }
+                    }
+                });
+                foreach (var item in reportData)
+                {
+                    // Makine adından ID veya Tip bulmak zor olabilir, bu yüzden 'selectedMachines' listesinden eşleştiriyoruz.
+                    var machineInfo = selectedMachines.FirstOrDefault(m => m.MachineName == item.Makine);
+
+                    if (machineInfo != null &&
+                       (machineInfo.MachineType == "Kurutma Makinesi"))
+                    {
+                        item.ToplamSuTuketimi_Litre = 0;
+                    }
+                }
+                // Grid'i doldur
                 dgvManualUsage.DataSource = null;
                 dgvManualUsage.DataSource = reportData;
 
-                // Tablo görünümünü ve başlıkları ayarla
                 CustomizeGridAppearance();
+
+                // Toplam özeti bir Label'a veya mesaja yazdırmak isterseniz burada hesaplayabilirsiniz
+                // UpdateTotalSummary(reportData); 
             }
             catch (Exception ex)
             {
@@ -86,6 +199,7 @@ namespace TekstilScada.UI.Views
             finally
             {
                 this.Cursor = Cursors.Default;
+                btnGenerateReport.Enabled = true;
             }
         }
 
@@ -101,9 +215,12 @@ namespace TekstilScada.UI.Views
                 dgvManualUsage.Columns["OrtalamaDevir"].Visible = false;
 
             // 2. Başlıkları İngilizce yap ve Birimleri Ekle
-            if (dgvManualUsage.Columns["MachineName"] != null)
-                dgvManualUsage.Columns["MachineName"].HeaderText = "Machine Name";
-            
+            if (dgvManualUsage.Columns["Makine"] != null)
+                dgvManualUsage.Columns["Makine"].HeaderText = "Machine Name";
+            if (dgvManualUsage.Columns["RaporAraligi"] != null)
+                dgvManualUsage.Columns["RaporAraligi"].HeaderText = "Report Interval";
+            if (dgvManualUsage.Columns["ToplamManuelSure"] != null)
+                dgvManualUsage.Columns["ToplamManuelSure"].HeaderText = "Total Manual Time";
             if (dgvManualUsage.Columns["ToplamSuTuketimi_Litre"] != null)
                 dgvManualUsage.Columns["ToplamSuTuketimi_Litre"].HeaderText = "Total Water (m³)";
 

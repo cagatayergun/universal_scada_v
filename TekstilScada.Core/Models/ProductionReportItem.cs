@@ -17,9 +17,9 @@ namespace TekstilScada.Models
         public DateTime EndTime { get; set; }
         public string CycleTime { get; set; }
      
-        public int TotalWater { get; set; }
-        public int TotalElectricity { get; set; }
-        public int TotalSteam { get; set; }
+        public double TotalWater { get; set; }
+        public double TotalElectricity { get; set; }
+        public double TotalSteam { get; set; }
        
         public double MachineAlarmDurationSeconds { get; set; }
         public double OperatorPauseDurationSeconds { get; set; }

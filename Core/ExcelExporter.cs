@@ -5,10 +5,10 @@ using System;
 using System.Data;
 using System.Windows.Forms;
 using TekstilScada.Models;
-using ScottPlot; // HATA GİDERİLDİ: ScottPlot için eklendi
-using System.IO; // MemoryStream için eklendi
-using System.Drawing.Imaging; // HATA GİDERİLDİ: ImageFormat için eklendi
-using System.Linq; // Any() metodu için eklendi
+using ScottPlot; // ERROR FIXED: Added for ScottPlot
+using System.IO; // Added for MemoryStream
+using System.Drawing.Imaging; // ERROR FIXED: Added for ImageFormat
+using System.Linq; // Added for Any() method
 using ScottPlot;
 namespace TekstilScada.Core
 {
@@ -18,7 +18,7 @@ namespace TekstilScada.Core
         {
             if (dgv.Rows.Count == 0)
             {
-                MessageBox.Show("Dışa aktarılacak veri bulunamadı.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("No data was found to export.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -30,65 +30,136 @@ namespace TekstilScada.Core
                     {
                         using (var workbook = new XLWorkbook())
                         {
-                            var worksheet = workbook.Worksheets.Add("Rapor");
+                            var worksheet = workbook.Worksheets.Add("Report");
 
-                            // Başlıkları yazdır
-                            for (int i = 0; i < dgv.Columns.Count; i++)
+                            // Görünür sütunların listesini ve index eşlemesini tutmak için
+                            var visibleColumns = dgv.Columns.Cast<DataGridViewColumn>()
+                                .Where(c => c.Visible)
+                                .OrderBy(c => c.DisplayIndex) // Görüntülenme sırasına göre sırala
+                                .ToList();
+
+                            // 1. Başlıkları yazdır (Sadece görünür sütunlar)
+                            for (int i = 0; i < visibleColumns.Count; i++)
                             {
-                                worksheet.Cell(1, i + 1).Value = dgv.Columns[i].HeaderText;
+                                // i: Excel sütun indexi
+                                worksheet.Cell(1, i + 1).Value = visibleColumns[i].HeaderText;
                             }
 
-                            // Verileri yazdır
+                            // 2. Verileri yazdır (Sadece görünür sütunlar)
                             for (int i = 0; i < dgv.Rows.Count; i++)
                             {
-                                for (int j = 0; j < dgv.Columns.Count; j++)
+                                for (int j = 0; j < visibleColumns.Count; j++)
                                 {
-                                    worksheet.Cell(i + 2, j + 1).Value = dgv.Rows[i].Cells[j].Value?.ToString();
+                                    // visibleColumns[j].Index: DataGridView'daki gerçek sütun indexi
+                                    worksheet.Cell(i + 2, j + 1).Value = dgv.Rows[i].Cells[visibleColumns[j].Index].Value?.ToString();
                                 }
                             }
+                            // 3. Kaydet ve bilgi ver
+                            worksheet.Columns().AdjustToContents();
                             workbook.SaveAs(sfd.FileName);
-                            MessageBox.Show("Rapor başarıyla Excel'e aktarıldı.", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            MessageBox.Show("The report has been successfully exported to Excel.", "Successful", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Excel'e aktarılırken bir hata oluştu: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"An error occurred while exporting to Excel: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-        // YENİ: Detaylı üretim raporunu Excel'e aktaran metot
+        // NEW: Method for exporting detailed production report to Excel
         public static void ExportProductionDetailToExcel(ProductionReportItem headerData, DataGridView dgvSteps, DataGridView dgvAlarms, FormsPlot formsPlot)
         {
             try
             {
-                using (SaveFileDialog sfd = new SaveFileDialog() { Filter = "Excel Workbook|*.xlsx", FileName = $"{headerData.BatchId}_Raporu.xlsx" })
+                using (SaveFileDialog sfd = new SaveFileDialog() { Filter = "Excel Workbook|*.xlsx", FileName = $"{headerData.BatchId}_Report.xlsx" })
                 {
                     if (sfd.ShowDialog() == DialogResult.OK)
                     {
                         using (var workbook = new XLWorkbook())
                         {
-                            // --- 1. Sayfa: VERİLER ---
-                            var worksheet = workbook.Worksheets.Add("Üretim Detay Raporu");
+                            // --- 1. Sheet: DATA ---
+                            var worksheet = workbook.Worksheets.Add("Production Detail Report");
 
-                            worksheet.Cell("A1").Value = "MAKİNA ADI:";
+                            // --- HESAPLAMALAR ---
+                            // Teorik süreyi TimeSpan formatına çevir
+                            var theoreticalDuration = TimeSpan.FromSeconds(headerData.TheoreticalCycleTimeSeconds);
+
+                            // Gerçekleşen süreyi hesapla (EndTime - StartTime)
+                            // Not: CycleTime string geldiği için matematiksel işlemde EndTime-StartTime kullanıyoruz.
+                            var actualDuration = headerData.EndTime - headerData.StartTime;
+
+                            // Farkı hesapla (Gerçekleşen - Teorik)
+                            var difference = actualDuration - theoreticalDuration;
+                            string differenceString = $"{(difference.TotalSeconds < 0 ? "-" : "")}{difference.Duration():hh\\:mm\\:ss}";
+
+                            // --- BAŞLIK BİLGİLERİ (1-13. Satırlar) ---
+
+                            // 1. Machine Name
+                            worksheet.Cell("A1").Value = "Machine Name:";
                             worksheet.Cell("B1").Value = headerData.MachineName;
-                            worksheet.Cell("A2").Value = "REÇETE ADI:";
+
+                            // 2. Recipe Name
+                            worksheet.Cell("A2").Value = "Recipe Name:";
                             worksheet.Cell("B2").Value = headerData.RecipeName;
-                            worksheet.Cell("A3").Value = "OPERATÖR:";
+
+                            // 3. Operator
+                            worksheet.Cell("A3").Value = "Operator:";
                             worksheet.Cell("B3").Value = headerData.OperatorName;
-                            worksheet.Cell("A4").Value = "BAŞLANGIÇ ZAMANI:";
-                            worksheet.Cell("B4").Value = headerData.StartTime;
-                            worksheet.Cell("A5").Value = "BİTİŞ ZAMANI:";
-                            worksheet.Cell("B5").Value = headerData.EndTime;
-                            worksheet.Cell("A6").Value = "TOPLAM SÜRE:";
-                            worksheet.Cell("B6").Value = headerData.CycleTime;
 
-                            worksheet.Range("A1:A6").Style.Font.SetBold(true);
-                            worksheet.Range("A1:B6").Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+                            // 4. Order No (YENİ)
+                            worksheet.Cell("A4").Value = "Order No:";
+                            worksheet.Cell("B4").Value = headerData.SiparisNo;
 
-                            int currentRow = 9;
-                            worksheet.Cell(currentRow, 1).Value = "ADIM DETAYLARI";
+                            // 5. Customer Number (YENİ)
+                            worksheet.Cell("A5").Value = "Customer Number:";
+                            worksheet.Cell("B5").Value = headerData.MusteriNo;
+
+                            // 6. Start Date
+                            worksheet.Cell("A6").Value = "Start Date:";
+                            worksheet.Cell("B6").Value = headerData.StartTime;
+
+                            // 7. End Date
+                            worksheet.Cell("A7").Value = "End Date:";
+                            worksheet.Cell("B7").Value = headerData.EndTime;
+
+                            // 8. Total Duration
+                            worksheet.Cell("A8").Value = "Total Duration:";
+                            worksheet.Cell("B8").Value = headerData.CycleTime; // veya actualDuration.ToString(@"hh\:mm\:ss");
+
+                            // 9. Theoretical Duration (YENİ)
+                            worksheet.Cell("A9").Value = "Theoretical Duration:";
+                            worksheet.Cell("B9").Value = theoreticalDuration.ToString(@"hh\:mm\:ss");
+
+                            // 10. Difference (Act-Theo) (YENİ)
+                            worksheet.Cell("A10").Value = "Difference (Act-Theo):";
+                            worksheet.Cell("B10").Value = differenceString;
+
+                            // 11. Electricity Consumption
+                            worksheet.Cell("A11").Value = "Electricity Consumption (kWh):";
+                            worksheet.Cell("B11").Value = headerData.TotalElectricity;
+                            worksheet.Cell("B11").Style.NumberFormat.Format = "0.00";
+
+                            // 12. Water Consumption
+                            worksheet.Cell("A12").Value = "Water Consumption (m³):";
+                            worksheet.Cell("B12").Value = headerData.TotalWater;
+                            worksheet.Cell("B12").Style.NumberFormat.Format = "0.00";
+
+                            // 13. Steam Consumption
+                            worksheet.Cell("A13").Value = "Steam Consumption (m³):";
+                            worksheet.Cell("B13").Value = headerData.TotalSteam;
+                            worksheet.Cell("B13").Style.NumberFormat.Format = "0.00";
+
+                            // --- STİL AYARLARI ---
+                            // A1'den A13'e kadar başlıkları kalın yap
+                            worksheet.Range("A1:A13").Style.Font.SetBold(true);
+                            worksheet.Range("A1:B13").Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+
+                            // Tabloların başlangıç satırını 16'ya kaydırdık
+                            int currentRow = 16;
+
+                            // --- STEP DETAILS TABLE ---
+                            worksheet.Cell(currentRow, 1).Value = "STEP DETAILS";
                             worksheet.Range(currentRow, 1, currentRow, dgvSteps.Columns.Count).Merge().Style.Font.SetBold(true).Fill.SetBackgroundColor(XLColor.LightGray);
 
                             currentRow++;
@@ -107,8 +178,9 @@ namespace TekstilScada.Core
                                 }
                             }
 
+                            // --- PROCESS ALARMS TABLE ---
                             currentRow += dgvSteps.Rows.Count + 2;
-                            worksheet.Cell(currentRow, 1).Value = "PROSES ALARMLARI";
+                            worksheet.Cell(currentRow, 1).Value = "PROCESS ALARMS";
                             worksheet.Range(currentRow, 1, currentRow, dgvAlarms.Columns.Count).Merge().Style.Font.SetBold(true).Fill.SetBackgroundColor(XLColor.LightGray);
 
                             currentRow++;
@@ -129,37 +201,34 @@ namespace TekstilScada.Core
 
                             worksheet.Columns().AdjustToContents();
 
+                            // --- CHART IMAGE ---
                             if (formsPlot != null && formsPlot.Plot.GetPlottables().Any())
                             {
-                                // 1. Veri tablolarının en geniş noktasını bul.
-                                // Genellikle adım detayları tablosu daha geniştir.
+                                // 1. En geniş tablo sütununu bul
                                 int lastUsedColumn = Math.Max(dgvSteps.Columns.Count, dgvAlarms.Columns.Count);
 
-                                // 2. Grafiğin başlayacağı kolonu belirle (2 kolon boşluk bırakarak)
+                                // 2. Grafiği tablonun 3 sütun sağına koy
                                 int chartStartColumn = lastUsedColumn + 3;
 
-                                // 3. Grafiği yüksek kalitede bir resme dönüştür
-                                var imageBytes = formsPlot.Plot.GetImageBytes(1200, 800,  ScottPlot.ImageFormat.Png);
+                                var imageBytes = formsPlot.Plot.GetImageBytes(1200, 800, ScottPlot.ImageFormat.Png);
                                 using (var ms = new MemoryStream(imageBytes))
                                 {
-                                    // 4. Resmi, hesaplanan konuma ekle
-                                    var image = worksheet.AddPicture(ms, "ProsesGrafiği")
-                                        .MoveTo(worksheet.Cell(1, chartStartColumn)) // 1. Satır, hesaplanan sütun
-                                        .Scale(0.75); // Görüntü boyutunu ayarla
+                                    var image = worksheet.AddPicture(ms, "ProcessChart")
+                                        .MoveTo(worksheet.Cell(1, chartStartColumn))
+                                        .Scale(0.75);
                                 }
                             }
 
                             workbook.SaveAs(sfd.FileName);
-                            MessageBox.Show("Rapor (Veri ve Grafik) başarıyla Excel'e aktarıldı.", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            MessageBox.Show("The report (Data and Chart) has been successfully exported to Excel.", "Successful", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Excel'e aktarılırken bir hata oluştu: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"An error occurred while exporting to Excel: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
     }
 }

@@ -1,5 +1,4 @@
-﻿// UI/Controls/KurutmaReçete_Control.cs
-using System;
+﻿using System;
 using System.Windows.Forms;
 using TekstilScada.Models;
 
@@ -8,11 +7,17 @@ namespace TekstilScada.UI.Controls
     public partial class KurutmaReçete_Control : UserControl
     {
         private ScadaRecipeStep _recipeStep;
+
+        // YENİ: Yükleme sırasında olayları durdurmak için bayrak
+        private bool _isLoading = false;
+
         public event EventHandler ValueChanged;
 
         public KurutmaReçete_Control()
         {
             InitializeComponent();
+
+            // Olayları bağlıyoruz
             numSicaklik.ValueChanged += OnValueChanged;
             numNem.ValueChanged += OnValueChanged;
             numZaman.ValueChanged += OnValueChanged;
@@ -26,26 +31,37 @@ namespace TekstilScada.UI.Controls
         {
             if (recipe != null && recipe.Steps.Count > 0)
             {
-                _recipeStep = recipe.Steps[0];
-                var kurutmaParams = new KurutmaParams(_recipeStep.StepDataWords);
-                // Değerleri PLC hafıza haritasına göre kontrollerden oku
-                // Word0 = Sıcaklık, Word1 = Nem, Word2 = Zaman
-                // Word3 = Çalışma Devri, Word4 = Soğutma Zamanı
-                numSicaklik.Value = kurutmaParams.Temperature / 10.0m;
-                numNem.Value = kurutmaParams.Humidity;
-                numZaman.Value = kurutmaParams.DurationMinutes;
-                numCalismaDevri.Value = kurutmaParams.Rpm;
-                numSogutmaZamani.Value = kurutmaParams.CoolingTimeMinutes;
+                // Yükleme başladı, olayları kilitle
+                _isLoading = true;
 
-                // Kontrol bitlerini oku (Word 5)
-                chkNemAktif.Checked = kurutmaParams.HumidityControlActive;
-                chkZamanAktif.Checked = kurutmaParams.TimeControlActive;
+                try
+                {
+                    _recipeStep = recipe.Steps[0];
+                    var kurutmaParams = new KurutmaParams(_recipeStep.StepDataWords);
+
+                    // Değerleri PLC hafıza haritasına göre kontrollerden oku
+                    numSicaklik.Value = kurutmaParams.Temperature / 10.0m;
+                    numNem.Value = kurutmaParams.Humidity;
+                    numZaman.Value = kurutmaParams.DurationMinutes;
+                    numCalismaDevri.Value = kurutmaParams.Rpm;
+                    numSogutmaZamani.Value = kurutmaParams.CoolingTimeMinutes;
+
+                    // Kontrol bitlerini oku
+                    chkNemAktif.Checked = kurutmaParams.HumidityControlActive;
+                    chkZamanAktif.Checked = kurutmaParams.TimeControlActive;
+                }
+                finally
+                {
+                    // Yükleme bitti veya hata oldu, kilidi her durumda aç
+                    _isLoading = false;
+                }
             }
         }
 
         private void OnValueChanged(object sender, EventArgs e)
         {
-            if (_recipeStep == null) return;
+            // Eğer veri yükleniyorsa veya reçete boşsa işlem yapma!
+            if (_isLoading || _recipeStep == null) return;
 
             var kurutmaParams = new KurutmaParams(_recipeStep.StepDataWords);
 
@@ -56,7 +72,7 @@ namespace TekstilScada.UI.Controls
             kurutmaParams.Rpm = (short)numCalismaDevri.Value;
             kurutmaParams.CoolingTimeMinutes = (short)numSogutmaZamani.Value;
 
-            // Kontrol bitlerini yaz (Word 5)
+            // Kontrol bitlerini yaz
             kurutmaParams.HumidityControlActive = chkNemAktif.Checked;
             kurutmaParams.TimeControlActive = chkZamanAktif.Checked;
 

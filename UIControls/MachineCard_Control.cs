@@ -1,7 +1,9 @@
 ﻿// UI/Controls/MachineCard_Control.cs
+using Org.BouncyCastle.Asn1.Cmp;
 using System;
 using System.Drawing;
 using System.Drawing.Imaging; // ColorMatrix için bu using ifadesi gerekli
+using System.Reflection.PortableExecutable;
 using System.Windows.Forms;
 using TekstilScada.Models;
 using TekstilScada.Services;
@@ -34,11 +36,12 @@ namespace TekstilScada.UI.Controls
         private readonly Image _originalAlarmyokIcon;
         private readonly Image _originalbaglantivarIcon;
         private readonly Image _originalbaglantiyokIcon;
-
+        
 
         public MachineCard_Control(int machineId, string machineUserDefinedId, string machineName, int displayIndex)
         {
             InitializeComponent();
+            
             this.MachineId = machineId;
             this.MachineUserDefinedId = machineUserDefinedId;
             this.MachineName = machineName;
@@ -157,7 +160,16 @@ namespace TekstilScada.UI.Controls
 
             lblRecipeNameValue.Text = status.RecipeName;
             lblOperatorValue.Text = status.OperatorIsmi;
-            lblStepValue.Text = status.AktifAdimAdi;
+            if (status.manuel_status)
+            {
+                
+                lblStepValue.Text = $"Working - Manuel";
+               
+            }
+            else
+            {
+                lblStepValue.Text = status.AktifAdimAdi;
+            }
             lblMachineNameValue.Text = status.MachineName;
             lblMachineIdValue.Text = this.MachineUserDefinedId;
 
@@ -171,7 +183,7 @@ namespace TekstilScada.UI.Controls
                picAlarm.Image = _originalAlarmIcon;
                 picPause.Visible = status.IsPaused;
                 if (picPause.Visible) picPause.Image = _originalPauseIcon;
-                picPlay.Visible = status.IsInRecipeMode && !status.IsPaused;
+                picPlay.Visible = status.IsInRecipeMode && !status.IsPaused && status.manuel_status;
                 if (progressBar.Value > 0)
                 {
                     _lastValidProgress = progressBar.Value;
@@ -197,6 +209,7 @@ namespace TekstilScada.UI.Controls
                 progressBar.Value = _lastValidProgress;
                 lblPercentage.Text = $"{_lastValidProgress} %";
             }
+           
             ApplyPermissions();
         }
 

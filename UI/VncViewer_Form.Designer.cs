@@ -52,7 +52,7 @@
             remoteDesktop1.Location = new Point(0, 0);
             remoteDesktop1.Margin = new Padding(3, 2, 3, 2);
             remoteDesktop1.Name = "remoteDesktop1";
-            remoteDesktop1.Size = new Size(1052, 594);
+            remoteDesktop1.Size = new Size(1197, 673);
             remoteDesktop1.TabIndex = 0;
             remoteDesktop1.ViewOnly = false;
             // 
@@ -61,7 +61,7 @@
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             AutoSize = true;
-            ClientSize = new Size(1052, 594);
+            ClientSize = new Size(1197, 673);
             Controls.Add(remoteDesktop1);
             Margin = new Padding(3, 2, 3, 2);
             Name = "VncViewer_Form";

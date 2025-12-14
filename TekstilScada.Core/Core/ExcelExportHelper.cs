@@ -296,7 +296,7 @@ namespace TekstilScada.Core.Core
                     worksheet.Cell(currentRow, 3).Value = item.EndTime;
 
                     // Seçilen tüketim tipine göre değeri al
-                    decimal consumptionValue = selectedConsumptionType switch
+                    double consumptionValue = selectedConsumptionType switch
                     {
                         "TotalWater" => item.TotalWater,
                         "TotalElectricity" => item.TotalElectricity,

@@ -60,6 +60,12 @@ namespace TekstilScada.UI.Views
             {
                 this.Cursor = Cursors.WaitCursor;
                 var reportData = _productionRepository.GetProductionReport(filters);
+                foreach (var item in reportData)
+                {
+                    item.TotalWater = item.TotalWater / 1000.0;
+                    item.TotalElectricity = item.TotalElectricity / 1000.0;
+                    item.TotalSteam = item.TotalSteam / 1000.0;
+                }
                 dgvProductionReport.DataSource = null;
                 dgvProductionReport.DataSource = reportData;
                 CustomizeGridHeaders();
@@ -151,7 +157,25 @@ namespace TekstilScada.UI.Views
             SetColumnHeader(grid, "TotalDuration", "Total Duration");
 
             // --- TÜKETİMLER ---
-          
+            if (grid.Columns.Contains("TotalWater"))
+            {
+                grid.Columns["TotalWater"].HeaderText = "Total Water (m³)";
+                grid.Columns["TotalWater"].DefaultCellStyle.Format = "N2"; // 0.00 formatı
+            }
+
+            // ELEKTRİK
+            if (grid.Columns.Contains("TotalElectricity"))
+            {
+                grid.Columns["TotalElectricity"].HeaderText = "Total Electricity (kWh)";
+                grid.Columns["TotalElectricity"].DefaultCellStyle.Format = "N2"; // 0.00 formatı
+            }
+
+            // BUHAR
+            if (grid.Columns.Contains("TotalSteam"))
+            {
+                grid.Columns["TotalSteam"].HeaderText = "Total Steam (m³)";
+                grid.Columns["TotalSteam"].DefaultCellStyle.Format = "N2"; // 0.00 formatı
+            }
 
             SetColumnHeader(grid, "Cost", "Total Cost");
             SetColumnHeader(grid, "Maliyet", "Total Cost");

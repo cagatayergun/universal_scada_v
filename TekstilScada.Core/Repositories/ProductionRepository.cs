@@ -25,7 +25,7 @@ namespace TekstilScada.Repositories
     {
         private readonly string _connectionString = AppConfig.ConnectionString;
 
-        
+
 
         // ... Bu dosyanın geri kalan tüm metotları aynı kalacak ...
         // (GetProductionReport, StartNewBatch, EndBatch vb.)
@@ -34,24 +34,28 @@ namespace TekstilScada.Repositories
             var reportItems = new List<ProductionReportItem>();
             var queryBuilder = new StringBuilder();
 
+            // GÜNCELLEME 1: SQL Sorgusuna b.TotalWater, b.TotalElectricity, b.TotalSteam eklendi.
             queryBuilder.Append(@"
-                SELECT 
-                    m.Id as MachineId,
-                    m.MachineName,
-                    b.BatchId,
-                    b.StartTime,
-                    b.EndTime,
-                    TIMEDIFF(b.EndTime, b.StartTime) as CycleTime,
-                    b.RecipeName,
-                    b.OperatorName,
-                    b.MusteriNo,
-                    b.MachineAlarmDurationSeconds, 
-                     b.OperatorPauseDurationSeconds,
-                    b.SiparisNo,
-                     b.TheoreticalCycleTimeSeconds
-                FROM production_batches AS b
-                JOIN machines AS m ON b.MachineId = m.Id
-            ");
+        SELECT 
+            m.Id as MachineId,
+            m.MachineName,
+            b.BatchId,
+            b.StartTime,
+            b.EndTime,
+            TIMEDIFF(b.EndTime, b.StartTime) as CycleTime,
+            b.RecipeName,
+            b.OperatorName,
+            b.MusteriNo,
+            b.MachineAlarmDurationSeconds, 
+            b.OperatorPauseDurationSeconds,
+            b.SiparisNo,
+            b.TheoreticalCycleTimeSeconds,
+            b.TotalWater,       
+            b.TotalElectricity, 
+            b.TotalSteam        
+        FROM production_batches AS b
+        JOIN machines AS m ON b.MachineId = m.Id
+    ");
 
             var whereClauses = new List<string>();
             whereClauses.Add("b.StartTime BETWEEN @StartTime AND @EndTime");
@@ -83,6 +87,8 @@ namespace TekstilScada.Repositories
                 {
                     while (reader.Read())
                     {
+                        // GÜNCELLEME 2: Veritabanından gelen değerleri nesneye atıyoruz.
+                        // Veritabanında NULL veya Decimal olma ihtimaline karşı Convert.ToInt32 kullanıyoruz.
                         reportItems.Add(new ProductionReportItem
                         {
                             MachineId = reader.GetInt32("MachineId"),
@@ -97,9 +103,14 @@ namespace TekstilScada.Repositories
                             OperatorName = reader.IsDBNull(reader.GetOrdinal("OperatorName")) ? "" : reader.GetString("OperatorName"),
                             MusteriNo = reader.IsDBNull(reader.GetOrdinal("MusteriNo")) ? "" : reader.GetString("MusteriNo"),
                             SiparisNo = reader.IsDBNull(reader.GetOrdinal("SiparisNo")) ? "" : reader.GetString("SiparisNo"),
-                              MachineAlarmDurationSeconds = reader.IsDBNull(reader.GetOrdinal("MachineAlarmDurationSeconds")) ? 0 : reader.GetInt32("MachineAlarmDurationSeconds"),
+                            MachineAlarmDurationSeconds = reader.IsDBNull(reader.GetOrdinal("MachineAlarmDurationSeconds")) ? 0 : reader.GetInt32("MachineAlarmDurationSeconds"),
                             OperatorPauseDurationSeconds = reader.IsDBNull(reader.GetOrdinal("OperatorPauseDurationSeconds")) ? 0 : reader.GetInt32("OperatorPauseDurationSeconds"),
-                            TheoreticalCycleTimeSeconds = reader.IsDBNull(reader.GetOrdinal("TheoreticalCycleTimeSeconds")) ? 0 : reader.GetInt32("TheoreticalCycleTimeSeconds")
+                            TheoreticalCycleTimeSeconds = reader.IsDBNull(reader.GetOrdinal("TheoreticalCycleTimeSeconds")) ? 0 : reader.GetInt32("TheoreticalCycleTimeSeconds"),
+
+                            // EKLENEN KISIMLAR:
+                            TotalWater = reader.IsDBNull(reader.GetOrdinal("TotalWater")) ? 0 : Convert.ToInt32(reader["TotalWater"]),
+                            TotalElectricity = reader.IsDBNull(reader.GetOrdinal("TotalElectricity")) ? 0 : Convert.ToInt32(reader["TotalElectricity"]),
+                            TotalSteam = reader.IsDBNull(reader.GetOrdinal("TotalSteam")) ? 0 : Convert.ToInt32(reader["TotalSteam"])
                         });
                     }
                 }

@@ -688,8 +688,10 @@ namespace TekstilScada.UI.Views
                     // Bu nedenle burada tekrar zoom yapmaya gerek yoktur.
                 }
                 // *** DEĞİŞİKLİK BURADA (SON) ***
-
-                formsPlotTemp.Refresh();
+                formsPlotTemp.Plot.Axes.AutoScaleY();
+                formsPlotRpm.Plot.Axes.AutoScaleY();
+                formsPlotWater.Plot.Axes.AutoScaleY();
+                formsPlotTemp.Refresh();
                 formsPlotRpm.Refresh();
                 formsPlotWater.Refresh();
             });
@@ -742,9 +744,13 @@ namespace TekstilScada.UI.Views
             if ((controlWord & 8) != 0) stepTypes.Add($"{Resources.dozaj}");
             if ((controlWord & 16) != 0) stepTypes.Add($"{Resources.bosaltma}");
             if ((controlWord & 32) != 0) stepTypes.Add($"{Resources.sikma}");
+            if ((controlWord & 64) != 0) stepTypes.Add("Humidity Working");
+            if ((controlWord & 128) != 0) stepTypes.Add("Timed Working");
+            if ((controlWord & 256) != 0) stepTypes.Add("Humidity/Timed Working");
+            if ((controlWord & 512) != 0) stepTypes.Add("Cooling");
             return string.Join(" + ", stepTypes);
         }
-
+      
         // --- RENK HESAPLAMA ---
         private System.Drawing.Color GetTemperatureColor(int temp)
         {
