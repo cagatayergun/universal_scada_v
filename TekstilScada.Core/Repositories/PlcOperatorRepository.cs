@@ -110,5 +110,23 @@ namespace TekstilScada.Repositories
                 cmd.ExecuteNonQuery();
             }
         }
+        public void Update(PlcOperator op)
+        {
+            using (var connection = new MySqlConnection(_connectionString))
+            {
+                connection.Open();
+                // SlotIndex, GetAll metodunda veritabanı 'Id'si olarak atanmıştı.
+                // Bu yüzden WHERE Id = @Id kısmında SlotIndex kullanıyoruz.
+                string query = "UPDATE plc_operator_templates SET Name = @Name, UserId = @UserId, Password = @Password WHERE Id = @Id;";
+
+                var cmd = new MySqlCommand(query, connection);
+                cmd.Parameters.AddWithValue("@Name", op.Name);
+                cmd.Parameters.AddWithValue("@UserId", op.UserId);
+                cmd.Parameters.AddWithValue("@Password", op.Password);
+                cmd.Parameters.AddWithValue("@Id", op.SlotIndex); // DB ID'si burada tutuluyor
+
+                cmd.ExecuteNonQuery();
+            }
+        }
     }
 }

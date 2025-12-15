@@ -1,5 +1,4 @@
-﻿// UI/Views/PlcOperatorSettings_Control.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using TekstilScada.Models;
@@ -19,6 +18,17 @@ namespace TekstilScada.UI.Views
         {
             InitializeComponent();
             _plcOperatorRepository = new PlcOperatorRepository();
+
+            // --- EKLEMELER: Olay Yöneticileri ---
+
+            // 1. Otomatik Kayıt: Hücre düzenleme bittiğinde tetiklenir
+            dgvOperators.CellEndEdit += DgvOperators_CellEndEdit;
+
+            // 2. Doğrulama: Kullanıcı hücreden çıkarken değerleri kontrol eder (Harf, Sembol, Sınır)
+            dgvOperators.CellValidating += DgvOperators_CellValidating;
+
+            // 3. Hata Yönetimi: Grid üzerindeki format hatalarının uygulamayı çökertmesini engeller
+            dgvOperators.DataError += DgvOperators_DataError;
         }
 
         // DEĞİŞİKLİK: LsPlcManager -> IPlcManager
@@ -57,6 +67,69 @@ namespace TekstilScada.UI.Views
                 MessageBox.Show($"Error loading operator templates: {ex.Message}", "Error");
             }
         }
+
+        // --- YENİ EKLENEN OLAY YÖNETİCİLERİ ---
+
+        private void DgvOperators_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        {
+            try
+            {
+                // Düzenlenen satırdaki nesneyi al
+                if (dgvOperators.Rows[e.RowIndex].DataBoundItem is PlcOperator editedOperator)
+                {
+                    // Repository'deki yeni Update metodunu çağırarak anlık kayıt yap
+                    _plcOperatorRepository.Update(editedOperator);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Değişiklik kaydedilirken hata oluştu: {ex.Message}", "Hata");
+            }
+        }
+
+        private void DgvOperators_CellValidating(object sender, DataGridViewCellValidatingEventArgs e)
+        {
+            // Hangi kolonda işlem yapıldığını kontrol et
+            string headerText = dgvOperators.Columns[e.ColumnIndex].DataPropertyName;
+
+            // Sadece 'Password' ve 'UserId' alanlarını kontrol et
+            if (headerText == "Password" || headerText == "UserId")
+            {
+                string newValue = e.FormattedValue.ToString();
+
+                // Boş ise izin ver (isteğe bağlı)
+                if (string.IsNullOrEmpty(newValue)) return;
+
+                // 1. Sayısal Kontrol ve Word (short) Sınır Kontrolü
+                // short.TryParse: Hem harf/sembol olup olmadığını, hem de 32767 sınırını kontrol eder.
+                if (!short.TryParse(newValue, out short result))
+                {
+                    e.Cancel = true; // Geçersizse hücreden çıkmayı engelle
+                    dgvOperators.Rows[e.RowIndex].ErrorText = "Invalid Value! Enter only numbers (Max: 32767).";
+                    MessageBox.Show($"'{headerText}' Only numbers can be entered in this field, and the value cannot exceed the limit of 32,767.", "Invalid Login", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+                else if (result < 0)
+                {
+                    // Negatif sayı kontrolü
+                    e.Cancel = true;
+                    dgvOperators.Rows[e.RowIndex].ErrorText = "Negative values ​​cannot be entered.";
+                    MessageBox.Show("Please enter 0 or a greater value.", "Invalid Login", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+                else
+                {
+                    // Hata yoksa satırdaki hata ikonunu temizle
+                    dgvOperators.Rows[e.RowIndex].ErrorText = string.Empty;
+                }
+            }
+        }
+
+        private void DgvOperators_DataError(object sender, DataGridViewDataErrorEventArgs e)
+        {
+            // Olası format hatalarında çökmesini engelle
+            e.Cancel = true;
+        }
+
+        // ------------------------------------------
 
         private void btnRead_Click(object sender, EventArgs e)
         {
@@ -103,6 +176,9 @@ namespace TekstilScada.UI.Views
                 {
                     var selectedOperator = dgvOperators.SelectedRows[0].DataBoundItem as PlcOperator;
                     int slotIndex = cmbSlot.SelectedIndex; // 0-4
+
+                    // GÜNCELLENDİ: SlotIndex'i gönderim için değiştiriyoruz.
+                    // Veritabanı bütünlüğünün bozulmaması için işlem sonrasında liste yenilenecek.
                     selectedOperator.SlotIndex = slotIndex;
 
                     SendOperatorToPlc(plcManager, selectedOperator);
@@ -120,10 +196,14 @@ namespace TekstilScada.UI.Views
             if (result.IsSuccess)
             {
                 MessageBox.Show($"Operator '{plcOperator.Name}' was successfully written to slot {plcOperator.SlotIndex + 1} of the selected machine.", "Success");
+
+                // GÜNCELLENDİ: SlotIndex değişikliğinin grid üzerindeki etkisini düzeltmek için yenile
+                RefreshGrid();
             }
             else
             {
                 MessageBox.Show($"Error sending operator: {result.Message}", "Error");
+                RefreshGrid();
             }
         }
 

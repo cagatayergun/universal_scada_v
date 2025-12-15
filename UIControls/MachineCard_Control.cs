@@ -2,7 +2,7 @@
 using Org.BouncyCastle.Asn1.Cmp;
 using System;
 using System.Drawing;
-using System.Drawing.Imaging; // ColorMatrix için bu using ifadesi gerekli
+using System.Drawing.Imaging; 
 using System.Reflection.PortableExecutable;
 using System.Windows.Forms;
 using TekstilScada.Models;
@@ -13,9 +13,10 @@ namespace TekstilScada.UI.Controls
     public partial class MachineCard_Control : UserControl
     {
         public int MachineId { get; private set; }
-        private int _lastValidProgress = 0; // BU YENİ ALANI EKLEYİN
-        public string MachineUserDefinedId { get; private set; }
+        private int _lastValidProgress = 0;
+        public string MachineUserDefinedId { get; private set; }
         public string MachineName { get; private set; }
+        public string MachineType { get; private set; } // YENİ: Makine Tipi Özelliği
 
         public event EventHandler DetailsRequested;
         public event EventHandler VncRequested;
@@ -36,26 +37,36 @@ namespace TekstilScada.UI.Controls
         private readonly Image _originalAlarmyokIcon;
         private readonly Image _originalbaglantivarIcon;
         private readonly Image _originalbaglantiyokIcon;
-        
 
-        public MachineCard_Control(int machineId, string machineUserDefinedId, string machineName, int displayIndex)
+        // GÜNCELLEME: Constructor'a 'machineType' parametresi eklendi
+        public MachineCard_Control(int machineId, string machineUserDefinedId, string machineName, int displayIndex, string machineType)
         {
             InitializeComponent();
             
             this.MachineId = machineId;
             this.MachineUserDefinedId = machineUserDefinedId;
             this.MachineName = machineName;
+            this.MachineType = machineType; // Makine tipini kaydet
             lblMachineNumber.Text = $"{displayIndex}.";
 
-            // Kaynaklardan orijinal ikonları bir kereliğine yükle
-            _originalPlayIcon = Properties.Resource1.play2;
+            // YENİ: Makine Tipi "Kurutma" ise ilgili kontrolleri gizle
+            if (this.MachineType == "Kurutma Makinesi")
+            {
+                lblProcessing.Visible = false;
+                progressBar.Visible = false;
+                lblPercentage.Visible = false;
+            }
+
+            // Kaynaklardan orijinal ikonları bir kereliğine yükle
+            _originalPlayIcon = Properties.Resource1.play2;
             _originalPauseIcon = Properties.Resource1.pause2;
             _originalAlarmIcon = Properties.Resource1.alarm_var;
             _originalAlarmyokIcon = Properties.Resource1.alarm_yok;
             _originalbaglantivarIcon = Properties.Resource1.yilmak_baglanti_2;
             _originalbaglantiyokIcon = Properties.Resource1.yilmak_baglanti;
-            // GÜNCELLENDİ: PictureBox'ların arkaplanını şeffaf yap
-            picPlay.BackColor = Color.Transparent;
+
+            // PictureBox'ların arkaplanını şeffaf yap
+            picPlay.BackColor = Color.Transparent;
             picPause.BackColor = Color.Transparent;
             picAlarm.BackColor = Color.Transparent;
             picPlay.Visible = false;
@@ -67,8 +78,9 @@ namespace TekstilScada.UI.Controls
             UpdateView(new FullMachineStatus { ConnectionState = ConnectionStatus.Disconnected, MachineName = this.MachineName });
         }
 
-        // GÜNCELLENDİ: Donmaya neden olmayan, performanslı ColorMatrix yöntemi
-        private Image TintImage(Image sourceImage, Color tintColor)
+        // ... Geri kalan kodlar (TintImage, ApplyPermissions, UpdateView vb.) aynen kalacak ...
+
+        private Image TintImage(Image sourceImage, Color tintColor)
         {
             if (sourceImage == null) return null;
 
@@ -79,16 +91,14 @@ namespace TekstilScada.UI.Controls
                 float gg = tintColor.G / 255f;
                 float b = tintColor.B / 255f;
 
-                // Bu matris, resmin orijinal Alpha (şeffaflık) değerini korurken,
-                // renkli pikselleri hedef renge boyar.
-                ColorMatrix colorMatrix = new ColorMatrix(new float[][]
-        {
-          new float[] {0, 0, 0, 0, 0},
-          new float[] {0, 0, 0, 0, 0},
-          new float[] {0, 0, 0, 0, 0},
-          new float[] {0, 0, 0, 1, 0},
-          new float[] {r, gg, b, 0, 1}
-        });
+                ColorMatrix colorMatrix = new ColorMatrix(new float[][]
+                {
+                  new float[] {0, 0, 0, 0, 0},
+                  new float[] {0, 0, 0, 0, 0},
+                  new float[] {0, 0, 0, 0, 0},
+                  new float[] {0, 0, 0, 1, 0},
+                  new float[] {r, gg, b, 0, 1}
+                });
 
                 using (ImageAttributes attributes = new ImageAttributes())
                 {
@@ -102,23 +112,21 @@ namespace TekstilScada.UI.Controls
 
         private void ApplyPermissions()
         {
-
-            // === ANA MENÜ BUTONLARI İÇİN YETKİLENDİRME ===
-            // 5 numaralı role sahip kullanıcılar rapor alabilir
             var fullmachine = new FullMachineStatus();
-            var status = fullmachine.ConnectionState;
-            if(status==ConnectionStatus.Connected)
+            var status = fullmachine.ConnectionState; // Not: Bu kullanım mantıksal olarak hatalı olabilir (boş nesne), mevcut kodunuza dokunmadım.
+            if(status == ConnectionStatus.Connected) // Bu blok muhtemelen UpdateView içinde daha anlamlı çalışıyordur.
             { 
-            btnVnc.Visible = PermissionService.HasAnyPermission(new List<int> { 4 });
-            btnVnc.Enabled = btnVnc.Visible; // Yetkisi yoksa butonun tıklanmasını engelle
-            var master = PermissionService.HasAnyPermission(new List<int> { 1000 });
-            if (master == true)
-            {
-                btnVnc.Visible = PermissionService.HasAnyPermission(new List<int> { 1000 });
-                btnVnc.Enabled = btnVnc.Visible; // Yetkisi yoksa butonun tıklanmasını engelle
-            }
+                btnVnc.Visible = PermissionService.HasAnyPermission(new List<int> { 4 });
+                btnVnc.Enabled = btnVnc.Visible;
+                var master = PermissionService.HasAnyPermission(new List<int> { 1000 });
+                if (master == true)
+                {
+                    btnVnc.Visible = PermissionService.HasAnyPermission(new List<int> { 1000 });
+                    btnVnc.Enabled = btnVnc.Visible;
+                }
             }
         }
+
         public void UpdateView(FullMachineStatus status)
         {
             if (this.IsDisposed || !this.IsHandleCreated) return;
@@ -162,9 +170,7 @@ namespace TekstilScada.UI.Controls
             lblOperatorValue.Text = status.OperatorIsmi;
             if (status.manuel_status)
             {
-                
                 lblStepValue.Text = $"Working - Manuel";
-               
             }
             else
             {
@@ -173,43 +179,42 @@ namespace TekstilScada.UI.Controls
             lblMachineNameValue.Text = status.MachineName;
             lblMachineIdValue.Text = this.MachineUserDefinedId;
 
-            // Alarm varsa ilerleme çubuğunu duraklatma mantığı
             if (status.HasActiveAlarm)
             {
-                // Alarm varsa, diğer ikonları gizle ve sadece alarm ikonunu göster
-               
-               
-                // Alarm ikonunun kendisini göster, renk tonu değiştirme
-               picAlarm.Image = _originalAlarmIcon;
+                picAlarm.Image = _originalAlarmIcon;
                 picPause.Visible = status.IsPaused;
                 if (picPause.Visible) picPause.Image = _originalPauseIcon;
                 picPlay.Visible = status.IsInRecipeMode && !status.IsPaused && status.manuel_status;
+                
                 if (progressBar.Value > 0)
                 {
                     _lastValidProgress = progressBar.Value;
                 }
 
-                progressBar.Value = _lastValidProgress;
-                lblPercentage.Text = $"{_lastValidProgress} %";
+                // Kurutma değilse progress güncelle (Görünür olmadığı için Kurutmada çalışsa da sorun olmaz ama temiz kod için kontrol eklenebilir)
+                if (this.MachineType != "Kurutma")
+                {
+                    progressBar.Value = _lastValidProgress;
+                    lblPercentage.Text = $"{_lastValidProgress} %";
+                }
             }
             else
             {
                 picAlarm.Image = _originalAlarmyokIcon;
-
-                // Alarm yoksa, mevcut durum ikonlarını ve ilerlemeyi normal olarak işle
                 picPlay.Visible = status.IsInRecipeMode && !status.IsPaused;
                 if (picPlay.Visible) picPlay.Image = _originalPlayIcon;
 
                 picPause.Visible = status.IsPaused;
                 if (picPause.Visible) picPause.Image = _originalPauseIcon;
 
-               
-
-                _lastValidProgress = Math.Max(0, Math.Min(100, (int)status.ProsesYuzdesi));
-                progressBar.Value = _lastValidProgress;
-                lblPercentage.Text = $"{_lastValidProgress} %";
+                if (this.MachineType != "Kurutma")
+                {
+                    _lastValidProgress = Math.Max(0, Math.Min(100, (int)status.ProsesYuzdesi));
+                    progressBar.Value = _lastValidProgress;
+                    lblPercentage.Text = $"{_lastValidProgress} %";
+                }
             }
-           
+            
             ApplyPermissions();
         }
 
@@ -221,8 +226,12 @@ namespace TekstilScada.UI.Controls
             lblStepValue.Text = noConnectionText;
             lblMachineNameValue.Text = this.MachineName;
             lblMachineIdValue.Text = this.MachineUserDefinedId;
-            progressBar.Value = 0;
-            lblPercentage.Text = "0 %";
+            
+            if (this.MachineType != "Kurutma")
+            {
+                progressBar.Value = 0;
+                lblPercentage.Text = "0 %";
+            }
 
             picPlay.Visible = false;
             picPause.Visible = false;
@@ -236,7 +245,6 @@ namespace TekstilScada.UI.Controls
 
         private void btnVnc_Click(object sender, EventArgs e)
         {
-
             VncRequested?.Invoke(this, EventArgs.Empty);
         }
     }

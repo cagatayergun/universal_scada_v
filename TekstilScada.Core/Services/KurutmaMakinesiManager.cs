@@ -273,61 +273,182 @@ namespace TekstilScada.Services
 
         public async Task<OperateResult> WriteRecipeToPlcAsync(ScadaRecipe recipe, int? recipeSlot = null)
         {
-            // var recipe_write = 1;
-            var recipe_write = await Task.Run(() => _plcClient.Write("3209", 1));
-            if (recipe_write.IsSuccess)
+            // --- 1. SABİTLER VE ADRESLER ---
+            string addr_WriteTrigger = "3209"; // Yazma isteği bayrağı
+            string addr_RecipeName = "3071";   // Reçete adı yazma adresi
 
-                if (recipe.Steps.Count == 0) return new OperateResult("Recipe must have 98 steps.");
+            // Blok Başlangıç Adresleri (Son paylaştığınız kod bloğuna göre)
+            int addr_Block1_Start = 200; // (Sıcaklık, Nem, Süre, Kontrol)
+            int addr_Block2_Start = 280; // (RPM, Soğutma)
 
-            short[] fullRecipeData = new short[2450];
-            foreach (var step in recipe.Steps)
+            // Slot numarası kontrolü (Zorunlu)
+            if (!recipeSlot.HasValue || recipeSlot.Value < 1 || recipeSlot.Value > 20)
             {
-                int offset = (step.StepNumber - 1) * 25;
-                if (offset + step.StepDataWords.Length <= fullRecipeData.Length)
+                return new OperateResult("A valid prescription slot number (1-20) must be specified.");
+            }
+
+            // --- 2. YAZMA İŞLEMİNİ BAŞLAT (Trigger) ---
+            var recipeWriteTriggerResult = await Task.Run(() => _plcClient.Write(addr_WriteTrigger, 1));
+            if (!recipeWriteTriggerResult.IsSuccess)
+            {
+                return new OperateResult($"Reçete yazma isteği (Trigger) başarısız: {recipeWriteTriggerResult.Message}");
+            }
+
+            if (recipe.Steps == null || recipe.Steps.Count == 0)
+                return new OperateResult("Yazılacak reçete verisi bulunamadı.");
+
+            try
+            {
+                // --- 3. VERİYİ AL (ADIM MANTIĞI YOK, DİREKT İLK VERİYİ AL) ---
+                // Hangi adım numarasına sahip olduğuna bakmaksızın listedeki ilk veri paketini alıyoruz.
+                var dataStep = recipe.Steps.FirstOrDefault();
+                if (dataStep == null) return new OperateResult("The prescription form is blank.");
+
+                // --- 4. VERİLERİ AYIKLA VE HAZIRLA ---
+                // Mapping: Temp=0, Hum=1, Dur=2, Cooling=3, RPM=4, Control=5
+                // (Verinin ScadaRecipe içindeki indeksleri)
+                short[] words = dataStep.StepDataWords;
+
+                short val_Temp = words.Length > 0 ? words[0] : (short)0;
+                short val_Humidity = words.Length > 1 ? words[1] : (short)0;
+                short val_Duration = words.Length > 2 ? words[2] : (short)0;
+                short val_Cooling = words.Length > 3 ? words[3] : (short)0;
+                short val_Rpm = words.Length > 4 ? words[4] : (short)0;
+                short val_Control = words.Length > 5 ? words[5] : (short)0;
+
+                // --- BLOK 1 VERİ PAKETİ (4 WORD) ---
+                // Sıra: Temp, Humidity, Duration, Control
+                short[] block1Data = new short[] { val_Temp, val_Humidity, val_Duration, val_Control };
+
+                // --- BLOK 2 VERİ PAKETİ (2 WORD) ---
+                // Sıra: RPM, Soğutma
+                short[] block2Data = new short[] { val_Rpm, val_Cooling };
+
+                // --- 5. ADRES HESAPLAMA VE YAZMA ---
+                // Slot Index (0 tabanlı): Slot 1 -> 0
+                int slotIndex = recipeSlot.Value - 1;
+
+                // Blok 1 Adresi: 200 + (SlotIndex * 4)
+                int currentAddr_Block1 = addr_Block1_Start + (slotIndex * 4);
+
+                // Blok 2 Adresi: 280 + (SlotIndex * 2)
+                int currentAddr_Block2 = addr_Block2_Start + (slotIndex * 2);
+
+                // Blok 1 Yazma
+                var result1 = await Task.Run(() => _plcClient.Write(currentAddr_Block1.ToString(), block1Data));
+                if (!result1.IsSuccess)
+                    return new OperateResult($"Slot {recipeSlot.Value} Blok 1 (Adres: {currentAddr_Block1}) yazma hatası: {result1.Message}");
+
+                // Blok 2 Yazma
+                var result2 = await Task.Run(() => _plcClient.Write(currentAddr_Block2.ToString(), block2Data));
+                if (!result2.IsSuccess)
+                    return new OperateResult($"Slot {recipeSlot.Value} Blok 2 (Adres: {currentAddr_Block2}) yazma hatası: {result2.Message}");
+            }
+            catch (Exception ex)
+            {
+                return new OperateResult($"PLC yazma işlemi sırasında hata: {ex.Message}");
+            }
+
+            // --- 6. REÇETE ADINI YAZ ---
+            try
+            {
+                string preparedName = (recipe.RecipeName ?? "").PadRight(10, ' ').Substring(0, 10);
+                byte[] recipeNameBytes = System.Text.Encoding.ASCII.GetBytes(preparedName);
+
+                // Byte Swap (Endianness)
+                for (int i = 0; i < recipeNameBytes.Length; i += 2)
                 {
-                    Array.Copy(step.StepDataWords, 0, fullRecipeData, offset, step.StepDataWords.Length);
+                    byte temp = recipeNameBytes[i];
+                    recipeNameBytes[i] = recipeNameBytes[i + 1];
+                    recipeNameBytes[i + 1] = temp;
+                }
+
+                var nameWriteResult = await Task.Run(() => _plcClient.Write(addr_RecipeName, recipeNameBytes));
+                if (!nameWriteResult.IsSuccess)
+                {
+                    return new OperateResult($"Reçete adı yazma hatası: {nameWriteResult.Message}");
                 }
             }
-
-            ushort chunkSize = 100;
-            for (int i = 0; i < fullRecipeData.Length; i += chunkSize)
+            catch (Exception ex)
             {
-                // CHANGE: Modbus address calculation
-                string currentAddress = (100 + i).ToString(); // D100
-                ushort readLength = (ushort)Math.Min(chunkSize, fullRecipeData.Length - i);
-
-                var writeResult = await Task.Run(() => _plcClient.Write(currentAddress, fullRecipeData.Skip(i).Take(readLength).ToArray()));
-                if (!writeResult.IsSuccess)
-                {
-                    return new OperateResult($"Recipe write error. Address: {currentAddress}, Error: {writeResult.Message}");
-                }
-            }
-
-            // 1. Önce stringi hazırla (10 karaktere tamamla)
-            string preparedName = recipe.RecipeName.PadRight(10, ' ').Substring(0, 10);
-
-            // 2. ASCII baytlarına çevir
-            byte[] recipeNameBytes = Encoding.ASCII.GetBytes(preparedName);
-
-            // 3. DÜZELTME: Her iki baytın yerini değiştir (Byte Swap)
-            // "AB" -> "BA", "CD" -> "DC" şeklinde çevirir.
-            for (int i = 0; i < recipeNameBytes.Length; i += 2)
-            {
-                byte temp = recipeNameBytes[i];
-                recipeNameBytes[i] = recipeNameBytes[i + 1];
-                recipeNameBytes[i + 1] = temp;
-            }
-
-            // 4. PLC'ye yaz
-            var nameWriteResult = await Task.Run(() => _plcClient.Write("3071", recipeNameBytes));
-            if (!nameWriteResult.IsSuccess)
-            {
-                return new OperateResult($"Recipe name write error: {nameWriteResult.Message}");
+                return new OperateResult($"Reçete adı işlenirken hata: {ex.Message}");
             }
 
             return OperateResult.CreateSuccessResult();
         }
 
+
+        public async Task<OperateResult<ScadaRecipe>> ReadRecipeSlotAsync(int slotNumber, string machineName)
+        {
+            // Slot kontrolü (1-20 arası)
+            if (slotNumber < 1 || slotNumber > 20)
+                return OperateResult.CreateFailedResult<ScadaRecipe>(new OperateResult("Slot numarası 1 ile 20 arasında olmalıdır."));
+
+            int slotIndex = slotNumber - 1; // 0 tabanlı indeks
+
+            // --- ADRES HESAPLAMA ---
+            // Blok 1: 200 + (Index * 4)
+            string addr_Block1 = (200 + (slotIndex * 4)).ToString();
+            ushort len_Block1 = 4; // Temp, Hum, Dur, Control
+
+            // Blok 2: 280 + (Index * 2)
+            string addr_Block2 = (280 + (slotIndex * 2)).ToString();
+            ushort len_Block2 = 2; // RPM, Cooling
+
+            // NOT: İsim okuma adresi (addr_Name) iptal edildi.
+
+            try
+            {
+                // --- 1. VERİLERİ OKU ---
+                var t1 = Task.Run(() => _plcClient.ReadInt16(addr_Block1, len_Block1));
+                var t2 = Task.Run(() => _plcClient.ReadInt16(addr_Block2, len_Block2));
+
+                // t3 (İsim Okuma) kaldırıldı.
+                await Task.WhenAll(t1, t2);
+
+                if (!t1.Result.IsSuccess) return OperateResult.CreateFailedResult<ScadaRecipe>(t1.Result);
+                if (!t2.Result.IsSuccess) return OperateResult.CreateFailedResult<ScadaRecipe>(t2.Result);
+
+                // --- 2. NESNEYİ OLUŞTUR ---
+                var recipe = new ScadaRecipe
+                {
+                    // İSTEĞİNİZE GÖRE DÜZENLENDİ: İsim PLC'den çekilmiyor, parametrelerden oluşturuluyor.
+                    RecipeName = $"{machineName} - Recipe {slotNumber}",
+                    Steps = new List<ScadaRecipeStep>()
+                };
+
+                // PLC'den gelen veriler
+                short[] b1 = t1.Result.Content; // 4 Word
+                short[] b2 = t2.Result.Content; // 2 Word
+
+                var step = new ScadaRecipeStep
+                {
+                    StepNumber = 1, // Kurutma tek adım
+                    StepDataWords = new short[25]
+                };
+
+                // --- 3. VERİ EŞLEŞTİRME ---
+                step.StepDataWords[0] = b1[0]; // Temp
+                step.StepDataWords[1] = b1[1]; // Humidity
+                step.StepDataWords[2] = b1[2]; // Duration
+                step.StepDataWords[3] = b2[1]; // Cooling
+                step.StepDataWords[4] = b2[0]; // RPM
+                step.StepDataWords[5] = b1[3]; // Control
+
+                recipe.Steps.Add(step);
+
+                return OperateResult.CreateSuccessResult(recipe);
+            }
+            catch (Exception ex)
+            {
+                return OperateResult.CreateFailedResult<ScadaRecipe>(new OperateResult($"Okuma hatası: {ex.Message}"));
+            }
+        }
+
+        // Eski metodun (ReadRecipeFromPlcAsync) artık işlevi kalmadı ama Interface gerektiriyorsa
+        // veya hata vermemesi için boş bırakabiliriz ya da yukarıdakini çağırabiliriz.
+        // Ancak "short[]" dönüş tipi bu yeni yapıya uymadığı için (veri parçalı), 
+        // bu metodu kullanmamanız, direkt ReadFullRecipeDataAsync kullanmanız gerekir.
         public async Task<OperateResult<short[]>> ReadRecipeFromPlcAsync()
         {
             short[] fullRecipeData = new short[2450];

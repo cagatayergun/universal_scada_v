@@ -797,14 +797,85 @@ namespace TekstilScada.UI.Views
         private async void BtnReadFromPlc_Click(object sender, EventArgs e)
         {
             var selectedMachine = cmbTargetMachine.SelectedItem as Machine;
-            if (selectedMachine == null) { MessageBox.Show("Please select a target machine.", "Warning"); return; }
+            if (selectedMachine == null) { MessageBox.Show("Lütfen bir makine seçiniz.", "Uyarı"); return; }
 
             if (_plcManagers == null || !_plcManagers.TryGetValue(selectedMachine.Id, out var plcManager))
             {
-                MessageBox.Show($"'{selectedMachine.MachineName}' No active PLC connection found.", "Connection Error");
+                MessageBox.Show($"'{selectedMachine.MachineName}' için aktif PLC bağlantısı bulunamadı.", "Bağlantı Hatası");
                 return;
             }
 
+            // --- YENİ: KURUTMA MAKİNESİ İÇİN SLOT SORGULAMA MANTIĞI ---
+            if (selectedMachine.MachineType == "Kurutma Makinesi")
+            {
+                // 1. Kullanıcıdan Slot Numarasını İste (1-20)
+                string input = ShowInputDialog("Enter the Prescription Slot Number to be Read (1-20):", true);
+
+                // Giriş boşsa veya iptal edildiyse çık
+                if (string.IsNullOrEmpty(input)) return;
+
+                // 2. Slot numarasını doğrula
+                if (!int.TryParse(input, out int slotNumber) || slotNumber < 1 || slotNumber > 20)
+                {
+                    MessageBox.Show("Please enter a valid slot number between 1 and 20.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // UI Kilitleme
+                btnReadFromPlc.Enabled = false;
+                this.Cursor = Cursors.WaitCursor;
+
+                try
+                {
+                    // 3. Manager'ı 'KurutmaMakinesiManager' olarak kullan
+                    if (plcManager is KurutmaMakinesiManager kurutmaManager)
+                    {
+                        // GÜNCELLEME: ReadRecipeSlotAsync metoduna makine ismini de gönderiyoruz.
+                        var result = await kurutmaManager.ReadRecipeSlotAsync(slotNumber, selectedMachine.MachineName);
+
+                        if (result.IsSuccess)
+                        {
+                            // Okunan reçeteyi UI nesnesine ata
+                            _currentRecipe = result.Content;
+                            _currentRecipe.Id = 0;
+
+                            string targetType = !string.IsNullOrEmpty(selectedMachine.MachineSubType)
+                                                    ? selectedMachine.MachineSubType
+                                                    : selectedMachine.MachineType;
+                            _currentRecipe.TargetMachineType = targetType;
+
+                            DisplayCurrentRecipe();
+
+                            MessageBox.Show($"{slotNumber}. Slot başarıyla okundu.\nRecipe Name: {_currentRecipe.RecipeName}", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                            txtRecipeName.Focus();
+                            txtRecipeName.SelectAll();
+                        }
+                        else
+                        {
+                            MessageBox.Show($"Okuma Hatası: {result.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("Bu makine için uygun okuma yöntemi bulunamadı.", "Hata");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Beklenmedik bir hata oluştu: {ex.Message}", "Sistem Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    this.Cursor = Cursors.Default;
+                    btnReadFromPlc.Enabled = true;
+                }
+                return; // Kurutma makinesi işlemi bitti, metodun devamını çalıştırma.
+            }
+            // -------------------------------------------------------------
+
+            // --- DİĞER MAKİNELER (BYMakinesi vb.) İÇİN MEVCUT MANTIK ---
+            // (Mevcut kodunuzun geri kalanı buraya gelecek...)
             btnReadFromPlc.Enabled = false;
             this.Cursor = Cursors.WaitCursor;
             try
@@ -816,49 +887,28 @@ namespace TekstilScada.UI.Views
                     {
                         Id = 0,
                         RecipeName = $"PLC_{selectedMachine.MachineUserDefinedId}_{DateTime.Now:HHmm}",
-                       
                     };
 
-                    // --- DÜZELTME BURADA BAŞLIYOR ---
-                    // Reçetenin makine tipini, o an seçili olan makinenin filtreleme mantığıyla birebir aynı yapıyoruz.
-                    // Böylece kaydedince listede görünür.
                     string targetType = !string.IsNullOrEmpty(selectedMachine.MachineSubType)
-                                        ? selectedMachine.MachineSubType
-                                        : selectedMachine.MachineType;
+                                            ? selectedMachine.MachineSubType
+                                            : selectedMachine.MachineType;
 
                     recipeFromPlc.TargetMachineType = targetType;
-                    // --- DÜZELTME BİTİŞİ ---
 
-                    if (selectedMachine.MachineType == "Kurutma Makinesi")
+                    // Reçete Adımlarını Oluştur (BY Makinesi için 98 adım)
+                    for (int i = 0; i < 98; i++)
                     {
                         var step = new ScadaRecipeStep
                         {
-                            StepNumber = 1,
+                            StepNumber = i + 1,
                             StepDataWords = new short[25]
                         };
 
-                        if (result.Content != null && result.Content.Length > 0)
+                        if (result.Content != null && result.Content.Length >= (i * 25) + 25)
                         {
-                            Array.Copy(result.Content, 0, step.StepDataWords, 0, Math.Min(result.Content.Length, 25));
+                            Array.Copy(result.Content, i * 25, step.StepDataWords, 0, 25);
                         }
                         recipeFromPlc.Steps.Add(step);
-                    }
-                    else // BY Makinesi
-                    {
-                        for (int i = 0; i < 98; i++)
-                        {
-                            var step = new ScadaRecipeStep
-                            {
-                                StepNumber = i + 1,
-                                StepDataWords = new short[25]
-                            };
-
-                            if (result.Content != null && result.Content.Length >= (i * 25) + 25)
-                            {
-                                Array.Copy(result.Content, i * 25, step.StepDataWords, 0, 25);
-                            }
-                            recipeFromPlc.Steps.Add(step);
-                        }
                     }
 
                     _currentRecipe = recipeFromPlc;
@@ -897,7 +947,7 @@ namespace TekstilScada.UI.Views
             try
             {
                 _recipeRepository.SaveRecipe(_currentRecipe);
-                MessageBox.Show("Reçete başarıyla kaydedildi.", "Başarılı");
+                MessageBox.Show("Recipe sucsessfly saved.", "Sucsessfly");
                 LoadRecipeList();
             }
             catch (Exception ex) { MessageBox.Show($"An error occurred while saving the recipe: {ex.Message}", "Error"); }

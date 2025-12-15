@@ -1,23 +1,18 @@
 ﻿
-
-
-
-
-
-
+using ScottPlot; // Grafik kütüphanesi
 using System;
 using System.Collections.Generic;
 using System.Drawing; // Çizim kütüphanesi
 using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using TekstilScada.Core;
 using TekstilScada.Models;
 using TekstilScada.Properties;
 using TekstilScada.Repositories;
 using TekstilScada.Services;
-using System.Text.Json;
-using System.Threading.Tasks;
-using ScottPlot; // Grafik kütüphanesi
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace TekstilScada.UI.Views
 {
@@ -51,12 +46,16 @@ namespace TekstilScada.UI.Views
             // --- KRİTİK AYARLAR ---
             // Panelin Paint olayını bağlıyoruz
             this.progressTemp.Paint += new System.Windows.Forms.PaintEventHandler(this.progressTemp_Paint);
-
+            
+            this.humuditybar.Paint += new System.Windows.Forms.PaintEventHandler(this.humuditybar_Paint);
             // Titremeyi önlemek için DoubleBuffering açıyoruz (Reflection ile)
             typeof(Panel).InvokeMember("DoubleBuffered",
     System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
     null, progressTemp, new object[] { true });
 
+            typeof(Panel).InvokeMember("DoubleBuffered",
+            System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+    null, humuditybar, new object[] { true });
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
 
             // Grafik Eksenlerini Bağlama (Senkronizasyon)
@@ -114,6 +113,11 @@ namespace TekstilScada.UI.Views
 
         private void LoadInitialData()
         {
+            bool isDrying = _machine.MachineType == "Kurutma Makinesi";
+
+            // Kurutma makinesi ise barı gizle, nemi göster
+            waterTankGauge1.Visible = !isDrying;
+            humuditypanel.Visible = isDrying;
             SetWaterGaugeLimitAsync();
             SetRpmGaugeLimitAsync();
             if (_pollingService.MachineDataCache.TryGetValue(_machine.Id, out var status))
@@ -302,15 +306,36 @@ namespace TekstilScada.UI.Views
                     gaugeRpm.Text = status.AnlikDevirRpm.ToString();
 
                     // Sıcaklık verisi (decimal olarak Tag'e atıyoruz)
-                    decimal anlikSicaklikDecimal = status.AnlikSicaklik / 10.0m;
-                    progressTemp.Tag = anlikSicaklikDecimal;
+                    
+                    bool isDrying = _machine.MachineType == "Kurutma Makinesi";
 
-                    lblTempValue.Text = $"{anlikSicaklikDecimal:F1} °C";
-                    lblTempValue.ForeColor = GetTemperatureColor((int)anlikSicaklikDecimal);
+                   
+                  if(!isDrying)
+                    {
+                        decimal anlikSicaklikDecimal = status.AnlikSicaklik / 10.0m;
+                        progressTemp.Tag = anlikSicaklikDecimal;
+                        lblTempValue.Text = $"{anlikSicaklikDecimal:F1} °C";
+
+                    }
+                    else
+                    {
+                        decimal anlikSicaklikDecimal = status.AnlikSicaklik / 100.0m;
+                        progressTemp.Tag = anlikSicaklikDecimal;
+                        lblTempValue.Text = $"{anlikSicaklikDecimal:F1} °C";
+                    }
+
+                    decimal AnlikSuSeviyesi = status.AnlikSuSeviyesi ;
+                    humuditybar.Tag = AnlikSuSeviyesi;
+                    humuditytxt.Text =  $"{AnlikSuSeviyesi} Rh";
+                    humuditytxt.ForeColor = System.Drawing.Color.Blue;
+                   
+                    lblTempValue.ForeColor = System.Drawing.Color.Red;
 
                     // Paneli yeniden çizmeye zorla
                     progressTemp.Invalidate();
                     progressTemp.Update();
+                    humuditybar.Invalidate();
+                    humuditybar.Update();
 
                     waterTankGauge1.Value = status.AnlikSuSeviyesi;
                     // *** CANLI İLERLEME (SCROLLING) İÇİN YENİ KISIM ***
@@ -511,8 +536,17 @@ namespace TekstilScada.UI.Views
 
                 // Verileri hazırla
                 var xs = dataPoints.Select(p => p.Timestamp.ToOADate()).ToArray();
-                var ysTemp = dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray();
-                var ysRpm = dataPoints.Select(p => (double)p.Rpm).ToArray();
+                bool isDrying = _machine.MachineType == "Kurutma Makinesi";
+                double[] ysTemp;
+
+                if (!isDrying)
+                {
+                  ysTemp = dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray();
+                }
+                else { ysTemp = dataPoints.Select(p => (double)p.Temperature / 100.0).ToArray(); }
+
+
+                    var ysRpm = dataPoints.Select(p => (double)p.Rpm).ToArray();
                 var ysWater = dataPoints.Select(p => (double)p.WaterLevel).ToArray();
 
                 // --- DÜZELTME: Scatter nesnelerini yönetme ---
@@ -614,7 +648,19 @@ namespace TekstilScada.UI.Views
                 }
 
                 double[] timeData = dataPoints.Select(p => p.Timestamp.ToOADate()).ToArray();
-                double[] tempData = dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray();
+                
+                bool isDrying = _machine.MachineType == "Kurutma Makinesi";
+
+                double[] tempData;
+
+                // Sonra koşula göre içini doldur
+
+                if (!isDrying)
+                {
+                    tempData = dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray();
+                }
+                else { tempData = dataPoints.Select(p => (double)p.Temperature / 100.0).ToArray(); }
+                
                 double[] rpmData = dataPoints.Select(p => (double)p.Rpm).ToArray();
                 double[] waterLevelData = dataPoints.Select(p => (double)p.WaterLevel).ToArray();
 
@@ -648,8 +694,19 @@ namespace TekstilScada.UI.Views
                     _waterScatter.Color = ScottPlot.Colors.Blue;
                     _waterScatter.LineWidth = 1;
                     _waterScatter.MarkerSize = 0;
-                    formsPlotWater.Plot.Axes.Left.Label.Text = Resources.suseviyesi;
-                    formsPlotWater.Plot.Axes.Left.Label.ForeColor = ScottPlot.Colors.Blue;
+                    
+                    if (_machine.MachineType == "Kurutma Makinesi")
+                    {
+
+                        formsPlotWater.Plot.Axes.Left.Label.Text = "Humidity (Rh)";
+                    }
+                    else {
+
+                        
+                        formsPlotWater.Plot.Axes.Left.Label.Text = Resources.suseviyesi;
+
+                    }
+                        formsPlotWater.Plot.Axes.Left.Label.ForeColor = ScottPlot.Colors.Blue;
                     formsPlotWater.Plot.Axes.Left.TickLabelStyle.ForeColor = ScottPlot.Colors.Blue;
 
                     // Sayfa ilk açıldığında otomatik 5 dakikalık zoom yapılıyor
@@ -811,7 +868,56 @@ namespace TekstilScada.UI.Views
                 e.Graphics.DrawRectangle(borderPen, 0, 0, w - 1, h - 1);
             }
         }
+        private void humuditybar_Paint(object sender, PaintEventArgs e)
+        {
+            // Panel olup olmadığını kontrol et (Eğer hala ProgressBar ise Panel'e çevirin!)
+            Control barControl = sender as Control;
+            if (barControl == null) return;
 
+            // Değeri Tag'den oku
+            float currentValue = 0;
+            if (barControl.Tag != null)
+            {
+                try { currentValue = Convert.ToSingle(barControl.Tag); } catch { }
+            }
+
+            // Maksimum değer (Termometre için 150 mantıklıdır, ancak kodunuzda 100f kullanılmış)
+            float maximumValue = 100f; // Burayı 150f yapmak isterseniz değiştirebilirsiniz
+
+            // Sınırla
+            currentValue = Math.Max(0, Math.Min(maximumValue, currentValue));
+
+            // Boyutlar
+            int w = barControl.Width;
+            int h = barControl.Height;
+
+            // Arka Plan (Temizle)
+            e.Graphics.FillRectangle(new SolidBrush(System.Drawing.Color.WhiteSmoke), 0, 0, w, h);
+
+            // Doluluk Oranı
+            float ratio = currentValue / maximumValue;
+            int fillHeight = (int)(h * ratio);
+
+            // Y Koordinatı (Aşağıdan yukarı dolması için: Toplam Boy - Dolu Boy)
+            int yPos = h - fillHeight;
+
+            // Çizim
+            Rectangle filledRect = new Rectangle(0, yPos, w, fillHeight);
+
+            // *** BURADA DEĞİŞİKLİK YAPILDI ***
+            // Sabit kırmızı renk (System.Drawing.Color.Red) kullanılıyor
+            using (SolidBrush brush = new SolidBrush(System.Drawing.Color.Blue)) // Rengi direkt kırmızı yaptık
+            {
+                e.Graphics.FillRectangle(brush, filledRect);
+            }
+            // **********************************
+
+            // Çerçeve
+            using (Pen borderPen = new Pen(System.Drawing.Color.LightGray, 1))
+            {
+                e.Graphics.DrawRectangle(borderPen, 0, 0, w - 1, h - 1);
+            }
+        }
         // ... Kalan olaylar ...
         private void lblMakineAdi_Click(object sender, EventArgs e) { }
 

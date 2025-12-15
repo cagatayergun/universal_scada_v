@@ -43,7 +43,7 @@ namespace TekstilScada.UI.Controls
             label1.Font = new Font("Segoe UI", 9F);
             label1.Location = new Point(18, 52);
             label1.Name = "label1";
-            label1.Size = new Size(100, 15);
+            label1.Size = new Size(101, 15);
             label1.TabIndex = 0;
             label1.Text = "Temperature (°C):";
             // 
@@ -52,7 +52,6 @@ namespace TekstilScada.UI.Controls
             numSicaklik.Font = new Font("Segoe UI", 9F);
             numSicaklik.Location = new Point(149, 51);
             numSicaklik.Margin = new Padding(3, 2, 3, 2);
-            numSicaklik.Maximum = new decimal(new int[] { 2000, 0, 0, 0 });
             numSicaklik.Name = "numSicaklik";
             numSicaklik.Size = new Size(131, 23);
             numSicaklik.TabIndex = 1;
@@ -81,7 +80,6 @@ namespace TekstilScada.UI.Controls
             numZaman.Font = new Font("Segoe UI", 9F);
             numZaman.Location = new Point(149, 116);
             numZaman.Margin = new Padding(3, 2, 3, 2);
-            numZaman.Maximum = new decimal(new int[] { 1000, 0, 0, 0 });
             numZaman.Name = "numZaman";
             numZaman.Size = new Size(131, 23);
             numZaman.TabIndex = 5;
@@ -111,7 +109,7 @@ namespace TekstilScada.UI.Controls
             numCalismaDevri.Font = new Font("Segoe UI", 9F);
             numCalismaDevri.Location = new Point(149, 148);
             numCalismaDevri.Margin = new Padding(3, 2, 3, 2);
-            numCalismaDevri.Maximum = new decimal(new int[] { 1000, 0, 0, 0 });
+            numCalismaDevri.Maximum = new decimal(new int[] { 99, 0, 0, 0 });
             numCalismaDevri.Name = "numCalismaDevri";
             numCalismaDevri.Size = new Size(131, 23);
             numCalismaDevri.TabIndex = 8;
@@ -131,7 +129,7 @@ namespace TekstilScada.UI.Controls
             numSogutmaZamani.Font = new Font("Segoe UI", 9F);
             numSogutmaZamani.Location = new Point(149, 180);
             numSogutmaZamani.Margin = new Padding(3, 2, 3, 2);
-            numSogutmaZamani.Maximum = new decimal(new int[] { 1000, 0, 0, 0 });
+            numSogutmaZamani.Maximum = new decimal(new int[] { 99, 0, 0, 0 });
             numSogutmaZamani.Name = "numSogutmaZamani";
             numSogutmaZamani.Size = new Size(131, 23);
             numSogutmaZamani.TabIndex = 10;
@@ -142,7 +140,7 @@ namespace TekstilScada.UI.Controls
             label6.Font = new Font("Segoe UI", 9F);
             label6.Location = new Point(18, 182);
             label6.Name = "label6";
-            label6.Size = new Size(113, 15);
+            label6.Size = new Size(114, 15);
             label6.TabIndex = 9;
             label6.Text = "Cooling Time (min):";
             // 

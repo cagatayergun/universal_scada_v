@@ -19,6 +19,12 @@ namespace TekstilScada.UI.Views
         {
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
             InitializeComponent();
+
+            // --- YENİ EKLENEN KISIM: SCROLL AYARI ---
+            // Tablonun hem dikey hem yatay kaydırma çubuklarını açıyoruz.
+            dgvAlarms.ScrollBars = ScrollBars.Both;
+            // ----------------------------------------
+
             _repository = new AlarmRepository();
             ApplyLocalization();
         }
@@ -30,7 +36,7 @@ namespace TekstilScada.UI.Views
         private void LanguageManager_LanguageChanged(object sender, EventArgs e)
         {
             ApplyLocalization();
-            
+
         }
         public void ApplyLocalization()
         {
@@ -42,7 +48,7 @@ namespace TekstilScada.UI.Views
             btnDelete.Text = Resources.Delete;
             btnSave.Text = Resources.Save;
 
-                
+
         }
         private void RefreshList()
         {

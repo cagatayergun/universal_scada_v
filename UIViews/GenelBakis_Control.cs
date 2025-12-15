@@ -175,7 +175,16 @@ namespace TekstilScada.UI.Views
             // 1. Makineleri Alt Tipe Göre Grupla
             var groupedMachines = allMachines
                 .GroupBy(m => m.MachineSubType ?? "Other") // Alt tip yoksa "Diğer"
-                .OrderBy(g => g.Key);
+                .OrderBy(g =>
+                {
+                    // Sıralama Mantığı: BY -> Kurutma -> Diğerleri
+                    string key = g.Key?.ToUpper() ?? "";
+
+                    if (key.Contains("BYMakinesi")) return 1;       // En üstte
+                    if (key.Contains("Kurutma Makinesi")) return 2;  // İkinci sırada
+                    return 3;                               // Diğerleri
+                })
+                .ThenBy(g => g.Key); // Diğerleri kendi içinde alfabetik sıralansın
 
             _colorIndex = 0;
 
@@ -186,11 +195,11 @@ namespace TekstilScada.UI.Views
                 {
                     Text = group.Key,
                     Width = flpMachineGroups.ClientSize.Width*2 - 50, // Scroll bar payı
-                    Height = 320, // Kart yüksekliğine göre ayarlanmalı (Kartlar ~280px ise)
+                    Height = 265, // Kart yüksekliğine göre ayarlanmalı (Kartlar ~280px ise)
                     Font = new Font("Segoe UI", 12F, FontStyle.Bold),
                     ForeColor = Color.White,
                     BackColor = _darkColors[_colorIndex % _darkColors.Count],
-                    Padding = new Padding(5, 25, 5, 5) // Başlık için üst boşluk
+                    Padding = new Padding(5, 5, 5, 5) // Başlık için üst boşluk
                 };
 
                 // 3. Grup İçin Yatay Scroll Paneli (Inner FlowLayoutPanel)
@@ -256,44 +265,27 @@ namespace TekstilScada.UI.Views
 
         private void PollingService_OnMachineDataRefreshed(int machineId, FullMachineStatus status)
         {
-            if (_logRepository == null) return;
+            // Form veya kontrol kapandıysa işlem yapma
+            if (this.IsDisposed || !this.IsHandleCreated) return;
 
-            if (this.InvokeRequired)
+            // Veritabanı işlemi olmadığı için Task.Run'a gerek yoktur.
+            // Ancak Polling servisi arka planda çalıştığı için UI elemanlarına erişmek üzere
+            // işlemi BeginInvoke ile ana iş parçacığına (UI Thread) gönderiyoruz.
+            this.BeginInvoke(new Action(() =>
             {
-                this.Invoke(new Action(() => PollingService_OnMachineDataRefreshed(machineId, status)));
-                return;
-            }
-
-            if (_machineCards.TryGetValue(machineId, out var cardToUpdate))
-            {
-                List<ProcessDataPoint> trendData;
-                try
+                if (_machineCards.TryGetValue(machineId, out var cardToUpdate))
                 {
-                    // Trend verisi çekme (Varsa)
-                    if (!string.IsNullOrEmpty(status.BatchNumarasi))
+                    // Trend verisi (grafik) istenmediği için boş bir liste gönderiyoruz.
+                    // Bu sayede veritabanı yorulmaz ve UI anlık olarak güncellenir.
+                    cardToUpdate.UpdateData(status, new List<ProcessDataPoint>());
+
+                    // Sıralama işlemi
+                    if (cardToUpdate.Parent is FlowLayoutPanel parentPanel)
                     {
-                        trendData = _logRepository.GetLogsForBatch(machineId, status.BatchNumarasi, DateTime.Now.AddMinutes(-15), DateTime.Now);
-                    }
-                    else
-                    {
-                        trendData = _logRepository.GetManualLogs(machineId, DateTime.Now.AddMinutes(-15), DateTime.Now);
+                        SortMachinesInPanel(parentPanel);
                     }
                 }
-                catch
-                {
-                    trendData = new List<ProcessDataPoint>();
-                }
-
-                // Kart verisini güncelle
-                cardToUpdate.UpdateData(status, trendData);
-
-                // --- SIRALAMA GÜNCELLEME ---
-                // Kartın bulunduğu paneli bul (Inner FlowLayoutPanel)
-                if (cardToUpdate.Parent is FlowLayoutPanel parentPanel)
-                {
-                    SortMachinesInPanel(parentPanel);
-                }
-            }
+            }));
         }
 
         // --- YENİ: PANEL İÇİ SIRALAMA MANTIĞI ---
@@ -370,19 +362,37 @@ namespace TekstilScada.UI.Views
             _kpiIdleMachines.SetData($"{Resources.bosbekleyen}", idleMachines.ToString(), Color.FromArgb(243, 156, 18));
         }
 
-        private void UpdateSidebarCharts()
+        private async void UpdateSidebarCharts()
         {
             if (_dashboardRepository == null || _alarmRepository == null) return;
 
             try
             {
-                // 1. ELEKTRİK TÜKETİMİ (Watt-Saat -> kWh)
-                var hourlyElecData = _dashboardRepository.GetHourlyFactoryConsumption(DateTime.Today);
-                formsPlotHourly.Plot.Clear();
-                if (hourlyElecData != null && hourlyElecData.Rows.Count > 0)
+                // 1. Veritabanı işlemlerini arka plana atıyoruz (UI Donmaz)
+                var result = await Task.Run(() =>
                 {
-                    double[] hours = hourlyElecData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
-                    double[] consumption = hourlyElecData.AsEnumerable().Select(row => row.IsNull("ToplamElektrik") ? 0.0 : Convert.ToDouble(row["ToplamElektrik"]) / 1000.0).ToArray();
+                    var today = DateTime.Today;
+                    var now = DateTime.Now;
+
+                    // Tüm verileri arka planda çekip bir nesne olarak döndürüyoruz
+                    return new
+                    {
+                        ElecData = _dashboardRepository.GetHourlyFactoryConsumption(today),
+                        WaterData = _dashboardRepository.GetHourlyFactoryConsumption(today),
+                        SteamData = _dashboardRepository.GetHourlyFactoryConsumption(today),
+                        TopAlarms = _alarmRepository.GetTopAlarmsByFrequency(now.AddDays(-1), now),
+                        OeeData = _dashboardRepository.GetHourlyAverageOee(today)
+                    };
+                });
+
+                // 2. Grafikleri güncelleme (Burası UI Thread'de çalışır)
+
+                // --- Elektrik ---
+                formsPlotHourly.Plot.Clear();
+                if (result.ElecData != null && result.ElecData.Rows.Count > 0)
+                {
+                    double[] hours = result.ElecData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
+                    double[] consumption = result.ElecData.AsEnumerable().Select(row => row.IsNull("ToplamElektrik") ? 0.0 : Convert.ToDouble(row["ToplamElektrik"]) / 1000.0).ToArray();
 
                     var barPlot = formsPlotHourly.Plot.Add.Scatter(hours, consumption);
                     barPlot.Color = ScottPlot.Colors.SteelBlue;
@@ -392,13 +402,12 @@ namespace TekstilScada.UI.Views
                 formsPlotHourly.Plot.Axes.AutoScale();
                 formsPlotHourly.Refresh();
 
-                // 2. SU TÜKETİMİ (Litre -> m³)
-                var hourlyWaterData = _dashboardRepository.GetHourlyFactoryConsumption(DateTime.Today);
+                // --- Su ---
                 formsPlotHourlyWater.Plot.Clear();
-                if (hourlyWaterData != null && hourlyWaterData.Rows.Count > 0)
+                if (result.WaterData != null && result.WaterData.Rows.Count > 0)
                 {
-                    double[] hours = hourlyWaterData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
-                    double[] consumption = hourlyWaterData.AsEnumerable().Select(row => row.IsNull("ToplamSu") ? 0.0 : Convert.ToDouble(row["ToplamSu"]) / 1000.0).ToArray();
+                    double[] hours = result.WaterData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
+                    double[] consumption = result.WaterData.AsEnumerable().Select(row => row.IsNull("ToplamSu") ? 0.0 : Convert.ToDouble(row["ToplamSu"]) / 1000.0).ToArray();
 
                     var barPlot = formsPlotHourlyWater.Plot.Add.Scatter(hours, consumption);
                     barPlot.Color = ScottPlot.Colors.CornflowerBlue;
@@ -408,13 +417,12 @@ namespace TekstilScada.UI.Views
                 formsPlotHourlyWater.Plot.Axes.AutoScale();
                 formsPlotHourlyWater.Refresh();
 
-                // 3. BUHAR TÜKETİMİ (Litre -> m³)
-                var hourlySteamData = _dashboardRepository.GetHourlyFactoryConsumption(DateTime.Today);
+                // --- Buhar ---
                 formsPlotHourlySteam.Plot.Clear();
-                if (hourlySteamData != null && hourlySteamData.Rows.Count > 0)
+                if (result.SteamData != null && result.SteamData.Rows.Count > 0)
                 {
-                    double[] hours = hourlySteamData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
-                    double[] consumption = hourlySteamData.AsEnumerable().Select(row => row.IsNull("ToplamBuhar") ? 0.0 : Convert.ToDouble(row["ToplamBuhar"]) / 1000.0).ToArray();
+                    double[] hours = result.SteamData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
+                    double[] consumption = result.SteamData.AsEnumerable().Select(row => row.IsNull("ToplamBuhar") ? 0.0 : Convert.ToDouble(row["ToplamBuhar"]) / 1000.0).ToArray();
 
                     var barPlot = formsPlotHourlySteam.Plot.Add.Scatter(hours, consumption);
                     barPlot.Color = ScottPlot.Colors.DimGray;
@@ -424,13 +432,12 @@ namespace TekstilScada.UI.Views
                 formsPlotHourlySteam.Plot.Axes.AutoScale();
                 formsPlotHourlySteam.Refresh();
 
-                // Alarm Grafiği
-                var topAlarms = _alarmRepository.GetTopAlarmsByFrequency(DateTime.Now.AddDays(-1), DateTime.Now);
+                // --- Alarmlar ---
                 formsPlotTopAlarms.Plot.Clear();
-                if (topAlarms != null && topAlarms.Any())
+                if (result.TopAlarms != null && result.TopAlarms.Any())
                 {
-                    double[] counts = topAlarms.Select(a => (double)a.Count).ToArray();
-                    var labels = topAlarms.Select(a => a.AlarmText).ToArray();
+                    double[] counts = result.TopAlarms.Select(a => (double)a.Count).ToArray();
+                    var labels = result.TopAlarms.Select(a => a.AlarmText).ToArray();
                     var barPlot = formsPlotTopAlarms.Plot.Add.Bars(counts);
                     barPlot.Color = ScottPlot.Colors.OrangeRed;
 
@@ -441,13 +448,12 @@ namespace TekstilScada.UI.Views
                 formsPlotTopAlarms.Plot.Axes.AutoScale();
                 formsPlotTopAlarms.Refresh();
 
-                // OEE Grafiği
-                var hourlyOeeData = _dashboardRepository.GetHourlyAverageOee(DateTime.Today);
+                // --- OEE ---
                 formsPlotHourlyOee.Plot.Clear();
-                if (hourlyOeeData != null && hourlyOeeData.Rows.Count > 0)
+                if (result.OeeData != null && result.OeeData.Rows.Count > 0)
                 {
-                    double[] hours = hourlyOeeData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
-                    double[] oeeValues = hourlyOeeData.AsEnumerable().Select(row => row.IsNull("AverageOEE") ? 0.0 : Convert.ToDouble(row["AverageOEE"])).ToArray();
+                    double[] hours = result.OeeData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
+                    double[] oeeValues = result.OeeData.AsEnumerable().Select(row => row.IsNull("AverageOEE") ? 0.0 : Convert.ToDouble(row["AverageOEE"])).ToArray();
 
                     var linePlot = formsPlotHourlyOee.Plot.Add.Scatter(hours, oeeValues);
                     linePlot.Color = ScottPlot.Colors.Orange;

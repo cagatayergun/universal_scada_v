@@ -58,6 +58,12 @@
             label8 = new Label();
             lstAlarmlar = new ListBox();
             label7 = new Label();
+            label12 = new Label();
+            label13 = new Label();
+            humuditytxt = new Label();
+            lblhumudity = new Label();
+            humuditybar = new Panel();
+            humuditypanel = new Panel();
             pnlTop.SuspendLayout();
             pnlMainContent.SuspendLayout();
             tableLayoutPanelMain.SuspendLayout();
@@ -71,6 +77,7 @@
             tblPlots.SuspendLayout();
             pnlAlarmsAndSteps.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvAdimlar).BeginInit();
+            humuditypanel.SuspendLayout();
             SuspendLayout();
             // 
             // pnlTop
@@ -175,6 +182,7 @@
             // 
             pnlGauges.Anchor = AnchorStyles.Top | AnchorStyles.Bottom;
             pnlGauges.AutoSize = true;
+            pnlGauges.Controls.Add(humuditypanel);
             pnlGauges.Controls.Add(waterTankGauge1);
             pnlGauges.Controls.Add(panelTemp);
             pnlGauges.Controls.Add(gaugeRpm);
@@ -589,6 +597,73 @@
             label7.TabIndex = 0;
             label7.Text = "Intra-Party Alarms";
             // 
+            // label12
+            // 
+            label12.AutoSize = true;
+            label12.BackColor = Color.Transparent;
+            label12.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label12.Location = new Point(25, 118);
+            label12.Name = "label12";
+            label12.Size = new Size(14, 15);
+            label12.TabIndex = 6;
+            label12.Text = "0";
+            // 
+            // label13
+            // 
+            label13.AutoSize = true;
+            label13.BackColor = Color.Transparent;
+            label13.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label13.Location = new Point(11, 17);
+            label13.Name = "label13";
+            label13.Size = new Size(28, 15);
+            label13.TabIndex = 5;
+            label13.Text = "100";
+            // 
+            // humuditytxt
+            // 
+            humuditytxt.Dock = DockStyle.Bottom;
+            humuditytxt.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            humuditytxt.Location = new Point(0, 132);
+            humuditytxt.Name = "humuditytxt";
+            humuditytxt.Size = new Size(105, 22);
+            humuditytxt.TabIndex = 2;
+            humuditytxt.Text = "0 °C";
+            humuditytxt.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // lblhumudity
+            // 
+            lblhumudity.Dock = DockStyle.Bottom;
+            lblhumudity.Font = new Font("Segoe UI", 10F);
+            lblhumudity.ForeColor = Color.FromArgb(100, 100, 100);
+            lblhumudity.Location = new Point(0, 154);
+            lblhumudity.Name = "lblhumudity";
+            lblhumudity.Size = new Size(105, 22);
+            lblhumudity.TabIndex = 1;
+            lblhumudity.Text = "Humudity";
+            lblhumudity.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // humuditybar
+            // 
+            humuditybar.Location = new Point(39, 17);
+            humuditybar.Margin = new Padding(3, 2, 3, 2);
+            humuditybar.Name = "humuditybar";
+            humuditybar.Size = new Size(26, 113);
+            humuditybar.TabIndex = 0;
+            // 
+            // humuditypanel
+            // 
+            humuditypanel.Anchor = AnchorStyles.None;
+            humuditypanel.Controls.Add(label12);
+            humuditypanel.Controls.Add(label13);
+            humuditypanel.Controls.Add(humuditytxt);
+            humuditypanel.Controls.Add(lblhumudity);
+            humuditypanel.Controls.Add(humuditybar);
+            humuditypanel.Location = new Point(565, 28);
+            humuditypanel.Margin = new Padding(3, 2, 3, 2);
+            humuditypanel.Name = "humuditypanel";
+            humuditypanel.Size = new Size(105, 176);
+            humuditypanel.TabIndex = 4;
+            // 
             // MakineDetay_Control
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -617,6 +692,8 @@
             pnlAlarmsAndSteps.ResumeLayout(false);
             pnlAlarmsAndSteps.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)dgvAdimlar).EndInit();
+            humuditypanel.ResumeLayout(false);
+            humuditypanel.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -666,5 +743,11 @@
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.Label label11;
         private System.Windows.Forms.Label label9;
+        private Panel humuditypanel;
+        private Label label12;
+        private Label label13;
+        private Label humuditytxt;
+        private Label lblhumudity;
+        private Panel humuditybar;
     }
 }

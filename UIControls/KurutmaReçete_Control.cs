@@ -40,7 +40,7 @@ namespace TekstilScada.UI.Controls
                     var kurutmaParams = new KurutmaParams(_recipeStep.StepDataWords);
 
                     // Değerleri PLC hafıza haritasına göre kontrollerden oku
-                    numSicaklik.Value = kurutmaParams.Temperature / 10.0m;
+                    numSicaklik.Value = kurutmaParams.Temperature;
                     numNem.Value = kurutmaParams.Humidity;
                     numZaman.Value = kurutmaParams.DurationMinutes;
                     numCalismaDevri.Value = kurutmaParams.Rpm;
@@ -66,7 +66,7 @@ namespace TekstilScada.UI.Controls
             var kurutmaParams = new KurutmaParams(_recipeStep.StepDataWords);
 
             // Değişiklikleri anında _recipeStep nesnesine kaydet
-            kurutmaParams.Temperature = (short)(numSicaklik.Value * 10);
+            kurutmaParams.Temperature = (short)(numSicaklik.Value );
             kurutmaParams.Humidity = (short)numNem.Value;
             kurutmaParams.DurationMinutes = (short)numZaman.Value;
             kurutmaParams.Rpm = (short)numCalismaDevri.Value;

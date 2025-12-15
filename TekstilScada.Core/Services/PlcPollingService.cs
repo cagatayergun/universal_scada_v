@@ -391,63 +391,89 @@ namespace TekstilScada.Services
 
                 if (!MachineDataCache.TryGetValue(machineId, out var status)) return;
 
+                // UI'da "Bağlanıyor..." (Sarı) göstermek istiyorsanız burası kalabilir
+                // Ancak "Boşta" (Yeşil) görünmemesi için Connecting durumunun UI'daki karşılığını kontrol edin.
                 status.ConnectionState = ConnectionStatus.Connecting;
                 _connectionStates[machineId] = ConnectionStatus.Connecting;
+
+                // Bu event UI'da sarı ikon yakar, sorun yok
                 OnMachineConnectionStateChanged?.Invoke(machineId, status);
 
                 try
                 {
-                    // ADIM 1: Bağlanmayı denemeden önce eski bağlantı kalıntılarını temizle
+                    // ADIM 1: Eski bağlantı kalıntılarını temizle
                     try { manager.Disconnect(); } catch { }
 
-                    // ADIM 2: Timeout'lu Bağlantı Denemesi
+                    // ADIM 2: Bağlantı Denemesi
                     var connectTask = manager.ConnectAsync();
-                    var timeoutTask = Task.Delay(3000); // 3 Saniye Timeout
+                    var timeoutTask = Task.Delay(3000);
 
-                    // Hangi görev önce biterse onu al
                     var completedTask = await Task.WhenAny(connectTask, timeoutTask);
 
                     if (completedTask == timeoutTask)
                     {
-                        // Süre doldu ama bağlantı sağlanamadı
                         throw new TimeoutException("Bağlantı isteği zaman aşımına uğradı (3sn).");
                     }
 
-                    // DÜZELTME BURADA YAPILDI:
-                    // connectTask tamamlandığı için sonucunu (Result) alıyoruz.
                     var connectResult = await connectTask;
 
                     if (connectResult.IsSuccess)
                     {
-                        status.ConnectionState = ConnectionStatus.Connected;
-                        _connectionStates[machineId] = ConnectionStatus.Connected;
-                        _lastConnectionTime[machineId] = DateTime.Now;
-                        _reconnectAttempts.TryRemove(machineId, out _);
+                        // --- DÜZELTME BAŞLANGICI ---
 
-                        OnMachineConnectionStateChanged?.Invoke(machineId, status);
-                        LiveEventAggregator.Instance.Publish(new LiveEvent { Timestamp = DateTime.Now, Source = status.MachineName, Message = "Connection re-established.", Type = EventType.SystemSuccess });
+                        // HATA BURADAYDI: Hemen "Connected" yapıyorduk.
+                        // YENİ MANTIK: Bağlantı var ama veri okuyabiliyor muyuz? Teyit et.
 
-                        _logger.LogInformation($"Makine {machineId} bağlantısı başarıyla tekrar sağlandı.");
+                        var verifyRead = await manager.ReadLiveStatusDataAsync();
+
+                        if (verifyRead.IsSuccess)
+                        {
+                            // Hem bağlantı var HEM DE veri okunabiliyor. Şimdi Connected yapabiliriz.
+
+                            // Okunan ilk veriyi hemen status'e işle ki "Boşta" görünmesin (Eğer çalışıyorsa çalışıyor görünsün)
+                            var initialData = verifyRead.Content;
+                            status.IsInRecipeMode = initialData.IsInRecipeMode;
+                            status.manuel_status = initialData.manuel_status;
+                            status.HasActiveAlarm = initialData.HasActiveAlarm;
+                            // Diğer kritik verileri de eşitleyebilirsiniz...
+
+                            status.ConnectionState = ConnectionStatus.Connected;
+                            _connectionStates[machineId] = ConnectionStatus.Connected;
+                            _lastConnectionTime[machineId] = DateTime.Now;
+                            _reconnectAttempts.TryRemove(machineId, out _);
+
+                            OnMachineConnectionStateChanged?.Invoke(machineId, status);
+                            LiveEventAggregator.Instance.Publish(new LiveEvent { Timestamp = DateTime.Now, Source = status.MachineName, Message = "Connection re-established.", Type = EventType.SystemSuccess });
+
+                            _logger.LogInformation($"Makine {machineId} bağlantısı ve veri akışı sağlandı.");
+                        }
+                        else
+                        {
+                            // Bağlantı başarılı ama veri okunamadı.
+                            // Bu durumda "Connected" yapma, bağlantıyı kopar ve başarısız say.
+                            manager.Disconnect();
+                            throw new Exception("Socket bağlandı ancak ilk veri okunamadı.");
+                        }
+
+                        // --- DÜZELTME BİTİŞİ ---
                     }
                     else
                     {
+                        // Bağlantı reddedildi
                         status.ConnectionState = ConnectionStatus.Disconnected;
                         _connectionStates[machineId] = ConnectionStatus.Disconnected;
                         OnMachineConnectionStateChanged?.Invoke(machineId, status);
-                        _logger.LogWarning($"Makine {machineId} bağlanma denemesi başarısız oldu (PLC Reddedildi).");
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, $"Makine {machineId} yeniden bağlanma hatası (Zaman Aşımı/Ağ Hatası).");
-
+                    // Hata durumu
                     status.ConnectionState = ConnectionStatus.Disconnected;
                     _connectionStates[machineId] = ConnectionStatus.Disconnected;
                     OnMachineConnectionStateChanged?.Invoke(machineId, status);
                 }
             }
         }
-
         private void HandleDisconnection(int machineId)
         {
             if (!MachineDataCache.TryGetValue(machineId, out var status)) return;
@@ -559,35 +585,24 @@ namespace TekstilScada.Services
         {
             try
             {
-                // LiveStepAnalyzer'da 'ForceCloseActiveStep' veya benzeri bir metot yoksa
-                // Manuel olarak son tamamlanan adımı kontrol ediyoruz.
-                // Eğer LiveStepAnalyzer'ınızda "CurrentStep" veya "ActiveStep" property'si varsa onu kullanmak daha iyidir.
-                // Burada mevcut "GetLastCompletedStep" mantığını kullanarak en güvenli yolu izliyoruz:
+                // DÜZELTME: Eski kod 'GetLastCompletedStep()' kullanıyordu, bu da bitmiş adımları getiriyordu.
+                // Batch biterken son adım hala "Processing..." durumundadır.
+                // Bu yüzden listedeki "Processing..." olan son adımı çekiyoruz.
+                var activeStep = analyzer.AnalyzedSteps.LastOrDefault(s => s.WorkingTime == "Processing...");
 
-                var lastStep = analyzer.GetLastCompletedStep();
-
-                // NOT: Eğer 'lastStep' zaten bitmişse (TimeSpan var), ve analyzer'ın içinde hala açık bir adım varsa
-                // Analyzer sınıfında o anki 'Processing...' olan adımı döndürecek bir metodunuz olmalı.
-                // Eğer yoksa, 'analyzer.FinalizeStep' metodunu çağırarak o anki adımı zorla bitiriyoruz.
-                // Bu çağrı analyzer içindeki 'Processing' durumundaki adımı bulup kapatmalı.
-
-                // Eğer analyzer.FinalizeStep(stepNo...) sadece belirli adımı kapatıyorsa, aktif adımı bulmamız lazım.
-                // Varsayım: GetLastCompletedStep() metodu, henüz bitmemiş ama listede olan adımı da döndürüyor olabilir 
-                // ya da analyzer'ın sonuna eklenen adımı alıyoruz.
-
-                if (lastStep != null)
+                if (activeStep != null)
                 {
-                    // 1. Adımı bellek üzerinde sonlandır (Bitiş zamanını şu an olarak ata)
-                    analyzer.FinalizeStep(lastStep.StepNumber, batchId, machineId);
+                    // 1. Adımı bellek üzerinde sonlandır (Bitiş zamanını şu an olarak hesaplar ve günceller)
+                    analyzer.FinalizeStep(activeStep.StepNumber, batchId, machineId);
 
                     // 2. ÇİFT KAYIT KONTROLÜ
                     _lastLoggedStepNumber.TryGetValue(machineId, out int lastLoggedNo);
 
                     // Eğer bu adım numarası daha önce veritabanına yazılmadıysa YAZ.
-                    if (lastStep.StepNumber != lastLoggedNo)
+                    if (activeStep.StepNumber != lastLoggedNo)
                     {
-                        _productionRepository.LogSingleStepDetail(lastStep, machineId, batchId);
-                        _lastLoggedStepNumber[machineId] = lastStep.StepNumber;
+                        _productionRepository.LogSingleStepDetail(activeStep, machineId, batchId);
+                        _lastLoggedStepNumber[machineId] = activeStep.StepNumber;
                     }
                 }
             }

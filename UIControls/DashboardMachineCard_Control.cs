@@ -119,15 +119,23 @@ namespace TekstilScada.UI.Controls
 
             lblRecipeName.Text = $"Recipe: {status.RecipeName ?? "-"}";
             lblBatchId.Text = $"Party: {status.BatchNumarasi ?? "-"}";
-            lblTemperature.Text = $"{status.AnlikSicaklik / 10.0m}°C";
+           
+            
             gaugeRpm.Value = status.AnlikDevirRpm;
             gaugeRpm.Text = status.AnlikDevirRpm.ToString();
 
             // --- YENİ: Kurutma Makinesi Kontrolü ---
             bool isDrying = _machine.MachineType == "Kurutma Makinesi";
-
-            // Kurutma makinesi ise barı gizle, nemi göster
-            progressBar.Visible = !isDrying;
+            if (!isDrying)
+            {
+                lblTemperature.Text = $"{status.AnlikSicaklik / 10.0m}°C";
+            }
+            else
+            {
+                lblTemperature.Text = $"{status.AnlikSicaklik / 100.0m}°C";
+            }
+                // Kurutma makinesi ise barı gizle, nemi göster
+                progressBar.Visible = !isDrying;
             lblPercentage.Visible = !isDrying;
             lblProcessing.Visible = !isDrying;
             lblHumidity.Visible = isDrying;

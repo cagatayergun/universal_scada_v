@@ -45,7 +45,7 @@ namespace TekstilScada.UI.Views
             // 
             // flpTopKpis
             // 
-            flpTopKpis.BackColor = Color.DarkGray;
+            flpTopKpis.BackColor = Color.WhiteSmoke;
             flpTopKpis.Dock = DockStyle.Fill;
             flpTopKpis.Location = new Point(4, 3);
             flpTopKpis.Margin = new Padding(3, 2, 3, 2);
