@@ -59,7 +59,9 @@ namespace TekstilScada.Services
         private ConcurrentDictionary<int, DateTime> _lastConnectionTime = new ConcurrentDictionary<int, DateTime>();
         private ConcurrentDictionary<int, int> _lastLoggedStepNumber = new ConcurrentDictionary<int, int>();
         private const int StabilizationSeconds = 5;
-
+      
+        private ConcurrentDictionary<int, DateTime> _batchEndDebounceTimers = new ConcurrentDictionary<int, DateTime>();
+        //
         public PlcPollingService(
             AlarmRepository alarmRepository,
             ProcessLogRepository processLogRepository,
@@ -198,7 +200,38 @@ namespace TekstilScada.Services
                             // --- BATCH ID YÖNETİMİ (YENİ EKLEME) ---
                             if (newStatus.IsInRecipeMode)
                             {
-                                // Eğer makine çalışıyor ama henüz bir Batch ID üretmediysek:
+                                _batchEndDebounceTimers.TryRemove(machine.Id, out _);
+                            }
+                            else
+                            {
+                                // Makine "Durdum" diyor. Ama gerçekten durdu mu yoksa sinyal mi gitti?
+                                // Eğer halihazırda devam eden bir Batch varsa (ID üretilmişse) hemen bitirme.
+                                if (_generatedBatchIds.ContainsKey(machine.Id))
+                                {
+                                    // İlk kez "Durdum" dediyse zamanı kaydet
+                                    var firstStopMoment = _batchEndDebounceTimers.GetOrAdd(machine.Id, DateTime.Now);
+
+                                    // 15 Saniye (veya ihtiyaca göre artırın) boyunca sinyal gelmezse gerçekten bitir.
+                                    // Bu süre içinde sinyal "1" olursa yukarıdaki if bloğu bu sayacı siler.
+                                    if ((DateTime.Now - firstStopMoment).TotalSeconds < 7)
+                                    {
+                                        // SİSTEMİ KANDIR: Henüz 15 saniye olmadı, Batch devam ediyor say!
+                                        newStatus.IsInRecipeMode = true;
+                                    }
+                                    else
+                                    {
+                                        // 15 saniyedir ses yok, gerçekten bitmiş.
+                                        // Sayacı temizle ki bir sonraki batch için hazır olsun
+                                        _batchEndDebounceTimers.TryRemove(machine.Id, out _);
+                                    }
+                                }
+                            }
+                            // ------------------------------------------------
+
+                            // --- BATCH ID YÖNETİMİ (MEVCUT KODUNUZUN GÜNCELLENMİŞ HALİ) ---
+                            if (newStatus.IsInRecipeMode)
+                            {
+                                // Eğer makine çalışıyor (veya biz yukarıda çalışıyor saydık) ama ID yoksa:
                                 if (!_generatedBatchIds.TryGetValue(machine.Id, out string currentBatchId))
                                 {
                                     // Benzersiz ID oluştur: YYYYMMDDHHmmss_MakineID
@@ -207,12 +240,12 @@ namespace TekstilScada.Services
                                     _logger.LogInformation($"Makine {machine.Id} için yeni Batch ID oluşturuldu: {currentBatchId}");
                                 }
 
-                                // Oluşturulan ID'yi status nesnesine ata (PLC verisini ezer)
+                                // Oluşturulan (veya var olan) ID'yi status nesnesine ata
                                 newStatus.BatchNumarasi = currentBatchId;
                             }
                             else
                             {
-                                // Makine durduysa, ID'yi hafızadan sil ve status'u boşalt
+                                // Makine gerçekten durduysa (15 sn bekleme süresi de dolduysa):
                                 if (_generatedBatchIds.ContainsKey(machine.Id))
                                 {
                                     _generatedBatchIds.TryRemove(machine.Id, out _);
@@ -276,6 +309,9 @@ namespace TekstilScada.Services
                 {
                     if (machineStatus.ConnectionState == ConnectionStatus.Connected)
                     {
+
+                        
+                        
                         // --- REÇETE (BATCH) MODU ---
                         if (machineStatus.IsInRecipeMode)
                         {

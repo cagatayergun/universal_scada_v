@@ -84,15 +84,19 @@ namespace TekstilScada.UI.Views
 
                 // Makineleri Alt Tipe (SubType) göre grupla. 
                 // Eğer SubType boşsa, Ana Tipi (Type) kullan.
+
+                // --- DEĞİŞİKLİK BURADA: Kurutma Makinesi tipindeki makineleri filtreliyoruz ---
                 var groupedMachines = allMachines
+                    .Where(m => m.MachineType != "Kurutma Makinesi") // Kurutma makinelerini hariç tut
                     .GroupBy(m => !string.IsNullOrEmpty(m.MachineSubType) ? m.MachineSubType : m.MachineType)
                     .OrderBy(g => g.Key); // Alfabetik sırala
+                // -----------------------------------------------------------------------------
 
                 foreach (var group in groupedMachines)
                 {
                     // 1. Her grup için bir GroupBox oluştur
                     GroupBox grpBox = new GroupBox();
-                    grpBox.Text = group.Key; // Grup Başlığı (Örn: "Kurutma-Tip1")
+                    grpBox.Text = group.Key; // Grup Başlığı (Örn: "Boyama-Tip1")
                     grpBox.Width = 200;      // Genişlik ayarı
                     grpBox.Height = 150;     // Yükseklik ayarı
                     grpBox.Font = new Font("Segoe UI", 9, FontStyle.Bold);

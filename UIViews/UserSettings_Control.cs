@@ -73,11 +73,42 @@ namespace TekstilScada.UI.Views
 
         private void RefreshUserList()
         {
+            // Tüm kullanıcıları veritabanından çek
             _users = _repository.GetAllUsers();
+
+            // --- YENİ EKLENEN KISIM ---
+            // Eğer şu anki kullanıcı 1000 (Master/Admin) yetkisine SAHİP DEĞİLSE filtreleme yap
+            if (!PermissionService.HasAnyPermission(new List<int> { 1000 }))
+            {
+                var filteredList = new List<User>();
+
+                foreach (var user in _users)
+                {
+                    // Listelenen her kullanıcının rollerini kontrol et
+                    var userRoles = _repository.GetUserRoles(user.Id);
+
+                    // Eğer kullanıcının rolleri arasında 1000 ID'li rol YOKSA listeye ekle
+                    // (Yani 1000 yetkisi olanları gizle)
+                    if (!userRoles.Any(r => r.Id == 1000))
+                    {
+                        filteredList.Add(user);
+                    }
+                }
+                // Listeyi filtrelenmiş haliyle güncelle
+                _users = filteredList;
+            }
+            // ---------------------------
+
             dgvUsers.DataSource = null;
             dgvUsers.DataSource = _users;
+
+            // Grid ayarları
             if (dgvUsers.Columns["Id"] != null) dgvUsers.Columns["Id"].Visible = false;
             if (dgvUsers.Columns["Roles"] != null) dgvUsers.Columns["Roles"].Visible = false;
+
+            // (Opsiyonel) Güvenlik ve temizlik için diğer teknik kolonları da gizleyebilirsiniz
+            if (dgvUsers.Columns["RefreshToken"] != null) dgvUsers.Columns["RefreshToken"].Visible = false;
+            if (dgvUsers.Columns["RefreshTokenExpiry"] != null) dgvUsers.Columns["RefreshTokenExpiry"].Visible = false;
         }
 
         private void dgvUsers_SelectionChanged(object sender, EventArgs e)

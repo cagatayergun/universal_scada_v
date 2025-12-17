@@ -18,7 +18,9 @@ namespace TekstilScada.UI.Views
         {
             InitializeComponent();
             _plcOperatorRepository = new PlcOperatorRepository();
-
+            dgvOperators.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            // Scrollbar'ları etkinleştir (Hem dikey hem yatay gerekirse)
+            dgvOperators.ScrollBars = ScrollBars.Both;
             // --- EKLEMELER: Olay Yöneticileri ---
 
             // 1. Otomatik Kayıt: Hücre düzenleme bittiğinde tetiklenir

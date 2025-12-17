@@ -283,10 +283,49 @@ namespace TekstilScada.Repositories
             using (var connection = new MySqlConnection(_connectionString))
             {
                 connection.Open();
-                string query = "DELETE FROM users WHERE Id = @Id;";
-                var cmd = new MySqlCommand(query, connection);
-                cmd.Parameters.AddWithValue("@Id", userId);
-                cmd.ExecuteNonQuery();
+                // İşlemleri bir transaction (işlem bütünlüğü) içinde yapıyoruz.
+                // Herhangi bir adımda hata olursa hiçbir şey silinmez.
+                using (var transaction = connection.BeginTransaction())
+                {
+                    try
+                    {
+                        // 1. ADIM: Kullanıcının Rollerini Sil (user_roles tablosu)
+                        // Eğer FK kısıtlaması varsa önce burası temizlenmeli.
+                        string deleteRolesQuery = "DELETE FROM user_roles WHERE UserId = @UserId;";
+                        using (var cmdRoles = new MySqlCommand(deleteRolesQuery, connection, transaction))
+                        {
+                            cmdRoles.Parameters.AddWithValue("@UserId", userId);
+                            cmdRoles.ExecuteNonQuery();
+                        }
+
+                        // 2. ADIM: Kullanıcının Loglarını Sil (action_log tablosu)
+                        // "Token ekli kullanıcı silinemiyor" hatasının asıl sebebi muhtemelen budur.
+                        // Kullanıcı giriş yaptığında oluşan loglar silinmeden kullanıcı silinemez.
+                        string deleteLogsQuery = "DELETE FROM action_log WHERE UserId = @UserId;";
+                        using (var cmdLogs = new MySqlCommand(deleteLogsQuery, connection, transaction))
+                        {
+                            cmdLogs.Parameters.AddWithValue("@UserId", userId);
+                            cmdLogs.ExecuteNonQuery();
+                        }
+
+                        // 3. ADIM: Kullanıcıyı Sil (users tablosu)
+                        string deleteUserQuery = "DELETE FROM users WHERE Id = @Id;";
+                        using (var cmdUser = new MySqlCommand(deleteUserQuery, connection, transaction))
+                        {
+                            cmdUser.Parameters.AddWithValue("@Id", userId);
+                            cmdUser.ExecuteNonQuery();
+                        }
+
+                        // Hata yoksa işlemi onayla
+                        transaction.Commit();
+                    }
+                    catch (Exception)
+                    {
+                        // Hata varsa geri al
+                        transaction.Rollback();
+                        throw; // Hatayı yukarı fırlat ki WebAPI haberdar olsun
+                    }
+                }
             }
         }
         public User GetUserByRefreshToken(string refreshToken)

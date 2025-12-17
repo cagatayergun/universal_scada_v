@@ -135,8 +135,8 @@
             tlpSidebarLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 20F));
             tlpSidebarLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 20F));
             tlpSidebarLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 20F));
-            tlpSidebarLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 20F));
-            tlpSidebarLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 20F));
+            tlpSidebarLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 40F));
+            tlpSidebarLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 0F));
             tlpSidebarLayout.Size = new Size(300, 497);
             tlpSidebarLayout.TabIndex = 0;
             // 

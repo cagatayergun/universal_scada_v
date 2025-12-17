@@ -132,7 +132,7 @@ namespace TekstilScada.UI.Controls
             }
             else
             {
-                lblTemperature.Text = $"{status.AnlikSicaklik / 100.0m}°C";
+                lblTemperature.Text = $"{status.AnlikSicaklik / 100.0m:F1}°C";
             }
                 // Kurutma makinesi ise barı gizle, nemi göster
                 progressBar.Visible = !isDrying;

@@ -601,7 +601,7 @@
     <value>Alarm Status</value>
   </data>
   <data name="bosbekleyen" xml:space="preserve">
-    <value>Idle Waiting</value>
+    <value>Waiting</value>
   </data>
   <data name="Saatlikelektrik" xml:space="preserve">
     <value>Hourly Electricity Consumption

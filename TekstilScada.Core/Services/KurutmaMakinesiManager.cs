@@ -196,8 +196,9 @@ namespace TekstilScada.Services
                 status.SuMiktari = suResult.Content;
 
                 var elektrikResult = _plcClient.ReadInt16(ELECTRICITY_CONSUMPTION);
+
                 if (!elektrikResult.IsSuccess) return OperateResult.CreateFailedResult<FullMachineStatus>(elektrikResult);
-                status.ElektrikHarcama = elektrikResult.Content;
+                status.ElektrikHarcama = (short)(elektrikResult.Content * 10);
 
                 var buharResult = _plcClient.ReadInt16(STEAM_CONSUMPTION);
                 if (!buharResult.IsSuccess) return OperateResult.CreateFailedResult<FullMachineStatus>(buharResult);
@@ -273,11 +274,27 @@ namespace TekstilScada.Services
 
         public async Task<OperateResult> WriteRecipeToPlcAsync(ScadaRecipe recipe, int? recipeSlot = null)
         {
+            // --- 0. GÜVENLİK KONTROLÜ: REÇETE MODU AÇIK MI? ---
+            // Makinenin o anki reçete modu (IsInRecipeMode) durumunu oku.
+            // RECIPE_MODE sabiti sınıfın başında "0" olarak tanımlıydı.
+            var recipeModeResult = await Task.Run(() => _plcClient.ReadCoil(RECIPE_MODE));
+
+            if (!recipeModeResult.IsSuccess)
+            {
+                return new OperateResult($"Machine status could not be read: {recipeModeResult.Message}");
+            }
+
+            // Eğer içerik 'true' ise makine Reçete Modundadır, yazmaya izin verme.
+            if (recipeModeResult.Content)
+            {
+                return new OperateResult("The machine is currently in 'Prescription Mode' (Active). Please deactivate prescription mode on the machine first.");
+            }
+
             // --- 1. SABİTLER VE ADRESLER ---
             string addr_WriteTrigger = "3209"; // Yazma isteği bayrağı
             string addr_RecipeName = "3071";   // Reçete adı yazma adresi
 
-            // Blok Başlangıç Adresleri (Son paylaştığınız kod bloğuna göre)
+            // Blok Başlangıç Adresleri
             int addr_Block1_Start = 200; // (Sıcaklık, Nem, Süre, Kontrol)
             int addr_Block2_Start = 280; // (RPM, Soğutma)
 
@@ -300,32 +317,27 @@ namespace TekstilScada.Services
             try
             {
                 // --- 3. VERİYİ AL (ADIM MANTIĞI YOK, DİREKT İLK VERİYİ AL) ---
-                // Hangi adım numarasına sahip olduğuna bakmaksızın listedeki ilk veri paketini alıyoruz.
                 var dataStep = recipe.Steps.FirstOrDefault();
                 if (dataStep == null) return new OperateResult("The prescription form is blank.");
 
                 // --- 4. VERİLERİ AYIKLA VE HAZIRLA ---
-                // Mapping: Temp=0, Hum=1, Dur=2, Cooling=3, RPM=4, Control=5
-                // (Verinin ScadaRecipe içindeki indeksleri)
                 short[] words = dataStep.StepDataWords;
 
                 short val_Temp = words.Length > 0 ? words[0] : (short)0;
                 short val_Humidity = words.Length > 1 ? words[1] : (short)0;
                 short val_Duration = words.Length > 2 ? words[2] : (short)0;
-                short val_Cooling = words.Length > 3 ? words[3] : (short)0;
-                short val_Rpm = words.Length > 4 ? words[4] : (short)0;
+                // Not: Gönderdiğiniz kodda Rpm=3, Cooling=4 idi; burada yerlerini koruyoruz.
+                short val_Cooling = words.Length > 3 ? words[4] : (short)0;
+                short val_Rpm = words.Length > 4 ? words[3] : (short)0;
                 short val_Control = words.Length > 5 ? words[5] : (short)0;
 
                 // --- BLOK 1 VERİ PAKETİ (4 WORD) ---
-                // Sıra: Temp, Humidity, Duration, Control
                 short[] block1Data = new short[] { val_Temp, val_Humidity, val_Duration, val_Control };
 
                 // --- BLOK 2 VERİ PAKETİ (2 WORD) ---
-                // Sıra: RPM, Soğutma
                 short[] block2Data = new short[] { val_Rpm, val_Cooling };
 
                 // --- 5. ADRES HESAPLAMA VE YAZMA ---
-                // Slot Index (0 tabanlı): Slot 1 -> 0
                 int slotIndex = recipeSlot.Value - 1;
 
                 // Blok 1 Adresi: 200 + (SlotIndex * 4)
@@ -431,8 +443,8 @@ namespace TekstilScada.Services
                 step.StepDataWords[0] = b1[0]; // Temp
                 step.StepDataWords[1] = b1[1]; // Humidity
                 step.StepDataWords[2] = b1[2]; // Duration
-                step.StepDataWords[3] = b2[1]; // Cooling
-                step.StepDataWords[4] = b2[0]; // RPM
+                step.StepDataWords[3] = b2[0]; // Cooling
+                step.StepDataWords[4] = b2[1]; // RPM
                 step.StepDataWords[5] = b1[3]; // Control
 
                 recipe.Steps.Add(step);
@@ -722,7 +734,7 @@ namespace TekstilScada.Services
                 summary.TotalWater = waterResult.Content;
                 var electricityResult = await Task.Run(() => _plcClient.ReadInt16(ELECTRICITY_CONSUMPTION));
                 if (!electricityResult.IsSuccess) return OperateResult.CreateFailedResult<BatchSummaryData>(electricityResult);
-                summary.TotalElectricity = electricityResult.Content;
+                summary.TotalElectricity = (short)(electricityResult.Content * 10);
                 var steamResult = await Task.Run(() => _plcClient.ReadInt16(STEAM_CONSUMPTION));
                 if (!steamResult.IsSuccess) return OperateResult.CreateFailedResult<BatchSummaryData>(steamResult);
                 summary.TotalSteam = steamResult.Content;

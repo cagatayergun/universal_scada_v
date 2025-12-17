@@ -90,8 +90,54 @@ namespace TekstilScada.UI.Views
             _isSyncing = false;
         }
 
+        private void CleanupPreviousSession()
+        {
+            // Eski Timer temizliği
+            if (_uiUpdateTimer != null)
+            {
+                _uiUpdateTimer.Stop();
+                _uiUpdateTimer.Tick -= UpdateLiveGauges_Tick;
+                _uiUpdateTimer.Dispose();
+                _uiUpdateTimer = null;
+            }
+
+            // Event aboneliklerini kaldır
+            if (_pollingService != null)
+            {
+                _pollingService.OnMachineDataRefreshed -= OnDataRefreshed;
+                _pollingService.OnMachineConnectionStateChanged -= OnConnectionStateChanged;
+                _pollingService.OnActiveAlarmStateChanged -= OnAlarmStateChanged;
+            }
+
+            // VisibleChanged olayını temizlemeye gerek yok, InitializeControl'de tekrar eklemiyoruz,
+            // Constructor'da eklemek yerine Initialize'da ekliyorsanız -= yapmalısınız. 
+            // Sizin kodunuzda aşağıda += yapılıyor, o yüzden burada -= yapıyoruz:
+            this.VisibleChanged -= MakineDetay_Control_VisibleChanged;
+
+            // Grafik ve değişken sıfırlama (Her makine için temiz sayfa garantisi)
+            _tempScatter = null;
+            _rpmScatter = null;
+            _waterScatter = null;
+            _lastLoadedBatchIdForChart = null;
+            _currentlyDisplayedAlarms.Clear();
+
+            formsPlotTemp.Plot.Clear();
+            formsPlotRpm.Plot.Clear();
+            formsPlotWater.Plot.Clear();
+
+            formsPlotTemp.Refresh();
+            formsPlotRpm.Refresh();
+            formsPlotWater.Refresh();
+
+            lblMakineAdi.Text = "---";
+            lblReceteAdi.Text = "---";
+            dgvAdimlar.DataSource = null;
+        }
+
         public void InitializeControl(Machine machine, PlcPollingService service, ProcessLogRepository logRepo, AlarmRepository alarmRepo, RecipeRepository recipeRepo, ProductionRepository productionRepo)
         {
+            CleanupPreviousSession(); // Temizlik
+
             _machine = machine;
             _pollingService = service;
             _logRepository = logRepo;
@@ -99,16 +145,26 @@ namespace TekstilScada.UI.Views
             _recipeRepository = recipeRepo;
             _productionRepository = productionRepo;
 
+            // Timer başlatma
             _uiUpdateTimer = new System.Windows.Forms.Timer { Interval = 1000 };
-            _uiUpdateTimer.Tick += (sender, args) => UpdateLiveGauges();
+            _uiUpdateTimer.Tick += UpdateLiveGauges_Tick;
             _uiUpdateTimer.Start();
 
+            // Event abonelikleri
             _pollingService.OnMachineDataRefreshed += OnDataRefreshed;
             _pollingService.OnMachineConnectionStateChanged += OnConnectionStateChanged;
             _pollingService.OnActiveAlarmStateChanged += OnAlarmStateChanged;
+
             this.VisibleChanged += MakineDetay_Control_VisibleChanged;
 
             LoadInitialData();
+        }
+
+        private void UpdateLiveGauges_Tick(object sender, EventArgs e)
+        {
+            // Sadece görünürse güncelle (Ekstra güvenlik)
+            if (this.Visible)
+                UpdateLiveGauges();
         }
 
         private void LoadInitialData()
@@ -285,14 +341,26 @@ namespace TekstilScada.UI.Views
 
         private void MakineDetay_Control_VisibleChanged(object sender, EventArgs e)
         {
-            if (this.Visible && _machine != null)
+            // Sayfa görünürse Timer çalışsın, gizliyse dursun (Arka planda çalışmayı engeller)
+            if (this.Visible)
             {
-                _lastLoadedBatchIdForChart = null;
-                if (_pollingService.MachineDataCache.TryGetValue(_machine.Id, out var status))
+                if (_uiUpdateTimer != null && !_uiUpdateTimer.Enabled)
+                    _uiUpdateTimer.Start();
+
+                if (_machine != null && _pollingService != null)
                 {
-                    UpdateUI(status);
-                    UpdateAlarmList();
+                    _lastLoadedBatchIdForChart = null;
+                    if (_pollingService.MachineDataCache.TryGetValue(_machine.Id, out var status))
+                    {
+                        UpdateUI(status);
+                        UpdateAlarmList();
+                    }
                 }
+            }
+            else
+            {
+                if (_uiUpdateTimer != null)
+                    _uiUpdateTimer.Stop();
             }
         }
 
@@ -957,14 +1025,24 @@ namespace TekstilScada.UI.Views
 
         protected override void OnHandleDestroyed(EventArgs e)
         {
+            // 1. Dil değişikliği aboneliğini kaldır (Memory Leak önlemi)
+            LanguageManager.LanguageChanged -= LanguageManager_LanguageChanged;
+
+            // 2. Servis aboneliklerini kaldır
             if (_pollingService != null)
             {
                 _pollingService.OnMachineDataRefreshed -= OnDataRefreshed;
                 _pollingService.OnMachineConnectionStateChanged -= OnConnectionStateChanged;
                 _pollingService.OnActiveAlarmStateChanged -= OnAlarmStateChanged;
             }
-            _uiUpdateTimer?.Stop();
-            _uiUpdateTimer?.Dispose();
+
+            // 3. Timer'ı durdur ve yok et
+            if (_uiUpdateTimer != null)
+            {
+                _uiUpdateTimer.Stop();
+                _uiUpdateTimer.Dispose();
+            }
+
             base.OnHandleDestroyed(e);
         }
 

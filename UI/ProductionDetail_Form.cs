@@ -246,9 +246,29 @@ namespace TekstilScada.UI
             {
                 double[] timeData = dataPoints.Select(p => p.Timestamp.ToOADate()).ToArray();
                 // DEĞİŞİKLİK: Sıcaklık verisini 10'a böl
-                double[] tempData = dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray();
 
 
+                double divisor = 10.0;
+
+                try
+                {
+                    // Makine bilgilerini çekmek için repository oluştur
+                    var machineRepo = new MachineRepository();
+                    // Makineyi ID'ye göre bul (GetMachineById veya GetAllMachines içinden)
+                    var machine = machineRepo.GetAllMachines().FirstOrDefault(m => m.Id == _reportItem.MachineId);
+
+                    // Makine bulunduysa ve Tipi "Kurutma" ise böleni 100 yap
+                    if (machine != null && !string.IsNullOrEmpty(machine.MachineType) &&
+                        machine.MachineType.Contains("Kurutma Makinesi", StringComparison.OrdinalIgnoreCase))
+                    {
+                        divisor = 100.0;
+                    }
+                }
+                catch (Exception)
+                {
+                    // Olası bir hatada varsayılan (10.0) değer korunur.
+                }
+                double[] tempData = dataPoints.Select(p => (double)p.Temperature / divisor).ToArray();
                 var tempPlot = formsPlot1.Plot.Add.Scatter(timeData, tempData);
                 tempPlot.Color = ScottPlot.Colors.Red;
                 tempPlot.LegendText = "Temperature";

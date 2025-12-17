@@ -156,46 +156,49 @@ namespace TekstilScada.UI.Views
 
         private void BtnNewRecipe_Click(object sender, EventArgs e)
         {
-            // Sistemdeki mevcut ve aktif olan makine tiplerini/alt tiplerini al
-            var machineTypes = _machineRepository.GetAllEnabledMachines()
-                .Select(m => !string.IsNullOrEmpty(m.MachineSubType) ? m.MachineSubType : m.MachineType)
-                .Distinct()
-                .ToList();
-
-            if (!machineTypes.Any())
+            // 1. Hedef makine seçili mi kontrol et
+            if (cmbTargetMachine.SelectedItem is not Machine selectedMachine)
             {
-                MessageBox.Show("No active machine type was found in the system for which a recipe could be created.", "Warning");
+                MessageBox.Show("Lütfen önce listeden hedef makineyi seçiniz.", "Uyarı");
                 return;
             }
 
-            // Yeni formu oluşturup kullanıcıdan tip seçmesini iste
-            using (var typeForm = new RecipeTypeSelection_Form(machineTypes))
+            // 2. Seçili makinenin tipini (varsa alt tipini) belirle
+            string selectedType = !string.IsNullOrEmpty(selectedMachine.MachineSubType)
+                                  ? selectedMachine.MachineSubType
+                                  : selectedMachine.MachineType;
+
+            // 3. Yeni reçete nesnesini oluştur
+            _currentRecipe = new ScadaRecipe
             {
-                if (typeForm.ShowDialog() == DialogResult.OK)
-                {
-                    string selectedType = typeForm.SelectedType;
-                    if (string.IsNullOrEmpty(selectedType)) return;
+                RecipeName = "NEW RECIPE",
+                TargetMachineType = selectedType
+            };
 
-                    _currentRecipe = new ScadaRecipe
-                    {
-                        RecipeName = "NEW RECIPE",
-                        TargetMachineType = selectedType // Seçilen tipi yeni reçeteye ata
-                    };
+            // 4. Adım sayısını belirle (Kurutma için 1, diğerleri için 98)
+            // Not: Bu kontrol, mevcut kodunuzdaki mantıkla aynıdır.
+            int stepCount = (selectedType == "Kurutma Makinesi") ? 1 : 98;
 
-                    // Seçilen tipe göre adım sayısını belirle
-                    int stepCount = (selectedType == "Kurutma Makinesi") ? 1 : 98;
-
-                    _currentRecipe.Steps.Clear();
-                    for (int i = 1; i <= stepCount; i++)
-                    {
-                        _currentRecipe.Steps.Add(new ScadaRecipeStep { StepNumber = i });
-                    }
-
-                    // Seçili reçeteyi temizle ve editörü yeni reçete ile doldur
-                    lstRecipes.ClearSelected();
-                    DisplayCurrentRecipe();
-                }
+            _currentRecipe.Steps.Clear();
+            for (int i = 1; i <= stepCount; i++)
+            {
+                // Adımları varsayılan boş değerlerle oluştur
+                var newStep = new ScadaRecipeStep { StepNumber = i };
+                // 25 word'lük veri dizisini başlat (NullReference hatasını önlemek için)
+                newStep.StepDataWords = new short[25];
+                _currentRecipe.Steps.Add(newStep);
             }
+
+            // 5. Arayüzü Güncelle
+            // Listeden seçimi kaldır ki yeni boş reçete editörde bağımsız olarak görünsün
+            lstRecipes.ClearSelected();
+
+            // Yeni oluşturulan reçeteyi editörde göster
+            DisplayCurrentRecipe();
+
+            // Kullanıcı hemen isim verebilsin diye reçete adı kutusuna odaklan
+            txtRecipeName.Focus();
+            txtRecipeName.SelectAll();
         }
 
         private void LstRecipes_SelectedIndexChanged(object sender, EventArgs e)

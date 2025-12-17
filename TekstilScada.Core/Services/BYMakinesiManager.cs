@@ -197,7 +197,7 @@ namespace TekstilScada.Services
 
                 var elektrikResult = _plcClient.ReadInt16(ELECTRICITY_CONSUMPTION);
                 if (!elektrikResult.IsSuccess) return OperateResult.CreateFailedResult<FullMachineStatus>(elektrikResult);
-                status.ElektrikHarcama = elektrikResult.Content;
+                status.ElektrikHarcama = (short)(elektrikResult.Content * 10);
 
                 var buharResult = _plcClient.ReadInt16(STEAM_CONSUMPTION);
                 if (!buharResult.IsSuccess) return OperateResult.CreateFailedResult<FullMachineStatus>(buharResult);
@@ -587,7 +587,9 @@ namespace TekstilScada.Services
                 summary.TotalWater = waterResult.Content;
                 var electricityResult = await Task.Run(() => _plcClient.ReadInt16(ELECTRICITY_CONSUMPTION));
                 if (!electricityResult.IsSuccess) return OperateResult.CreateFailedResult<BatchSummaryData>(electricityResult);
-                summary.TotalElectricity = electricityResult.Content;
+                summary.TotalElectricity = (short)(electricityResult.Content * 10);
+
+                
                 var steamResult = await Task.Run(() => _plcClient.ReadInt16(STEAM_CONSUMPTION));
                 if (!steamResult.IsSuccess) return OperateResult.CreateFailedResult<BatchSummaryData>(steamResult);
                 summary.TotalSteam = steamResult.Content;

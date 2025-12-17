@@ -1,4 +1,5 @@
 ﻿// UI/Views/GenelBakis_Control.cs
+using DocumentFormat.OpenXml.Presentation;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -174,17 +175,18 @@ namespace TekstilScada.UI.Views
 
             // 1. Makineleri Alt Tipe Göre Grupla
             var groupedMachines = allMachines
-                .GroupBy(m => m.MachineSubType ?? "Other") // Alt tip yoksa "Diğer"
-                .OrderBy(g =>
-                {
-                    // Sıralama Mantığı: BY -> Kurutma -> Diğerleri
-                    string key = g.Key?.ToUpper() ?? "";
+     .GroupBy(m => m.MachineSubType ?? "Other")
+     .OrderBy(g =>
+     {
+         // Grubun ana tipini al
+         var type = g.FirstOrDefault()?.MachineType?.ToString() ?? "";
 
-                    if (key.Contains("BYMakinesi")) return 1;       // En üstte
-                    if (key.Contains("Kurutma Makinesi")) return 2;  // İkinci sırada
-                    return 3;                               // Diğerleri
-                })
-                .ThenBy(g => g.Key); // Diğerleri kendi içinde alfabetik sıralansın
+         // Ana Tipe göre öncelik belirle
+         if (type.Contains("BYMakinesi")) return 1;    // En üstte Boyamalar olsun
+         if (type.Contains("Kurutma Makinesi")) return 2;   // Sonra Kurutmalar
+         return 3;                                 // Diğerleri
+     })
+     .ThenBy(g => g.Key); // Kendi içinde alfabetik
 
             _colorIndex = 0;
 
@@ -196,7 +198,7 @@ namespace TekstilScada.UI.Views
                     Text = group.Key,
                     Width = flpMachineGroups.ClientSize.Width*2 - 50, // Scroll bar payı
                     Height = 265, // Kart yüksekliğine göre ayarlanmalı (Kartlar ~280px ise)
-                    Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+                    Font = new System.Drawing.Font("Segoe UI", 12F, FontStyle.Bold),
                     ForeColor = Color.White,
                     BackColor = _darkColors[_colorIndex % _darkColors.Count],
                     Padding = new Padding(5, 5, 5, 5) // Başlık için üst boşluk
@@ -443,7 +445,20 @@ namespace TekstilScada.UI.Views
 
                     var ticks = Enumerable.Range(0, labels.Length).Select(i => new ScottPlot.Tick(i, labels[i])).ToArray();
                     formsPlotTopAlarms.Plot.Axes.Bottom.TickGenerator = new ScottPlot.TickGenerators.NumericManual(ticks);
-                    formsPlotTopAlarms.Plot.Axes.Bottom.TickLabelStyle.Rotation = 45;
+                    formsPlotTopAlarms.Plot.Axes.Bottom.TickLabelStyle.Rotation = -90;
+
+                    // 2. KRİTİK NOKTA: Hizalamayı ayarla
+                    // Alignment.MiddleRight diyerek metnin "bitiş" noktasını eksene sabitliyoruz.
+                    // Böylece metin yukarı (grafiğe) değil, aşağıya (boşluğa) doğru uzanır.
+                    formsPlotTopAlarms.Plot.Axes.Bottom.TickLabelStyle.Alignment = ScottPlot.Alignment.MiddleRight;
+                    formsPlotTopAlarms.Plot.Axes.Bottom.TickLabelStyle.FontSize = 12;
+                    formsPlotTopAlarms.Plot.Axes.Bottom.TickLabelStyle.Bold = true;
+                    // ÖNEMLİ: Döndürülen yazıların grafiğin içine girmemesi için hizalamayı sola yasla (MiddleLeft)
+                    formsPlotTopAlarms.Plot.Axes.Bottom.TickLabelStyle.Alignment = ScottPlot.Alignment.LowerRight;
+
+                    // Yazılar uzunsa kesilmemesi için alt eksene minimum bir yükseklik (Padding) veriyoruz (Örn: 100 piksel)
+                    // Bu komut grafiği yukarı iterek alt tarafta yazı için yer açar.
+                    formsPlotTopAlarms.Plot.Axes.Bottom.MinimumSize = 160;
                 }
                 formsPlotTopAlarms.Plot.Axes.AutoScale();
                 formsPlotTopAlarms.Refresh();

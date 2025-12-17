@@ -204,7 +204,7 @@ namespace TekstilScada.UI
             catch (Exception ex)
             {
                 // Gönderim veya UI işleme sırasında oluşan diğer hataları yakalar
-                MessageBox.Show($"Gönderim sırasında beklenmeyen bir hata oluştu: {ex.Message}", "Kritik Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"An unexpected error occurred during submission: {ex.Message}", "Critical Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -323,7 +323,7 @@ namespace TekstilScada.UI
             tabControlMain.SelectedTab = tabPagePreview;
             pnlPreviewArea.Controls.Clear();
             lblPreviewStatus.Visible = true;
-            lblPreviewStatus.Text = $"'{remoteFileName}' yükleniyor...";
+            lblPreviewStatus.Text = $"'{remoteFileName}' loading...";
 
             try
             {
@@ -340,7 +340,7 @@ namespace TekstilScada.UI
             }
             catch (Exception ex)
             {
-                lblPreviewStatus.Text = $"Ön izleme yüklenemedi: {ex.Message}";
+                lblPreviewStatus.Text = $"Preview failed to load: {ex.Message}";
             }
         }
         // ...
@@ -353,7 +353,7 @@ namespace TekstilScada.UI
             pnlPreviewArea.Controls.Clear();
             pnlPreviewArea.Controls.Add(lblPreviewStatus);
             lblPreviewStatus.Visible = true;
-            lblPreviewStatus.Text = "Ön izleme için HMI listesinden bir reçete seçin.";
+            lblPreviewStatus.Text = "Select a prescription from the HMI list for preview.";
             _previewRecipe = null;
         }
 
@@ -370,9 +370,9 @@ namespace TekstilScada.UI
                     recipeNumberPart = int.Parse(match.Value).ToString();
                 }
             }
-            catch { recipeNumberPart = "NO_HATA"; }
+            catch { recipeNumberPart = "NO ERROR"; }
 
-            string asciiPart = "BILGI_YOK";
+            string asciiPart = "EMPTY";
             try
             {
                 var step99 = recipe.Steps.FirstOrDefault(s => s.StepNumber == 99);
@@ -387,9 +387,9 @@ namespace TekstilScada.UI
                         asciiBytes[i * 2 + 1] = wordBytes[1];
                     }
                     asciiPart = Encoding.ASCII.GetString(asciiBytes).Replace("\0", "").Trim();
-                    if (string.IsNullOrEmpty(asciiPart)) asciiPart = "BOS";
+                    if (string.IsNullOrEmpty(asciiPart)) asciiPart = "EMPTY";
                 }
-                else { asciiPart = "ADIM99_YOK"; }
+                else { asciiPart = "STEP99 NOT AVAILABLE"; }
             }
             catch { asciiPart = "HATA"; }
 
@@ -441,8 +441,8 @@ namespace TekstilScada.UI
             dgvRecipeSteps.Columns.Clear();
             dgvRecipeSteps.AutoGenerateColumns = false;
 
-            dgvRecipeSteps.Columns.Add(new DataGridViewTextBoxColumn { Name = "StepNumber", HeaderText = "Adım No", DataPropertyName = "StepNumber", Width = 60 });
-            dgvRecipeSteps.Columns.Add(new DataGridViewTextBoxColumn { Name = "StepType", HeaderText = "Adım Tipi", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+            dgvRecipeSteps.Columns.Add(new DataGridViewTextBoxColumn { Name = "StepNumber", HeaderText = "Step No", DataPropertyName = "StepNumber", Width = 60 });
+            dgvRecipeSteps.Columns.Add(new DataGridViewTextBoxColumn { Name = "StepType", HeaderText = "Step Name", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
         }
 
         private void PopulateStepsGridView()
@@ -462,14 +462,14 @@ namespace TekstilScada.UI
             if (step.StepDataWords.Length > 24)
             {
                 short controlWord = step.StepDataWords[24];
-                if ((controlWord & 1) != 0) stepTypes.Add("Su Alma");
-                if ((controlWord & 2) != 0) stepTypes.Add("Isıtma");
-                if ((controlWord & 4) != 0) stepTypes.Add("Çalışma");
-                if ((controlWord & 8) != 0) stepTypes.Add("Dozaj");
-                if ((controlWord & 16) != 0) stepTypes.Add("Boşaltma");
-                if ((controlWord & 32) != 0) stepTypes.Add("Sıkma");
+                if ((controlWord & 1) != 0) stepTypes.Add("Take Water");
+                if ((controlWord & 2) != 0) stepTypes.Add("Heating");
+                if ((controlWord & 4) != 0) stepTypes.Add("Working");
+                if ((controlWord & 8) != 0) stepTypes.Add("Dosing");
+                if ((controlWord & 16) != 0) stepTypes.Add("Drain");
+                if ((controlWord & 32) != 0) stepTypes.Add("Extraction");
             }
-            return stepTypes.Any() ? string.Join(" + ", stepTypes) : "Tanımsız Adım";
+            return stepTypes.Any() ? string.Join(" + ", stepTypes) : "-";
         }
 
         private void DgvRecipeSteps_CellClick(object sender, DataGridViewCellEventArgs e)

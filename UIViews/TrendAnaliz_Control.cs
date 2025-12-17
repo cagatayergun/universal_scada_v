@@ -34,9 +34,6 @@ namespace TekstilScada.UI.Views
         }
         public void ApplyLocalization()
         {
-
-
-         
             label1.Text = Resources.Baslangic_tarihi;
             label2.Text = Resources.Bitis_tarihi;
             groupBox1.Text = Resources.makineler;
@@ -46,7 +43,7 @@ namespace TekstilScada.UI.Views
             chkRpm.Text = Resources.devir;
             btnGenerateChart.Text = Resources.grafigiolustur;
         }
-        // HATA GİDERİLDİ: Eksik olan InitializeControl metodu eklendi.
+
         public void InitializeControl(MachineRepository machineRepo, ProcessLogRepository processLogRepo)
         {
             _machineRepository = machineRepo;
@@ -93,13 +90,22 @@ namespace TekstilScada.UI.Views
 
                     foreach (var group in groupedData)
                     {
-                        var machineName = (clbMachines.DataSource as List<Machine>)?.FirstOrDefault(m => m.Id == group.Key)?.MachineName ?? $"Makine {group.Key}";
+                        // Makine nesnesini buluyoruz
+                        var machine = (clbMachines.DataSource as List<Machine>)?.FirstOrDefault(m => m.Id == group.Key);
+                        var machineName = machine?.MachineName ?? $"Makine {group.Key}";
+
+                        // --- DEĞİŞİKLİK BURADA ---
+                        // Makine tipi "Kurutma Makinesi" ise 100'e, değilse 10'a bölünecek
+                        double tempDivisor = (machine != null && machine.MachineType == "Kurutma Makinesi") ? 100.0 : 10.0;
+                        // -------------------------
 
                         double[] timeData = group.Select(p => p.Timestamp.ToOADate()).ToArray();
 
                         if (chkTemperature.Checked)
                         {
-                            double[] tempData = group.Select(p => (double)p.Temperature/10).ToArray();
+                            // Belirlenen 'tempDivisor' değişkenine göre bölme işlemi yapılıyor
+                            double[] tempData = group.Select(p => (double)p.Temperature / tempDivisor).ToArray();
+
                             var scatter = formsPlot1.Plot.Add.Scatter(timeData, tempData);
                             scatter.LegendText = $"{machineName} - Temperature";
                             scatter.LineWidth = 2;
