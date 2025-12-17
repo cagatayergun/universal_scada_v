@@ -12,4 +12,7 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\TekstilScada.Core\TekstilScada.Core.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Services\" />
+	</ItemGroup>
 </Project>

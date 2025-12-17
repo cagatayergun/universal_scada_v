@@ -1,4 +1,5 @@
 // MainForm.cs
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Drawing;
 using System.Linq;
@@ -6,13 +7,13 @@ using System.Windows.Forms;
 using TekstilScada.Core;
 using TekstilScada.Localization;
 using TekstilScada.Models;
+using TekstilScada.Properties;
 using TekstilScada.Repositories;
 using TekstilScada.Services;
 using TekstilScada.UI;
 using TekstilScada.UI.Controls;
+using TekstilScada.UI.Services;
 using TekstilScada.UI.Views;
-using TekstilScada.Properties;
-using Microsoft.Extensions.Logging.Abstractions;
 namespace TekstilScada
 {
     public partial class MainForm : Form
@@ -39,7 +40,7 @@ namespace TekstilScada
        // private readonly FtpTransferService _ftpTransferService; // YENÝ: FTP transfer servisi eklendi
         private VncViewer_Form _activeVncViewerForm = null;
         private readonly UserSettings_Control _user_setting;
-
+        private CloudSyncService _cloudSyncService;
         public MainForm()
         {
             InitializeComponent();
@@ -81,6 +82,17 @@ namespace TekstilScada
             _prosesIzlemeView.MachineDetailsRequested += OnMachineDetailsRequested;
             _prosesIzlemeView.MachineVncRequested += OnMachineVncRequested;
             _makineDetayView.BackRequested += OnBackRequested;
+            string gatewayToken = "TEST_TOKEN_VEYA_JWT";
+            // Servisi oluþtur (PLC servisini parametre olarak veriyoruz)
+            _cloudSyncService = new CloudSyncService(_pollingService, gatewayToken);
+
+            // Form yüklendiðinde baðlantýyý baþlatmasý için Load eventine ekleme yapabiliriz
+            // veya doðrudan burada fire-and-forget þeklinde çaðýrabiliriz.
+            this.Load += async (s, e) => await _cloudSyncService.StartAsync();
+            if (_cloudSyncService != null)
+            {
+                _cloudSyncService.OnRemoteCommandReceived += CloudSyncService_OnRemoteCommandReceived;
+            }
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -448,7 +460,7 @@ namespace TekstilScada
             }
         }
 
-        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        private async void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             LanguageManager.LanguageChanged -= LanguageManager_LanguageChanged;
             _pollingService.Stop();
@@ -463,8 +475,73 @@ namespace TekstilScada
                     System.Diagnostics.Debug.WriteLine($"{Resources.Closeandvnc} {ex.Message}");
                 }
             }
+            if (_cloudSyncService != null)
+            {
+                await _cloudSyncService.DisposeAsync();
+            }
         }
+        private async void CloudSyncService_OnRemoteCommandReceived(int machineId, string command, string parameters)
+        {
+            // UI Thread kontrolü (Windows Forms kontrollerine eriþecekseniz þarttýr)
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new Action(() => CloudSyncService_OnRemoteCommandReceived(machineId, command, parameters)));
+                return;
+            }
 
+            // 1. Loglama (Eylem Geçmiþine Kayýt)
+            AppendLog($"UZAK KOMUT ALINDI: Makine {machineId} -> {command}");
+
+            // 2. Ýlgili PLC Yöneticisini Bul
+            // PollingService içindeki PLC yöneticilerine eriþim saðlamamýz lazým.
+            var managers = _pollingService.GetPlcManagers();
+
+            if (managers.TryGetValue(machineId, out var plcManager))
+            {
+                try
+                {
+                    // 3. Komutu Yorumla ve Uygula
+                    switch (command.ToUpper())
+                    {
+                        case "STOP":
+                            // Örnek: Makineyi durdurma komutu (PLC metodunuz neyse onu çaðýrýn)
+                            // await plcManager.WriteBitAsync("M100", false); gibi
+                            // await plcManager.StopMachineAsync(); 
+                            MessageBox.Show($"Makine {machineId} için DURDURMA emri uygulandý!", "Uzak Kontrol", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            break;
+
+                        case "START":
+                            // Örnek: Baþlatma
+                            // await plcManager.StartMachineAsync();
+                            MessageBox.Show($"Makine {machineId} için BAÞLATMA emri uygulandý!", "Uzak Kontrol", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            break;
+
+                        case "RESET_ALARM":
+                            // Alarm resetleme
+                            // await plcManager.ResetAlarmsAsync();
+                            break;
+
+                        default:
+                            AppendLog($"Bilinmeyen komut: {command}");
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AppendLog($"Komut uygulama hatasý: {ex.Message}");
+                }
+            }
+            else
+            {
+                AppendLog($"HATA: {machineId} ID'li makine yerel sistemde bulunamadý veya baðlý deðil.");
+            }
+        }
+        private void AppendLog(string message)
+        {
+            // Eðer formda bir log kutusu varsa:
+            // txtLog.AppendText($"{DateTime.Now}: {message}{Environment.NewLine}");
+            System.Diagnostics.Debug.WriteLine(message);
+        }
         #endregion
     }
 }

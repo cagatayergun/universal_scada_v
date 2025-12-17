@@ -6,7 +6,7 @@
 @using TekstilScada.WebApp.Components.Shared
 @using TekstilScada.Core.Localization
 @using Microsoft.Extensions.Localization
-@using System.Globalization @* <-- CultureInfo için gerekli *@
+@using System.Globalization
 @inject ScadaDataService ScadaService
 @inject NavigationManager NavManager
 @inject IStringLocalizer<SharedResource> Loc
@@ -34,7 +34,10 @@
             <div class="machine-groups-column">
                 @if (TotalMachines == 0)
                 {
-                    <p>@Loc["MakineTanimlanmamis"]</p>
+                    <div class="empty-state-message">
+                        <p>@Loc["MakineTanimlanmamis"]</p>
+                        <small>Fabrikadan veri bekleniyor...</small>
+                    </div>
                 }
                 else
                 {
@@ -124,11 +127,19 @@
             // 1. ADIM: Sayfa ilk açıldığında (doğru dil varken) bu dili yakalıyoruz.
             _userCulture = CultureInfo.CurrentUICulture;
 
+            // SignalR servisini başlat (Token al ve Bağlan)
             await ScadaService.InitializeAsync();
-            await ScadaService.GetMachinesAsync();
+
+            // DİKKAT: Eski 'GetMachinesAsync' çağrısı kaldırıldı.
+            // Liste artık SignalR üzerinden dinamik doluyor.
+
+            // Olay aboneliği
             ScadaService.OnDataUpdated += HandleDataUpdate;
 
+            // Sidebar verilerini yükle (API'de bu endpointler varsa çalışır, yoksa boş döner)
             await LoadSidebarDataAsync();
+
+            // İlk durumu güncelle (Başta liste boş olabilir)
             UpdateDashboardData();
 
             _isLoading = false;
@@ -164,6 +175,8 @@
 
     private async Task LoadSidebarDataAsync()
     {
+        // Not: API'de veritabanı olmadığı için bu veriler şu an gelmeyebilir.
+        // İleride "Proxy" mantığı ile WinForms'tan istenecek.
         HourlyConsumptionData = await ScadaService.GetHourlyConsumptionAsync() ?? new();
         HourlyOeeData = await ScadaService.GetHourlyOeeAsync() ?? new();
         TopAlarms = await ScadaService.GetTopAlarmsAsync() ?? new();
@@ -173,9 +186,12 @@
 
     private void UpdateDashboardData()
     {
+        // Servisteki güncel veriyi al (SignalR ile doluyor)
         var allStatuses = ScadaService.MachineData.Values.ToList();
+
         foreach (var status in allStatuses)
         {
+            // Dinamik keşif ile eklenen detayları eşleştir
             if (ScadaService.MachineDetailsCache.TryGetValue(status.MachineId, out var machineDetails))
             {
                 status.MakineTipi = machineDetails.MachineSubType;
@@ -204,6 +220,7 @@
              .ThenBy(g => g.Key)
              .ToList();
 
+        // Renk atama mantığı
         if (GroupColors.Count != GroupedMachines.Count)
         {
             _colorIndex = 0;
@@ -222,8 +239,7 @@
         {
             if (_isDisposed) return;
 
-            // 2. ADIM: Arka plan servisinden güncelleme geldiğinde,
-            // thread'in dilini, kullanıcının kaydettiğimiz dili ile değiştiriyoruz.
+            // 2. ADIM: Arka plan servisinden güncelleme geldiğinde dil ayarını koru
             if (_userCulture != null)
             {
                 CultureInfo.CurrentCulture = _userCulture;
@@ -253,6 +269,10 @@
     public void Dispose()
     {
         _isDisposed = true;
-        ScadaService.OnDataUpdated -= HandleDataUpdate;
+        // Olay aboneliğinden çıkmayı unutma
+        if (ScadaService != null)
+        {
+            ScadaService.OnDataUpdated -= HandleDataUpdate;
+        }
     }
 }
