@@ -20,7 +20,18 @@ namespace TekstilScada.Services
         public event Action<int, FullMachineStatus> OnMachineDataRefreshed;
         public event Action<int, FullMachineStatus> OnMachineConnectionStateChanged;
         public event Action<int, FullMachineStatus> OnActiveAlarmStateChanged;
+        // --- DATA STRUCTURES & CACHE ---
+        // Sınıfın en başına, diğer Dictionary tanımlarının olduğu yere:
+        private ConcurrentDictionary<int, DateTime> _batchStartDebounce = new ConcurrentDictionary<int, DateTime>();
+        private ConcurrentDictionary<int, DateTime> _batchEndDebounce = new ConcurrentDictionary<int, DateTime>();
+        // Mevcut: Alarmın BAŞLANGIÇ zamanını tutar (Hangi alarm ne zaman başladı?)
+        private ConcurrentDictionary<int, ConcurrentDictionary<int, DateTime>> _activeAlarmsTracker;
 
+        // YENİ: Alarmın EN SON GÖRÜLDÜĞÜ zamanı tutar (45 sn kuralı için)
+        private ConcurrentDictionary<int, ConcurrentDictionary<int, DateTime>> _alarmLastSeenTracker;
+
+        // Mevcut: Toplu bitirme için 0 sinyali sayacı
+        private ConcurrentDictionary<int, DateTime?> _alarmZeroSignalTrackers = new ConcurrentDictionary<int, DateTime?>();
         // --- DEPENDENCIES ---
         private readonly AlarmRepository _alarmRepository;
         private readonly ProcessLogRepository _processLogRepository;
@@ -36,7 +47,7 @@ namespace TekstilScada.Services
         private ConcurrentDictionary<int, DateTime> _reconnectAttempts;
         private ConcurrentDictionary<int, ConnectionStatus> _connectionStates;
         private ConcurrentDictionary<int, AlarmDefinition> _alarmDefinitionsCache;
-        private ConcurrentDictionary<int, ConcurrentDictionary<int, DateTime>> _activeAlarmsTracker;
+      
         private readonly ConcurrentDictionary<int, LiveStepAnalyzer> _liveAnalyzers;
         private readonly ConcurrentDictionary<int, (int machineAlarmSeconds, int operatorPauseSeconds)> _liveAlarmCounters;
         private ConcurrentDictionary<int, DateTime> _lastManualLogTime = new ConcurrentDictionary<int, DateTime>();
@@ -86,7 +97,7 @@ namespace TekstilScada.Services
             _liveAnalyzers = new ConcurrentDictionary<int, LiveStepAnalyzer>();
             _liveAlarmCounters = new ConcurrentDictionary<int, (int, int)>();
             _pollingTasks = new List<Task>();
-
+            _alarmLastSeenTracker = new ConcurrentDictionary<int, ConcurrentDictionary<int, DateTime>>();
             // YENİ: Sözlüğü başlat
             _generatedBatchIds = new ConcurrentDictionary<int, string>();
 
@@ -525,6 +536,7 @@ namespace TekstilScada.Services
         {
             try
             {
+                // 1. Stabilizasyon Kontrolü (Sadece bağlantı kalitesi için)
                 bool isSystemStable = true;
                 if (currentStatus.ConnectionState != ConnectionStatus.Connected) isSystemStable = false;
                 if (_lastConnectionTime.TryGetValue(machineId, out DateTime connectTime))
@@ -532,84 +544,189 @@ namespace TekstilScada.Services
                     if ((DateTime.Now - connectTime).TotalSeconds < StabilizationSeconds) isSystemStable = false;
                 }
 
+                // Kararsızsa işlem yapma
+                if (!isSystemStable) return;
+
+                // Şu an sistemin takip ettiği Batch ID (Hafızadaki)
                 _currentBatches.TryGetValue(machineId, out string lastTrackedBatchId);
 
-                // --- SENARYO 1: YENİ BATCH BAŞLANGICI ---
-                if (currentStatus.IsInRecipeMode && !string.IsNullOrEmpty(currentStatus.BatchNumarasi) && currentStatus.BatchNumarasi != lastTrackedBatchId)
+                // PLC Sinyali Var mı?
+                bool isRecipeSignalActive = currentStatus.IsInRecipeMode;
+
+                // ==============================================================================
+                // DURUM A: SİNYAL AKTİF (Makine Çalışıyor veya Çalışmaya Başlıyor)
+                // ==============================================================================
+                if (isRecipeSignalActive)
                 {
-                    if (!isSystemStable) return;
+                    // Sinyal geldiği için Bitiş Sayacını (End Debounce) iptal et.
+                    _batchEndDebounce.TryRemove(machineId, out _);
 
-                    // Eğer önceki batch düzgün kapanmadıysa kapat (Önceki işten kalan son adımı kaydet)
-                    if (lastTrackedBatchId != null)
+                    // Eğer sistemde zaten bir batch takibi yapmıyorsak (lastTrackedBatchId == null)
+                    // Bu yeni bir başlangıç veya restart sonrası durum olabilir.
+                    if (string.IsNullOrEmpty(lastTrackedBatchId))
                     {
-                        if (_liveAnalyzers.TryGetValue(machineId, out var analyzer))
-                        {
-                            // Önceki batch'in son aktif adımını bul ve kaydet
-                            FinalizeAndLogActiveStep(analyzer, machineId, lastTrackedBatchId);
-                        }
+                        // 1. Başlangıç sayacını başlat
+                        var firstSignalTime = _batchStartDebounce.GetOrAdd(machineId, DateTime.Now);
 
-                        _liveAlarmCounters.TryGetValue(machineId, out var finalCounters);
-                        _batchTotalTheoreticalTimes.TryGetValue(machineId, out double theoreticalTime);
-                        _productionRepository.EndBatch(machineId, lastTrackedBatchId, currentStatus, finalCounters.machineAlarmSeconds, finalCounters.operatorPauseSeconds, currentStatus.ActualQuantityProduction, finalCounters.machineAlarmSeconds + finalCounters.operatorPauseSeconds, theoreticalTime);
+                        // 2. Sinyal 5 saniyedir kesintisiz var mı?
+                        if ((DateTime.Now - firstSignalTime).TotalSeconds >= 5)
+                        {
+                            // --- KRİTİK KONTROL: RESUME Mİ NEW Mİ? ---
+
+                            // Son 4 günü kapsayan filtre (Mevcut 'GetProductionReport' metodunu kullanarak)
+                            var filter = new ReportFilters
+                            {
+                                MachineId = machineId,
+                                StartTime = DateTime.Now.AddDays(-4),
+                                EndTime = DateTime.Now.AddDays(1)
+                            };
+
+                            var recentBatches = _productionRepository.GetProductionReport(filter);
+
+                            // YENİ MANTIK: Sadece zamana göre EN SON kaydı al.
+                            var lastRecordedBatch = recentBatches
+                                .OrderByDescending(b => b.StartTime)
+                                .FirstOrDefault();
+
+                            string batchIdToUse = currentStatus.BatchNumarasi;
+                            bool isResume = false;
+                            ProductionReportItem existingActiveBatchItem = null;
+
+                            // Eğer son bir kayıt varsa VE bu kaydın bitiş tarihi yoksa (Hala açıksa)
+                            if (lastRecordedBatch != null && lastRecordedBatch.EndTime == DateTime.MinValue)
+                            {
+                                existingActiveBatchItem = lastRecordedBatch;
+                            }
+
+                            if (existingActiveBatchItem != null)
+                            {
+                                // Veritabanındaki SON kayıt açık, demek ki makine bu işe devam ediyor.
+                                batchIdToUse = existingActiveBatchItem.BatchId;
+                                isResume = true;
+                                _logger.LogInformation($"Makine {machineId} için son açık batch bulundu, devam ediliyor. ID: {batchIdToUse}");
+                            }
+                            else
+                            {
+                                // Son kayıt kapalıysa (veya hiç kayıt yoksa), geçmişte açık kalanları umursama. Yeni iş başlat.
+                                if (string.IsNullOrEmpty(batchIdToUse))
+                                    batchIdToUse = $"{DateTime.Now:yyyyMMddHHmmss}_{machineId}";
+                            }
+
+                            // Hafızaya Al
+                            _currentBatches[machineId] = batchIdToUse;
+                            currentStatus.BatchNumarasi = batchIdToUse; // Status'ü de güncelle ki UI doğru görsün
+
+                            // Eğer Resume değilse (Gerçekten yeni işse) -> DB'ye Start Kaydı At
+                            if (!isResume)
+                            {
+                                _productionRepository.StartNewBatch(currentStatus);
+                                _batchStartTimes[machineId] = DateTime.Now;
+                            }
+                            else
+                            {
+                                // Resume ise, başlangıç saatini DB'den al
+                                _batchStartTimes[machineId] = existingActiveBatchItem.StartTime;
+                            }
+
+                            // Analyzer ve Reçete Verilerini Yükle (Hem Resume Hem New için gerekli)
+                            if (_plcManagers.TryGetValue(machineId, out var plcManager))
+                            {
+                                var recipeReadResult = await plcManager.ReadFullRecipeDataAsync();
+                                if (recipeReadResult.IsSuccess && recipeReadResult.Content != null)
+                                {
+                                    var fullRecipe = recipeReadResult.Content;
+                                    fullRecipe.RecipeName = currentStatus.RecipeName;
+
+                                    // Analyzer'ı sıfırdan oluştur
+                                    _liveAnalyzers[machineId] = new LiveStepAnalyzer(fullRecipe, _productionRepository);
+
+                                    _batchTotalTheoreticalTimes[machineId] = RecipeAnalysis.CalculateTotalTheoreticalTimeSeconds(fullRecipe);
+                                    _batchNonProductiveSeconds[machineId] = 0;
+
+                                    // Sadece yeni ise kaydet, güncellemeye gerek yok
+                                    if (!isResume)
+                                        _productionRepository.SaveBatchRecipe(machineId, batchIdToUse, fullRecipe);
+                                }
+                            }
+
+                            // İşlem tamam, sayacı temizle
+                            _batchStartDebounce.TryRemove(machineId, out _);
+                        }
                     }
-
-                    _currentBatches[machineId] = currentStatus.BatchNumarasi;
-                    _productionRepository.StartNewBatch(currentStatus);
-
-                    if (_plcManagers.TryGetValue(machineId, out var plcManager))
+                    else
                     {
-                        var recipeReadResult = await plcManager.ReadFullRecipeDataAsync();
-                        if (recipeReadResult.IsSuccess && recipeReadResult.Content != null)
-                        {
-                            var fullRecipe = recipeReadResult.Content;
-                            fullRecipe.RecipeName = currentStatus.RecipeName;
-                            _liveAnalyzers[machineId] = new LiveStepAnalyzer(fullRecipe, _productionRepository);
-
-                            _batchTotalTheoreticalTimes[machineId] = RecipeAnalysis.CalculateTotalTheoreticalTimeSeconds(fullRecipe);
-                            _batchStartTimes[machineId] = DateTime.Now;
-                            _batchNonProductiveSeconds[machineId] = 0;
-                            _productionRepository.SaveBatchRecipe(machineId, currentStatus.BatchNumarasi, fullRecipe);
-                        }
+                        // Zaten takipteyiz, start sayacına gerek yok.
+                        _batchStartDebounce.TryRemove(machineId, out _);
                     }
                 }
-                // --- SENARYO 2: BATCH BİTİŞİ (Beklenmedik veya Normal) ---
-                else if (!currentStatus.IsInRecipeMode && lastTrackedBatchId != null)
+                // ==============================================================================
+                // DURUM B: SİNYAL PASİF (Makine Durdu veya Sinyal Gitti)
+                // ==============================================================================
+                else
                 {
-                    if (!isSystemStable) return;
+                    // Sinyal yok, Start sayacını iptal et.
+                    _batchStartDebounce.TryRemove(machineId, out _);
 
-                    if (_liveAnalyzers.TryGetValue(machineId, out var analyzer))
+                    // Eğer şu an bir batch takibi yapıyorsak (lastTrackedBatchId != null)
+                    // Bu batch'i bitirmeli miyiz diye kontrol etmeliyiz.
+                    if (lastTrackedBatchId != null)
                     {
-                        // KRİTİK DÜZELTME:
-                        // Sadece "LastCompletedStep" değil, o an çalışmakta olan "ActiveStep"i kapatıp kaydediyoruz.
-                        // Bu sayede son adım kaybolmaz ve N-1 tekrar yazılmaz.
-                        FinalizeAndLogActiveStep(analyzer, machineId, lastTrackedBatchId);
-                    }
+                        // 1. Bitiş sayacını başlat
+                        var stopSignalTime = _batchEndDebounce.GetOrAdd(machineId, DateTime.Now);
 
-                    _liveAlarmCounters.TryGetValue(machineId, out var finalCounters);
-                    _batchTotalTheoreticalTimes.TryGetValue(machineId, out double theoreticalTime);
-                    _productionRepository.EndBatch(machineId, lastTrackedBatchId, currentStatus, finalCounters.machineAlarmSeconds, finalCounters.operatorPauseSeconds, currentStatus.ActualQuantityProduction, finalCounters.machineAlarmSeconds + finalCounters.operatorPauseSeconds, theoreticalTime);
+                        // 2. Sinyal 10 saniyedir kesintisiz YOK mu?
+                        if ((DateTime.Now - stopSignalTime).TotalSeconds >= 10)
+                        {
+                            // --- BATCH BİTİRME İŞLEMLERİ ---
 
-                    // Temizlik
-                    _currentBatches[machineId] = null;
-                    _liveAlarmCounters.TryRemove(machineId, out _);
-                    _liveAnalyzers.TryRemove(machineId, out _);
-                    _batchTotalTheoreticalTimes.TryRemove(machineId, out _);
-                    _batchStartTimes.TryRemove(machineId, out _);
-                    _batchNonProductiveSeconds.TryRemove(machineId, out _);
-                    _lastLoggedStepNumber.TryRemove(machineId, out _); // Son loglanan numarasını temizle
-
-                    if (_plcManagers.TryGetValue(machineId, out var plcManager))
-                    {
-                        _ = Task.Run(async () => {
-                            try
+                            if (_liveAnalyzers.TryGetValue(machineId, out var analyzer))
                             {
-                                var summaryResult = await plcManager.ReadBatchSummaryDataAsync();
-                                if (summaryResult.IsSuccess) _productionRepository.UpdateBatchSummary(machineId, lastTrackedBatchId, summaryResult.Content);
-                                await plcManager.IncrementProductionCounterAsync();
-                                await plcManager.ResetOeeCountersAsync();
+                                // Son aktif adımı kapat (Processing -> Completed)
+                                FinalizeAndLogActiveStep(analyzer, machineId, lastTrackedBatchId);
                             }
-                            catch (Exception ex) { _logger.LogError(ex, "Batch bitişi asenkron işlemlerinde hata: {MachineId}", machineId); }
-                        });
+
+                            _liveAlarmCounters.TryGetValue(machineId, out var finalCounters);
+                            _batchTotalTheoreticalTimes.TryGetValue(machineId, out double theoreticalTime);
+
+                            _productionRepository.EndBatch(machineId, lastTrackedBatchId, currentStatus,
+                                finalCounters.machineAlarmSeconds,
+                                finalCounters.operatorPauseSeconds,
+                                currentStatus.ActualQuantityProduction,
+                                finalCounters.machineAlarmSeconds + finalCounters.operatorPauseSeconds,
+                                theoreticalTime);
+
+                            // Temizlik
+                            _currentBatches[machineId] = null; // Takibi bırak
+                            _batchEndDebounce.TryRemove(machineId, out _); // Sayacı temizle
+
+                            _liveAlarmCounters.TryRemove(machineId, out _);
+                            _liveAnalyzers.TryRemove(machineId, out _);
+                            _batchTotalTheoreticalTimes.TryRemove(machineId, out _);
+                            _batchStartTimes.TryRemove(machineId, out _);
+                            _batchNonProductiveSeconds.TryRemove(machineId, out _);
+                            _lastLoggedStepNumber.TryRemove(machineId, out _);
+
+                            // PLC Sayaçlarını Sıfırla (Arka Planda)
+                            if (_plcManagers.TryGetValue(machineId, out var plcManager))
+                            {
+                                _ = Task.Run(async () => {
+                                    try
+                                    {
+                                        var summaryResult = await plcManager.ReadBatchSummaryDataAsync();
+                                        if (summaryResult.IsSuccess)
+                                            _productionRepository.UpdateBatchSummary(machineId, lastTrackedBatchId, summaryResult.Content);
+                                        await plcManager.IncrementProductionCounterAsync();
+                                        await plcManager.ResetOeeCountersAsync();
+                                    }
+                                    catch (Exception ex) { _logger.LogError(ex, "Batch bitişi asenkron hata: {MachineId}", machineId); }
+                                });
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Zaten batch yok, sinyal de yok. Sayacı temizle.
+                        _batchEndDebounce.TryRemove(machineId, out _);
                     }
                 }
             }
@@ -621,20 +738,17 @@ namespace TekstilScada.Services
         {
             try
             {
-                // DÜZELTME: Eski kod 'GetLastCompletedStep()' kullanıyordu, bu da bitmiş adımları getiriyordu.
-                // Batch biterken son adım hala "Processing..." durumundadır.
-                // Bu yüzden listedeki "Processing..." olan son adımı çekiyoruz.
+                // Çalışmakta olan (Processing...) son adımı bul
                 var activeStep = analyzer.AnalyzedSteps.LastOrDefault(s => s.WorkingTime == "Processing...");
 
                 if (activeStep != null)
                 {
-                    // 1. Adımı bellek üzerinde sonlandır (Bitiş zamanını şu an olarak hesaplar ve günceller)
+                    // Analyzer içindeki veriyi güncelle (Bitiş zamanı atanır)
                     analyzer.FinalizeStep(activeStep.StepNumber, batchId, machineId);
 
-                    // 2. ÇİFT KAYIT KONTROLÜ
+                    // Çift Kayıt Kontrolü
                     _lastLoggedStepNumber.TryGetValue(machineId, out int lastLoggedNo);
 
-                    // Eğer bu adım numarası daha önce veritabanına yazılmadıysa YAZ.
                     if (activeStep.StepNumber != lastLoggedNo)
                     {
                         _productionRepository.LogSingleStepDetail(activeStep, machineId, batchId);
@@ -690,73 +804,112 @@ namespace TekstilScada.Services
         {
             try
             {
+                // Stabilizasyon / Bağlantı Kontrolü
                 if (currentStatus.ConnectionState != ConnectionStatus.Connected) return;
-                bool isSystemStable = true;
-                if (_lastConnectionTime.TryGetValue(machineId, out DateTime connectTime))
-                {
-                    if ((DateTime.Now - connectTime).TotalSeconds < StabilizationSeconds) isSystemStable = false;
-                }
 
-                if (_activeAlarmsTracker == null || !_activeAlarmsTracker.TryGetValue(machineId, out var machineActiveAlarms))
-                {
-                    _activeAlarmsTracker?.TryAdd(machineId, new ConcurrentDictionary<int, DateTime>());
-                    return;
-                }
+                // 1. Gerekli Takip Listelerini Al veya Oluştur
+                var activeAlarms = _activeAlarmsTracker.GetOrAdd(machineId, new ConcurrentDictionary<int, DateTime>());
+                var lastSeenAlarms = _alarmLastSeenTracker.GetOrAdd(machineId, new ConcurrentDictionary<int, DateTime>());
 
-                MachineDataCache.TryGetValue(machineId, out var previousStatus);
-                int previousAlarmNumber = previousStatus?.ActiveAlarmNumber ?? 0;
-                int currentAlarmNumber = currentStatus.ActiveAlarmNumber;
+                int currentWordValue = currentStatus.ActiveAlarmNumber;
+                DateTime now = DateTime.Now;
 
-                if (currentAlarmNumber > 0)
+                // --- AŞAMA 1: GELEN VERİYİ İŞLEME ---
+                if (currentWordValue > 0)
                 {
-                    // ÖNEMLİ: Alarm numarası (örn: 5) önbellekte (veritabanında) tanımlı mı?
-                    // Tanımlı DEĞİLSE, bu bloğa girmez ve alarm hiç var olmamış gibi davranılır.
-                    if (_alarmDefinitionsCache.TryGetValue(currentAlarmNumber, out var newAlarmDef))
+                    // Alarm verisi geldiği için "Sıfır Sayacı"nı iptal et.
+                    _alarmZeroSignalTrackers.TryRemove(machineId, out _);
+
+                    // Bu alarm tanımlı mı?
+                    if (_alarmDefinitionsCache.TryGetValue(currentWordValue, out var alarmDef))
                     {
-                        // Alarm takip listesinde yoksa (yeni geldiyse)
-                        if (!machineActiveAlarms.ContainsKey(currentAlarmNumber))
+                        // A) Bu alarmın "En Son Görülme" zamanını güncelle (Döngüde hala var demektir)
+                        lastSeenAlarms[currentWordValue] = now;
+
+                        // B) Bu alarm "Aktif Listede" yoksa -> YENİ ALARM BAŞLANGICI
+                        if (!activeAlarms.ContainsKey(currentWordValue))
                         {
-                            _alarmRepository.WriteAlarmHistoryEvent(machineId, newAlarmDef.Id, "ACTIVE");
-                            LiveEventAggregator.Instance.PublishAlarm(currentStatus.MachineName, newAlarmDef.AlarmText);
+                            activeAlarms[currentWordValue] = now; // Başlangıç zamanı
+
+                            _alarmRepository.WriteAlarmHistoryEvent(machineId, alarmDef.Id, "ACTIVE");
+                            LiveEventAggregator.Instance.PublishAlarm(currentStatus.MachineName, alarmDef.AlarmText);
                         }
-                        // Alarmı aktif listesine ekle/güncelle
-                        machineActiveAlarms[currentAlarmNumber] = DateTime.Now;
                     }
-                    // ELSE: Alarm tanımı yoksa (örn: 5 silindiyse) hiçbir şey yapma, yoksay.
                 }
-
-                if (isSystemStable)
+                else // Gelen Değer 0 ise
                 {
-                    var timedOutAlarms = machineActiveAlarms.Where(kvp => (DateTime.Now - kvp.Value).TotalSeconds > 30).ToList();
-                    foreach (var timedOutAlarm in timedOutAlarms)
+                    // "Sıfır Sayacı" kontrolü (Toplu bitirme mantığı - KORUNUYOR)
+                    if (!activeAlarms.IsEmpty)
                     {
-                        if (_alarmDefinitionsCache.TryGetValue(timedOutAlarm.Key, out var oldAlarmDef))
+                        if (!_alarmZeroSignalTrackers.TryGetValue(machineId, out DateTime? zeroStartTime) || zeroStartTime == null)
                         {
-                            _alarmRepository.WriteAlarmHistoryEvent(machineId, oldAlarmDef.Id, "INACTIVE");
-                            LiveEventAggregator.Instance.Publish(new LiveEvent { Type = EventType.SystemInfo, Source = currentStatus.MachineName, Message = $"{oldAlarmDef.AlarmText} - CLEARED" });
+                            _alarmZeroSignalTrackers[machineId] = now; // Kronometreyi başlat
                         }
-                        machineActiveAlarms.TryRemove(timedOutAlarm.Key, out _);
-                    }
-
-                    if (currentAlarmNumber == 0 && !machineActiveAlarms.IsEmpty)
-                    {
-                        foreach (var activeAlarm in machineActiveAlarms)
+                        else
                         {
-                            if (_alarmDefinitionsCache.TryGetValue(activeAlarm.Key, out var oldAlarmDef))
+                            // 3 saniyedir 0 mı geliyor?
+                            if ((now - zeroStartTime.Value).TotalSeconds >= 3)
                             {
-                                _alarmRepository.WriteAlarmHistoryEvent(machineId, oldAlarmDef.Id, "INACTIVE");
+                                // HEPSİNİ KAPAT (Toplu Bitiş)
+                                foreach (var kvp in activeAlarms)
+                                {
+                                    CloseAlarm(machineId, kvp.Key, currentStatus.MachineName);
+                                }
+                                activeAlarms.Clear();
+                                lastSeenAlarms.Clear(); // Last seen de temizlenmeli
+                                _alarmZeroSignalTrackers.TryRemove(machineId, out _);
                             }
                         }
-                        machineActiveAlarms.Clear();
                     }
                 }
 
-                currentStatus.HasActiveAlarm = !machineActiveAlarms.IsEmpty;
+                // --- AŞAMA 2: BİREYSEL ZAMAN AŞIMI (TIMEOUT) KONTROLÜ ---
+                // Burada 45 saniyedir sinyal göndermeyen "tekil" alarmları ayıklıyoruz.
+                // Bu işlem, currentWordValue 0 olsa da olmasa da yapılmalıdır (Çünkü döngüde başka alarmlar gelirken biri düşmüş olabilir).
+
+                if (!activeAlarms.IsEmpty)
+                {
+                    // O anki aktif listeyi kopyalayarak dön (Koleksiyon değişti hatası almamak için)
+                    var activeKeys = activeAlarms.Keys.ToList();
+
+                    foreach (var alarmId in activeKeys)
+                    {
+                        // Bu alarm en son ne zaman görüldü?
+                        if (lastSeenAlarms.TryGetValue(alarmId, out DateTime lastSeenTime))
+                        {
+                            // Eğer 45 saniyedir bu kod gelmediyse -> ALARMI KAPAT
+                            if ((now - lastSeenTime).TotalSeconds > 45)
+                            {
+                                CloseAlarm(machineId, alarmId, currentStatus.MachineName);
+
+                                // Listelerden düşür
+                                activeAlarms.TryRemove(alarmId, out _);
+                                lastSeenAlarms.TryRemove(alarmId, out _);
+                            }
+                        }
+                        else
+                        {
+                            // (Hata toleransı) Eğer LastSeen kaydı yoksa, şu anki zamanı baz alarak oluştur ki hemen silinmesin.
+                            lastSeenAlarms[alarmId] = now;
+                        }
+                    }
+                }
+
+                // --- AŞAMA 3: UI GÜNCELLEME ---
+                currentStatus.HasActiveAlarm = !activeAlarms.IsEmpty;
+
                 if (currentStatus.HasActiveAlarm)
                 {
-                    currentStatus.ActiveAlarmNumber = machineActiveAlarms.OrderByDescending(kvp => kvp.Value).First().Key;
-                    if (_alarmDefinitionsCache.TryGetValue(currentStatus.ActiveAlarmNumber, out var def)) currentStatus.ActiveAlarmText = def.AlarmText;
-                    else currentStatus.ActiveAlarmText = $"UNDEFINED ALARM ({currentStatus.ActiveAlarmNumber})";
+                    // Ekranda hangisini göstereceğiz?
+                    // Öncelik: Şu an PLC'den gelen değer (>0 ise).
+                    // Yoksa: Listede en son görülen alarm.
+                    int displayId = (currentWordValue > 0) ? currentWordValue : activeAlarms.Keys.LastOrDefault();
+
+                    currentStatus.ActiveAlarmNumber = displayId;
+                    if (_alarmDefinitionsCache.TryGetValue(displayId, out var def))
+                        currentStatus.ActiveAlarmText = def.AlarmText;
+                    else
+                        currentStatus.ActiveAlarmText = $"ALARM {displayId}";
                 }
                 else
                 {
@@ -764,12 +917,33 @@ namespace TekstilScada.Services
                     currentStatus.ActiveAlarmText = "";
                 }
 
-                if ((previousStatus?.HasActiveAlarm ?? false) != currentStatus.HasActiveAlarm || previousAlarmNumber != currentStatus.ActiveAlarmNumber)
+                // Event Tetikleme
+                MachineDataCache.TryGetValue(machineId, out var previousStatus);
+                if ((previousStatus?.HasActiveAlarm ?? false) != currentStatus.HasActiveAlarm ||
+                    (previousStatus?.ActiveAlarmNumber ?? 0) != currentStatus.ActiveAlarmNumber)
                 {
                     OnActiveAlarmStateChanged?.Invoke(machineId, currentStatus);
                 }
             }
-            catch (Exception ex) { _logger.LogError(ex, "Alarm işleme hatası: {MachineId}", machineId); }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Alarm işleme hatası: {MachineId}", machineId);
+            }
+        }
+
+        // Kod tekrarını önlemek için yardımcı metod
+        private void CloseAlarm(int machineId, int alarmId, string machineName)
+        {
+            if (_alarmDefinitionsCache.TryGetValue(alarmId, out var closingAlarmDef))
+            {
+                _alarmRepository.WriteAlarmHistoryEvent(machineId, closingAlarmDef.Id, "INACTIVE");
+                LiveEventAggregator.Instance.Publish(new LiveEvent
+                {
+                    Type = EventType.SystemInfo,
+                    Source = machineName,
+                    Message = $"{closingAlarmDef.AlarmText} - CLEARED"
+                });
+            }
         }
 
         private void LoadAlarmDefinitionsCache()

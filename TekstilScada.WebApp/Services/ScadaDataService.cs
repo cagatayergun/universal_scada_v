@@ -1834,23 +1834,7 @@ namespace TekstilScada.WebApp.Services
 
         }
 
-        public async Task SendCommandAsync(int machineId, string command, string parameters = "")
-
-        {
-
-            if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected)
-
-            {
-
-                // Hub üzerindeki 'SendCommandToLocal' metodunu tetikler
-
-                await _hubConnection.InvokeAsync("SendCommandToLocal", machineId, command, parameters);
-
-                Console.WriteLine($"Komut Gönderildi: {command} -> Makine {machineId}");
-
-            }
-
-        }
+        
 
     }
 
