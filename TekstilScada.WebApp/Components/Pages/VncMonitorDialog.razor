@@ -100,22 +100,43 @@
         {
             isConnected = true;
 
-            // Websocket URL oluşturma (VncMonitor.razor ile aynı mantık)
-            // Not: BaseUri'yi dinamik almak için NavigationManager inject edilebilir veya appsettings kullanılabilir.
-            // Burada önceki kodunuzdaki mantığı koruyorum.
-            var baseUri = new Uri("http://localhost:7039");
-            var wsScheme = baseUri.Scheme == "https" ? "ws" : "ws";
-            var wsUrl = $"{wsScheme}://{baseUri.Authority}/api/vnc/connect/{MachineId}";
+            // --- DEĞİŞİKLİK BAŞLANGICI ---
+            // VNC URL'sini Windows Forms Gateway yapısına göre oluşturuyoruz.
 
-            try
+            string wsUrl = "";
+
+            if (!string.IsNullOrEmpty(machine.VncAddress))
             {
-                // JS'e benzersiz ID'yi gönderiyoruz
-                await JSRuntime.InvokeVoidAsync("startVnc", vncContainerId, wsUrl, machine.VncPassword);
+                // Eğer veritabanında zaten tam bir WebSocket adresi varsa (ws:// veya wss://) onu kullan
+                if (machine.VncAddress.StartsWith("ws://") || machine.VncAddress.StartsWith("wss://"))
+                {
+                    wsUrl = machine.VncAddress;
+                }
+                else
+                {
+                    // Yoksa Gateway formatına çevir:
+                    // machine.VncAddress -> Windows Forms PC IP'si ve Portu (Örn: 192.168.1.10:5901)
+                    // machine.IpAddress  -> Hedef PLC IP'si (Örn: 192.168.1.50)
+                    // 5900 -> Varsayılan VNC portu
+
+                    wsUrl = $"ws://localhost:5901/vnc/?target={machine.IpAddress}:5900";
+                }
+
+                try
+                {
+                    // JS'e benzersiz ID ve yeni URL'yi gönderiyoruz
+                    await JSRuntime.InvokeVoidAsync("startVnc", vncContainerId, wsUrl, machine.VncPassword);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"VNC Başlatma Hatası: {ex.Message}");
+                }
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine($"VNC Başlatma Hatası: {ex.Message}");
+                Console.WriteLine("Hata: Makine VNC adresi tanımlı değil.");
             }
+            // --- DEĞİŞİKLİK BİTİŞİ ---
         }
     }
 

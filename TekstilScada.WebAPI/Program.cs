@@ -1,14 +1,21 @@
-using TekstilScada.WebAPI.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using TekstilScada.Repositories;
+using TekstilScada.Services;
+using TekstilScada.WebAPI.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. VERÝTABANI BAÐLANTISINI KALDIRIYORUZ ---
-// API'de veritabaný olmayacak. Veritabaný WinForms'ta.
-// var connectionString = builder.Configuration.GetConnectionString("DefaultConnection"); 
-// TekstilScada.Core.AppConfig.SetConnectionString(connectionString);
+// --- 1. VERÝTABANI BAÐLANTISI (AÇILMALI) ---
+// ScadaHub içerisinde Repository kullandýðýmýz için API'nin veritabanýna eriþmesi ÞARTTIR.
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Core katmanýndaki statik ayarý set ediyoruz (Repository'lerin çalýþmasý için kritik)
+if (!string.IsNullOrEmpty(connectionString))
+{
+    TekstilScada.Core.AppConfig.SetConnectionString(connectionString);
+}
 
 // --- 2. TEMEL SERVÝSLER ---
 builder.Services.AddControllers();
@@ -42,12 +49,24 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
-
+//builder.Services.AddSingleton<RecipeRepository>();
 // --- 4. REPOSITORY'LERÝ KALDIRIYORUZ ---
 // API artýk veritabaný sorgusu yapmayacak.
 // builder.Services.AddSingleton<MachineRepository>(); // SÝLÝNDÝ
+//builder.Services.AddSingleton<UserRepository>();
 // builder.Services.AddSingleton<AlarmRepository>();   // SÝLÝNDÝ
 // ... Diðer tüm repository'ler silindi.
+//builder.Services.AddSingleton<AlarmRepository>();
+//builder.Services.AddSingleton<DashboardRepository>();
+//builder.Services.AddSingleton<MachineRepository>();     // Muhtemelen gerekecek
+//builder.Services.AddSingleton<ProductionRepository>();  // Muhtemelen gerekecek
+//builder.Services.AddSingleton<ProcessLogRepository>();
+//builder.Services.AddSingleton<FtpTransferService>();
+//builder.Services.AddSingleton<PlcPollingService>();
+//builder.Services.AddSingleton<RecipeConfigurationRepository>();
+//builder.Services.AddSingleton<PlcOperatorRepository>();
+//builder.Services.AddSingleton<UserRepository>();
+//builder.Services.AddSingleton<CostRepository>();
 
 // --- 5. HÝZMET AYARLARI ---
 builder.Services.AddCors(options =>
