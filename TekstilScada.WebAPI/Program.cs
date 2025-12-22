@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Text.Json.Serialization;
 using TekstilScada.Repositories;
 using TekstilScada.Services;
 using TekstilScada.WebAPI.Hubs;
@@ -21,7 +22,16 @@ if (!string.IsNullOrEmpty(connectionString))
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddSignalR(); // Anlýk iletiþim için kritik
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+    {
+        // NaN ve Infinity deðerlerini "NaN", "Infinity" stringleri olarak gönder
+        options.PayloadSerializerOptions.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals;
+        // Döngüsel referanslarý (Parent -> Child -> Parent) yoksay
+        options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        // Property isimleri büyük/küçük harf duyarsýz olsun
+        options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+    });
 
 // --- 3. JWT KÝMLÝK DOÐRULAMA (Güvenlik Ýçin Kalmalý) ---
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];

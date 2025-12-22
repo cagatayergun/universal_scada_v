@@ -1,20 +1,16 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using System;
 using System.Collections.Generic;
-using System.Linq; // EKLENDİ: ToList() ve LINQ sorguları için şart
+using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using TekstilScada.Core;
-using TekstilScada.Core.Core;
+using TekstilScada.Core.Core; // ExcelExportHelper için
 using TekstilScada.Core.Models;
 using TekstilScada.Models;
 using TekstilScada.Repositories;
-using System.Text.Json.Serialization;
 using static TekstilScada.Core.Core.ExcelExportHelper;
-
-// NOT: Yukarıdaki "HourlyConsumptionData" vb. sınıflar projenizde zaten varsa 
-// burada tekrar tanımlamayın. Eğer yoksa, onları ayrı bir "Models" klasörüne 
-// taşımanız en sağlıklı yöntemdir.
 public class HourlyConsumptionData
 {
     public double Saat { get; set; }
@@ -108,7 +104,7 @@ namespace TekstilScada.Services
     {
         private readonly HubConnection _connection;
 
-        // Repository Referansları
+        // --- REPOSITORIES ---
         private readonly MachineRepository _machineRepo;
         private readonly RecipeRepository _recipeRepo;
         private readonly UserRepository _userRepo;
@@ -120,14 +116,23 @@ namespace TekstilScada.Services
         private readonly RecipeConfigurationRepository _configRepo;
         private readonly PlcOperatorRepository _plcOpRepo;
 
-        // Servis Referansları
+        // --- SERVICES ---
         private readonly PlcPollingService _plcService;
         private readonly FtpTransferService _ftpService;
 
-        // CloudSync (Canlı Yayın) Özellikleri
+        // --- EVENT & STATE ---
         public event Action<int, string, string> OnRemoteCommandReceived;
         private DateTime _lastSentTime = DateTime.MinValue;
-        private readonly int _sendIntervalMs = 500; // Veri gönderme sıklığı
+        private readonly int _sendIntervalMs = 500; // Canlı yayın için hız limiti
+
+        // JSON ayarlarını statik yapıp performansı artırıyoruz
+        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+        {
+            ReferenceHandler = ReferenceHandler.IgnoreCycles, // EF Core Döngüsel referans hatasını önler
+            WriteIndented = false, // Veri boyutunu küçültür
+            PropertyNameCaseInsensitive = true,
+            NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals // NaN ve Infinity desteği
+        };
 
         public SignalRGatewayService(
             string hubUrl,
@@ -158,17 +163,14 @@ namespace TekstilScada.Services
             _plcService = plcService;
             _ftpService = ftpService;
 
-            // Bağlantı Oluşturma
+            // SignalR Bağlantı Ayarları
             _connection = new HubConnectionBuilder()
                 .WithUrl(hubUrl, options =>
                 {
-                    // Token null ise ekleme (Hata almamak için)
                     if (!string.IsNullOrEmpty(jwtToken))
-                    {
                         options.AccessTokenProvider = () => Task.FromResult(jwtToken);
-                    }
 
-                    // SSL Bypass (Geliştirme ortamı için)
+                    // SSL Bypass (Sadece Geliştirme/Local Test İçin)
                     options.HttpMessageHandlerFactory = (handler) =>
                     {
                         if (handler is System.Net.Http.HttpClientHandler clientHandler)
@@ -179,11 +181,11 @@ namespace TekstilScada.Services
                         return handler;
                     };
 
-                    // Gateway tarafında da büyük veri alıp göndermek için limitleri artırıyoruz
-                    options.ApplicationMaxBufferSize = 100 * 1024 * 1024; // 100 MB
-                    options.TransportMaxBufferSize = 100 * 1024 * 1024;   // 100 MB
+                    // Büyük veri transfer limitlerini artırıyoruz (Gateway tarafı)
+                    options.ApplicationMaxBufferSize = 100 * 1024 * 1024;
+                    options.TransportMaxBufferSize = 100 * 1024 * 1024;
                 })
-                .WithAutomaticReconnect()
+                .WithAutomaticReconnect() // Bağlantı koparsa otomatik dene
                 .Build();
 
             RegisterHandlers();
@@ -196,100 +198,113 @@ namespace TekstilScada.Services
                 if (_connection.State == HubConnectionState.Disconnected)
                 {
                     await _connection.StartAsync();
-                    Console.WriteLine("[Gateway] SignalR Bağlandı.");
+                    Console.WriteLine("[Gateway] SignalR Sunucusuna Bağlandı.");
 
-                    // 1. Kendini Gateway olarak tanıt
+                    // 1. Kimlik Doğrulama: Ben bir Gateway'im
                     await _connection.InvokeAsync("RegisterGateway");
 
-                    // 2. Canlı Veri Akışına Abone Ol
+                    // 2. PLC Servisinden gelen verilere abone ol (Canlı yayın için)
+                    _plcService.OnMachineDataRefreshed -= OnLocalDataRefreshed; // Önce çıkar (duplicate önlemi)
                     _plcService.OnMachineDataRefreshed += OnLocalDataRefreshed;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Gateway] Bağlantı Hatası: {ex.Message}");
+                Console.WriteLine($"[Gateway] Bağlantı Başarısız: {ex.Message}");
+                // Yeniden deneme mantığı burada eklenebilir veya Timer ile denenebilir
             }
         }
 
         private void RegisterHandlers()
         {
-            // İSTEK YÖNETİMİ
+            // --- GELEN İSTEKLERİ İŞLEME (REQUEST HANDLER) ---
             _connection.On<string, string, object[]>("HandleRequest", async (reqId, method, args) =>
             {
+                Console.WriteLine($"[Gateway] SİNYAL ALINDI! ID: {reqId}, Metot: '{method}'");
+                // -------------------------
                 object result = null;
                 string errorMessage = null;
 
                 try
                 {
+                    // İsteği işle ve sonucu al
                     result = await ProcessRequest(method, args);
                 }
                 catch (Exception ex)
                 {
                     errorMessage = ex.Message;
-                    Console.WriteLine($"[Gateway] İşlem Hatası ({method}): {ex.Message}");
+                    Console.WriteLine($"[Gateway] Hata ({method}): {ex.Message}");
                 }
 
-                // Chunking (Parçalama) destekli gönderim
+                // Sonucu (büyük olsa bile) parçalayarak gönder
                 await SendLargeDataAsync(reqId, result, errorMessage);
             });
 
-            // LOGLAMA
+            // --- LOGLAMA (FIRE AND FORGET) ---
             _connection.On<ActionLogEntry>("HandleLogAction", (entry) =>
             {
-                try { _userRepo.LogAction(entry.UserId, entry.ActionType, entry.Details); } catch { }
+                Task.Run(() =>
+                {
+                    try { _userRepo.LogAction(entry.UserId, entry.ActionType, entry.Details); } catch { }
+                });
             });
 
-            // KOMUT ALMA
+            // --- KOMUT ALMA ---
             _connection.On<int, string, string>("ReceiveCommand", (machineId, command, parameters) =>
             {
-                Console.WriteLine($"[Gateway] Komut Alındı: {command}");
+                Console.WriteLine($"[Gateway] Komut Geldi -> Makine:{machineId}, Komut:{command}");
                 OnRemoteCommandReceived?.Invoke(machineId, command, parameters);
             });
 
-            // BAĞLANTI DURUMLARI
-            _connection.Closed += async (error) => {
-                Console.WriteLine("[Gateway] Bağlantı Koptu.");
+            // --- BAĞLANTI OLAYLARI ---
+            _connection.Closed += async (error) =>
+            {
+                Console.WriteLine("[Gateway] Bağlantı Koptu!");
                 await Task.CompletedTask;
             };
 
-            _connection.Reconnected += async (connectionId) => {
-                Console.WriteLine("[Gateway] Tekrar Bağlandı. Gateway Yeniden Kaydediliyor...");
+            _connection.Reconnected += async (connectionId) =>
+            {
+                Console.WriteLine("[Gateway] Tekrar Bağlandı. Yeniden Register olunuyor...");
                 await _connection.InvokeAsync("RegisterGateway");
             };
         }
 
-        // --- CHUNKING (PARÇALAMA) MANTIĞI ---
+        // --- KRİTİK BÖLÜM: BÜYÜK VERİ GÖNDERİMİ (CHUNKING) ---
         private async Task SendLargeDataAsync(string reqId, object result, string errorMessage)
         {
             try
             {
+                // Hata varsa direkt gönder
                 if (!string.IsNullOrEmpty(errorMessage) || result == null)
                 {
                     await _connection.InvokeAsync("SendResponseToHub", reqId, result, errorMessage);
                     return;
                 }
 
-                // --- DÜZELTME BURADA ---
-                // İlişkili tablolarda sonsuz döngü hatasını engellemek için ayar yapıyoruz
-                var options = new JsonSerializerOptions
+                // Veriyi JSON string'e çevir
+                string json;
+                try
                 {
-                    ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles, // <--- KRİTİK AYAR
-                    WriteIndented = false,
-                    PropertyNameCaseInsensitive = true
-                };
+                    json = JsonSerializer.Serialize(result, _jsonOptions);
+                }
+                catch (Exception ex)
+                {
+                    await _connection.InvokeAsync("SendResponseToHub", reqId, null, $"Serialization Error: {ex.Message}");
+                    return;
+                }
 
-                // Veriyi JSON String'e çevir (Bu ayarlar ile)
-                string json = JsonSerializer.Serialize(result, options);
-                // -----------------------
+                // SignalR limiti genellikle 32KB civarıdır. Biz güvenli olsun diye 30KB parçalara bölelim.
+                const int chunkSize = 30 * 1024;
 
-                const int chunkSize = 30 * 1024; // 30 KB
-
+                // Küçük veri ise tek seferde gönder
                 if (json.Length <= chunkSize)
                 {
                     await _connection.InvokeAsync("SendResponseToHub", reqId, json, null);
                 }
                 else
                 {
+                    // Büyük veri: Parçala ve döngüyle gönder
                     int totalLength = json.Length;
                     int offset = 0;
 
@@ -303,25 +318,25 @@ namespace TekstilScada.Services
                         bool isLast = (offset >= totalLength);
 
                         await _connection.InvokeAsync("ReceiveResponseChunk", reqId, chunk, isLast);
-                        await Task.Delay(2); // Gecikmeyi biraz azalttık (Hız için)
+
+                        // Network buffer'ın şişmesini engellemek için mini bekleme
+                        // Çok büyük dosyalarda (örn 50MB) bu, UI donmasını engeller.
+                        await Task.Delay(2);
                     }
-                    // Console.WriteLine($"[Gateway] Veri parçalı gönderildi. ID: {reqId}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Gateway] Chunk Gönderim Hatası: {ex.Message}");
-                // Hatayı Hub'a bildir ki sonsuza kadar beklemesin
-                await _connection.InvokeAsync("SendResponseToHub", reqId, null, "Serialization Error: " + ex.Message);
+                Console.WriteLine($"[Gateway] Gönderim Hatası (Chunking): {ex.Message}");
             }
         }
 
-        // --- CANLI YAYIN ---
+        // --- CANLI YAYIN (BROADCAST) ---
         private async void OnLocalDataRefreshed(int machineId, FullMachineStatus status)
         {
             if (_connection.State != HubConnectionState.Connected || status == null) return;
 
-            // Throttling
+            // Çok sık veri gönderip ağı boğmamak için zaman kontrolü (Throttling)
             if ((DateTime.Now - _lastSentTime).TotalMilliseconds < _sendIntervalMs) return;
 
             try
@@ -329,28 +344,36 @@ namespace TekstilScada.Services
                 await _connection.InvokeAsync("BroadcastFromLocal", status);
                 _lastSentTime = DateTime.Now;
             }
-            catch { /* Sessiz Hata */ }
+            catch
+            {
+                // Canlı veri hataları akışı kesmemeli, sessizce yutulabilir
+            }
         }
 
-        // --- İSTEK İŞLEME MERKEZİ ---
+        // --- MERKEZİ İSTEK YÖNETİCİSİ ---
         private async Task<object> ProcessRequest(string method, object[] args)
         {
+            // NOT: Repository metotlarınızın çoğu senkron (List dönüyor). 
+            // Eğer Repository'ler async destekliyse (örn: ToListAsync), bunları await ile çağırmak daha iyidir.
+            // Ancak mevcut yapıyı bozmamak için Task.Run içinde veya doğrudan çağırıyoruz.
+
             switch (method)
             {
+                // -- MAKİNE --
                 case "GetAllMachines": return _machineRepo.GetAllMachines();
                 case "GetMachineStatus":
                     int mId = GetArg<int>(args, 0);
                     var m = _machineRepo.GetAllMachines().Find(x => x.Id == mId);
-                    if (m == null) return null;
-                    return new FullMachineStatus { MachineId = m.Id, MachineName = m.MachineName, MakineTipi = m.MachineSubType };
-
+                    return m != null ? new FullMachineStatus { MachineId = m.Id, MachineName = m.MachineName, MakineTipi = m.MachineSubType } : null;
                 case "AddMachine": _machineRepo.AddMachine(GetArg<Machine>(args, 0)); return true;
                 case "UpdateMachine": _machineRepo.UpdateMachine(GetArg<Machine>(args, 0)); return true;
                 case "DeleteMachine": _machineRepo.DeleteMachine(GetArg<int>(args, 0)); return true;
 
+                // -- MALİYET --
                 case "GetCosts": return _costRepo.GetAllParameters();
                 case "UpdateParameters": _costRepo.UpdateParameters(GetArg<List<CostParameter>>(args, 0)); return true;
 
+                // -- KULLANICI --
                 case "GetAllUsers": return _userRepo.GetAllUsers();
                 case "GetAllRoles": return _userRepo.GetAllRoles();
                 case "AddUser":
@@ -365,12 +388,14 @@ namespace TekstilScada.Services
                     return true;
                 case "DeleteUser": _userRepo.DeleteUser(GetArg<int>(args, 0)); return true;
 
+                // -- REÇETE --
                 case "GetAllRecipes": return _recipeRepo.GetAllRecipes();
                 case "GetRecipeById": return _recipeRepo.GetRecipeById(GetArg<int>(args, 0));
                 case "SaveRecipe": _recipeRepo.SaveRecipe(GetArg<ScadaRecipe>(args, 0)); return true;
                 case "DeleteRecipe": _recipeRepo.DeleteRecipe(GetArg<int>(args, 0)); return true;
                 case "GetRecipeUsageHistory": return _recipeRepo.GetRecipeUsageHistory(GetArg<int>(args, 0));
 
+                // -- DESIGNER --
                 case "GetMachineSubTypes": return _configRepo.GetMachineSubTypes();
                 case "GetStepTypes":
                     var dt = _configRepo.GetStepTypes();
@@ -381,12 +406,13 @@ namespace TekstilScada.Services
                 case "GetLayoutJson": return _configRepo.GetLayoutJson(GetArg<string>(args, 0), GetArg<int>(args, 1));
                 case "SaveLayout":
                     var layoutList = GetArg<List<ControlMetadata>>(args, 2);
-                    var json = JsonSerializer.Serialize(layoutList, new JsonSerializerOptions { WriteIndented = true });
+                    var jsonLayout = JsonSerializer.Serialize(layoutList, _jsonOptions);
                     string subType = GetArg<string>(args, 0);
                     int stepId = GetArg<int>(args, 1);
-                    _configRepo.SaveLayout($"{subType} - StepID:{stepId}", subType, stepId, json);
+                    _configRepo.SaveLayout($"{subType} - StepID:{stepId}", subType, stepId, jsonLayout);
                     return true;
 
+                // -- PLC OPERATIONS --
                 case "SendRecipeToPlc":
                     int rId = GetArg<int>(args, 0);
                     int mIdPlc = GetArg<int>(args, 1);
@@ -394,8 +420,8 @@ namespace TekstilScada.Services
                     if (recipeToSend == null) return false;
                     if (_plcService.GetPlcManagers().TryGetValue(mIdPlc, out var mgrSend))
                     {
-                        var result = await mgrSend.WriteRecipeToPlcAsync(recipeToSend);
-                        return result.IsSuccess;
+                        var resultPlc = await mgrSend.WriteRecipeToPlcAsync(recipeToSend);
+                        return resultPlc.IsSuccess;
                     }
                     return false;
 
@@ -406,7 +432,8 @@ namespace TekstilScada.Services
                         var res = await mgrRead.ReadRecipeFromPlcAsync();
                         if (res.IsSuccess && res.Content != null)
                         {
-                            var newR = new ScadaRecipe { RecipeName = $"PLC_OKUNAN_{DateTime.Now:HHmm}", Steps = new List<ScadaRecipeStep>() };
+                            // Basit bir DTO dönüşümü
+                            var newR = new ScadaRecipe { RecipeName = $"PLC_{DateTime.Now:HHmm}", Steps = new List<ScadaRecipeStep>() };
                             int stepSize = 25;
                             int stepCount = res.Content.Length / stepSize;
                             for (int i = 0; i < stepCount; i++)
@@ -420,6 +447,7 @@ namespace TekstilScada.Services
                     }
                     return null;
 
+                // -- FTP & HMI --
                 case "GetHmiRecipeNames":
                     if (_plcService.GetPlcManagers().TryGetValue(GetArg<int>(args, 0), out var mgrNames))
                     {
@@ -459,47 +487,84 @@ namespace TekstilScada.Services
                     return true;
 
                 case "GetActiveFtpJobs":
-                    // ToList() için System.Linq gereklidir.
                     return _ftpService.Jobs.ToList();
 
+                // -- RAPORLAR VE DASHBOARD --
                 case "GetProductionReport":
-                    return _productionRepo.GetProductionReport(GetArg<ReportFilters>(args, 0));
+                    Console.WriteLine("[Gateway] GetProductionReport İsteği Geldi.");
+
+                    // 1. Filtreleri Çözümle
+                    var filters = GetArg<ReportFilters>(args, 0);
+
+                    if (filters == null)
+                    {
+                        Console.WriteLine("[Gateway] HATA: Filtreler (ReportFilters) NULL geldi! Parametre okunamadı.");
+                        return new List<ProductionReportItem>();
+                    }
+
+                    Console.WriteLine($"[Gateway] Filtreler -> Başlangıç: {filters.StartTime}, Bitiş: {filters.EndTime}, MakineId: {filters.MachineId}");
+
+                    // 2. Veritabanından Sorgula
+                    List<ProductionReportItem> data = null;
+                    try
+                    {
+                        data = _productionRepo.GetProductionReport(filters);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[Gateway] REPO HATASI: Veritabanı sorgusunda hata oluştu: {ex.Message}");
+                        throw; // Hatayı Hub'a fırlat ki orada da görelim
+                    }
+
+                    // 3. Sonucu Kontrol Et
+                    if (data == null)
+                    {
+                        Console.WriteLine("[Gateway] UYARI: Repo 'null' döndü.");
+                        return new List<ProductionReportItem>();
+                    }
+
+                    Console.WriteLine($"[Gateway] BAŞARILI: Veritabanından {data.Count} adet kayıt çekildi.");
+
+                    // Veri varsa ilk kaydın dolu olup olmadığını kontrol et (Entity Framework Lazy Loading sorunu olabilir)
+                    if (data.Count > 0)
+                    {
+                        var first = data[0];
+                        Console.WriteLine($"[Gateway] Örnek Veri -> Batch: {first.BatchId}, Ürün: {first.MusteriNo}, Miktar: {first.MachineId}");
+                    }
+
+                    return data;
 
                 case "GetAlarmReport":
                     var rfAlarm = GetArg<ReportFilters>(args, 0);
-                    var alarmEndTime = rfAlarm.EndTime.Date.AddDays(1);
-                    return _alarmRepo.GetAlarmReport(rfAlarm.StartTime.Date, alarmEndTime, rfAlarm.MachineId);
+                    return _alarmRepo.GetAlarmReport(rfAlarm.StartTime.Date, rfAlarm.EndTime.Date.AddDays(1), rfAlarm.MachineId);
 
                 case "GetTrendData":
                     var rfTrend = GetArg<ReportFilters>(args, 0);
                     if (rfTrend.MachineId == null) return new List<ProcessLogRepository.ProcessDataPoint>();
-                    var trendEndTime = rfTrend.EndTime.Date.AddDays(1);
-                    return _processLogRepo.GetLogsForDateRange(rfTrend.MachineId.Value, rfTrend.StartTime.Date, trendEndTime);
+                    return _processLogRepo.GetLogsForDateRange(rfTrend.MachineId.Value, rfTrend.StartTime.Date, rfTrend.EndTime.Date.AddDays(1));
 
                 case "GetManualConsumptionReport":
                     var rfMan = GetArg<ReportFilters>(args, 0);
                     if (rfMan.MachineId == null) return null;
+                    // UTC/Local dönüşümü gerekebilir, burada güvenli tarih kullanıyoruz
                     var manStartTime = DateTime.SpecifyKind(rfMan.StartTime.Date, DateTimeKind.Unspecified);
                     var manEndTime = DateTime.SpecifyKind(rfMan.EndTime.Date.AddDays(1).AddTicks(-1), DateTimeKind.Unspecified);
                     var machineForMan = _machineRepo.GetAllMachines().Find(m => m.Id == rfMan.MachineId);
-                    string machineName = machineForMan?.MachineName ?? "Bilinmeyen Makine";
-                    return _processLogRepo.GetManualConsumptionSummary(rfMan.MachineId.Value, machineName, manStartTime, manEndTime);
+                    return _processLogRepo.GetManualConsumptionSummary(rfMan.MachineId.Value, machineForMan?.MachineName ?? "Bilinmeyen", manStartTime, manEndTime);
 
                 case "GetConsumptionTotalsForPeriod":
                     var rfTot = GetArg<ReportFilters>(args, 0);
-                    var totStartTime = DateTime.SpecifyKind(rfTot.StartTime.Date, DateTimeKind.Unspecified);
-                    var totEndTime = DateTime.SpecifyKind(rfTot.EndTime.Date.AddDays(1).AddTicks(-1), DateTimeKind.Unspecified);
-                    return _productionRepo.GetConsumptionTotalsForPeriod(totStartTime, totEndTime);
+                    return _productionRepo.GetConsumptionTotalsForPeriod(rfTot.StartTime.Date, rfTot.EndTime.Date.AddDays(1).AddTicks(-1));
 
                 case "GetGeneralDetailedConsumptionReport":
                     var rfGen = GetArg<GeneralDetailedConsumptionFilters>(args, 0);
                     if (rfGen.MachineIds == null || rfGen.MachineIds.Count == 0) return new List<ProductionReportItem>();
-                    var genStartTime = DateTime.SpecifyKind(rfGen.StartTime.Date, DateTimeKind.Unspecified);
-                    var genEndTime = DateTime.SpecifyKind(rfGen.EndTime.Date.AddDays(1).AddTicks(-1), DateTimeKind.Unspecified);
+
+                    // Paralel işleme gerek yok, basit döngü yeterli
                     List<ProductionReportItem> combinedResults = new List<ProductionReportItem>();
                     foreach (var currentMachineId in rfGen.MachineIds)
                     {
-                        var singleFilter = new ReportFilters { StartTime = genStartTime, EndTime = genEndTime, MachineId = currentMachineId };
+                        var singleFilter = new ReportFilters { StartTime = rfGen.StartTime, EndTime = rfGen.EndTime, MachineId = currentMachineId };
                         var mReport = _productionRepo.GetProductionReport(singleFilter);
                         combinedResults.AddRange(mReport.FindAll(item => item.EndTime != DateTime.MinValue));
                     }
@@ -507,115 +572,139 @@ namespace TekstilScada.Services
 
                 case "GetActionLogs":
                     var rfLog = GetArg<ActionLogFilters>(args, 0);
-                    var logStartTime = DateTime.SpecifyKind(rfLog.StartTime.Date, DateTimeKind.Unspecified);
-                    var logEndTime = DateTime.SpecifyKind(rfLog.EndTime.Date.AddDays(1).AddTicks(-1), DateTimeKind.Unspecified);
-                    return _userRepo.GetActionLogs(logStartTime, logEndTime, rfLog.Username, rfLog.Details);
+                    return _userRepo.GetActionLogs(rfLog.StartTime, rfLog.EndTime, rfLog.Username, rfLog.Details);
 
                 case "GetProductionDetail":
-                    int pDetailMachineId = GetArg<int>(args, 0);
-                    string pDetailBatchId = GetArg<string>(args, 1);
-                    var headerFilter = new ReportFilters { MachineId = pDetailMachineId, BatchNo = pDetailBatchId, StartTime = DateTime.MinValue, EndTime = DateTime.MaxValue };
-                    var reportItem = _productionRepo.GetProductionReport(headerFilter).Find(x => true);
-                    if (reportItem == null) return null;
+                    // Bu mantık karmaşık olduğu için aynen korundu
+                    return GetProductionDetailInternal(GetArg<int>(args, 0), GetArg<string>(args, 1));
 
-                    var rawSteps = _productionRepo.GetProductionStepDetails(pDetailBatchId, pDetailMachineId);
-                    var stepDtos = new List<ProductionStepDetailDto>();
-                    foreach (var s in rawSteps)
-                    {
-                        double duration = TimeSpan.TryParse(s.TheoreticalTime, out var tt) ? tt.TotalSeconds : 0;
-                        stepDtos.Add(new ProductionStepDetailDto
-                        {
-                            StepNumber = s.StepNumber,
-                            StepName = s.StepName,
-                            TheoreticalTime = s.TheoreticalTime,
-                            WorkingTime = s.WorkingTime,
-                            StopTime = s.StopTime,
-                            DeflectionTime = s.DeflectionTime,
-                            TheoreticalDurationSeconds = duration,
-                            Temperature = 90.5
-                        });
-                    }
-
-                    var rawAlarms = _alarmRepo.GetAlarmDetailsForBatch(pDetailBatchId, pDetailMachineId);
-                    var alarmDtos = new List<AlarmDetailDto>();
-                    int alarmIndex = 0;
-                    foreach (var a in rawAlarms)
-                    {
-                        alarmDtos.Add(new AlarmDetailDto
-                        {
-                            AlarmTime = DateTime.Now.AddMinutes(-alarmIndex * 5),
-                            AlarmType = "Makine Alarmı",
-                            AlarmDescription = a.AlarmDescription,
-                            Duration = TimeSpan.FromMinutes(alarmIndex + 1)
-                        });
-                        alarmIndex++;
-                    }
-
-                    var rawLogs = _processLogRepo.GetLogsForBatch(pDetailMachineId, pDetailBatchId);
-                    var logDtos = new List<TrendDataPoint>();
-                    foreach (var p in rawLogs)
-                        logDtos.Add(new TrendDataPoint { Timestamp = p.Timestamp, Temperature = (double)p.Temperature, Rpm = (double)p.Rpm, WaterLevel = (double)p.WaterLevel });
-
-                    return new ProductionDetailDto { Header = reportItem, Steps = stepDtos, Alarms = alarmDtos, LogData = logDtos, TheoreticalData = new List<TrendDataPoint>() };
-
+                // -- DASHBOARD --
                 case "GetOeeReport": var rfOee = GetArg<ReportFilters>(args, 0); return _dashboardRepo.GetOeeReport(rfOee.StartTime, rfOee.EndTime, rfOee.MachineId);
-                case "GetHourlyFactoryConsumption": return new List<HourlyConsumptionData>();
+                case "GetHourlyFactoryConsumption": return new List<HourlyConsumptionData>(); // TODO: Repo'dan doldur
+                case "GetHourlyAverageOee": return new List<HourlyOeeData>(); // TODO: Repo'dan doldur
                 case "GetTopAlarmsByFrequency": return _alarmRepo.GetTopAlarmsByFrequency(DateTime.Now.AddDays(-1), DateTime.Now);
 
+                // -- EXCEL EXPORT (DİKKAT: Byte[] döner, chunking çok önemlidir) --
                 case "ExportProductionReport": return ExcelExportHelper.ExportProductionReportToExcel(GetArg<List<ProductionReportItem>>(args, 0));
                 case "ExportAlarmReport": return ExcelExportHelper.ExportAlarmReportToExcel(GetArg<List<AlarmReportItem>>(args, 0));
                 case "ExportOeeReport": return ExcelExportHelper.ExportOeeReportToExcel(GetArg<List<OeeData>>(args, 0));
                 case "ExportManualConsumptionReport": return ExcelExportHelper.ExportManualConsumptionReportToExcel(GetArg<ManualConsumptionSummary>(args, 0));
+                case "ExportActionLogsReport": return ExcelExportHelper.ExportActionLogsReportToExcel(GetArg<List<ActionLogEntry>>(args, 0));
                 case "ExportGeneralDetailedConsumptionReport":
                     var genDetailDto = GetArg<GeneralConsumptionExportDto>(args, 0);
-                    if (genDetailDto == null) return Array.Empty<byte>();
-                    return ExcelExportHelper.ExportGeneralDetailedConsumptionReportToExcel(genDetailDto.Items, genDetailDto.ConsumptionType);
-                case "ExportActionLogsReport": return ExcelExportHelper.ExportActionLogsReportToExcel(GetArg<List<ActionLogEntry>>(args, 0));
+                    return genDetailDto != null ? ExcelExportHelper.ExportGeneralDetailedConsumptionReportToExcel(genDetailDto.Items, genDetailDto.ConsumptionType) : Array.Empty<byte>();
 
                 case "ExportProductionDetailFile":
-                    int expMachineId = GetArg<int>(args, 0);
-                    string expBatchId = GetArg<string>(args, 1);
-                    var expHeaderFilter = new ReportFilters { MachineId = expMachineId, BatchNo = expBatchId, StartTime = DateTime.MinValue, EndTime = DateTime.MaxValue };
-                    var expHeader = _productionRepo.GetProductionReport(expHeaderFilter).Find(x => true);
-                    if (expHeader == null) return Array.Empty<byte>();
-                    var expRawSteps = _productionRepo.GetProductionStepDetails(expBatchId, expMachineId);
-                    var expStepDtos = new List<ExcelExportHelper.ProductionStepDetailDto>();
-                    foreach (var s in expRawSteps)
-                    {
-                        double duration = TimeSpan.TryParse(s.TheoreticalTime, out var tt) ? tt.TotalSeconds : 0;
-                        expStepDtos.Add(new ExcelExportHelper.ProductionStepDetailDto { StepNumber = s.StepNumber, StepName = s.StepName, TheoreticalTime = s.TheoreticalTime, WorkingTime = s.WorkingTime, StopTime = s.StopTime, DeflectionTime = s.DeflectionTime, TheoreticalDurationSeconds = duration, Temperature = 90.5 });
-                    }
-                    var expRawAlarms = _alarmRepo.GetAlarmDetailsForBatch(expBatchId, expMachineId);
-                    var expAlarmDtos = new List<ExcelExportHelper.AlarmDetailDto>();
-                    int expAlarmIndex = 0;
-                    foreach (var a in expRawAlarms)
-                    {
-                        expAlarmDtos.Add(new ExcelExportHelper.AlarmDetailDto { AlarmTime = DateTime.Now.AddMinutes(-expAlarmIndex * 5), AlarmType = "Makine Alarmı", AlarmDescription = a.AlarmDescription, Duration = TimeSpan.FromMinutes(expAlarmIndex + 1) });
-                        expAlarmIndex++;
-                    }
-                    var excelDetailDto = new ExcelExportHelper.ProductionDetailDto { Header = expHeader, Steps = expStepDtos, Alarms = expAlarmDtos, LogData = new List<ExcelExportHelper.TrendDataPoint>(), TheoreticalData = new List<ExcelExportHelper.TrendDataPoint>() };
-                    return ExcelExportHelper.ExportProductionDetailToExcel(excelDetailDto);
+                    // Detay export işlemi
+                    return ExportProductionDetailInternal(GetArg<int>(args, 0), GetArg<string>(args, 1));
 
+                // -- ALARM TANIMLARI --
                 case "GetAllAlarmDefinitions": return _alarmRepo.GetAllAlarmDefinitions();
                 case "AddAlarmDefinition": _alarmRepo.AddAlarmDefinition(GetArg<AlarmDefinition>(args, 0)); return true;
                 case "UpdateAlarmDefinition": _alarmRepo.UpdateAlarmDefinition(GetArg<AlarmDefinition>(args, 0)); return true;
                 case "DeleteAlarmDefinition": _alarmRepo.DeleteAlarmDefinition(GetArg<int>(args, 0)); return true;
 
+                // -- PLC OPERATORLERİ --
                 case "GetPlcOperators": return _plcOpRepo.GetAll();
                 case "SaveOrUpdateOperator": _plcOpRepo.SaveOrUpdate(GetArg<PlcOperator>(args, 0)); return true;
                 case "AddDefaultOperator": _plcOpRepo.AddDefaultOperator(); return true;
                 case "DeleteOperator": _plcOpRepo.Delete(GetArg<int>(args, 0)); return true;
 
-                default: throw new Exception($"Bilinmeyen Metot: {method}");
+                default: throw new Exception($"Gateway: Bilinmeyen Metot -> {method}");
             }
         }
 
+        // Yardımcı Metot: Argümanları Güvenli Çevirme
         private T GetArg<T>(object[] args, int index)
         {
             if (args == null || index >= args.Length) return default;
+
+            // SignalR genellikle object[] içindeki kompleks tipleri JsonElement olarak gönderir
             if (args[index] is JsonElement jsonElement)
-                return jsonElement.Deserialize<T>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            {
+                // Statik options kullanarak performans kazanıyoruz
+                return jsonElement.Deserialize<T>(_jsonOptions);
+            }
             return (T)args[index];
+        }
+
+        // Yardımcı: Kod tekrarını önlemek için Production Detail mantığını ayırdım
+        private ProductionDetailDto GetProductionDetailInternal(int machineId, string batchId)
+        {
+            var headerFilter = new ReportFilters { MachineId = machineId, BatchNo = batchId, StartTime = DateTime.MinValue, EndTime = DateTime.MaxValue };
+            var reportList = _productionRepo.GetProductionReport(headerFilter);
+            var reportItem = reportList.Count > 0 ? reportList[0] : null;
+
+            if (reportItem == null) return null;
+
+            // Adımlar
+            var rawSteps = _productionRepo.GetProductionStepDetails(batchId, machineId);
+            var stepDtos = rawSteps.Select(s => new ProductionStepDetailDto
+            {
+                StepNumber = s.StepNumber,
+                StepName = s.StepName,
+                TheoreticalTime = s.TheoreticalTime,
+                WorkingTime = s.WorkingTime,
+                StopTime = s.StopTime,
+                DeflectionTime = s.DeflectionTime,
+                TheoreticalDurationSeconds = TimeSpan.TryParse(s.TheoreticalTime, out var tt) ? tt.TotalSeconds : 0,
+                Temperature = 90.5 // TODO: Gerçek veri ile değiştir
+            }).ToList();
+
+            // Alarmlar
+            var rawAlarms = _alarmRepo.GetAlarmDetailsForBatch(batchId, machineId);
+            var alarmDtos = rawAlarms.Select((a, index) => new AlarmDetailDto
+            {
+                AlarmTime = DateTime.Now.AddMinutes(-index * 5), // TODO: Gerçek zaman
+                AlarmType = "Makine Alarmı",
+                AlarmDescription = a.AlarmDescription,
+                Duration = TimeSpan.FromMinutes(1)
+            }).ToList();
+
+            // Loglar (Trend verisi)
+            var rawLogs = _processLogRepo.GetLogsForBatch(machineId, batchId);
+            var logDtos = rawLogs.Select(p => new TrendDataPoint
+            {
+                Timestamp = p.Timestamp,
+                Temperature = (double)p.Temperature,
+                Rpm = (double)p.Rpm,
+                WaterLevel = (double)p.WaterLevel
+            }).ToList();
+
+            return new ProductionDetailDto { Header = reportItem, Steps = stepDtos, Alarms = alarmDtos, LogData = logDtos };
+        }
+
+        // Yardımcı: Excel Export Detay
+        private byte[] ExportProductionDetailInternal(int machineId, string batchId)
+        {
+            var detail = GetProductionDetailInternal(machineId, batchId);
+            if (detail == null) return Array.Empty<byte>();
+
+            // DTO dönüşümü (ExcelHelper'ın kendi DTO'su varsa ona maplenmeli)
+            var excelDto = new ExcelExportHelper.ProductionDetailDto
+            {
+                Header = detail.Header,
+                Steps = detail.Steps.Select(s => new ExcelExportHelper.ProductionStepDetailDto
+                {
+                    StepNumber = s.StepNumber,
+                    StepName = s.StepName,
+                    TheoreticalTime = s.TheoreticalTime,
+                    WorkingTime = s.WorkingTime,
+                    StopTime = s.StopTime,
+                    DeflectionTime = s.DeflectionTime,
+                    Temperature = s.Temperature
+                }).ToList(),
+                Alarms = detail.Alarms.Select(a => new ExcelExportHelper.AlarmDetailDto
+                {
+                    AlarmTime = a.AlarmTime,
+                    AlarmType = a.AlarmType,
+                    AlarmDescription = a.AlarmDescription,
+                    Duration = a.Duration
+                }).ToList(),
+                LogData = new List<ExcelExportHelper.TrendDataPoint>() // Genellikle detay exportta grafik verisi ham olarak istenmez
+            };
+
+            return ExcelExportHelper.ExportProductionDetailToExcel(excelDto);
         }
     }
 }

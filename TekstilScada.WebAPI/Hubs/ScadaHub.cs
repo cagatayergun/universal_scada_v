@@ -140,6 +140,9 @@ namespace TekstilScada.WebAPI.Hubs
 
         private async Task<T?> InvokeOnGateway<T>(string targetMethod, params object[] args)
         {
+            Console.WriteLine($"[Hub] InvokeOnGateway Çağrıldı. Hedef Metot: {targetMethod}");
+            Console.WriteLine($"[Hub] Şu anki Gateway ID: '{_gatewayConnectionId ?? "NULL"}'");
+            // -----------------------
             if (string.IsNullOrEmpty(_gatewayConnectionId))
             {
                 // Gateway yoksa hata fırlat veya default değer dön (Senaryoya göre değişir)
@@ -175,13 +178,19 @@ namespace TekstilScada.WebAPI.Hubs
                 {
                     try
                     {
-                        // Gateway'den gelen JSON string'i T nesnesine çevir
-                        return JsonSerializer.Deserialize<T>(jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        // Gateway ile AYNI ayarları kullanmalıyız
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            // NaN ve Infinity desteği buraya da eklenmeli
+                            NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals
+                        };
+
+                        return JsonSerializer.Deserialize<T>(jsonString, options);
                     }
                     catch (Exception ex)
                     {
                         Console.WriteLine($"[ScadaHub] JSON Çevirme Hatası ({targetMethod}): {ex.Message}");
-                        // Hatalı JSON geldiyse null dön, en azından sistem patlamasın
                         return default;
                     }
                 }
@@ -364,8 +373,16 @@ namespace TekstilScada.WebAPI.Hubs
             => await InvokeOnGateway<List<TopAlarmData>>("GetTopAlarmsByFrequency") ?? new List<TopAlarmData>();
         // --- RAPORLAR ---
         public async Task<List<ProductionReportItem>> GetProductionReport(ReportFilters filters)
-            => await InvokeOnGateway<List<ProductionReportItem>>("GetProductionReport", filters) ?? new List<ProductionReportItem>();
+        {
+            // --- BU LOGU EKLEYİN ---
+            Console.WriteLine("[Hub] HALKA AÇIK METOT TETİKLENDİ: GetProductionReport");
+            Console.WriteLine($"[Hub] Gelen Filtre: MakineID={filters?.MachineId}");
+            // -----------------------
 
+            // Eski tek satırlık kodu buraya taşıyoruz:
+            return await InvokeOnGateway<List<ProductionReportItem>>("GetProductionReport", filters)
+                   ?? new List<ProductionReportItem>();
+        }
         public async Task<List<AlarmReportItem>> GetAlarmReport(ReportFilters filters)
             => await InvokeOnGateway<List<AlarmReportItem>>("GetAlarmReport", filters) ?? new List<AlarmReportItem>();
 

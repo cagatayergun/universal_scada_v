@@ -22,7 +22,8 @@ using TekstilScada.Repositories;
 
 using TekstilScada.Services;
 
-
+using Microsoft.Extensions.DependencyInjection; // <--- AddJsonProtocol için BU ŞART
+using System.Text.Json.Serialization;
 
 // --- DTO Sınıfları (Global) ---
 
@@ -297,27 +298,23 @@ namespace TekstilScada.WebApp.Services
             // B. SignalR Bağlantısını Kur
 
             if (_hubConnection == null || _hubConnection.State == HubConnectionState.Disconnected)
-
             {
-
                 var hubUrl = new Uri(_httpClient.BaseAddress!, "/scadaHub");
 
-
-
                 _hubConnection = new HubConnectionBuilder()
-
                     .WithUrl(hubUrl, options =>
-
                     {
-
-                        // Token'ı Header'a ekle
-
                         options.AccessTokenProvider = () => Task.FromResult(_accessToken);
-
                     })
-
+                    // --- EKLENECEK KISIM BAŞLANGIÇ ---
+                    .AddJsonProtocol(options =>
+                    {
+                        options.PayloadSerializerOptions.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals;
+                        options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+                        options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+                    })
+                    // --- EKLENECEK KISIM BİTİŞ ---
                     .WithAutomaticReconnect()
-
                     .Build();
 
 
