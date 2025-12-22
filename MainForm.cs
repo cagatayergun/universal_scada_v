@@ -189,7 +189,9 @@ namespace TekstilScada
                     _pollingService,
                     _ftpTransferService
                 );
-
+                // --- EKLENECEK KISIM: OLAY ABONELÝÐÝ ---
+                _gatewayService.OnRemoteCommandReceived += CloudSyncService_OnRemoteCommandReceived;
+                // ----------------------------------------
                 await _gatewayService.StartAsync();
             }
             catch (Exception ex)
@@ -464,7 +466,15 @@ namespace TekstilScada
                 try { _activeVncViewerForm.Close(); } catch { }
             }
 
-            
+            if (_gatewayService != null)
+            {
+                // Gateway servisine StopAsync metodu eklediðinizi varsayýyoruz
+                // await _gatewayService.StopAsync(); 
+
+                // Veya en azýndan event aboneliðini kaldýrýn
+                _gatewayService.OnRemoteCommandReceived -= CloudSyncService_OnRemoteCommandReceived;
+            }
+            // ------------------------------------------
 
 
             _vncServer?.Stop();

@@ -3,7 +3,9 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using TekstilScada.Core.Models;
@@ -116,7 +118,7 @@ namespace TekstilScada.WebAPI.Hubs
         public void RegisterGateway()
         {
             _gatewayConnectionId = Context.ConnectionId;
-            Console.WriteLine($"[ScadaHub] Gateway Kayıt Oldu: {_gatewayConnectionId}");
+            System.Diagnostics.Debug.WriteLine($"[ScadaHub] Gateway Kayıt Oldu: {_gatewayConnectionId}");
         }
 
         // Bağlantı Koptuğunda
@@ -125,7 +127,7 @@ namespace TekstilScada.WebAPI.Hubs
             if (Context.ConnectionId == _gatewayConnectionId)
             {
                 _gatewayConnectionId = null;
-                Console.WriteLine("[ScadaHub] Gateway Koptu! İstekler iptal ediliyor.");
+                System.Diagnostics.Debug.WriteLine("[ScadaHub] Gateway Koptu! İstekler iptal ediliyor.");
 
                 foreach (var item in _pendingRequests)
                 {
@@ -141,18 +143,16 @@ namespace TekstilScada.WebAPI.Hubs
         private async Task<T?> InvokeOnGateway<T>(string targetMethod, params object[] args)
         {
             Console.WriteLine($"[Hub] InvokeOnGateway Çağrıldı. Hedef Metot: {targetMethod}");
-            Console.WriteLine($"[Hub] Şu anki Gateway ID: '{_gatewayConnectionId ?? "NULL"}'");
-            // -----------------------
+
             if (string.IsNullOrEmpty(_gatewayConnectionId))
             {
-                // Gateway yoksa hata fırlat veya default değer dön (Senaryoya göre değişir)
                 throw new Exception("Gateway (Ana Makine) bağlı değil.");
             }
 
             var requestId = Guid.NewGuid().ToString();
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            // 30 saniye zaman aşımı (Raporlar uzun sürebilir)
+            // Raporlar için süreyi artırdık
             var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             cts.Token.Register(() =>
             {
@@ -168,22 +168,25 @@ namespace TekstilScada.WebAPI.Hubs
             {
                 await Clients.Client(_gatewayConnectionId).SendAsync("HandleRequest", requestId, targetMethod, args);
 
-                // Cevabı bekle
                 var result = await tcs.Task;
 
                 if (result == null) return default;
 
-                // --- JSON STRING ÇÖZÜMLEME (DÜZELTİLDİ) ---
+                // --- JSON STRING ÇÖZÜMLEME (GÜNCELLENMİŞ KISIM) ---
                 if (result is string jsonString)
                 {
                     try
                     {
-                        // Gateway ile AYNI ayarları kullanmalıyız
+                        // Gateway ile BİREBİR AYNI ayarları kullanmalıyız
                         var options = new JsonSerializerOptions
                         {
                             PropertyNameCaseInsensitive = true,
-                            // NaN ve Infinity desteği buraya da eklenmeli
-                            NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals
+                            NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
+
+                            // --- BU İKİ SATIR EKSİK OLDUĞU İÇİN HATA ALIYORSUNUZ ---
+                            ReferenceHandler = ReferenceHandler.IgnoreCycles, // Döngüsel referans hatasını çözer
+                            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping // Türkçe karakterleri (İ, ş, ğ) kabul eder
+                                                                                  // -------------------------------------------------------
                         };
 
                         return JsonSerializer.Deserialize<T>(jsonString, options);
@@ -191,14 +194,25 @@ namespace TekstilScada.WebAPI.Hubs
                     catch (Exception ex)
                     {
                         Console.WriteLine($"[ScadaHub] JSON Çevirme Hatası ({targetMethod}): {ex.Message}");
+                        // Hatanın nerede olduğunu görmek için JSON'un bir kısmını yazdıralım
+                        if (jsonString.Length > 200)
+                            Console.WriteLine($"Hatalı JSON (Başlangıç): {jsonString.Substring(0, 200)}...");
+                        else
+                            Console.WriteLine($"Hatalı JSON: {jsonString}");
+
                         return default;
                     }
                 }
-                // ------------------------------------------
+                // --------------------------------------------------
 
                 if (result is JsonElement jsonElement)
                 {
-                    return jsonElement.Deserialize<T>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true,
+                        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping // Buraya da ekleyin
+                    };
+                    return jsonElement.Deserialize<T>(options);
                 }
 
                 return (T)result;
@@ -375,8 +389,8 @@ namespace TekstilScada.WebAPI.Hubs
         public async Task<List<ProductionReportItem>> GetProductionReport(ReportFilters filters)
         {
             // --- BU LOGU EKLEYİN ---
-            Console.WriteLine("[Hub] HALKA AÇIK METOT TETİKLENDİ: GetProductionReport");
-            Console.WriteLine($"[Hub] Gelen Filtre: MakineID={filters?.MachineId}");
+            System.Diagnostics.Debug.WriteLine("[Hub] HALKA AÇIK METOT TETİKLENDİ: GetProductionReport");
+            System.Diagnostics.Debug.WriteLine($"[Hub] Gelen Filtre: MakineID={filters?.MachineId}");
             // -----------------------
 
             // Eski tek satırlık kodu buraya taşıyoruz:

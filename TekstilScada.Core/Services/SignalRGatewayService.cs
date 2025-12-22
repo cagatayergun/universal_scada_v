@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ using TekstilScada.Core.Core; // ExcelExportHelper için
 using TekstilScada.Core.Models;
 using TekstilScada.Models;
 using TekstilScada.Repositories;
+using System.Text.Encodings.Web;
 using static TekstilScada.Core.Core.ExcelExportHelper;
 public class HourlyConsumptionData
 {
@@ -131,7 +133,8 @@ namespace TekstilScada.Services
             ReferenceHandler = ReferenceHandler.IgnoreCycles, // EF Core Döngüsel referans hatasını önler
             WriteIndented = false, // Veri boyutunu küçültür
             PropertyNameCaseInsensitive = true,
-            NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals // NaN ve Infinity desteği
+            NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals, // NaN ve Infinity desteği
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
         public SignalRGatewayService(
@@ -198,7 +201,7 @@ namespace TekstilScada.Services
                 if (_connection.State == HubConnectionState.Disconnected)
                 {
                     await _connection.StartAsync();
-                    Console.WriteLine("[Gateway] SignalR Sunucusuna Bağlandı.");
+                    System.Diagnostics.Debug.WriteLine("[Gateway] SignalR Sunucusuna Bağlandı.");
 
                     // 1. Kimlik Doğrulama: Ben bir Gateway'im
                     await _connection.InvokeAsync("RegisterGateway");
@@ -210,7 +213,7 @@ namespace TekstilScada.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Gateway] Bağlantı Başarısız: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[Gateway] Bağlantı Başarısız: {ex.Message}");
                 // Yeniden deneme mantığı burada eklenebilir veya Timer ile denenebilir
             }
         }
@@ -220,7 +223,7 @@ namespace TekstilScada.Services
             // --- GELEN İSTEKLERİ İŞLEME (REQUEST HANDLER) ---
             _connection.On<string, string, object[]>("HandleRequest", async (reqId, method, args) =>
             {
-                Console.WriteLine($"[Gateway] SİNYAL ALINDI! ID: {reqId}, Metot: '{method}'");
+                System.Diagnostics.Debug.WriteLine($"[Gateway] SİNYAL ALINDI! ID: {reqId}, Metot: '{method}'");
                 // -------------------------
                 object result = null;
                 string errorMessage = null;
@@ -233,7 +236,7 @@ namespace TekstilScada.Services
                 catch (Exception ex)
                 {
                     errorMessage = ex.Message;
-                    Console.WriteLine($"[Gateway] Hata ({method}): {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[Gateway] Hata ({method}): {ex.Message}");
                 }
 
                 // Sonucu (büyük olsa bile) parçalayarak gönder
@@ -252,20 +255,20 @@ namespace TekstilScada.Services
             // --- KOMUT ALMA ---
             _connection.On<int, string, string>("ReceiveCommand", (machineId, command, parameters) =>
             {
-                Console.WriteLine($"[Gateway] Komut Geldi -> Makine:{machineId}, Komut:{command}");
+                System.Diagnostics.Debug.WriteLine($"[Gateway] Komut Geldi -> Makine:{machineId}, Komut:{command}");
                 OnRemoteCommandReceived?.Invoke(machineId, command, parameters);
             });
 
             // --- BAĞLANTI OLAYLARI ---
             _connection.Closed += async (error) =>
             {
-                Console.WriteLine("[Gateway] Bağlantı Koptu!");
+                System.Diagnostics.Debug.WriteLine("[Gateway] Bağlantı Koptu!");
                 await Task.CompletedTask;
             };
 
             _connection.Reconnected += async (connectionId) =>
             {
-                Console.WriteLine("[Gateway] Tekrar Bağlandı. Yeniden Register olunuyor...");
+                System.Diagnostics.Debug.WriteLine("[Gateway] Tekrar Bağlandı. Yeniden Register olunuyor...");
                 await _connection.InvokeAsync("RegisterGateway");
             };
         }
@@ -282,52 +285,61 @@ namespace TekstilScada.Services
                     return;
                 }
 
-                // Veriyi JSON string'e çevir
                 string json;
                 try
                 {
+                    // 1. Serileştirmeyi Dene
                     json = JsonSerializer.Serialize(result, _jsonOptions);
+
+                    // --- BURAYA DÜŞÜYORSA SORUN ÇÖZÜLMÜŞTÜR ---
+                    System.Diagnostics.Debug.WriteLine($"[Gateway] ✅ SERİLEŞTİRME BAŞARILI! (ID: {reqId})");
+                    System.Diagnostics.Debug.WriteLine($"[Gateway] Veri Boyutu: {json.Length} bytes");
+                    // -------------------------------------------
                 }
                 catch (Exception ex)
                 {
+                    // 2. Hata Varsa Yakala
+                    System.Diagnostics.Debug.WriteLine($"[Gateway] ❌ JSON HATASI: {ex.Message}");
+                    if (ex.InnerException != null) System.Diagnostics.Debug.WriteLine($"[Gateway] ALT HATA: {ex.InnerException.Message}");
+
                     await _connection.InvokeAsync("SendResponseToHub", reqId, null, $"Serialization Error: {ex.Message}");
                     return;
                 }
 
-                // SignalR limiti genellikle 32KB civarıdır. Biz güvenli olsun diye 30KB parçalara bölelim.
-                const int chunkSize = 30 * 1024;
+                // 3. Parçalayıp Gönder (Chunking)
+                const int chunkSize = 20 * 1024; // 20KB Güvenli Boyut
 
-                // Küçük veri ise tek seferde gönder
                 if (json.Length <= chunkSize)
                 {
                     await _connection.InvokeAsync("SendResponseToHub", reqId, json, null);
+                    System.Diagnostics.Debug.WriteLine($"[Gateway] Tek parça gönderildi.");
                 }
                 else
                 {
-                    // Büyük veri: Parçala ve döngüyle gönder
                     int totalLength = json.Length;
                     int offset = 0;
+                    int partCount = 0;
 
                     while (offset < totalLength)
                     {
                         int remaining = totalLength - offset;
                         int currentChunkSize = Math.Min(remaining, chunkSize);
-
                         string chunk = json.Substring(offset, currentChunkSize);
                         offset += currentChunkSize;
                         bool isLast = (offset >= totalLength);
 
                         await _connection.InvokeAsync("ReceiveResponseChunk", reqId, chunk, isLast);
+                        partCount++;
 
-                        // Network buffer'ın şişmesini engellemek için mini bekleme
-                        // Çok büyük dosyalarda (örn 50MB) bu, UI donmasını engeller.
+                        // Çok hızlı gönderip ağı tıkamamak için mini bekleme
                         await Task.Delay(2);
                     }
+                    System.Diagnostics.Debug.WriteLine($"[Gateway] {partCount} parça halinde gönderildi.");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Gateway] Gönderim Hatası (Chunking): {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[Gateway] ❌ GÖNDERİM HATASI (Ağ/Hub): {ex.Message}");
             }
         }
 
@@ -491,18 +503,18 @@ namespace TekstilScada.Services
 
                 // -- RAPORLAR VE DASHBOARD --
                 case "GetProductionReport":
-                    Console.WriteLine("[Gateway] GetProductionReport İsteği Geldi.");
+                    System.Diagnostics.Debug.WriteLine("[Gateway] GetProductionReport İsteği Geldi.");
 
                     // 1. Filtreleri Çözümle
                     var filters = GetArg<ReportFilters>(args, 0);
 
                     if (filters == null)
                     {
-                        Console.WriteLine("[Gateway] HATA: Filtreler (ReportFilters) NULL geldi! Parametre okunamadı.");
+                        System.Diagnostics.Debug.WriteLine("[Gateway] HATA: Filtreler (ReportFilters) NULL geldi! Parametre okunamadı.");
                         return new List<ProductionReportItem>();
                     }
 
-                    Console.WriteLine($"[Gateway] Filtreler -> Başlangıç: {filters.StartTime}, Bitiş: {filters.EndTime}, MakineId: {filters.MachineId}");
+                    System.Diagnostics.Debug.WriteLine($"[Gateway] Filtreler -> Başlangıç: {filters.StartTime}, Bitiş: {filters.EndTime}, MakineId: {filters.MachineId}");
 
                     // 2. Veritabanından Sorgula
                     List<ProductionReportItem> data = null;
@@ -512,24 +524,24 @@ namespace TekstilScada.Services
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[Gateway] REPO HATASI: Veritabanı sorgusunda hata oluştu: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"[Gateway] REPO HATASI: Veritabanı sorgusunda hata oluştu: {ex.Message}");
                         throw; // Hatayı Hub'a fırlat ki orada da görelim
                     }
 
                     // 3. Sonucu Kontrol Et
                     if (data == null)
                     {
-                        Console.WriteLine("[Gateway] UYARI: Repo 'null' döndü.");
+                        System.Diagnostics.Debug.WriteLine("[Gateway] UYARI: Repo 'null' döndü.");
                         return new List<ProductionReportItem>();
                     }
 
-                    Console.WriteLine($"[Gateway] BAŞARILI: Veritabanından {data.Count} adet kayıt çekildi.");
+                    System.Diagnostics.Debug.WriteLine($"[Gateway] BAŞARILI: Veritabanından {data.Count} adet kayıt çekildi.");
 
                     // Veri varsa ilk kaydın dolu olup olmadığını kontrol et (Entity Framework Lazy Loading sorunu olabilir)
                     if (data.Count > 0)
                     {
                         var first = data[0];
-                        Console.WriteLine($"[Gateway] Örnek Veri -> Batch: {first.BatchId}, Ürün: {first.MusteriNo}, Miktar: {first.MachineId}");
+                        System.Diagnostics.Debug.WriteLine($"[Gateway] Örnek Veri -> Batch: {first.BatchId}, Ürün: {first.MusteriNo}, Miktar: {first.MachineId}");
                     }
 
                     return data;
