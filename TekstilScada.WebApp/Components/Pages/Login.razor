@@ -108,8 +108,23 @@
 
         if (loginSuccess)
         {
-            // DÜZELTME: forceLoad: true kaldırıldı
-            NavigationManager.NavigateTo("/select-factory");
+            // Kullanıcının rolünü Claims'den veya dönen objeden alalım
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.IsInRole("SystemAdmin"))
+            {
+                NavigationManager.NavigateTo("/admin"); // Sizin paneliniz
+            }
+            else if (user.IsInRole("CompanyAdmin"))
+            {
+                NavigationManager.NavigateTo("/portal"); // Firma Yöneticisi paneli
+            }
+            else
+            {
+                // Standart personel -> Fabrika seçim veya Ana sayfaya
+                NavigationManager.NavigateTo("/select-factory");
+            }
         }
         else
         {

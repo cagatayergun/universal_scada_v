@@ -1,0 +1,425 @@
+﻿@page "/admin"
+
+@rendermode InteractiveServer
+@using TekstilScada.WebAPI.Models
+@using System.Net.Http.Json
+@using System.Net.Http.Headers
+@using Blazored.LocalStorage
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "SystemAdmin")]
+@inject IHttpClientFactory HttpClientFactory
+@inject ILocalStorageService LocalStorage
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" GutterBottom="true" Color="Color.Primary">
+        <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Large" Class="mr-2" />
+        Sistem Yönetimi
+    </MudText>
+    <MudText Typo="Typo.subtitle1" Class="mb-4 text-muted">Şirketleri, fabrikaları ve yöneticileri tek bir yerden yönetin.</MudText>
+    @if (showDebug)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-3">
+            @debugError
+        </MudAlert>
+    }
+    <MudGrid>
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="4" Class="p-0">
+                <MudToolBar Class="mud-theme-primary">
+                    <MudText Typo="Typo.h6" Color="Color.Inherit">Şirketler</MudText>
+                    <MudSpacer />
+                    <MudIconButton Icon="@Icons.Material.Filled.AddCircle" Color="Color.Inherit" OnClick="OpenCompanyModal" Title="Yeni Şirket" />
+                </MudToolBar>
+                
+                <div class="pa-2">
+                    <MudTextField @bind-Value="searchString" Placeholder="Şirket Ara..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                </div>
+
+                @if (isLoading)
+                {
+                    <div class="d-flex justify-content-center pa-4">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                    </div>
+                }
+                else
+                {
+                    <MudList Clickable="true" @bind-SelectedValue="selectedCompanyObj" SelectionMode="SelectionMode.SingleSelection">
+                        @foreach (var company in FilteredCompanies)
+                        {
+                            <MudListItem Value="@company" OnClick="@(() => SelectCompany(company))">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <MudText Typo="Typo.body1" Style="font-weight: 500;">@company.CompanyName</MudText>
+                                    <MudChip T="string" Size="Size.Small" Color="@(company.IsActive ? Color.Success : Color.Error)" Variant="Variant.Text">
+                                        @(company.IsActive ? "Aktif" : "Pasif")
+                                    </MudChip>
+                                </div>
+                            </MudListItem>
+                            <MudDivider />
+                        }
+                        @if (!FilteredCompanies.Any())
+                        {
+                             <MudText Typo="Typo.body2" Class="pa-4 text-center text-muted">Kayıt bulunamadı.</MudText>
+                        }
+                    </MudList>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="8">
+            @if (selectedCompany != null)
+            {
+                <MudCard Elevation="4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h5">@selectedCompany.CompanyName</MudText>
+                            <MudText Typo="Typo.caption">ID: @selectedCompany.Id</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudTooltip Text="Şirketi Düzenle">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="EditSelectedCompany" />
+                            </MudTooltip>
+                            <MudTooltip Text="Şirketi Sil">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="DeleteSelectedCompany" />
+                            </MudTooltip>
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    
+                    <MudCardContent>
+                        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+                            <MudTabPanel Text="Fabrikalar" Icon="@Icons.Material.Filled.Factory">
+                                <div class="d-flex justify-content-end mb-2">
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenFactoryModal" Size="Size.Small">Fabrika Ekle</MudButton>
+                                </div>
+                                
+                                <MudTable Items="companyFactories" Dense="true" Hover="true" Striped="true" Elevation="0">
+                                    <HeaderContent>
+                                        <MudTh>Fabrika Adı</MudTh>
+                                        <MudTh>Lisans Anahtarı (Key)</MudTh>
+                                        <MudTh Style="text-align:right">İşlem</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate Context="factory">
+                                        <MudTd DataLabel="Ad">@factory.FactoryName</MudTd>
+                                        <MudTd DataLabel="Key"><code style="background:#eee; padding:2px 5px; border-radius:4px;">@factory.HardwareKey</code></MudTd>
+                                        <MudTd Style="text-align:right">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteFactory(factory))" />
+                                        </MudTd>
+                                    </RowTemplate>
+                                     <NoRecordsContent>
+                                        <MudText Typo="Typo.body2" Class="pa-2">Henüz fabrika eklenmemiş.</MudText>
+                                    </NoRecordsContent>
+                                </MudTable>
+                            </MudTabPanel>
+
+                            <MudTabPanel Text="Yöneticiler" Icon="@Icons.Material.Filled.SupervisorAccount">
+                                 <div class="d-flex justify-content-end mb-2">
+                                    <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="OpenAdminModal" Size="Size.Small">Yönetici Ekle</MudButton>
+                                </div>
+
+                                <MudTable Items="companyAdmins" Dense="true" Hover="true" Elevation="0">
+                                    <HeaderContent>
+                                        <MudTh>Ad Soyad</MudTh>
+                                        <MudTh>Kullanıcı Adı</MudTh>
+                                        <MudTh>Rol</MudTh>
+                                        <MudTh Style="text-align:right">İşlem</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate Context="user">
+                                        <MudTd DataLabel="Ad Soyad">@user.FullName</MudTd>
+                                        <MudTd DataLabel="Kullanıcı Adı">@user.Username</MudTd>
+                                        <MudTd DataLabel="Rol"><MudChip T="string" Size="Size.Small" Color="Color.Info">@user.Role</MudChip></MudTd>
+                                        <MudTd Style="text-align:right">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteUser(user))" />
+                                        </MudTd>
+                                    </RowTemplate>
+                                    <NoRecordsContent>
+                                        <MudAlert Severity="Severity.Warning" Dense="true">Yönetici tanımlanmamış!</MudAlert>
+                                    </NoRecordsContent>
+                                </MudTable>
+                            </MudTabPanel>
+                        </MudTabs>
+                    </MudCardContent>
+                </MudCard>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" ContentAlignment="HorizontalAlignment.Center" Class="mt-5 py-5">
+                    <MudText Typo="Typo.h6">Lütfen işlem yapmak için soldaki listeden bir şirket seçiniz.</MudText>
+                    <MudText>Veya yeni bir şirket ekleyerek başlayın.</MudText>
+                </MudAlert>
+            }
+        </MudItem>
+
+    </MudGrid>
+</MudContainer>
+
+
+@* ================= MODALS (MANUEL POPUP) ================= *@
+
+@* 1. ŞİRKET MODALI *@
+<MudOverlay Visible="showCompanyModal" DarkBackground="true" AutoClose="false" ZIndex="9999">
+    <MudPaper Class="pa-6" Style="min-width: 400px; max-width: 500px;" Elevation="4">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h6">@(editingCompany.Id == 0 ? "Yeni Şirket Oluştur" : "Şirket Düzenle")</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="() => showCompanyModal = false" Size="Size.Small" />
+        </div>
+
+        <MudTextField @bind-Value="editingCompany.CompanyName" Label="Şirket Adı" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+        <MudCheckBox @bind-Value="editingCompany.IsActive" Label="Aktif Şirket" Color="Color.Primary" />
+
+        <div class="d-flex justify-end mt-4">
+            <MudButton OnClick="() => showCompanyModal = false" Class="mr-2">İptal</MudButton>
+            <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="SaveCompany">Kaydet</MudButton>
+        </div>
+    </MudPaper>
+</MudOverlay>
+
+@* 2. FABRİKA MODALI *@
+<MudOverlay Visible="showFactoryModal" DarkBackground="true" AutoClose="false" ZIndex="9999">
+    <MudPaper Class="pa-6" Style="min-width: 400px; max-width: 500px;" Elevation="4">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h6">Yeni Fabrika Ekle</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="() => showFactoryModal = false" Size="Size.Small" />
+        </div>
+
+        <MudText Typo="Typo.body2" Class="mb-3 text-muted">Şirket: <b>@selectedCompany?.CompanyName</b></MudText>
+
+        <MudTextField @bind-Value="newFactory.FactoryName" Label="Fabrika Adı" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+        <MudTextField @bind-Value="newFactory.HardwareKey" Label="Donanım Anahtarı (Key)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+
+        <div class="d-flex justify-end mt-4">
+            <MudButton OnClick="() => showFactoryModal = false" Class="mr-2">İptal</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveFactory">Ekle</MudButton>
+        </div>
+    </MudPaper>
+</MudOverlay>
+
+@* 3. ADMİN MODALI *@
+<MudOverlay Visible="showAdminModal" DarkBackground="true" AutoClose="false" ZIndex="9999">
+    <MudPaper Class="pa-6" Style="min-width: 400px; max-width: 500px;" Elevation="4">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h6">Yeni Yönetici Ekle</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="() => showAdminModal = false" Size="Size.Small" />
+        </div>
+
+        <MudTextField @bind-Value="newAdminUser.FullName" Label="Ad Soyad" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+        <MudTextField @bind-Value="newAdminUser.Username" Label="Kullanıcı Adı" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+        <MudTextField @bind-Value="newAdminPassword" Label="Şifre" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Dense" />
+
+        <MudAlert Severity="Severity.Info" Class="mt-3" Dense="true">Bu kullanıcı tüm fabrikalara tam erişim yetkisiyle oluşturulacaktır.</MudAlert>
+
+        <div class="d-flex justify-end mt-4">
+            <MudButton OnClick="() => showAdminModal = false" Class="mr-2">İptal</MudButton>
+            <MudButton Color="Color.Warning" Variant="Variant.Filled" OnClick="SaveAdmin">Oluştur</MudButton>
+        </div>
+    </MudPaper>
+</MudOverlay>
+
+@code {
+    // MODELLER
+    public class Company { public int Id { get; set; } public string CompanyName { get; set; } public bool IsActive { get; set; } = true; }
+    public class CreateUserDto
+    {
+        // : CentralUser İBARESİNİ SİLDİK.
+        // Tüm özellikleri buraya açıkça yazıyoruz:
+
+        public int Id { get; set; }
+        public int CompanyId { get; set; }
+        public string Username { get; set; }
+        public string FullName { get; set; }
+        public string Password { get; set; }
+        public string Role { get; set; }
+
+        // Bu alanın burada açıkça yazılması, verinin kaybolmamasını sağlar.
+        public string AllowedFactoryIds { get; set; }
+    }
+
+    // STATE
+    private List<Company> companies = new();
+    private object selectedCompanyObj; // MudList için bağlayıcı
+    private Company? selectedCompany;
+    private List<CentralFactory> companyFactories = new();
+    private List<CentralUser> companyAdmins = new();
+    
+    private bool isLoading = true;
+    private string searchString = "";
+    private HttpClient Http;
+    // Hata Mesajı Gösterimi İçin
+    private string debugError = "";
+    private bool showDebug = false;
+    // Modallar
+    private bool showCompanyModal, showFactoryModal, showAdminModal;
+    private DialogOptions dialogOptions = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+    
+    // Edit Objeleri
+    private Company editingCompany = new();
+    private CentralFactory newFactory = new();
+    private CentralUser newAdminUser = new();
+    private string newAdminPassword = "";
+
+    // Arama Filtresi
+    private List<Company> FilteredCompanies => companies.Where(c => string.IsNullOrEmpty(searchString) || c.CompanyName.Contains(searchString, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 1. Client Oluştur
+        Http = HttpClientFactory.CreateClient("WebApiClient");
+
+        // 🔴 KRİTİK DÜZELTME: TOKEN EKLEME 🔴
+        // "Listem çıkmıyor" hatasının çözümü buradadır.
+        var token = await LocalStorage.GetItemAsync<string>("authToken");
+        if (!string.IsNullOrEmpty(token))
+        {
+            Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+
+        await LoadCompanies();
+    }
+
+    private async Task LoadCompanies()
+    {
+        isLoading = true;
+        debugError = ""; // Önceki hatayı temizle
+        try
+        {
+            var response = await Http.GetAsync("api/CentralManagement/companies");
+
+            if (response.IsSuccessStatusCode)
+            {
+                companies = await response.Content.ReadFromJsonAsync<List<Company>>() ?? new List<Company>();
+            }
+            else
+            {
+                // HATA DETAYINI YAKALA
+                var content = await response.Content.ReadAsStringAsync();
+                debugError = $"API Hatası! Kod: {response.StatusCode} - Detay: {content}";
+                showDebug = true;
+                Snackbar.Add($"Liste yüklenemedi: {response.StatusCode}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            debugError = $"Bağlantı Hatası: {ex.Message}";
+            showDebug = true;
+            Snackbar.Add("Sunucuya ulaşılamadı.", Severity.Error);
+        }
+        finally { isLoading = false; }
+    }
+
+    private async Task SelectCompany(Company company)
+    {
+        selectedCompany = company;
+        selectedCompanyObj = company; // UI vurgusu için
+        await LoadCompanyDetails(company.Id);
+    }
+
+    private async Task LoadCompanyDetails(int companyId)
+    {
+        try
+        {
+            companyFactories = await Http.GetFromJsonAsync<List<CentralFactory>>($"api/CentralManagement/factories/{companyId}") ?? new List<CentralFactory>();
+            companyAdmins = await Http.GetFromJsonAsync<List<CentralUser>>($"api/CentralManagement/admins/{companyId}") ?? new List<CentralUser>();
+        }
+        catch (Exception ex) { Snackbar.Add($"Detaylar alınamadı: {ex.Message}", Severity.Error); }
+    }
+
+    // --- ŞİRKET İŞLEMLERİ ---
+    private void OpenCompanyModal() { editingCompany = new Company { IsActive = true }; showCompanyModal = true; }
+    private void EditSelectedCompany() { if(selectedCompany == null) return; editingCompany = new Company { Id = selectedCompany.Id, CompanyName = selectedCompany.CompanyName, IsActive = selectedCompany.IsActive }; showCompanyModal = true; }
+
+    private async Task SaveCompany()
+    {
+        if (string.IsNullOrWhiteSpace(editingCompany.CompanyName)) { Snackbar.Add("Şirket adı boş olamaz.", Severity.Warning); return; }
+        
+        try
+        {
+            HttpResponseMessage response;
+            if (editingCompany.Id == 0) response = await Http.PostAsJsonAsync("api/CentralManagement/company", editingCompany);
+            else response = await Http.PutAsJsonAsync($"api/CentralManagement/company/{editingCompany.Id}", editingCompany);
+
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadCompanies();
+                showCompanyModal = false;
+                Snackbar.Add("Şirket kaydedildi.", Severity.Success);
+                
+                // Eğer düzenleme yaptıysak seçimi güncelle
+                if(editingCompany.Id > 0 && selectedCompany?.Id == editingCompany.Id) 
+                {
+                    selectedCompany.CompanyName = editingCompany.CompanyName;
+                }
+            }
+            else Snackbar.Add("Kaydedilemedi.", Severity.Error);
+        }
+        catch (Exception ex) { Snackbar.Add($"Hata: {ex.Message}", Severity.Error); }
+    }
+
+    private async Task DeleteSelectedCompany()
+    {
+        if (selectedCompany == null) return;
+        bool? result = await DialogService.ShowMessageBox("Silme Onayı", $"{selectedCompany.CompanyName} silinecek. Onaylıyor musunuz?", yesText: "Sil", cancelText: "İptal");
+        if (result != true) return;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/CentralManagement/company/{selectedCompany.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadCompanies();
+                selectedCompany = null;
+                Snackbar.Add("Şirket silindi.", Severity.Success);
+            }
+            else Snackbar.Add("Silinemedi.", Severity.Error);
+        }
+        catch (Exception ex) { Snackbar.Add($"Hata: {ex.Message}", Severity.Error); }
+    }
+
+    // --- FABRİKA İŞLEMLERİ ---
+    private void OpenFactoryModal() { newFactory = new CentralFactory { CompanyId = selectedCompany.Id }; showFactoryModal = true; }
+
+    private async Task SaveFactory()
+    {
+        if (string.IsNullOrWhiteSpace(newFactory.FactoryName)) return;
+        newFactory.CompanyId = selectedCompany.Id;
+        var response = await Http.PostAsJsonAsync("api/CentralManagement/factory", newFactory);
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadCompanyDetails(selectedCompany.Id);
+            showFactoryModal = false;
+            Snackbar.Add("Fabrika eklendi.", Severity.Success);
+        }
+        else Snackbar.Add("Fabrika eklenemedi.", Severity.Error);
+    }
+
+    private async Task DeleteFactory(CentralFactory factory)
+    {
+         bool? result = await DialogService.ShowMessageBox("Sil", $"{factory.FactoryName} silinsin mi?", yesText:"Evet", cancelText:"Hayır");
+         if(result != true) return;
+
+         var response = await Http.DeleteAsync($"api/CentralManagement/factory/{factory.Id}");
+         if(response.IsSuccessStatusCode) { await LoadCompanyDetails(selectedCompany.Id); Snackbar.Add("Silindi", Severity.Success); }
+    }
+
+    // --- ADMIN İŞLEMLERİ ---
+    private void OpenAdminModal() { newAdminUser = new CentralUser { CompanyId = selectedCompany.Id }; newAdminPassword = ""; showAdminModal = true; }
+
+    private async Task SaveAdmin()
+    {
+        if (string.IsNullOrWhiteSpace(newAdminUser.Username) || string.IsNullOrWhiteSpace(newAdminPassword)) { Snackbar.Add("Eksik bilgi.", Severity.Warning); return; }
+
+        var dto = new CreateUserDto { CompanyId = selectedCompany.Id, FullName = newAdminUser.FullName, Username = newAdminUser.Username, Password = newAdminPassword, Role = "CompanyAdmin", AllowedFactoryIds = "ALL" };
+        var response = await Http.PostAsJsonAsync("api/CentralManagement/create-company-admin", dto);
+        
+        if (response.IsSuccessStatusCode) { await LoadCompanyDetails(selectedCompany.Id); showAdminModal = false; Snackbar.Add("Yönetici eklendi.", Severity.Success); }
+        else Snackbar.Add("Kullanıcı eklenemedi.", Severity.Error);
+    }
+
+    private async Task DeleteUser(CentralUser user)
+    {
+        bool? result = await DialogService.ShowMessageBox("Sil", $"{user.Username} silinsin mi?", yesText:"Evet", cancelText:"Hayır");
+        if(result != true) return;
+
+        var response = await Http.DeleteAsync($"api/CentralManagement/user/{user.Id}");
+        if(response.IsSuccessStatusCode) { await LoadCompanyDetails(selectedCompany.Id); Snackbar.Add("Kullanıcı silindi.", Severity.Success); }
+    }
+}

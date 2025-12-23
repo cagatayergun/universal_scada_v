@@ -1,0 +1,424 @@
+﻿@page "/portal"
+@rendermode InteractiveServer
+
+@using TekstilScada.WebAPI.Models
+@using System.Net.Http.Json
+@using System.Net.Http.Headers
+@using Blazored.LocalStorage
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [Authorize(Roles = "CompanyAdmin")]
+
+@inject IHttpClientFactory HttpClientFactory
+@inject ILocalStorageService LocalStorage
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+
+    <div class="d-flex justify-space-between align-center mb-4">
+        <div>
+            <MudText Typo="Typo.h4" Color="Color.Primary">
+                <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Class="mr-2" />
+                Personel Yönetimi
+            </MudText>
+            <MudText Typo="Typo.subtitle1" Class="text-muted ml-1">
+                Fabrikalarınıza erişecek operatörleri ve yetkilerini yönetin.
+            </MudText>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="CreateNewUser">
+            Yeni Personel Ekle
+        </MudButton>
+    </div>
+
+    @if (showDebug)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-3">@debugError</MudAlert>
+    }
+
+    <MudPaper Elevation="4">
+        @if (isLoading)
+        {
+            <div class="d-flex justify-center py-8">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else
+        {
+            <MudTable Items="myUsers" Dense="true" Hover="true" Striped="true" Filter="new Func<CentralUser, bool>(FilterFunc)">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">Personel Listesi</MudText>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="searchString" Placeholder="Ara..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>Ad Soyad</MudTh>
+                    <MudTh>Kullanıcı Adı</MudTh>
+                    <MudTh>Rol</MudTh>
+                    <MudTh>Erişilebilen Fabrikalar</MudTh>
+                    <MudTh Style="text-align:right">İşlemler</MudTh>
+                </HeaderContent>
+                <RowTemplate Context="user">
+                    <MudTd DataLabel="Ad Soyad"><b>@user.FullName</b></MudTd>
+                    <MudTd DataLabel="Kullanıcı Adı">@user.Username</MudTd>
+                    <MudTd DataLabel="Rol">
+                        <MudChip T="string" Size="Size.Small" Color="Color.Secondary">@user.Role</MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Fabrikalar">
+                        <MudText Typo="Typo.body2" Style="font-size: 0.85rem;">
+                            @GetFactoryNames(user.AllowedFactoryIds)
+                        </MudText>
+                    </MudTd>
+                    <MudTd Style="text-align:right">
+                        <MudTooltip Text="Düzenle">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditUser(user))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Sil">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteUser(user))" />
+                        </MudTooltip>
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager RowsPerPageString="Sayfa başına kayıt:" />
+                </PagerContent>
+                <NoRecordsContent>
+                    <MudText Typo="Typo.body2" Class="pa-4 text-center">Henüz personel eklenmemiş.</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        }
+    </MudPaper>
+</MudContainer>
+
+@* ================= MODAL (MANUEL POPUP / MUD OVERLAY) ================= *@
+<MudOverlay Visible="showModal" DarkBackground="true" AutoClose="false" ZIndex="9999">
+    <MudPaper Class="pa-6" Style="min-width: 400px; max-width: 600px; width: 100%;" Elevation="4">
+
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@(editingUser.Id == 0 ? Icons.Material.Filled.PersonAdd : Icons.Material.Filled.Edit)" Class="mr-2" />
+                @(editingUser.Id == 0 ? "Yeni Personel Ekle" : "Personel Düzenle")
+            </MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="CloseModal" Size="Size.Small" />
+        </div>
+
+        <MudTextField @bind-Value="editingUser.FullName" Label="Ad Soyad" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+
+        <MudTextField @bind-Value="editingUser.Username" Label="Kullanıcı Adı" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3"
+                      Disabled="@(editingUser.Id > 0)" HelperText="@(editingUser.Id > 0 ? "Kullanıcı adı değiştirilemez." : "")" />
+
+        <MudTextField @bind-Value="editingPassword" Label="Şifre" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Dense"
+                      HelperText="@(editingUser.Id > 0 ? "Değiştirmek istemiyorsanız boş bırakın." : "Yeni kullanıcı için zorunludur.")" Class="mb-4" />
+
+        <MudDivider Class="my-4" />
+
+        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">Fabrika Erişim Yetkileri</MudText>
+        <MudText Typo="Typo.caption" Class="mb-2 d-block text-muted">Bu personel hangi fabrikaları görebilsin?</MudText>
+
+        @if (myFactories != null && myFactories.Any())
+        {
+            <div style="max-height: 200px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 4px;">
+                @foreach (var factory in myFactories)
+                {
+                    <MudCheckBox T="bool"
+                                 Label="@($"{factory.FactoryName} ({factory.HardwareKey})")"
+                                 Color="Color.Primary"
+                                 Dense="true"
+                                 Checked="@IsFactorySelected(factory.Id)"
+                                 CheckedChanged="@((bool val) => ToggleFactory(factory.Id, val))" />
+                }
+            </div>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true">Sisteme tanımlı fabrikanız bulunmuyor.</MudAlert>
+        }
+
+        <div class="d-flex justify-end mt-6">
+            <MudButton OnClick="CloseModal" Class="mr-2">İptal</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveUser" Disabled="@isSaving">
+                @if (isSaving)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">Kaydediliyor</MudText>
+                }
+                else
+                {
+                    <MudText>Kaydet</MudText>
+                }
+            </MudButton>
+        </div>
+
+    </MudPaper>
+</MudOverlay>
+
+@code {
+    // --- MODELS ---
+    public class CreateUserDto
+    {
+        // : CentralUser İBARESİNİ SİLDİK.
+        // Tüm özellikleri buraya açıkça yazıyoruz:
+
+        public int Id { get; set; }
+        public int CompanyId { get; set; }
+        public string Username { get; set; }
+        public string FullName { get; set; }
+        public string Password { get; set; }
+        public string Role { get; set; }
+
+        // Bu alanın burada açıkça yazılması, verinin kaybolmamasını sağlar.
+        public string AllowedFactoryIds { get; set; }
+    }
+
+    // --- STATE VARIABLES ---
+    private List<CentralUser> myUsers = new();
+    private List<CentralFactory> myFactories = new();
+
+    private bool isLoading = true;
+    private bool showModal = false;
+    private bool isSaving = false;
+    private string searchString = "";
+
+    // Debug
+    private string debugError = "";
+    private bool showDebug = false;
+
+    private CentralUser editingUser = new();
+    private string editingPassword = "";
+    private List<int> selectedFactoryIds = new();
+
+    private HttpClient Http;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Http = HttpClientFactory.CreateClient("WebApiClient");
+
+        // 🔴 TOKEN DÜZELTMESİ: API'ye Token gönderilmesi sağlandı 🔴
+        var token = await LocalStorage.GetItemAsync<string>("authToken");
+        if (!string.IsNullOrEmpty(token))
+        {
+            Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+        else
+        {
+            debugError = "Hata: Oturum anahtarı bulunamadı. Lütfen çıkış yapıp tekrar girin.";
+            showDebug = true;
+        }
+
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        debugError = "";
+        try
+        {
+            // 1. Fabrikaları Çek
+            var facResponse = await Http.GetAsync("api/CentralManagement/my-factories");
+            if (facResponse.IsSuccessStatusCode)
+            {
+                myFactories = await facResponse.Content.ReadFromJsonAsync<List<CentralFactory>>() ?? new List<CentralFactory>();
+            }
+            else
+            {
+                debugError += $"Fabrika Hatası: {facResponse.StatusCode} ";
+                showDebug = true;
+            }
+
+            // 2. Kullanıcıları Çek
+            var usrResponse = await Http.GetAsync("api/CentralManagement/company-users");
+            if (usrResponse.IsSuccessStatusCode)
+            {
+                myUsers = await usrResponse.Content.ReadFromJsonAsync<List<CentralUser>>() ?? new List<CentralUser>();
+            }
+            else
+            {
+                debugError += $"Kullanıcı Hatası: {usrResponse.StatusCode}";
+                showDebug = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            debugError = $"Bağlantı Hatası: {ex.Message}";
+            showDebug = true;
+            Snackbar.Add("Sunucuya erişilemiyor.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // --- TABLO ARAMA FİLTRESİ ---
+    private bool FilterFunc(CentralUser user)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (user.FullName.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (user.Username.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
+    // --- HELPER METHODS ---
+    private string GetFactoryNames(string allowedIds)
+    {
+        if (string.IsNullOrEmpty(allowedIds)) return "Yetki Yok";
+        if (allowedIds == "ALL") return "Tüm Fabrikalar";
+
+        var ids = allowedIds.Split(',')
+                            .Where(s => int.TryParse(s, out _))
+                            .Select(int.Parse)
+                            .ToList();
+
+        var names = myFactories.Where(f => ids.Contains(f.Id))
+                               .Select(f => f.FactoryName);
+
+        var result = string.Join(", ", names);
+        return string.IsNullOrEmpty(result) ? "Bilinmeyen Fabrika" : result;
+    }
+
+    // --- MODAL ACTIONS ---
+    private void CreateNewUser()
+    {
+        editingUser = new CentralUser { Id = 0, Role = "User" };
+        editingPassword = "";
+        selectedFactoryIds.Clear();
+        showModal = true;
+    }
+
+    private void EditUser(CentralUser user)
+    {
+        editingUser = new CentralUser
+        {
+            Id = user.Id,
+            CompanyId = user.CompanyId,
+            Username = user.Username,
+            FullName = user.FullName,
+            Role = user.Role,
+            AllowedFactoryIds = user.AllowedFactoryIds
+        };
+
+        editingPassword = "";
+        selectedFactoryIds = new List<int>();
+
+        if (!string.IsNullOrEmpty(user.AllowedFactoryIds) && user.AllowedFactoryIds != "ALL")
+        {
+            selectedFactoryIds = user.AllowedFactoryIds.Split(',')
+                .Where(s => int.TryParse(s, out _))
+                .Select(int.Parse)
+                .ToList();
+        }
+        else if (user.AllowedFactoryIds == "ALL")
+        {
+            selectedFactoryIds = myFactories.Select(f => f.Id).ToList();
+        }
+
+        showModal = true;
+    }
+
+    private void CloseModal() => showModal = false;
+
+    // Checkbox Mantığı
+    private bool IsFactorySelected(int factoryId) => selectedFactoryIds.Contains(factoryId);
+
+    private void ToggleFactory(int factoryId, bool isChecked)
+    {
+        if (isChecked)
+        {
+            if (!selectedFactoryIds.Contains(factoryId)) selectedFactoryIds.Add(factoryId);
+        }
+        else
+        {
+            if (selectedFactoryIds.Contains(factoryId)) selectedFactoryIds.Remove(factoryId);
+        }
+    }
+
+    // --- CRUD ---
+    private async Task SaveUser()
+    {
+        if (string.IsNullOrWhiteSpace(editingUser.Username) || string.IsNullOrWhiteSpace(editingUser.FullName))
+        {
+            Snackbar.Add("Ad Soyad ve Kullanıcı Adı zorunludur.", Severity.Warning);
+            return;
+        }
+
+        if (editingUser.Id == 0 && string.IsNullOrWhiteSpace(editingPassword))
+        {
+            Snackbar.Add("Yeni kullanıcı için şifre belirlemelisiniz.", Severity.Warning);
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            // ID listesini virgüllü string'e çevir
+            if (selectedFactoryIds.Count == myFactories.Count && myFactories.Count > 0)
+                editingUser.AllowedFactoryIds = "ALL"; // Hepsi seçiliyse "ALL" diyebiliriz (tercihen)
+            else
+                editingUser.AllowedFactoryIds = string.Join(",", selectedFactoryIds);
+
+            var dto = new CreateUserDto
+            {
+                Id = editingUser.Id,
+                Username = editingUser.Username,
+                FullName = editingUser.FullName,
+                Password = editingPassword,
+                Role = "User",
+                AllowedFactoryIds = editingUser.AllowedFactoryIds
+            };
+
+            // Not: Backend'de save-sub-user hem insert hem update yapabiliyor olmalı
+            var response = await Http.PostAsJsonAsync("api/CentralManagement/save-sub-user", dto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadData();
+                showModal = false;
+                Snackbar.Add("Personel başarıyla kaydedildi.", Severity.Success);
+            }
+            else
+            {
+                var msg = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Kayıt başarısız: {msg}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Hata: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task DeleteUser(CentralUser user)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Silme Onayı",
+            $"{user.FullName} personelini silmek istediğinize emin misiniz?",
+            yesText: "Evet, Sil", cancelText: "İptal");
+
+        if (result != true) return;
+
+        try
+        {
+            // Dikkat: Backend'de bu endpoint olmalı: DELETE api/CentralManagement/user/{id}
+            // Admin sayfasında kullandığımız endpoint ile aynıdır.
+            var response = await Http.DeleteAsync($"api/CentralManagement/user/{user.Id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadData();
+                Snackbar.Add("Personel silindi.", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Silme işlemi başarısız.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Hata: {ex.Message}", Severity.Error);
+        }
+    }
+}

@@ -17,4 +17,11 @@
         public string Role { get; set; }
         public string AllowedFactoryIds { get; set; } // "1,2" veya "ALL"
     }
+    public class Company
+    {
+        public int Id { get; set; }
+        public string CompanyName { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
 }

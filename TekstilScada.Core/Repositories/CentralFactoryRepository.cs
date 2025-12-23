@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
 using TekstilScada.WebAPI.Models;
+using System.Collections.Generic;
+using System;
 
 namespace TekstilScada.WebAPI.Repositories
 {
@@ -10,7 +12,6 @@ namespace TekstilScada.WebAPI.Repositories
 
         public CentralFactoryRepository(IConfiguration configuration)
         {
-            // appsettings.json'dan okur
             _connectionString = configuration.GetConnectionString("CentralConnection");
         }
 
@@ -47,30 +48,27 @@ namespace TekstilScada.WebAPI.Repositories
                     Console.WriteLine($"DB Hatası (Factory): {ex.Message}");
                 }
             }
-            return null; // Bulunamadı veya hata oluştu
+            return null;
         }
+
         public List<CentralFactory> GetFactoriesByIds(string allowedIds, int companyId)
         {
             var list = new List<CentralFactory>();
-            using (var connection = new MySql.Data.MySqlClient.MySqlConnection(_connectionString))
+            using (var connection = new MySqlConnection(_connectionString))
             {
                 connection.Open();
                 string query;
 
                 if (allowedIds == "ALL")
                 {
-                    // Firmaya ait TÜM aktif fabrikalar
                     query = "SELECT * FROM Factories WHERE CompanyId = @CompId AND IsActive = 1";
                 }
                 else
                 {
-                    // Sadece ID listesindekiler (SQL Injection riskine karşı parametre veya FIND_IN_SET kullanılabilir)
-                    // Basitlik adına string interpolation yapıyoruz ama ID'leri integer'a çevirip güvenli hale getirmek en iyisidir.
-                    // Örn: allowedIds "1,2,3" gelir.
                     query = $"SELECT * FROM Factories WHERE CompanyId = @CompId AND IsActive = 1 AND Id IN ({allowedIds})";
                 }
 
-                using (var cmd = new MySql.Data.MySqlClient.MySqlCommand(query, connection))
+                using (var cmd = new MySqlCommand(query, connection))
                 {
                     cmd.Parameters.AddWithValue("@CompId", companyId);
                     using (var reader = cmd.ExecuteReader())
@@ -89,6 +87,62 @@ namespace TekstilScada.WebAPI.Repositories
                 }
             }
             return list;
+        }
+
+        public List<CentralFactory> GetFactoriesByCompanyId(int companyId)
+        {
+            var list = new List<CentralFactory>();
+            using (var conn = new MySqlConnection(_connectionString))
+            {
+                conn.Open();
+                var cmd = new MySqlCommand("SELECT * FROM Factories WHERE CompanyId = @CId", conn);
+                cmd.Parameters.AddWithValue("@CId", companyId);
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        list.Add(new CentralFactory
+                        {
+                            Id = reader.GetInt32("Id"),
+                            CompanyId = reader.GetInt32("CompanyId"),
+                            FactoryName = reader.GetString("FactoryName"),
+                            HardwareKey = reader.GetString("HardwareKey")
+                        });
+                    }
+                }
+            }
+            return list;
+        }
+
+        public bool AddFactory(CentralFactory factory)
+        {
+            using (var conn = new MySqlConnection(_connectionString))
+            {
+                conn.Open();
+                // DÜZELTME: CreatedAt kaldırıldı
+                string query = "INSERT INTO Factories (CompanyId, FactoryName, HardwareKey, IsActive) VALUES (@CId, @Name, @Key, 1)";
+
+                using (var cmd = new MySqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@CId", factory.CompanyId);
+                    cmd.Parameters.AddWithValue("@Name", factory.FactoryName);
+                    cmd.Parameters.AddWithValue("@Key", factory.HardwareKey);
+
+                    return cmd.ExecuteNonQuery() > 0;
+                }
+            }
+        }
+
+        public bool DeleteFactory(int factoryId)
+        {
+            using (var conn = new MySqlConnection(_connectionString))
+            {
+                conn.Open();
+                var cmd = new MySqlCommand("DELETE FROM Factories WHERE Id = @Id", conn);
+                cmd.Parameters.AddWithValue("@Id", factoryId);
+                return cmd.ExecuteNonQuery() > 0;
+            }
         }
     }
 }
