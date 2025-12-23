@@ -237,7 +237,9 @@ namespace TekstilScada.WebApp.Services
 
         private readonly JsonSerializerOptions _serializerOptions;
 
-
+        // KULLANICI YETKİLERİ (Hafızada tutulacak)
+        public List<int> UserAllowedFactoryIds { get; private set; } = new();
+        public string UserRole { get; private set; } = "";
 
         // Canlı Veriler (Anlık Durumlar)
 
@@ -413,63 +415,158 @@ namespace TekstilScada.WebApp.Services
 
         }
 
-
+    
 
         // --- 2. YENİ LOGIN METODU ---
 
         private async Task LoginAndGetTokenAsync()
-
         {
-
             try
-
             {
-
                 // API'deki AuthController'a sabit admin bilgileriyle istek atıyoruz (Köprü Modu)
-
                 var loginData = new { Username = "admin", Password = "1234" };
-
                 var response = await _httpClient.PostAsJsonAsync("api/auth/login", loginData);
 
-
-
                 if (response.IsSuccessStatusCode)
-
                 {
-
                     var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
-
                     _accessToken = result?.Token ?? string.Empty;
 
+                    // --- EKLENEN KISIM BAŞLANGIÇ ---
+                    // Token'ı HttpClient'ın varsayılan başlıklarına ekliyoruz.
+                    // Böylece GetMyFactoriesAsync gibi sonraki isteklerde bu token otomatik gönderilir.
+                    if (!string.IsNullOrEmpty(_accessToken))
+                    {
+                        _httpClient.DefaultRequestHeaders.Authorization =
+                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
+                    }
+                    // --- EKLENEN KISIM BİTİŞ ---
                 }
-
                 else
-
                 {
-
                     Console.WriteLine("[ScadaService] API Login Başarısız! Token alınamadı.");
-
                 }
-
             }
-
             catch (Exception ex)
-
             {
-
                 Console.WriteLine($"[ScadaService] Login Hatası: {ex.Message}");
-
             }
+        }
 
+        // Yardımcı Metot: Virgülle ayrılmış string'i listeye çevir
+        private void ParseAllowedFactories(string allowedIds)
+        {
+            UserAllowedFactoryIds.Clear();
+
+            if (string.IsNullOrEmpty(allowedIds)) return;
+
+            if (allowedIds.ToUpper() == "ALL")
+            {
+                // 'ALL' yetkisi varsa, dinamik olarak tümünü veya özel bir kodu ekleyebiliriz.
+                // Şimdilik mantıksal olarak 1 ve 2'yi ekleyelim veya veritabanından fabrika listesi çekilmeli.
+                // Burada basitlik adına 1-10 arası yetki veriyoruz (Test için)
+                UserAllowedFactoryIds.AddRange(new[] { 1, 2, 3 });
+            }
+            else
+            {
+                var parts = allowedIds.Split(',');
+                foreach (var part in parts)
+                {
+                    if (int.TryParse(part.Trim(), out int fid))
+                    {
+                        UserAllowedFactoryIds.Add(fid);
+                    }
+                }
+            }
+            Console.WriteLine($"[ScadaService] Yetkili Fabrikalar: {string.Join(",", UserAllowedFactoryIds)}");
+        }
+
+        // --- 2. ABONELİK METODU (YENİ) ---
+        // Dashboard açıldığında bu metot çağrılacak
+        public async Task SubscribeToFactoryGroupsAsync()
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
+
+            if (UserAllowedFactoryIds.Any())
+            {
+                try
+                {
+                    // Hub üzerindeki 'SubscribeToFactories' metodunu çağır
+                    await _hubConnection.InvokeAsync("SubscribeToFactories", UserAllowedFactoryIds);
+                    Console.WriteLine("[ScadaService] Fabrika gruplarına abone olundu.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ScadaService] Abonelik hatası: {ex.Message}");
+                }
+            }
+        }
+
+        // --- 3. LOGIN RESPONSE MODELİ (GÜNCELLEME) ---
+        // API'deki AuthController'dan dönen JSON yapısıyla aynı olmalı
+        private class LoginResponse
+        {
+            public string Token { get; set; }
+            public string FullName { get; set; }
+            public string Role { get; set; }
+            public string AllowedFactories { get; set; } // "1,2" veya "ALL"
         }
 
 
 
         // Token Yanıt Modeli
 
-        private class LoginResponse { public string Token { get; set; } }
 
 
+        // A. Yetkili Fabrikaları Listele
+        public async Task<List<CentralFactoryDto>> GetMyFactoriesAsync()
+        {
+            try
+            {
+                // HttpClient artık yukarıdaki düzeltme sayesinde Authorization header'ı ile gidecek
+                return await _httpClient.GetFromJsonAsync<List<CentralFactoryDto>>("api/factory/my-factories")
+                       ?? new List<CentralFactoryDto>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Fabrika listesi alınamadı: {ex.Message}");
+                return new List<CentralFactoryDto>();
+            }
+        }
+
+        // DTO Sınıfı (ScadaDataService sınıfının dışına veya içine)
+        public class CentralFactoryDto
+        {
+            public int Id { get; set; }
+            public string FactoryName { get; set; }
+        }
+
+        // B. Fabrika Seç ve Abone Ol (KRİTİK NOKTA)
+        public async Task SelectFactoryAndSubscribeAsync(int factoryId)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
+
+            try
+            {
+                // 1. Önceki tüm verileri temizle (Önceki fabrikanın verileri kalmasın)
+                MachineData.Clear();
+                MachineDetailsCache.Clear();
+                OnDataUpdated?.Invoke();
+
+                // 2. Hub'a "Sadece BU fabrikanın grubuna abone et" de
+                // Hub'daki metodu tek ID alacak şekilde güncelleyebilir veya List göndeririz.
+                await _hubConnection.InvokeAsync("SubscribeToFactories", new List<int> { factoryId });
+
+                Console.WriteLine($"[ScadaService] Fabrika {factoryId} seçildi ve veriler bekleniyor...");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ScadaService] Fabrika seçimi hatası: {ex.Message}");
+            }
+        }
+
+        // DTO Sınıfı (Dosya sonuna veya ayrı dosyaya)
+     
 
         public async ValueTask DisposeAsync()
 
@@ -1443,7 +1540,24 @@ namespace TekstilScada.WebApp.Services
             }
         }
 
+        public async Task<string> GetGatewayIpAsync(int machineId)
+        {
+            // Bağlantı yoksa varsayılan dön
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return "localhost:5901";
 
+            try
+            {
+                // Hub üzerindeki 'GetGatewayIpForMachine' metodunu çağır
+                // Bu metot, Gateway'in kaydettiği gerçek IP'yi (örn: 192.168.1.50:5901) dönecek
+                return await _hubConnection.InvokeAsync<string>("GetGatewayIpForMachine", machineId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Gateway IP'si alınamadı: {ex.Message}");
+                return "localhost:5901"; // Hata durumunda geliştirme ortamı varsayılanı
+            }
+        }
 
         public async Task LogUserActionAsync(int userId, string actionType, string details)
         {

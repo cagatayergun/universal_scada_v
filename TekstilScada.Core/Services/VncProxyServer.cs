@@ -36,11 +36,12 @@ namespace TekstilScada.Services
                 _listener.Start();
                 _cts = new CancellationTokenSource();
                 _listenTask = Task.Run(() => AcceptConnections(_cts.Token));
-                Console.WriteLine($"[VNC Proxy] WinForms Sunucusu Başladı: Port {_localPort}");
+                System.Diagnostics.Debug.WriteLine($"[VNC Proxy] WinForms Sunucusu Başladı: Port {_localPort}");
+
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[VNC Proxy] Başlatma Hatası: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[VNC Proxy] Başlatma Hatası: {ex.Message}");
             }
         }
 
@@ -72,7 +73,7 @@ namespace TekstilScada.Services
                     }
                 }
                 catch (HttpListenerException) { break; } // Listener durdurulduğunda
-                catch (Exception ex) { Console.WriteLine($"[VNC Proxy] Bağlantı Hatası: {ex.Message}"); }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[VNC Proxy] Bağlantı Hatası: {ex.Message}"); }
             }
         }
 
@@ -102,7 +103,7 @@ namespace TekstilScada.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[VNC Proxy] İşlem Hatası: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[VNC Proxy] İşlem Hatası: {ex.Message}");
             }
             finally
             {
@@ -177,7 +178,7 @@ namespace TekstilScada.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[VNC Proxy] Bağlantı sonlandı ({ip}): {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[VNC Proxy] Bağlantı sonlandı ({ip}): {ex.Message}");
             }
         }
     }

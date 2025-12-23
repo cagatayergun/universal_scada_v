@@ -12,7 +12,8 @@ if (!string.IsNullOrEmpty(connectionString))
 {
     TekstilScada.Core.AppConfig.SetConnectionString(connectionString);
 }
-
+builder.Services.AddScoped<TekstilScada.WebAPI.Repositories.CentralFactoryRepository>();
+builder.Services.AddScoped<TekstilScada.WebAPI.Repositories.CentralAuthRepository>();
 // --- 2. TEMEL SERVÝSLER ---
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

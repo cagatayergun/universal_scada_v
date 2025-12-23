@@ -1,0 +1,82 @@
+﻿@page "/select-factory"
+@using TekstilScada.WebApp.Services
+@inject ScadaDataService ScadaService
+@inject NavigationManager Navigation
+@layout TekstilScada.WebApp.Components.Layout.EmptyLayout
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-16">
+    <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true">Fabrika Seçimi</MudText>
+    <MudText Typo="Typo.subtitle1" Align="Align.Center" Class="mb-8">Lütfen izlemek istediğiniz tesisi seçiniz.</MudText>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-center">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+        </div>
+    }
+    else if (factories == null || !factories.Any())
+    {
+        <MudAlert Severity="Severity.Warning">Yetkili olduğunuz aktif bir fabrika bulunamadı.</MudAlert>
+    }
+    else
+    {
+        <MudGrid Justify="Justify.Center">
+            @foreach (var factory in factories)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="4" Class="hover-card" @onclick="() => ChooseFactory(factory.Id)">
+                        <MudCardHeader>
+                            <CardHeaderAvatar>
+                                <MudAvatar Color="Color.Secondary" Variant="Variant.Filled">
+                                    <MudIcon Icon="@Icons.Material.Filled.Factory" />
+                                </MudAvatar>
+                            </CardHeaderAvatar>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">@factory.FactoryName</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudText>Veri akışını başlatmak için tıklayın.</MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudContainer>
+
+<style>
+    .hover-card {
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+        .hover-card:hover {
+            transform: scale(1.05);
+            background-color: #f5f5f5;
+        }
+</style>
+
+@code {
+    private bool isLoading = true;
+    private List<ScadaDataService.CentralFactoryDto> factories = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ScadaService.InitializeAsync();
+        factories = await ScadaService.GetMyFactoriesAsync();
+        isLoading = false;
+    }
+
+    // GÜNCELLEME: Metot adı değiştirildi (SelectFactory -> ChooseFactory)
+    private async Task ChooseFactory(int factoryId)
+    {
+        isLoading = true;
+
+        // 1. Seçilen fabrikanın kanalına abone ol
+        await ScadaService.SelectFactoryAndSubscribeAsync(factoryId);
+
+        // 2. Ana Dashboard'a yönlendir
+        Navigation.NavigateTo("/");
+    }
+}

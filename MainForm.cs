@@ -52,7 +52,7 @@ namespace TekstilScada
         private readonly UserSettings_Control _user_setting;
     
         private VncProxyServer _vncServer;
-
+        string apiKey = LicenseManager.GenerateHardwareKey();
         public MainForm()
         {
             InitializeComponent();
@@ -162,20 +162,29 @@ namespace TekstilScada
             {
                 Console.WriteLine($"VNC Server Hatasý: {ex.Message}");
             }
+          
 
-            // === SIGNALR GATEWAY BAÞLATMA (YENÝ) ===
+            string hardwareKey = LicenseManager.GenerateHardwareKey();
+
+            if (string.IsNullOrEmpty(hardwareKey))
+            {
+                MessageBox.Show("Donaným kimliði alýnamadý!", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                this.Close();
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"Fabrika API Key: {hardwareKey}");
+
+            // 2. Gateway Servisini Baþlat
             try
             {
-                // NOT: Bu URL API projenizin çalýþtýðý adres olmalý
-                string hubUrl = "http://localhost:7039/scadaHub";
+                string hubUrl = "http://localhost:7039/scadaHub"; // API Adresiniz
+                string jwtToken = null; // Gateway için token þu an null kalabilir
 
-                // NOT: Buraya geçerli bir JWT Token veya API Key vermelisiniz.
-                // API tarafýnda 'Gateway' rolü için özel bir kullanýcý açýp token alabilirsiniz.
-                //string jwtToken = "BURAYA_GECERLI_BIR_JWT_TOKEN_GIRIN";
-                string jwtToken = null;
                 _gatewayService = new SignalRGatewayService(
                     hubUrl,
                     jwtToken,
+                    // hardwareKey, <--- BURADAKÝ FAZLALIK PARAMETREYÝ SÝLÝN (Service yapýnýza göre 3. sýrada yok)
                     _machineRepository,
                     _recipeRepository,
                     _userRepository,
@@ -187,20 +196,20 @@ namespace TekstilScada
                     _recipeConfigRepository,
                     _plcOperatorRepository,
                     _pollingService,
-                    _ftpTransferService
+                    _ftpTransferService,
+                    hardwareKey // <--- DOÐRU YER: En sonda (Service yapýnýzla uyumlu)
                 );
-                // --- EKLENECEK KISIM: OLAY ABONELÝÐÝ ---
+
                 _gatewayService.OnRemoteCommandReceived += CloudSyncService_OnRemoteCommandReceived;
-                // ----------------------------------------
+
                 await _gatewayService.StartAsync();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Gateway Servisi Baþlatýlamadý:\n{ex.Message}", "Baðlantý Hatasý", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show($"Gateway Hatasý: {ex.Message}", "Baðlantý", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
-
             // Cloud Sync Baþlatma (Eski sistem, eðer kullanýyorsanýz kalsýn)
-           
+
         }
 
         private void ApplyPermissions()

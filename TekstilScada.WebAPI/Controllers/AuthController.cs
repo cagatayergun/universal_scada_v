@@ -3,7 +3,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using TekstilScada.Core.Models; // UserViewModel için (yoksa silebilirsiniz, dynamic kullanırız)
+using TekstilScada.WebAPI.Repositories; // Yeni Repo'lar burada
+using TekstilScada.WebAPI.Models;       // Yeni Modeller burada
 
 namespace TekstilScada.WebAPI.Controllers
 {
@@ -12,59 +13,68 @@ namespace TekstilScada.WebAPI.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IConfiguration _configuration;
+        private readonly CentralAuthRepository _authRepo; // Yeni Repo
 
-        public AuthController(IConfiguration configuration)
+        public AuthController(IConfiguration configuration, CentralAuthRepository authRepo)
         {
             _configuration = configuration;
+            _authRepo = authRepo;
         }
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginRequest request)
+        public IActionResult Login([FromBody] LoginModel login)
         {
-            // BASİT DOĞRULAMA (Veritabanı olmadığı için)
-            // Kullanıcı Adı: admin
-            // Şifre: 1234
-            if (request.Username == "admin" && request.Password == "1234")
+            // 1. Merkezi Veritabanından Kullanıcıyı Sorgula
+            var user = _authRepo.Login(login.Username, login.Password);
+
+            if (user == null)
             {
-                var tokenString = GenerateJwtToken(request.Username);
-                return Ok(new { Token = tokenString, User = new { FullName = "Sistem Yöneticisi", Role = "Admin" } });
+                return Unauthorized(new { message = "Kullanıcı adı veya şifre hatalı (Merkezi DB)" });
             }
 
-            return Unauthorized("Kullanıcı adı veya şifre hatalı.");
+            // 2. Token Oluştur ve Yetkileri (Claims) İçine Göm
+            var tokenString = GenerateJwtToken(user);
+
+            return Ok(new
+            {
+                token = tokenString,
+                fullName = user.FullName,
+                role = user.Role,
+                allowedFactories = user.AllowedFactoryIds // Frontend bunu kullanacak
+            });
         }
 
-        private string GenerateJwtToken(string username)
+        private string GenerateJwtToken(CentralUser user)
         {
-            var jwtKey = _configuration["Jwt:Key"];
-            var jwtIssuer = _configuration["Jwt:Issuer"];
-            var jwtAudience = _configuration["Jwt:Audience"];
+            var jwtSettings = _configuration.GetSection("Jwt");
+            var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 
-            if (string.IsNullOrEmpty(jwtKey)) throw new Exception("Jwt:Key is missing in appsettings.json");
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var claims = new[]
+            var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.Sub, username),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(ClaimTypes.Role, "Admin") // Herkese Admin yetkisi veriyoruz şimdilik
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Role, user.Role),
+                
+                // --- KRİTİK YENİ BİLGİLER ---
+                new Claim("CompanyId", user.CompanyId.ToString()),
+                new Claim("AllowedFactoryIds", user.AllowedFactoryIds)
             };
 
-            var token = new JwtSecurityToken(
-                issuer: jwtIssuer,
-                audience: jwtAudience,
-                claims: claims,
-                expires: DateTime.Now.AddDays(365), // 1 Yıl geçerli token (Rahat test için)
-                signingCredentials: creds
-            );
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.UtcNow.AddMinutes(double.Parse(jwtSettings["DurationInMinutes"]!)),
+                Issuer = jwtSettings["Issuer"],
+                Audience = jwtSettings["Audience"],
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256)
+            };
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
         }
     }
 
-    // Basit İstek Modeli
-    public class LoginRequest
+    public class LoginModel
     {
         public string Username { get; set; }
         public string Password { get; set; }

@@ -2,11 +2,9 @@
 @using TekstilScada.WebApp.Services
 @using TekstilScada.Core.Localization
 @using Microsoft.Extensions.Localization
-@using Microsoft.AspNetCore.Components.Authorization
 @using MudBlazor
 @inject ScadaDataService ScadaService
 @inject VncSessionService VncSessionService
-@inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JSRuntime
 @inject IStringLocalizer<SharedResource> Loc
 @implements IDisposable
@@ -15,146 +13,143 @@
     <TitleContent>
         <MudText Typo="Typo.h6">
             <MudIcon Icon="@Icons.Material.Filled.DesktopWindows" Class="mr-3 mb-n1" />
-            @Loc["UzaktanErisim"] @(machine?.MachineName != null ? $"- {machine.MachineName}" : "")
+            VNC (Otomatik Bağlantı)
         </MudText>
     </TitleContent>
     <DialogContent>
+        @* --- DEBUG PANELİ --- *@
+        @if (machine != null)
+        {
+            <div style="font-size:10px; color:#888; margin-bottom:5px;">
+                <strong>Makine:</strong> @machine.MachineName <br />
+                <strong>Hedef PLC IP:</strong> @machine.IpAddress <br />
+                <strong>Algılanan Gateway:</strong> @gatewayDebugIp
+            </div>
+        }
+
         @if (isAccessDenied)
         {
-            @* --- SENARYO 1: BAĞLANTI REDDEDİLDİ --- *@
-            <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mb-4">
-                <MudText Typo="Typo.h6">@Loc["VncBaglantiReddedildi"]</MudText>
-                <MudText>@string.Format(Loc["VncBaskasiIzliyor"], currentViewerName)</MudText>
-            </MudAlert>
+            <MudAlert Severity="Severity.Warning">Erişim Reddedildi: @currentViewerName</MudAlert>
+        }
+        else if (machine == null)
+        {
+            <div class="d-flex flex-column justify-center align-center py-8" style="height: 300px;">
+                <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+                <MudText Class="mt-4">Makine bilgileri ve IP adresi alınıyor...</MudText>
+            </div>
         }
         else
         {
-            @* --- SENARYO 2: NORMAL BAĞLANTI --- *@
-            @if (machine != null)
-            {
-                <div style="width: 100%; height: 600px; display: flex; justify-content: center; align-items: center; background-color: #000; border: 1px solid #333;">
-                    @* Container ID'sini benzersiz yapıyoruz ki çakışma olmasın *@
-                    <div id="@vncContainerId" class="vnc-cursor-fix" style="width: 100%; height: 100%;"></div>
-
-                </div>
-            }
-            else
-            {
-                <div class="d-flex justify-center align-center py-8">
-                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-                    <MudText Class="ml-4">@Loc["MakineBilgileriYukleniyor"]</MudText>
-                </div>
-            }
+            <div style="width: 100%; height: 600px; display: flex; justify-content: center; align-items: center; background-color: #000; border: 1px solid #333;">
+                <div id="@vncContainerId" class="vnc-cursor-fix" style="width: 100%; height: 100%;"></div>
+            </div>
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="CloseConnection" Color="Color.Error" Variant="Variant.Filled">@Loc["Kapat"]</MudButton>
+        <MudButton OnClick="CloseConnection" Color="Color.Error" Variant="Variant.Filled">Kapat</MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
-
     [Parameter] public int MachineId { get; set; }
 
     private Machine? machine;
     private bool isConnected = false;
-    private string vncContainerId = $"vnc-container-{Guid.NewGuid()}"; // Benzersiz ID
+    private string vncContainerId = $"vnc-container-{Guid.NewGuid()}";
 
-    // Oturum Yönetimi
     private bool isAccessDenied = false;
     private string? currentViewerName;
-    private string myUserName = "Anonymous";
+    private string myUserName = "Operator";
+
+    // Debug için ekranda göstermek adına
+    private string gatewayDebugIp = "Bekleniyor...";
 
     protected override async Task OnInitializedAsync()
     {
-        // 1. Kullanıcıyı Bul
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        if (authState.User.Identity?.IsAuthenticated == true)
+        try
         {
-            myUserName = authState.User.Identity.Name ?? "Unknown";
-        }
+            var machines = await ScadaService.GetMachinesAsync();
+            if (machines != null)
+            {
+                machine = machines.FirstOrDefault(m => m.Id == MachineId);
+            }
 
-        // 2. Makineyi Getir
-        var machines = await ScadaService.GetMachinesAsync();
-        machine = machines?.FirstOrDefault(m => m.Id == MachineId);
+            var result = VncSessionService.TryEnterSession(MachineId, myUserName);
+            if (!result.Success)
+            {
+                isAccessDenied = true;
+                currentViewerName = result.CurrentUser;
+            }
 
-        // 3. Kilit Kontrolü
-        var result = VncSessionService.TryEnterSession(MachineId, myUserName);
-        if (!result.Success)
-        {
-            isAccessDenied = true;
-            currentViewerName = result.CurrentUser;
+            StateHasChanged();
         }
-        else
+        catch (Exception ex)
         {
-            isAccessDenied = false;
+            Console.WriteLine($"[VNC Init Hatası] {ex.Message}");
         }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (isAccessDenied) return;
+        if (isAccessDenied || machine == null) return;
 
-        if (machine != null && !isConnected)
+        if (!isConnected)
         {
             isConnected = true;
-
-            // --- DEĞİŞİKLİK BAŞLANGICI ---
-            // VNC URL'sini Windows Forms Gateway yapısına göre oluşturuyoruz.
-
             string wsUrl = "";
 
-            if (!string.IsNullOrEmpty(machine.VncAddress))
+            // --- OTOMATİK BAĞLANTI MANTIĞI ---
+
+            // 1. ÖNCELİK: Veritabanında elle girilmiş "ws://" ile başlayan özel bir adres varsa onu kullan.
+            // (VPN veya özel Proxy durumları için manuel override imkanı)
+            if (!string.IsNullOrEmpty(machine.VncAddress) && (machine.VncAddress.StartsWith("ws://") || machine.VncAddress.StartsWith("wss://")))
             {
-                // Eğer veritabanında zaten tam bir WebSocket adresi varsa (ws:// veya wss://) onu kullan
-                if (machine.VncAddress.StartsWith("ws://") || machine.VncAddress.StartsWith("wss://"))
-                {
-                    wsUrl = machine.VncAddress;
-                }
-                else
-                {
-                    // Yoksa Gateway formatına çevir:
-                    // machine.VncAddress -> Windows Forms PC IP'si ve Portu (Örn: 192.168.1.10:5901)
-                    // machine.IpAddress  -> Hedef PLC IP'si (Örn: 192.168.1.50)
-                    // 5900 -> Varsayılan VNC portu
-
-                    wsUrl = $"ws://localhost:5901/vnc/?target={machine.IpAddress}:5900";
-                }
-
-                try
-                {
-                    // JS'e benzersiz ID ve yeni URL'yi gönderiyoruz
-                    await JSRuntime.InvokeVoidAsync("startVnc", vncContainerId, wsUrl, machine.VncPassword);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"VNC Başlatma Hatası: {ex.Message}");
-                }
+                wsUrl = machine.VncAddress;
+                gatewayDebugIp = "Manuel DB Ayarı";
             }
             else
             {
-                Console.WriteLine("Hata: Makine VNC adresi tanımlı değil.");
+                // 2. OTOMATİK: Hub'a sor, Gateway IP'sini öğren!
+                string gatewayAddress = await ScadaService.GetGatewayIpAsync(MachineId);
+                gatewayDebugIp = gatewayAddress; // Ekrana yazmak için
+
+                // Hedef PLC IP'si (Veritabanından)
+                string targetIp = !string.IsNullOrEmpty(machine.IpAddress) ? machine.IpAddress : "127.0.0.1";
+
+                // URL OLUŞTUR: ws://[GatewayIP]/vnc/?target=[PlcIP]:5900
+                wsUrl = $"ws://{gatewayAddress}/vnc/?target={targetIp}:5900";
             }
-            // --- DEĞİŞİKLİK BİTİŞİ ---
+
+            Console.WriteLine($"[VNC] Bağlanılıyor: {wsUrl}");
+
+            // Ekranda IP'yi güncellemek için render tetikle
+            StateHasChanged();
+
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("startVnc", vncContainerId, wsUrl, machine.VncPassword ?? "");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[VNC JS Hatası] {ex.Message}");
+                isConnected = false;
+            }
         }
     }
 
     private void CloseConnection()
     {
-        // Dialogu kapat
         MudDialog.Close(DialogResult.Ok(true));
     }
 
     public async void Dispose()
     {
-        // 1. VNC JS bağlantısını kes
         if (isConnected)
         {
             try { await JSRuntime.InvokeVoidAsync("stopVnc", vncContainerId); } catch { }
         }
 
-        // 2. Kilidi kaldır
         if (!isAccessDenied)
         {
             VncSessionService.ExitSession(MachineId, myUserName);

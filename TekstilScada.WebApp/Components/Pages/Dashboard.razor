@@ -44,7 +44,7 @@
                     @foreach (var group in GroupedMachines)
                     {
                         <div class="machine-group-box" style="--group-color: @GetGroupColor(group.Key)">
-                            <div class="group-title">@group.Key</div>
+                            <div class="group-title">@group.Key (@group.Count())</div>
                             <div class="group-inner-panel" style="display: flex; flex-wrap: wrap; gap: 10px;">
                                 @foreach (var machineStatus in group)
                                 {
@@ -58,8 +58,8 @@
                 }
             </div>
 
+            @* Sidebar Charts (Aynen Korundu) *@
             <div class="sidebar-charts-column pl-2" style="min-width: 300px;">
-
                 <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
                     <div id="oeeChartContainer" style="width:100%; height:250px;"></div>
                     @if (!HourlyOeeData.Any())
@@ -67,23 +67,18 @@
                         <MudText Typo="Typo.caption" Align="MudBlazor.Align.Center" Class="d-block text-muted">@Loc["VeriBekleniyor"]</MudText>
                     }
                 </MudPaper>
-
                 <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
                     <div id="electricChartContainer" style="width:100%; height:250px;"></div>
                 </MudPaper>
-
                 <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
                     <div id="waterChartContainer" style="width:100%; height:250px;"></div>
                 </MudPaper>
-
                 <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
                     <div id="steamChartContainer" style="width:100%; height:250px;"></div>
                 </MudPaper>
-
                 <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
                     <div id="topAlarmsChartContainer" style="width:100%; height:250px;"></div>
                 </MudPaper>
-
             </div>
         </div>
     }
@@ -97,8 +92,6 @@
     private bool _isLoading = true;
     private bool _isDisposed = false;
     private bool _shouldRenderCharts = false;
-
-    // KULLANICI DİLİNİ SAKLAMAK İÇİN DEĞİŞKEN
     private CultureInfo _userCulture;
 
     // Sidebar verileri
@@ -124,22 +117,20 @@
     {
         try
         {
-            // 1. ADIM: Sayfa ilk açıldığında (doğru dil varken) bu dili yakalıyoruz.
             _userCulture = CultureInfo.CurrentUICulture;
 
-            // SignalR servisini başlat (Token al ve Bağlan)
+            // 1. SignalR Başlat
             await ScadaService.InitializeAsync();
 
-            // DİKKAT: Eski 'GetMachinesAsync' çağrısı kaldırıldı.
-            // Liste artık SignalR üzerinden dinamik doluyor.
+            // 2. ÖNEMLİ DEĞİŞİKLİK: Statik Makine Listesini Çek
+            // Bu çağrı ScadaDataService içindeki Cache'i (MachineDetailsCache) dolduracak.
+            // Böylece makine tiplerini (Ram, Boyahane vb.) öğrenebileceğiz.
+            await ScadaService.GetMachinesAsync();
 
-            // Olay aboneliği
             ScadaService.OnDataUpdated += HandleDataUpdate;
 
-            // Sidebar verilerini yükle (API'de bu endpointler varsa çalışır, yoksa boş döner)
             await LoadSidebarDataAsync();
 
-            // İlk durumu güncelle (Başta liste boş olabilir)
             UpdateDashboardData();
 
             _isLoading = false;
@@ -158,43 +149,40 @@
         if (_shouldRenderCharts)
         {
             _shouldRenderCharts = false;
-
             try
             {
                 await JSRuntime.InvokeVoidAsync("plotDashboardCharts",
-                    HourlyOeeData,
-                    HourlyConsumptionData,
-                    TopAlarms);
+                    HourlyOeeData, HourlyConsumptionData, TopAlarms);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"JS Grafik Çizimi Hatası: {ex.Message}");
+                Console.WriteLine($"JS Grafik Hatası: {ex.Message}");
             }
         }
     }
 
     private async Task LoadSidebarDataAsync()
     {
-        // Not: API'de veritabanı olmadığı için bu veriler şu an gelmeyebilir.
-        // İleride "Proxy" mantığı ile WinForms'tan istenecek.
         HourlyConsumptionData = await ScadaService.GetHourlyConsumptionAsync() ?? new();
         HourlyOeeData = await ScadaService.GetHourlyOeeAsync() ?? new();
         TopAlarms = await ScadaService.GetTopAlarmsAsync() ?? new();
-
         _shouldRenderCharts = true;
     }
 
     private void UpdateDashboardData()
     {
-        // Servisteki güncel veriyi al (SignalR ile doluyor)
         var allStatuses = ScadaService.MachineData.Values.ToList();
 
+        // Makinelerin Tip Bilgilerini Cache'ten Eşleştir
         foreach (var status in allStatuses)
         {
-            // Dinamik keşif ile eklenen detayları eşleştir
             if (ScadaService.MachineDetailsCache.TryGetValue(status.MachineId, out var machineDetails))
             {
-                status.MakineTipi = machineDetails.MachineSubType;
+                // Eğer veritabanından gelen tip doluysa onu kullan
+                if (!string.IsNullOrEmpty(machineDetails.MachineSubType))
+                {
+                    status.MakineTipi = machineDetails.MachineSubType;
+                }
             }
         }
 
@@ -214,13 +202,19 @@
             .ThenBy(m => m.HasActiveAlarm)
             .ThenBy(m => m.MachineName);
 
+        // Gruplama Mantığı: Eğer tip boşsa veya "Standart" geliyorsa ve Cache'te de yoksa "Tanımsız" yap
         GroupedMachines = sortedMachines
-             .GroupBy(m => string.IsNullOrEmpty(m.MakineTipi) ? "Diğer" : m.MakineTipi)
+             .GroupBy(m =>
+             {
+                 if (string.IsNullOrEmpty(m.MakineTipi) || m.MakineTipi == "Standart")
+                     return "Genel"; // Veya "Diğer"
+                 return m.MakineTipi;
+             })
              .OrderByDescending(g => g.Any(m => m.IsInRecipeMode))
              .ThenBy(g => g.Key)
              .ToList();
 
-        // Renk atama mantığı
+        // Renk atama
         if (GroupColors.Count != GroupedMachines.Count)
         {
             _colorIndex = 0;
@@ -238,21 +232,18 @@
         try
         {
             if (_isDisposed) return;
-
-            // 2. ADIM: Arka plan servisinden güncelleme geldiğinde dil ayarını koru
             if (_userCulture != null)
             {
                 CultureInfo.CurrentCulture = _userCulture;
                 CultureInfo.CurrentUICulture = _userCulture;
             }
-
             UpdateDashboardData();
             _shouldRenderCharts = true;
             InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"!!! KRİTİK VERİ GÜNCELLEME HATASI: {ex.Message}");
+            Console.WriteLine($"Veri Güncelleme Hatası: {ex.Message}");
         }
     }
 
@@ -269,7 +260,6 @@
     public void Dispose()
     {
         _isDisposed = true;
-        // Olay aboneliğinden çıkmayı unutma
         if (ScadaService != null)
         {
             ScadaService.OnDataUpdated -= HandleDataUpdate;

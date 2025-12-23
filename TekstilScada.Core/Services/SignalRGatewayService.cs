@@ -121,7 +121,7 @@ namespace TekstilScada.Services
         // --- SERVICES ---
         private readonly PlcPollingService _plcService;
         private readonly FtpTransferService _ftpService;
-
+        private string _myApiKey;
         // --- EVENT & STATE ---
         public event Action<int, string, string> OnRemoteCommandReceived;
         private DateTime _lastSentTime = DateTime.MinValue;
@@ -151,7 +151,7 @@ namespace TekstilScada.Services
             RecipeConfigurationRepository configRepo,
             PlcOperatorRepository plcOpRepo,
             PlcPollingService plcService,
-            FtpTransferService ftpService)
+            FtpTransferService ftpService, string apiKey)
         {
             _machineRepo = machineRepo;
             _recipeRepo = recipeRepo;
@@ -165,7 +165,7 @@ namespace TekstilScada.Services
             _plcOpRepo = plcOpRepo;
             _plcService = plcService;
             _ftpService = ftpService;
-
+            _myApiKey = apiKey;
             // SignalR Bağlantı Ayarları
             _connection = new HubConnectionBuilder()
                 .WithUrl(hubUrl, options =>
@@ -193,44 +193,84 @@ namespace TekstilScada.Services
 
             RegisterHandlers();
         }
-
-        public async Task StartAsync()
+        private string GetLocalIpAddress()
         {
             try
             {
-                if (_connection.State == HubConnectionState.Disconnected)
+                var host = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName());
+                foreach (var ip in host.AddressList)
                 {
-                    await _connection.StartAsync();
-                    System.Diagnostics.Debug.WriteLine("[Gateway] SignalR Sunucusuna Bağlandı.");
-
-                    // 1. Kimlik Doğrulama: Ben bir Gateway'im
-                    await _connection.InvokeAsync("RegisterGateway");
-
-                    // 2. PLC Servisinden gelen verilere abone ol (Canlı yayın için)
-                    _plcService.OnMachineDataRefreshed -= OnLocalDataRefreshed; // Önce çıkar (duplicate önlemi)
-                    _plcService.OnMachineDataRefreshed += OnLocalDataRefreshed;
+                    // Sadece IPv4 adreslerini al (192.168.x.x gibi)
+                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    {
+                        return ip.ToString();
+                    }
                 }
             }
-            catch (Exception ex)
+            catch { }
+            return "localhost"; // Bulamazsa localhost dönsün
+        }
+
+        // 1. StartAsync Metodunu Güncelleyin
+        public async Task StartAsync()
+        {
+            // İlk açılışta bağlantıyı başlatmayı dener
+            // Await kullanmıyoruz ki (Task.Run), UI kilitlenmesin ve arka planda denemeye devam etsin
+            _ = ConnectWithRetryAsync();
+            await Task.CompletedTask;
+        }
+
+        // 2. YENİ METOT: Sonsuz Yeniden Bağlanma Döngüsü
+        private async Task ConnectWithRetryAsync()
+        {
+            // Eğer zaten bağlıysak işlem yapma
+            if (_connection.State == HubConnectionState.Connected) return;
+
+            while (true)
             {
-                System.Diagnostics.Debug.WriteLine($"[Gateway] Bağlantı Başarısız: {ex.Message}");
-                // Yeniden deneme mantığı burada eklenebilir veya Timer ile denenebilir
+                try
+                {
+                   // System.Diagnostics.Debug.WriteLine("[Gateway] Bağlantı deneniyor...");
+
+                    await _connection.StartAsync();
+                    // ARTIK KENDİMİZİ TANITIYORUZ: "Ben bu anahtara sahip fabrikayım"
+                    string localIp = GetLocalIpAddress();
+                    await _connection.InvokeAsync("RegisterGateway", _myApiKey, localIp + ":5901");
+                    System.Diagnostics.Debug.WriteLine("[Gateway] ✅ Bağlantı Sağlandı! Kimlik bildiriliyor...");
+
+                    // Bağlantı kurulur kurulmaz Gateway olduğunu bildir
+                   // await _connection.InvokeAsync("RegisterGateway", _myApiKey);
+
+                    // PLC Servisinden gelen verilere abone ol (Daha önce abone olunmadıysa)
+                    _plcService.OnMachineDataRefreshed -= OnLocalDataRefreshed;
+                  //  _plcService.OnMachineDataRefreshed += OnLocalDataRefreshed;
+
+                    // Döngüden çık
+                    return;
+                }
+                catch (Exception ex)
+                {
+                   // System.Diagnostics.Debug.WriteLine($"[Gateway] ❌ Bağlantı Hatası: {ex.Message}");
+                  //  System.Diagnostics.Debug.WriteLine("[Gateway] 5 saniye sonra tekrar denenecek...");
+
+                    // API kapalıysa 5 saniye bekle ve tekrar dene (Sonsuza kadar)
+                    await Task.Delay(5000);
+                }
             }
         }
 
+        // 3. RegisterHandlers Metodunu Güncelleyin
         private void RegisterHandlers()
         {
             // --- GELEN İSTEKLERİ İŞLEME (REQUEST HANDLER) ---
             _connection.On<string, string, object[]>("HandleRequest", async (reqId, method, args) =>
             {
                 System.Diagnostics.Debug.WriteLine($"[Gateway] SİNYAL ALINDI! ID: {reqId}, Metot: '{method}'");
-                // -------------------------
                 object result = null;
                 string errorMessage = null;
 
                 try
                 {
-                    // İsteği işle ve sonucu al
                     result = await ProcessRequest(method, args);
                 }
                 catch (Exception ex)
@@ -239,11 +279,10 @@ namespace TekstilScada.Services
                     System.Diagnostics.Debug.WriteLine($"[Gateway] Hata ({method}): {ex.Message}");
                 }
 
-                // Sonucu (büyük olsa bile) parçalayarak gönder
                 await SendLargeDataAsync(reqId, result, errorMessage);
             });
 
-            // --- LOGLAMA (FIRE AND FORGET) ---
+            // --- LOGLAMA ---
             _connection.On<ActionLogEntry>("HandleLogAction", (entry) =>
             {
                 Task.Run(() =>
@@ -259,17 +298,31 @@ namespace TekstilScada.Services
                 OnRemoteCommandReceived?.Invoke(machineId, command, parameters);
             });
 
-            // --- BAĞLANTI OLAYLARI ---
+            // --- BAĞLANTI KOPMA OLAYI (KRİTİK) ---
             _connection.Closed += async (error) =>
             {
-                System.Diagnostics.Debug.WriteLine("[Gateway] Bağlantı Koptu!");
-                await Task.CompletedTask;
+                System.Diagnostics.Debug.WriteLine($"[Gateway] ⚠️ Bağlantı Koptu! Hata: {error?.Message}");
+
+                // AutomaticReconnect pes ettiğinde burası tetiklenir.
+                // Manuel döngüyü başlatarak tekrar bağlanana kadar deneriz.
+                await ConnectWithRetryAsync();
             };
 
+            // --- OTOMATİK YENİDEN BAĞLANMA BAŞARISI ---
             _connection.Reconnected += async (connectionId) =>
             {
-                System.Diagnostics.Debug.WriteLine("[Gateway] Tekrar Bağlandı. Yeniden Register olunuyor...");
-                await _connection.InvokeAsync("RegisterGateway");
+                // İnternet anlık gidip gelirse (AutomaticReconnect başarılı olursa)
+                System.Diagnostics.Debug.WriteLine("[Gateway] ♻️ Tekrar Bağlandı (Auto-Reconnect). Yeniden Register olunuyor...");
+
+                try
+                {
+                    await _connection.InvokeAsync("RegisterGateway", _myApiKey);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Gateway] Reconnected Register Hatası: {ex.Message}");
+                    // Eğer burada hata alırsak muhtemelen bağlantı tekrar kopmuştur, Closed event'i devreye girer.
+                }
             };
         }
 
@@ -415,7 +468,19 @@ namespace TekstilScada.Services
                     foreach (System.Data.DataRow r in dt.Rows)
                         list.Add(new StepTypeDtoDesign { Id = Convert.ToInt32(r["Id"]), StepName = r["StepName"].ToString() });
                     return list;
-                case "GetLayoutJson": return _configRepo.GetLayoutJson(GetArg<string>(args, 0), GetArg<int>(args, 1));
+                // Mevcut (Hatalı) Kod:
+                // case "GetLayoutJson": return _configRepo.GetLayoutJson(GetArg<string>(args, 0), GetArg<int>(args, 1));
+
+                // YENİ (Düzeltilmiş) Kod:
+                case "GetLayoutJson":
+                    // 1. Veritabanından ham JSON string'i al
+                    string rawJson = _configRepo.GetLayoutJson(GetArg<string>(args, 0), GetArg<int>(args, 1));
+
+                    // 2. Eğer veri yoksa boş liste dön
+                    if (string.IsNullOrEmpty(rawJson)) return new List<ControlMetadata>();
+
+                    // 3. String'i nesne listesine çevirip öyle gönder (Böylece Hub tarafı 'String' değil gerçek bir 'Array' alır)
+                    return JsonSerializer.Deserialize<List<ControlMetadata>>(rawJson, _jsonOptions);
                 case "SaveLayout":
                     var layoutList = GetArg<List<ControlMetadata>>(args, 2);
                     var jsonLayout = JsonSerializer.Serialize(layoutList, _jsonOptions);
