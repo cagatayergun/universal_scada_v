@@ -50,7 +50,7 @@ namespace TekstilScada.WebAPI.Repositories
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"DB Hatası (Auth): {ex.Message}");
+                    //($"DB Hatası (Auth): {ex.Message}");
                 }
             }
             return null;

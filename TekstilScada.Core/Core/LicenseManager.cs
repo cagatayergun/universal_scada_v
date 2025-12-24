@@ -138,19 +138,28 @@ namespace TekstilScada.Core
         {
             try
             {
+                // Donanımları her zaman belirli bir özelliğe göre sırala (Örn: DeviceID veya Name)
                 ManagementObjectSearcher searcher = new ManagementObjectSearcher($"SELECT * FROM {wmiClass}");
+
+                var list = new List<string>();
                 foreach (ManagementObject obj in searcher.Get())
                 {
-                    if (obj[wmiProperty] != null) return obj[wmiProperty].ToString().Trim();
+                    if (obj[wmiProperty] != null)
+                    {
+                        list.Add(obj[wmiProperty].ToString().Trim());
+                    }
                 }
+
+                // Listeyi sırala ve her zaman ilkini al (Böylece USB takılsa bile sıra değişmez)
+                list.Sort();
+                return list.Count > 0 ? list[0] : "";
             }
             catch (Exception ex)
             {
-                // Add code here to log or display the reason for the error
                 LogToFile($"WMI access error - Class: {wmiClass}, Error: {ex.Message}");
-
+                // Hata durumunda null dönerek üst katmanın lisansı geçersiz saymasını değil, işlemi durdurmasını sağlayabilirsiniz.
+                return "";
             }
-            return "";
         }
         private static void LogToFile(string logMessage)
         {

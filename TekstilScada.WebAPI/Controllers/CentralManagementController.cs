@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using TekstilScada.WebAPI.Models;
 using TekstilScada.WebAPI.Repositories;
+using System.Diagnostics;
 
 namespace TekstilScada.WebAPI.Controllers
 {
@@ -92,7 +93,7 @@ namespace TekstilScada.WebAPI.Controllers
 
         [HttpPost("create-company-admin")]
         [Authorize(Roles = "SystemAdmin")]
-        public IActionResult CreateCompanyAdmin([FromBody] CreateUserDto dto)
+        public IActionResult CreateCompanyAdmin([FromBody] SaveSubUserDto dto)
         {
             var user = new CentralUser
             {
@@ -114,16 +115,40 @@ namespace TekstilScada.WebAPI.Controllers
         [HttpGet("my-factories")]
         public IActionResult GetMyFactories()
         {
-            // Token'dan CompanyId'yi al
+            // 1. Şirket Bilgisi Al
             var companyIdStr = User.FindFirst("CompanyId")?.Value;
             if (string.IsNullOrEmpty(companyIdStr) || !int.TryParse(companyIdStr, out int companyId))
             {
                 return BadRequest("Şirket bilgisi bulunamadı.");
             }
 
-            // O şirkete ait tüm fabrikaları getir
-            var list = _factoryRepo.GetFactoriesByCompanyId(companyId);
-            return Ok(list);
+            // 2. Rol ve Yetkileri Al
+            // "role" claim'i bazen büyük/küçük harf veya URI formatında gelebilir, ikisini de kontrol edelim.
+            var role = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("role")?.Value;
+
+            // "AllowedFactoryIds" claim'ini Token oluşturulurken eklemiş olmalısınız.
+            var allowedIds = User.FindFirst("AllowedFactoryIds")?.Value;
+            
+            // 3. Mantık Kurulumu
+            if (role == "CompanyAdmin")
+            {
+                // Yönetici ise hepsini görsün
+                var list = _factoryRepo.GetFactoriesByCompanyId(companyId);
+                return Ok(list);
+            }
+            else
+            {
+                // Normal Personel ise sadece izin verilenleri görsün
+                if (string.IsNullOrEmpty(allowedIds))
+                {
+                    // Yetki verilmemişse boş liste dön
+                    return Ok(new List<CentralFactory>());
+                }
+
+                // Filtreli getir
+                var list = _factoryRepo.GetFactoriesByIds(allowedIds, companyId);
+                return Ok(list);
+            }
         }
 
         [HttpGet("company-users")]
@@ -144,8 +169,11 @@ namespace TekstilScada.WebAPI.Controllers
 
         [HttpPost("save-sub-user")]
         [Authorize(Roles = "CompanyAdmin")]
-        public IActionResult SaveSubUser([FromBody] CreateUserDto dto)
+        public IActionResult SaveSubUser([FromBody] SaveSubUserDto dto)
         {
+            // --- BU SATIRI EKLEYİN (Console çıktısında veriyi göreceğiz) ---
+            //($"[API LOG] Gelen Kullanıcı: {dto.Username}, Fabrikalar: {dto.AllowedFactoryIds}");
+            //
             // Token'dan CompanyId al (Güvenlik için)
             var companyIdStr = User.FindFirst("CompanyId")?.Value;
             if (string.IsNullOrEmpty(companyIdStr) || !int.TryParse(companyIdStr, out int companyId))
@@ -194,17 +222,15 @@ namespace TekstilScada.WebAPI.Controllers
         }
 
         // DTO
-        public class CreateUserDto
-    {
-        public int Id { get; set; }
-        public int CompanyId { get; set; }
-        public string Username { get; set; }
-        public string FullName { get; set; }
-        public string Password { get; set; }
-        public string Role { get; set; }
-        
-        // Bu alanın burada açıkça tanımlı olması, verinin kaybolmasını engeller.
-        public string AllowedFactoryIds { get; set; } 
-    }
+        public class SaveSubUserDto
+        {
+            public int Id { get; set; }
+            public int CompanyId { get; set; }
+            public string Username { get; set; }
+            public string FullName { get; set; }
+            public string Password { get; set; }
+            public string Role { get; set; }
+            public string AllowedFactoryIds { get; set; }
+        }
     }
 }

@@ -65,6 +65,23 @@
     {
         await ScadaService.InitializeAsync();
         factories = await ScadaService.GetMyFactoriesAsync();
+
+        // --- KONSOL LOGLAMA BAŞLANGICI ---
+        //("--------------------------------------------------");
+        //($"[FRONTEND LOG] Toplam Gelen Fabrika Sayısı: {factories?.Count ?? 0}");
+
+        if (factories != null)
+        {
+            foreach (var f in factories)
+            {
+                // DTO'nuzda CompanyId eklediyseniz onu da buraya yazın:
+                // Örn: $"ID: {f.Id} | ŞirketID: {f.CompanyId} | İsim: {f.FactoryName}"
+                //($"[DETAY] Fabrika ID: {f.Id} | İsim: {f.FactoryName}");
+            }
+        }
+        //("--------------------------------------------------");
+        // --- KONSOL LOGLAMA BİTİŞİ ---
+
         isLoading = false;
     }
 

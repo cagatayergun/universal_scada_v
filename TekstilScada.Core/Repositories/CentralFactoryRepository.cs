@@ -45,7 +45,7 @@ namespace TekstilScada.WebAPI.Repositories
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"DB Hatası (Factory): {ex.Message}");
+                    //($"DB Hatası (Factory): {ex.Message}");
                 }
             }
             return null;
@@ -59,18 +59,29 @@ namespace TekstilScada.WebAPI.Repositories
                 connection.Open();
                 string query;
 
+                // DURUM 1: "ALL" yetkisi varsa
                 if (allowedIds == "ALL")
                 {
+                    // SADECE GİRİŞ YAPAN ŞİRKETİN VERİLERİ
                     query = "SELECT * FROM Factories WHERE CompanyId = @CompId AND IsActive = 1";
                 }
+                // DURUM 2: Belirli ID'ler varsa ("1,5" gibi)
                 else
                 {
+                    if (string.IsNullOrEmpty(allowedIds)) return list;
+
+                    // 🛑 İŞTE ÇÖZÜM BURASI 🛑
+                    // "AND CompanyId = @CompId" ifadesi OLMAZSA, rakip firmanın fabrikası gelir.
+                    // Bu sorgu şunu der: "Fabrika ID'si listede olsa bile, SAHİBİ BEN DEĞİLSEM GETİRME."
                     query = $"SELECT * FROM Factories WHERE CompanyId = @CompId AND IsActive = 1 AND Id IN ({allowedIds})";
                 }
 
                 using (var cmd = new MySqlCommand(query, connection))
                 {
+                    // Controller'dan gelen "2" değerini SQL'e burada monte ediyoruz.
+                    // Bu satır eksikse veya yukarıdaki sorguda @CompId yoksa filtreleme çalışmaz.
                     cmd.Parameters.AddWithValue("@CompId", companyId);
+
                     using (var reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())

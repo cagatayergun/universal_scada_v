@@ -119,12 +119,16 @@
             <div style="max-height: 200px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 4px;">
                 @foreach (var factory in myFactories)
                 {
+                    // 🔴 KRİTİK DÜZELTME: Yerel Değişken Tanımlama
+                    // Bu satır olmazsa, tüm kutular birbirine karışır veya çalışmaz.
+                    var currentFactory = factory;
+
                     <MudCheckBox T="bool"
-                                 Label="@($"{factory.FactoryName} ({factory.HardwareKey})")"
+                                 Label="@($"{currentFactory.FactoryName} ({currentFactory.HardwareKey})")"
                                  Color="Color.Primary"
                                  Dense="true"
-                                 Checked="@IsFactorySelected(factory.Id)"
-                                 CheckedChanged="@((bool val) => ToggleFactory(factory.Id, val))" />
+                                 Value="@IsFactorySelected(currentFactory.Id)"
+                                 ValueChanged="@((bool val) => ToggleFactory(currentFactory.Id, val))" />
                 }
             </div>
         }
@@ -322,14 +326,26 @@
 
     private void ToggleFactory(int factoryId, bool isChecked)
     {
+        // 1. İşlem
         if (isChecked)
         {
-            if (!selectedFactoryIds.Contains(factoryId)) selectedFactoryIds.Add(factoryId);
+            if (!selectedFactoryIds.Contains(factoryId))
+            {
+                selectedFactoryIds.Add(factoryId);
+                //($"[SEÇİLDİ] Fabrika ID: {factoryId} listeye eklendi."); // F12 Konsolunda görünür
+            }
         }
         else
         {
-            if (selectedFactoryIds.Contains(factoryId)) selectedFactoryIds.Remove(factoryId);
+            if (selectedFactoryIds.Contains(factoryId))
+            {
+                selectedFactoryIds.Remove(factoryId);
+                //($"[KALDIRILDI] Fabrika ID: {factoryId} listeden silindi.");
+            }
         }
+
+        // 2. Arayüzü Zorla Güncelle (Bazen işaretlenmiş gibi görünür ama değişken değişmez)
+        StateHasChanged();
     }
 
     // --- CRUD ---
@@ -350,11 +366,19 @@
         isSaving = true;
         try
         {
-            // ID listesini virgüllü string'e çevir
-            if (selectedFactoryIds.Count == myFactories.Count && myFactories.Count > 0)
-                editingUser.AllowedFactoryIds = "ALL"; // Hepsi seçiliyse "ALL" diyebiliriz (tercihen)
-            else
-                editingUser.AllowedFactoryIds = string.Join(",", selectedFactoryIds);
+            // --- FABRİKA LİSTESİNİ OLUŞTURMA (GARANTİ YÖNTEM) ---
+            string factoryString = "";
+
+            // Eğer listede eleman varsa birleştir, yoksa boş bırak
+            if (selectedFactoryIds != null && selectedFactoryIds.Any())
+            {
+                // Eğer hepsi seçiliyse "ALL" yapabiliriz veya tek tek gönderebiliriz.
+                // Güvenlik için tek tek gönderelim şimdilik:
+                factoryString = string.Join(",", selectedFactoryIds);
+            }
+
+            // KONSOL KONTROLÜ (Tarayıcıda F12'ye basıp Console sekmesine bakın)
+            //($"[KAYIT BAŞLIYOR] Gönderilecek String: '{factoryString}' - Seçili Adet: {selectedFactoryIds?.Count}");
 
             var dto = new CreateUserDto
             {
@@ -363,10 +387,11 @@
                 FullName = editingUser.FullName,
                 Password = editingPassword,
                 Role = "User",
-                AllowedFactoryIds = editingUser.AllowedFactoryIds
+
+                // CRITICAL: Veriyi doğrudan buraya atıyoruz. Modelden çekmiyoruz.
+                AllowedFactoryIds = factoryString
             };
 
-            // Not: Backend'de save-sub-user hem insert hem update yapabiliyor olmalı
             var response = await Http.PostAsJsonAsync("api/CentralManagement/save-sub-user", dto);
 
             if (response.IsSuccessStatusCode)

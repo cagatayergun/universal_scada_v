@@ -133,7 +133,7 @@ namespace TekstilScada.UI.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Dashboard kurulum hatası: {ex.Message}");
+                //($"Dashboard kurulum hatası: {ex.Message}");
             }
         }
 
@@ -482,7 +482,7 @@ namespace TekstilScada.UI.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Grafik güncelleme hatası: {ex.Message}");
+                //($"Grafik güncelleme hatası: {ex.Message}");
             }
         }
 

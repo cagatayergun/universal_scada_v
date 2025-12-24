@@ -251,7 +251,7 @@ namespace TekstilScada.UI.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"RPM limiti ayarlanamadı: {ex.Message}");
+                //($"RPM limiti ayarlanamadı: {ex.Message}");
             }
         }
 
@@ -299,7 +299,7 @@ namespace TekstilScada.UI.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Su seviyesi limiti ayarlanamadı: {ex.Message}");
+                //($"Su seviyesi limiti ayarlanamadı: {ex.Message}");
             }
         }
 

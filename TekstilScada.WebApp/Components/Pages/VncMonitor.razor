@@ -91,7 +91,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[VNC Init Hatası] {ex.Message}");
+            //($"[VNC Init Hatası] {ex.Message}");
         }
     }
 
@@ -110,7 +110,7 @@
             if (!string.IsNullOrEmpty(machine.VncAddress) && (machine.VncAddress.StartsWith("ws://") || machine.VncAddress.StartsWith("wss://")))
             {
                 wsUrl = machine.VncAddress;
-                Console.WriteLine($"[VNC] Tam Adres Kullanılıyor: {wsUrl}");
+                //($"[VNC] Tam Adres Kullanılıyor: {wsUrl}");
             }
             // 2. Durum: VncAddress içinde IP:Port varsa (Örn: 192.168.1.50:5901) -> Proxy formatına çevir
             else if (!string.IsNullOrEmpty(machine.VncAddress) && machine.VncAddress.Contains(":"))
@@ -124,14 +124,14 @@
                 // URL: ws://GatewayIP:Port/vnc/?target=PlcIP:5900
                 wsUrl = $"ws://{gatewayAddress}/vnc/?target={targetIp}:5900";
 
-                Console.WriteLine($"[VNC] Dinamik Adres Üretildi: {wsUrl}");
+                //($"[VNC] Dinamik Adres Üretildi: {wsUrl}");
             }
             // 3. Durum: VncAddress boşsa -> Localhost varsay (Geliştirme ortamı)
             else
             {
                 string targetIp = !string.IsNullOrEmpty(machine.IpAddress) ? machine.IpAddress : "127.0.0.1";
                 wsUrl = $"ws://localhost:5901/vnc/?target={targetIp}:5900";
-                Console.WriteLine($"[VNC] Localhost Varsayılanı Kullanılıyor: {wsUrl}");
+                //($"[VNC] Localhost Varsayılanı Kullanılıyor: {wsUrl}");
             }
 
             try
@@ -140,7 +140,7 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[VNC JS Hatası] {ex.Message}");
+                //($"[VNC JS Hatası] {ex.Message}");
                 isConnected = false;
             }
         }

@@ -21,7 +21,7 @@ namespace TekstilScada.UI
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Event aboneliği hatası: {ex.Message}");
+                //($"Event aboneliği hatası: {ex.Message}");
             }
         }
 
@@ -51,7 +51,7 @@ namespace TekstilScada.UI
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"OnNewEventPublished hatası: {ex.Message}");
+                //($"OnNewEventPublished hatası: {ex.Message}");
             }
         }
 
@@ -104,7 +104,7 @@ namespace TekstilScada.UI
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Listeye ekleme hatası: {ex.Message}");
+                //($"Listeye ekleme hatası: {ex.Message}");
             }
             finally
             {
@@ -130,7 +130,7 @@ namespace TekstilScada.UI
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Form gizleme hatası: {ex.Message}");
+                //($"Form gizleme hatası: {ex.Message}");
             }
         }
 
@@ -146,7 +146,7 @@ namespace TekstilScada.UI
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Unsubscribe hatası: {ex.Message}");
+                //($"Unsubscribe hatası: {ex.Message}");
             }
             finally
             {

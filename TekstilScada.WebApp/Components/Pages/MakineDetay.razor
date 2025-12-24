@@ -325,7 +325,7 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Reçete adımları yüklenirken hata: {ex.Message}");
+            //($"Reçete adımları yüklenirken hata: {ex.Message}");
             RecipeSteps = new List<ScadaRecipeStep>();
         }
         isLoadingRecipe = false;
@@ -401,7 +401,7 @@ else
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Trend verisi deserialization hatası: {ex.Message}");
+                        //($"Trend verisi deserialization hatası: {ex.Message}");
                         TrendData = new List<TrendDataPointRich>();
                     }
                 }
@@ -415,7 +415,7 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Rapor verisi yüklenirken hata: {ex.Message}");
+            //($"Rapor verisi yüklenirken hata: {ex.Message}");
         }
         finally
         {

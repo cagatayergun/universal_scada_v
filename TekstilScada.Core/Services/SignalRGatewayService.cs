@@ -230,13 +230,13 @@ namespace TekstilScada.Services
             {
                 try
                 {
-                   // System.Diagnostics.Debug.WriteLine("[Gateway] Bağlantı deneniyor...");
+                   // //("[Gateway] Bağlantı deneniyor...");
 
                     await _connection.StartAsync();
                     // ARTIK KENDİMİZİ TANITIYORUZ: "Ben bu anahtara sahip fabrikayım"
                     string localIp = GetLocalIpAddress();
                     await _connection.InvokeAsync("RegisterGateway", _myApiKey, localIp + ":5901");
-                    System.Diagnostics.Debug.WriteLine("[Gateway] ✅ Bağlantı Sağlandı! Kimlik bildiriliyor...");
+                    //("[Gateway] ✅ Bağlantı Sağlandı! Kimlik bildiriliyor...");
 
                     // Bağlantı kurulur kurulmaz Gateway olduğunu bildir
                    // await _connection.InvokeAsync("RegisterGateway", _myApiKey);
@@ -250,8 +250,8 @@ namespace TekstilScada.Services
                 }
                 catch (Exception ex)
                 {
-                   // System.Diagnostics.Debug.WriteLine($"[Gateway] ❌ Bağlantı Hatası: {ex.Message}");
-                  //  System.Diagnostics.Debug.WriteLine("[Gateway] 5 saniye sonra tekrar denenecek...");
+                   // //($"[Gateway] ❌ Bağlantı Hatası: {ex.Message}");
+                  //  //("[Gateway] 5 saniye sonra tekrar denenecek...");
 
                     // API kapalıysa 5 saniye bekle ve tekrar dene (Sonsuza kadar)
                     await Task.Delay(5000);
@@ -265,7 +265,7 @@ namespace TekstilScada.Services
             // --- GELEN İSTEKLERİ İŞLEME (REQUEST HANDLER) ---
             _connection.On<string, string, object[]>("HandleRequest", async (reqId, method, args) =>
             {
-                System.Diagnostics.Debug.WriteLine($"[Gateway] SİNYAL ALINDI! ID: {reqId}, Metot: '{method}'");
+                //($"[Gateway] SİNYAL ALINDI! ID: {reqId}, Metot: '{method}'");
                 object result = null;
                 string errorMessage = null;
 
@@ -276,7 +276,7 @@ namespace TekstilScada.Services
                 catch (Exception ex)
                 {
                     errorMessage = ex.Message;
-                    System.Diagnostics.Debug.WriteLine($"[Gateway] Hata ({method}): {ex.Message}");
+                    //($"[Gateway] Hata ({method}): {ex.Message}");
                 }
 
                 await SendLargeDataAsync(reqId, result, errorMessage);
@@ -294,14 +294,14 @@ namespace TekstilScada.Services
             // --- KOMUT ALMA ---
             _connection.On<int, string, string>("ReceiveCommand", (machineId, command, parameters) =>
             {
-                System.Diagnostics.Debug.WriteLine($"[Gateway] Komut Geldi -> Makine:{machineId}, Komut:{command}");
+                //($"[Gateway] Komut Geldi -> Makine:{machineId}, Komut:{command}");
                 OnRemoteCommandReceived?.Invoke(machineId, command, parameters);
             });
 
             // --- BAĞLANTI KOPMA OLAYI (KRİTİK) ---
             _connection.Closed += async (error) =>
             {
-                System.Diagnostics.Debug.WriteLine($"[Gateway] ⚠️ Bağlantı Koptu! Hata: {error?.Message}");
+                //($"[Gateway] ⚠️ Bağlantı Koptu! Hata: {error?.Message}");
 
                 // AutomaticReconnect pes ettiğinde burası tetiklenir.
                 // Manuel döngüyü başlatarak tekrar bağlanana kadar deneriz.
@@ -312,7 +312,7 @@ namespace TekstilScada.Services
             _connection.Reconnected += async (connectionId) =>
             {
                 // İnternet anlık gidip gelirse (AutomaticReconnect başarılı olursa)
-                System.Diagnostics.Debug.WriteLine("[Gateway] ♻️ Tekrar Bağlandı (Auto-Reconnect). Yeniden Register olunuyor...");
+                //("[Gateway] ♻️ Tekrar Bağlandı (Auto-Reconnect). Yeniden Register olunuyor...");
 
                 try
                 {
@@ -320,7 +320,7 @@ namespace TekstilScada.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Gateway] Reconnected Register Hatası: {ex.Message}");
+                    //($"[Gateway] Reconnected Register Hatası: {ex.Message}");
                     // Eğer burada hata alırsak muhtemelen bağlantı tekrar kopmuştur, Closed event'i devreye girer.
                 }
             };
@@ -345,15 +345,15 @@ namespace TekstilScada.Services
                     json = JsonSerializer.Serialize(result, _jsonOptions);
 
                     // --- BURAYA DÜŞÜYORSA SORUN ÇÖZÜLMÜŞTÜR ---
-                    System.Diagnostics.Debug.WriteLine($"[Gateway] ✅ SERİLEŞTİRME BAŞARILI! (ID: {reqId})");
-                    System.Diagnostics.Debug.WriteLine($"[Gateway] Veri Boyutu: {json.Length} bytes");
+                    //($"[Gateway] ✅ SERİLEŞTİRME BAŞARILI! (ID: {reqId})");
+                    //($"[Gateway] Veri Boyutu: {json.Length} bytes");
                     // -------------------------------------------
                 }
                 catch (Exception ex)
                 {
                     // 2. Hata Varsa Yakala
-                    System.Diagnostics.Debug.WriteLine($"[Gateway] ❌ JSON HATASI: {ex.Message}");
-                    if (ex.InnerException != null) System.Diagnostics.Debug.WriteLine($"[Gateway] ALT HATA: {ex.InnerException.Message}");
+                    //($"[Gateway] ❌ JSON HATASI: {ex.Message}");
+                    if (ex.InnerException != null) //($"[Gateway] ALT HATA: {ex.InnerException.Message}");
 
                     await _connection.InvokeAsync("SendResponseToHub", reqId, null, $"Serialization Error: {ex.Message}");
                     return;
@@ -365,7 +365,7 @@ namespace TekstilScada.Services
                 if (json.Length <= chunkSize)
                 {
                     await _connection.InvokeAsync("SendResponseToHub", reqId, json, null);
-                    System.Diagnostics.Debug.WriteLine($"[Gateway] Tek parça gönderildi.");
+                    //($"[Gateway] Tek parça gönderildi.");
                 }
                 else
                 {
@@ -387,12 +387,12 @@ namespace TekstilScada.Services
                         // Çok hızlı gönderip ağı tıkamamak için mini bekleme
                         await Task.Delay(2);
                     }
-                    System.Diagnostics.Debug.WriteLine($"[Gateway] {partCount} parça halinde gönderildi.");
+                    //($"[Gateway] {partCount} parça halinde gönderildi.");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Gateway] ❌ GÖNDERİM HATASI (Ağ/Hub): {ex.Message}");
+                //($"[Gateway] ❌ GÖNDERİM HATASI (Ağ/Hub): {ex.Message}");
             }
         }
 
@@ -568,18 +568,18 @@ namespace TekstilScada.Services
 
                 // -- RAPORLAR VE DASHBOARD --
                 case "GetProductionReport":
-                    System.Diagnostics.Debug.WriteLine("[Gateway] GetProductionReport İsteği Geldi.");
+                    //("[Gateway] GetProductionReport İsteği Geldi.");
 
                     // 1. Filtreleri Çözümle
                     var filters = GetArg<ReportFilters>(args, 0);
 
                     if (filters == null)
                     {
-                        System.Diagnostics.Debug.WriteLine("[Gateway] HATA: Filtreler (ReportFilters) NULL geldi! Parametre okunamadı.");
+                        //("[Gateway] HATA: Filtreler (ReportFilters) NULL geldi! Parametre okunamadı.");
                         return new List<ProductionReportItem>();
                     }
 
-                    System.Diagnostics.Debug.WriteLine($"[Gateway] Filtreler -> Başlangıç: {filters.StartTime}, Bitiş: {filters.EndTime}, MakineId: {filters.MachineId}");
+                    //($"[Gateway] Filtreler -> Başlangıç: {filters.StartTime}, Bitiş: {filters.EndTime}, MakineId: {filters.MachineId}");
 
                     // 2. Veritabanından Sorgula
                     List<ProductionReportItem> data = null;
@@ -589,24 +589,24 @@ namespace TekstilScada.Services
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[Gateway] REPO HATASI: Veritabanı sorgusunda hata oluştu: {ex.Message}");
+                        //($"[Gateway] REPO HATASI: Veritabanı sorgusunda hata oluştu: {ex.Message}");
                         throw; // Hatayı Hub'a fırlat ki orada da görelim
                     }
 
                     // 3. Sonucu Kontrol Et
                     if (data == null)
                     {
-                        System.Diagnostics.Debug.WriteLine("[Gateway] UYARI: Repo 'null' döndü.");
+                        //("[Gateway] UYARI: Repo 'null' döndü.");
                         return new List<ProductionReportItem>();
                     }
 
-                    System.Diagnostics.Debug.WriteLine($"[Gateway] BAŞARILI: Veritabanından {data.Count} adet kayıt çekildi.");
+                    //($"[Gateway] BAŞARILI: Veritabanından {data.Count} adet kayıt çekildi.");
 
                     // Veri varsa ilk kaydın dolu olup olmadığını kontrol et (Entity Framework Lazy Loading sorunu olabilir)
                     if (data.Count > 0)
                     {
                         var first = data[0];
-                        System.Diagnostics.Debug.WriteLine($"[Gateway] Örnek Veri -> Batch: {first.BatchId}, Ürün: {first.MusteriNo}, Miktar: {first.MachineId}");
+                        //($"[Gateway] Örnek Veri -> Batch: {first.BatchId}, Ürün: {first.MusteriNo}, Miktar: {first.MachineId}");
                     }
 
                     return data;

@@ -160,7 +160,7 @@ namespace TekstilScada
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"VNC Server Hatasý: {ex.Message}");
+                //($"VNC Server Hatasý: {ex.Message}");
             }
           
 
@@ -173,7 +173,7 @@ namespace TekstilScada
                 return;
             }
 
-            System.Diagnostics.Debug.WriteLine($"Fabrika API Key: {hardwareKey}");
+            //($"Fabrika API Key: {hardwareKey}");
 
             // 2. Gateway Servisini Baþlat
             try
@@ -324,7 +324,7 @@ namespace TekstilScada
                 catch (Exception logEx)
                 {
                     // Sessiz kalabilir veya debug yazabiliriz
-                    System.Diagnostics.Debug.WriteLine($"Log Error: {logEx.Message}");
+                    //($"Log Error: {logEx.Message}");
                 }
             }
             else
@@ -528,7 +528,7 @@ namespace TekstilScada
 
         private void AppendLog(string message)
         {
-            System.Diagnostics.Debug.WriteLine(message);
+            //(message);
         }
 
         #endregion

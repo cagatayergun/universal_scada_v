@@ -96,7 +96,7 @@ namespace TekstilScada.WebApp.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    // 🔴 Console.WriteLine yerine ILogger kullanın
+                    // 🔴 // yerine ILogger kullanın
                     _logger.LogWarning("DEBUG AUTH: Refresh API BAŞARISIZ. Status Code: {StatusCode}. Content: {Content}",
                                        response.StatusCode,
                                        await response.Content.ReadAsStringAsync());
@@ -233,6 +233,7 @@ namespace TekstilScada.WebApp.Services
 
         public async Task<bool> LoginAsync(string username, string password)
         {
+
             // ... (Mevcut HTTP POST kodunuz) ...
             var loginPayload = new { Username = username, Password = password };
             var serializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
@@ -338,6 +339,7 @@ namespace TekstilScada.WebApp.Services
             {
                 claims.Add(new Claim("AllowedFactoryIds", allowedIds.ToString()));
             }
+            //($"[API DEBUG] {idValue} Rol: {allowedIds}, Algılanan CompanyId: {companyId}");
 
             return new ClaimsIdentity(claims, "jwt");
         }

@@ -66,7 +66,7 @@ namespace TekstilScada.Repositories
                     catch (Exception ex)
                     {
                         transaction.Rollback();
-                        Console.WriteLine($"[BulkLog Error] {ex.Message}");
+                        //($"[BulkLog Error] {ex.Message}");
                         throw;
                     }
                 }
@@ -116,7 +116,7 @@ namespace TekstilScada.Repositories
                     catch (Exception ex)
                     {
                         transaction.Rollback();
-                        Console.WriteLine($"[BulkManualLog Error] {ex.Message}");
+                        //($"[BulkManualLog Error] {ex.Message}");
                         throw;
                     }
                 }

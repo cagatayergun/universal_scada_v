@@ -96,7 +96,7 @@ else
         catch (Exception ex)
         {
             // Hata olursa konsola yaz veya kullanıcıya bildir
-            Console.WriteLine($"{Loc["VeriYuklemeHatasi"]}: {ex.Message}");
+            //($"{Loc["VeriYuklemeHatasi"]}: {ex.Message}");
             machines = new List<Machine>(); // Null referans hatasını önlemek için boş liste
         }
     }

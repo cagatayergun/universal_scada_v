@@ -106,7 +106,7 @@ namespace TekstilScada.UI.Controls
             catch (Exception ex)
             {
                 // Dashboard'da çok kart olduğu için hata patlatmayalım, loglayalım
-                System.Diagnostics.Debug.WriteLine($"RPM limiti ayarlanamadı ({_machine.MachineName}): {ex.Message}");
+                //($"RPM limiti ayarlanamadı ({_machine.MachineName}): {ex.Message}");
             }
         }
         public void UpdateData(FullMachineStatus status, List<ProcessDataPoint> trendData)

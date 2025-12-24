@@ -377,7 +377,7 @@ namespace TekstilScada.WebApp.Services
 
                             MachineDetailsCache.TryAdd(status.MachineId, discoveredMachine);
 
-                            Console.WriteLine($"[ScadaService] Yeni Makine Keşfedildi: {status.MachineName}");
+                            //($"[ScadaService] Yeni Makine Keşfedildi: {status.MachineName}");
 
                         }
 
@@ -397,7 +397,7 @@ namespace TekstilScada.WebApp.Services
 
                     await _hubConnection.StartAsync();
 
-                    Console.WriteLine("[ScadaService] SignalR Bağlantısı Başarılı.");
+                    //("[ScadaService] SignalR Bağlantısı Başarılı.");
 
                 }
 
@@ -407,7 +407,7 @@ namespace TekstilScada.WebApp.Services
 
                     _hubConnection = null;
 
-                    Console.WriteLine($"[ScadaService] SignalR bağlantı hatası: {ex.Message}");
+                    //($"[ScadaService] SignalR bağlantı hatası: {ex.Message}");
 
                 }
 
@@ -444,12 +444,12 @@ namespace TekstilScada.WebApp.Services
                 }
                 else
                 {
-                    Console.WriteLine("[ScadaService] API Login Başarısız! Token alınamadı.");
+                    //("[ScadaService] API Login Başarısız! Token alınamadı.");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ScadaService] Login Hatası: {ex.Message}");
+                //($"[ScadaService] Login Hatası: {ex.Message}");
             }
         }
 
@@ -478,7 +478,7 @@ namespace TekstilScada.WebApp.Services
                     }
                 }
             }
-            Console.WriteLine($"[ScadaService] Yetkili Fabrikalar: {string.Join(",", UserAllowedFactoryIds)}");
+            //($"[ScadaService] Yetkili Fabrikalar: {string.Join(",", UserAllowedFactoryIds)}");
         }
 
         // --- 2. ABONELİK METODU (YENİ) ---
@@ -493,11 +493,11 @@ namespace TekstilScada.WebApp.Services
                 {
                     // Hub üzerindeki 'SubscribeToFactories' metodunu çağır
                     await _hubConnection.InvokeAsync("SubscribeToFactories", UserAllowedFactoryIds);
-                    Console.WriteLine("[ScadaService] Fabrika gruplarına abone olundu.");
+                    //("[ScadaService] Fabrika gruplarına abone olundu.");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[ScadaService] Abonelik hatası: {ex.Message}");
+                    //($"[ScadaService] Abonelik hatası: {ex.Message}");
                 }
             }
         }
@@ -539,6 +539,7 @@ namespace TekstilScada.WebApp.Services
         {
             public int Id { get; set; }
             public string FactoryName { get; set; }
+          
         }
 
         // B. Fabrika Seç ve Abone Ol (KRİTİK NOKTA)
@@ -557,11 +558,11 @@ namespace TekstilScada.WebApp.Services
                 // Hub'daki metodu tek ID alacak şekilde güncelleyebilir veya List göndeririz.
                 await _hubConnection.InvokeAsync("SubscribeToFactories", new List<int> { factoryId });
 
-                Console.WriteLine($"[ScadaService] Fabrika {factoryId} seçildi ve veriler bekleniyor...");
+                //($"[ScadaService] Fabrika {factoryId} seçildi ve veriler bekleniyor...");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ScadaService] Fabrika seçimi hatası: {ex.Message}");
+                //($"[ScadaService] Fabrika seçimi hatası: {ex.Message}");
             }
         }
 
@@ -618,7 +619,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Kullanıcılar alınamadı: {ex.Message}");
+                //($"Kullanıcılar alınamadı: {ex.Message}");
                 return new List<User>();
             }
         }
@@ -646,7 +647,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Kullanıcı eklenemedi: {ex.Message}");
+                //($"Kullanıcı eklenemedi: {ex.Message}");
             }
         }
 
@@ -661,7 +662,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Kullanıcı güncellenemedi: {ex.Message}");
+                //($"Kullanıcı güncellenemedi: {ex.Message}");
             }
         }
 
@@ -671,12 +672,12 @@ namespace TekstilScada.WebApp.Services
             // Bu metod UserViewModel bekleyen Hub metoduna uygun değil. 
             // Eğer kullanıyorsanız, User -> UserViewModel dönüşümü yapıp göndermelisiniz veya Hub'a overload eklemelisiniz.
             // Şimdilik boş bırakıyorum veya log basabilirsiniz.
-            Console.WriteLine("Uyarı: User nesnesi ile ekleme desteklenmiyor, UserViewModel kullanın.");
+            //("Uyarı: User nesnesi ile ekleme desteklenmiyor, UserViewModel kullanın.");
         }
 
         public async Task UpdateUserAsync(User user)
         {
-            Console.WriteLine("Uyarı: User nesnesi ile güncelleme desteklenmiyor, UserViewModel kullanın.");
+            //("Uyarı: User nesnesi ile güncelleme desteklenmiyor, UserViewModel kullanın.");
         }
 
         public async Task DeleteUserAsync(int id)
@@ -689,7 +690,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Kullanıcı silinemedi: {ex.Message}");
+                //($"Kullanıcı silinemedi: {ex.Message}");
             }
         }
         public async Task<List<Machine>?> GetMachinesAsync()
@@ -719,7 +720,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Makine listesi alınamadı: {ex.Message}");
+                //($"Makine listesi alınamadı: {ex.Message}");
                 return MachineDetailsCache.Values.ToList();
             }
         }
@@ -789,7 +790,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Reçete listesi alınamadı: {ex.Message}");
+                //($"Reçete listesi alınamadı: {ex.Message}");
                 return new List<ScadaRecipe>(); // null yerine boş liste dönmek daha güvenli olabilir
             }
         }
@@ -804,7 +805,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Reçete detayı alınamadı: {ex.Message}");
+                //($"Reçete detayı alınamadı: {ex.Message}");
                 return null;
             }
         }
@@ -819,7 +820,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Reçete kaydedilemedi: {ex.Message}");
+                //($"Reçete kaydedilemedi: {ex.Message}");
                 return null;
             }
         }
@@ -845,7 +846,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"PLC'ye gönderme hatası: {ex.Message}");
+                //($"PLC'ye gönderme hatası: {ex.Message}");
                 return false;
             }
         }
@@ -860,7 +861,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"PLC'den okuma hatası: {ex.Message}");
+                //($"PLC'den okuma hatası: {ex.Message}");
                 return null;
             }
         }
@@ -876,7 +877,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Reçete geçmişi alınamadı: {ex.Message}");
+                //($"Reçete geçmişi alınamadı: {ex.Message}");
                 return new List<ProductionReportItem>();
             }
         }
@@ -997,7 +998,7 @@ namespace TekstilScada.WebApp.Services
             // Hub bağlantısı kontrolü
             if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
             {
-                Console.WriteLine("Hub bağlantısı yok, alarm raporu çekilemedi.");
+                //("Hub bağlantısı yok, alarm raporu çekilemedi.");
                 return new List<AlarmReportItem>();
             }
 
@@ -1009,7 +1010,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"SignalR Alarm Raporu Hatası: {ex.Message}");
+                //($"SignalR Alarm Raporu Hatası: {ex.Message}");
                 return new List<AlarmReportItem>();
             }
         }
@@ -1028,7 +1029,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"OEE verisi alınamadı: {ex.Message}");
+                //($"OEE verisi alınamadı: {ex.Message}");
                 return new List<OeeData>();
             }
         }
@@ -1067,7 +1068,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Saatlik tüketim verileri alınamadı: {ex.Message}");
+                //($"Saatlik tüketim verileri alınamadı: {ex.Message}");
                 return null;
             }
         }
@@ -1086,7 +1087,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Saatlik OEE verileri alınamadı: {ex.Message}");
+                //($"Saatlik OEE verileri alınamadı: {ex.Message}");
                 return null;
             }
         }
@@ -1105,7 +1106,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Popüler alarmlar alınamadı: {ex.Message}");
+                //($"Popüler alarmlar alınamadı: {ex.Message}");
                 return null;
             }
         }
@@ -1123,7 +1124,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"HMI İsimleri Hatası: {ex.Message}");
+                //($"HMI İsimleri Hatası: {ex.Message}");
                 return null;
             }
         }
@@ -1139,7 +1140,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Önizleme Hatası: {ex.Message}");
+                //($"Önizleme Hatası: {ex.Message}");
                 return null;
             }
         }
@@ -1156,7 +1157,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Gönderim Kuyruğu Hatası: {ex.Message}");
+                //($"Gönderim Kuyruğu Hatası: {ex.Message}");
                 return false;
             }
         }
@@ -1172,7 +1173,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Alma Kuyruğu Hatası: {ex.Message}");
+                //($"Alma Kuyruğu Hatası: {ex.Message}");
                 return false;
             }
         }
@@ -1188,7 +1189,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Aktif İşler Hatası: {ex.Message}");
+                //($"Aktif İşler Hatası: {ex.Message}");
                 return new List<TransferJob>();
             }
         }
@@ -1216,7 +1217,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Layout yüklenemedi: {ex.Message}");
+                //($"Layout yüklenemedi: {ex.Message}");
                 return string.Empty;
             }
         }
@@ -1312,7 +1313,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Alarm listesi alınamadı: {ex.Message}");
+                //($"Alarm listesi alınamadı: {ex.Message}");
                 return new List<AlarmDefinition>();
             }
         }
@@ -1325,7 +1326,8 @@ namespace TekstilScada.WebApp.Services
             {
                 await _hubConnection.InvokeAsync("AddAlarm", alarm);
             }
-            catch (Exception ex) { Console.WriteLine($"Alarm ekleme hatası: {ex.Message}"); }
+            catch (Exception ex) { //($"Alarm ekleme hatası: {ex.Message}");
+                                   }
         }
 
         public async Task UpdateAlarmAsync(AlarmDefinition alarm)
@@ -1336,7 +1338,8 @@ namespace TekstilScada.WebApp.Services
             {
                 await _hubConnection.InvokeAsync("UpdateAlarm", alarm);
             }
-            catch (Exception ex) { Console.WriteLine($"Alarm güncelleme hatası: {ex.Message}"); }
+            catch (Exception ex) { //($"Alarm güncelleme hatası: {ex.Message}");
+                                   }
         }
 
         public async Task DeleteAlarmAsync(int id)
@@ -1347,7 +1350,8 @@ namespace TekstilScada.WebApp.Services
             {
                 await _hubConnection.InvokeAsync("DeleteAlarm", id);
             }
-            catch (Exception ex) { Console.WriteLine($"Alarm silme hatası: {ex.Message}"); }
+            catch (Exception ex) { //($"Alarm silme hatası: {ex.Message}");
+                                   }
         }
 
 
@@ -1388,7 +1392,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Maliyet parametreleri alınamadı: {ex.Message}");
+                //($"Maliyet parametreleri alınamadı: {ex.Message}");
                 return new List<CostParameter>();
             }
         }
@@ -1404,7 +1408,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Maliyetler güncellenemedi: {ex.Message}");
+                //($"Maliyetler güncellenemedi: {ex.Message}");
             }
         }
 
@@ -1422,7 +1426,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Operatör listesi alınamadı: {ex.Message}");
+                //($"Operatör listesi alınamadı: {ex.Message}");
                 return new List<PlcOperator>();
             }
         }
@@ -1438,7 +1442,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Operatör kaydedilemedi: {ex.Message}");
+                //($"Operatör kaydedilemedi: {ex.Message}");
             }
         }
 
@@ -1453,7 +1457,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Varsayılan operatör eklenemedi: {ex.Message}");
+                //($"Varsayılan operatör eklenemedi: {ex.Message}");
             }
         }
 
@@ -1468,7 +1472,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Operatör silinemedi: {ex.Message}");
+                //($"Operatör silinemedi: {ex.Message}");
             }
         }
 
@@ -1518,7 +1522,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Tasarım yüklenirken hata: {ex.Message}");
+                //($"Tasarım yüklenirken hata: {ex.Message}");
                 return new List<ControlMetadata>();
             }
         }
@@ -1536,7 +1540,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Tasarım kaydedilemedi: {ex.Message}");
+                //($"Tasarım kaydedilemedi: {ex.Message}");
             }
         }
 
@@ -1554,7 +1558,7 @@ namespace TekstilScada.WebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Gateway IP'si alınamadı: {ex.Message}");
+                //($"Gateway IP'si alınamadı: {ex.Message}");
                 return "localhost:5901"; // Hata durumunda geliştirme ortamı varsayılanı
             }
         }
@@ -1580,13 +1584,13 @@ namespace TekstilScada.WebApp.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"SignalR Log gönderme hatası: {ex.Message}");
+                    //($"SignalR Log gönderme hatası: {ex.Message}");
                 }
             }
             else
             {
                 // Bağlantı yoksa yapılacaklar (örn: offline kuyruğuna atma veya konsola yazma)
-                Console.WriteLine("Hub bağlantısı yok, log gönderilemedi.");
+                //("Hub bağlantısı yok, log gönderilemedi.");
             }
         }
 

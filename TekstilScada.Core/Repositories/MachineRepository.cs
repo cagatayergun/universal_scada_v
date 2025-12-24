@@ -97,7 +97,7 @@ namespace TekstilScada.Repositories
                 }
                 catch (MySqlException ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Veritabanı hatası (GetAllEnabledMachines): {ex.Message}");
+                    //($"Veritabanı hatası (GetAllEnabledMachines): {ex.Message}");
                     return new List<Machine>();
                 }
             }

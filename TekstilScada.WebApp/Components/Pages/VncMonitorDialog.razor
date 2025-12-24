@@ -86,7 +86,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[VNC Init Hatası] {ex.Message}");
+            //($"[VNC Init Hatası] {ex.Message}");
         }
     }
 
@@ -121,7 +121,7 @@
                 wsUrl = $"ws://{gatewayAddress}/vnc/?target={targetIp}:5900";
             }
 
-            Console.WriteLine($"[VNC] Bağlanılıyor: {wsUrl}");
+            //($"[VNC] Bağlanılıyor: {wsUrl}");
 
             // Ekranda IP'yi güncellemek için render tetikle
             StateHasChanged();
@@ -132,7 +132,7 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[VNC JS Hatası] {ex.Message}");
+                //($"[VNC JS Hatası] {ex.Message}");
                 isConnected = false;
             }
         }

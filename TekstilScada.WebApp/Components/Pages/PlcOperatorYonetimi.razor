@@ -69,7 +69,8 @@ else
     private async Task LoadData()
     {
         try { operators = await DataService.GetPlcOperatorsAsync(); }
-        catch (Exception ex) { Console.WriteLine($"{Loc["Hata"]}: {ex.Message}"); }
+        catch (Exception ex) { //($"{Loc["Hata"]}: {ex.Message}"); 
+       }
     }
 
     private async Task AddDefaultOperator()

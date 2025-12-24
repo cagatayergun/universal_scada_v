@@ -147,7 +147,7 @@ namespace TekstilScada.WebAPI.Hubs
             _factoryIps[factory.Id] = gatewayIp;
             if (factory == null)
             {
-                Console.WriteLine($"[Hub] Yetkisiz Giriş Denemesi! Key: {hardwareKey}");
+                //($"[Hub] Yetkisiz Giriş Denemesi! Key: {hardwareKey}");
                 Context.Abort();
                 return;
             }
@@ -159,7 +159,7 @@ namespace TekstilScada.WebAPI.Hubs
             string groupName = $"Factory_{factory.Id}";
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
 
-            Console.WriteLine($"[Hub] Gateway Onaylandı: {factory.FactoryName} (ID: {factory.Id})");
+            //($"[Hub] Gateway Onaylandı: {factory.FactoryName} (ID: {factory.Id})");
         }
 
         // --- 2. WEB KULLANICI ABONELİĞİ (BLAZOR) ---
@@ -183,7 +183,7 @@ namespace TekstilScada.WebAPI.Hubs
             foreach (var fid in factoryIds)
             {
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"Factory_{fid}");
-                Console.WriteLine($"[Hub] Web Kullanıcısı Fabrika {fid} kanalına abone oldu.");
+                //($"[Hub] Web Kullanıcısı Fabrika {fid} kanalına abone oldu.");
             }
         }
 
@@ -208,7 +208,7 @@ namespace TekstilScada.WebAPI.Hubs
             }
             else
             {
-                Console.WriteLine("[Hub] Hata: Komut gönderilecek aktif Gateway bulunamadı.");
+                //("[Hub] Hata: Komut gönderilecek aktif Gateway bulunamadı.");
             }
         }
 
@@ -217,7 +217,7 @@ namespace TekstilScada.WebAPI.Hubs
         {
             if (_gatewayConnections.TryRemove(Context.ConnectionId, out int factoryId))
             {
-                Console.WriteLine($"[Hub] Fabrika {factoryId} Gateway bağlantısı koptu.");
+                //($"[Hub] Fabrika {factoryId} Gateway bağlantısı koptu.");
             }
             return base.OnDisconnectedAsync(exception);
         }
@@ -267,7 +267,7 @@ namespace TekstilScada.WebAPI.Hubs
                 else return (T)result;
 
                 // --- LOG: Veriyi görelim ---
-                // System.Diagnostics.Debug.WriteLine($"[HUB] Veri Geldi: {jsonString.Substring(0, Math.Min(jsonString.Length, 100))}");
+                // //($"[HUB] Veri Geldi: {jsonString.Substring(0, Math.Min(jsonString.Length, 100))}");
 
                 using (JsonDocument doc = JsonDocument.Parse(jsonString))
                 {
@@ -306,7 +306,7 @@ namespace TekstilScada.WebAPI.Hubs
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[HUB KRİTİK HATA] {ex.Message}");
+                //($"[HUB KRİTİK HATA] {ex.Message}");
                 return default;
             }
             finally
@@ -443,7 +443,7 @@ namespace TekstilScada.WebAPI.Hubs
 
         public async Task<List<ProductionReportItem>> GetProductionReport(ReportFilters filters)
         {
-            System.Diagnostics.Debug.WriteLine("[Hub] HALKA AÇIK METOT TETİKLENDİ: GetProductionReport");
+            //("[Hub] HALKA AÇIK METOT TETİKLENDİ: GetProductionReport");
             return await InvokeOnGateway<List<ProductionReportItem>>("GetProductionReport", filters) ?? new List<ProductionReportItem>();
         }
         public async Task<List<AlarmReportItem>> GetAlarmReport(ReportFilters filters) => await InvokeOnGateway<List<AlarmReportItem>>("GetAlarmReport", filters) ?? new List<AlarmReportItem>();
