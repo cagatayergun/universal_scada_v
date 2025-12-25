@@ -193,20 +193,30 @@ namespace TekstilScada.WebAPI.Controllers
                 AllowedFactoryIds = dto.AllowedFactoryIds
             };
 
-            bool result;
-            if (user.Id == 0)
+            // --- DEĞİŞİKLİK BURADA BAŞLIYOR ---
+            try
             {
-                // Yeni Kayıt
-                result = _authRepo.AddUser(user, dto.Password);
-            }
-            else
-            {
-                // Güncelleme
-                result = _authRepo.UpdateUser(user, dto.Password);
-            }
+                bool result;
+                if (user.Id == 0)
+                {
+                    // AddUser metodu "Kullanıcı adı dolu" hatası fırlatabilir
+                    result = _authRepo.AddUser(user, dto.Password);
+                }
+                else
+                {
+                    result = _authRepo.UpdateUser(user, dto.Password);
+                }
 
-            if (result) return Ok();
-            return BadRequest("İşlem başarısız.");
+                if (result) return Ok();
+                return BadRequest("İşlem başarısız.");
+            }
+            catch (Exception ex)
+            {
+                // Repo'dan gelen "Kullanıcı adı kullanımda" mesajını 
+                // Frontend'e (CompanyPortal.razor) iletiyoruz.
+                return BadRequest(ex.Message);
+            }
+            // --- DEĞİŞİKLİK BİTTİ ---
         }
 
         // --- ORTAK SİLME METODU ---

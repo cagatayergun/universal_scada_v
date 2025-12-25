@@ -176,11 +176,10 @@ namespace TekstilScada.WebAPI.Repositories
             {
                 conn.Open();
 
-                // 1. SQL SORGUSU: Burada 'AllowedFactoryIds' ve '@Factories' yazıyor mu?
                 string query = @"INSERT INTO CentralUsers 
-                                (CompanyId, Username, PasswordHash, FullName, Role, AllowedFactoryIds, IsActive) 
-                                VALUES 
-                                (@CId, @User, @Pass, @Name, @Role, @Factories, 1)";
+                        (CompanyId, Username, PasswordHash, FullName, Role, AllowedFactoryIds, IsActive) 
+                        VALUES 
+                        (@CId, @User, @Pass, @Name, @Role, @Factories, 1)";
 
                 using (var cmd = new MySqlCommand(query, conn))
                 {
@@ -189,11 +188,17 @@ namespace TekstilScada.WebAPI.Repositories
                     cmd.Parameters.AddWithValue("@Pass", password);
                     cmd.Parameters.AddWithValue("@Name", user.FullName ?? "");
                     cmd.Parameters.AddWithValue("@Role", user.Role);
-
-                    // 2. PARAMETRE: Bu satır sizde var mı? Yoksa veri tabana gitmez.
                     cmd.Parameters.AddWithValue("@Factories", user.AllowedFactoryIds ?? "");
 
-                    return cmd.ExecuteNonQuery() > 0;
+                    try
+                    {
+                        return cmd.ExecuteNonQuery() > 0;
+                    }
+                    catch (MySqlException ex) when (ex.Number == 1062) // 1062: Duplicate Entry (Tekrarlayan Kayıt)
+                    {
+                        // Hatayı burada eziyoruz ve kontrollü bir mesaj fırlatıyoruz
+                        throw new Exception($"'{user.Username}' kullanıcı adı zaten kullanımda. Lütfen farklı bir kullanıcı adı seçiniz.");
+                    }
                 }
             }
         }

@@ -144,13 +144,21 @@ namespace TekstilScada.WebAPI.Hubs
         {
             // A. Veritabanından bu anahtarı doğrula
             var factory = _factoryRepo.GetFactoryByHardwareKey(hardwareKey);
-            _factoryIps[factory.Id] = gatewayIp;
+
+            // --- DÜZELTME BAŞLANGIÇ ---
+            // Önce fabrikanın var olup olmadığını kontrol etmeliyiz.
+            // Eğer factory null ise, factory.Id'ye erişmeye çalışmak hataya sebep olur.
             if (factory == null)
             {
-                //($"[Hub] Yetkisiz Giriş Denemesi! Key: {hardwareKey}");
-                Context.Abort();
+                Console.WriteLine($"[Hub] Yetkisiz Giriş Denemesi! Tanımsız Key: {hardwareKey}");
+                Context.Abort(); // Bağlantıyı reddet
                 return;
             }
+            // --- DÜZELTME BİTİŞ ---
+
+            // Fabrikanın var olduğundan emin olduktan sonra ID'sini kullanabiliriz.
+            // IP adresini hafızaya kaydet (Web tarafında "Bağlantı Var/Yok" kontrolü için)
+            _factoryIps[factory.Id] = gatewayIp;
 
             // B. Bağlantıyı Kaydet
             _gatewayConnections[Context.ConnectionId] = factory.Id;
@@ -159,7 +167,7 @@ namespace TekstilScada.WebAPI.Hubs
             string groupName = $"Factory_{factory.Id}";
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
 
-            //($"[Hub] Gateway Onaylandı: {factory.FactoryName} (ID: {factory.Id})");
+            Console.WriteLine($"[Hub] Gateway Onaylandı: {factory.FactoryName} (ID: {factory.Id})");
         }
 
         // --- 2. WEB KULLANICI ABONELİĞİ (BLAZOR) ---
