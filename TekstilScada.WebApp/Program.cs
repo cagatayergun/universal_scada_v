@@ -75,11 +75,15 @@ builder.Services.AddHttpClient("WebApiClient", client =>
 });
 
 // --- 6. Scada & Diðer Servisler ---
-builder.Services.AddSingleton(sp =>
+builder.Services.AddScoped<ScadaDataService>(sp =>
 {
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
     var httpClient = httpClientFactory.CreateClient("WebApiClient");
-    return new ScadaDataService(httpClient);
+
+    // Eksik olan parametreyi (localStorage) burada servisten çaðýrýp gönderiyoruz
+    var localStorage = sp.GetRequiredService<ILocalStorageService>();
+
+    return new ScadaDataService(httpClient, localStorage);
 });
 
 // *** YENÝ EKLENEN SERVÝS (Singleton olmalý ki herkes ayný listeyi görsün) ***
@@ -128,8 +132,8 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 // --- Veri Baþlatma ---
-var scadaDataService = app.Services.GetRequiredService<ScadaDataService>();
-await scadaDataService.InitializeAsync();
+//var scadaDataService = app.Services.GetRequiredService<ScadaDataService>();
+//await scadaDataService.InitializeAsync();
 
 // --- Global Hata Yakalama ---
 var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();

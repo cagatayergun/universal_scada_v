@@ -1,42 +1,74 @@
 ﻿@page "/select-factory"
 @using TekstilScada.WebApp.Services
+@using TekstilScada.WebApp.Components.Shared
+@using Microsoft.AspNetCore.Components.Authorization
 @inject ScadaDataService ScadaService
 @inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject CustomAuthStateProvider AuthProvider
 @layout TekstilScada.WebApp.Components.Layout.EmptyLayout
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+<div class="absolute-top-right pa-4">
+    <MudButton Variant="Variant.Outlined"
+               Color="Color.Error"
+               StartIcon="@Icons.Material.Filled.Logout"
+               OnClick="HandleLogout">
+        Çıkış Yap
+    </MudButton>
+</div>
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-16">
     <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true">Fabrika Seçimi</MudText>
-    <MudText Typo="Typo.subtitle1" Align="Align.Center" Class="mb-8">Lütfen izlemek istediğiniz tesisi seçiniz.</MudText>
 
     @if (isLoading)
     {
-        <div class="d-flex justify-center">
+        <div class="d-flex justify-center mt-8">
             <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
         </div>
     }
     else if (factories == null || !factories.Any())
     {
-        <MudAlert Severity="Severity.Warning">Yetkili olduğunuz aktif bir fabrika bulunamadı.</MudAlert>
+        <MudAlert Severity="Severity.Warning" Class="mt-4">Yetkili olduğunuz fabrika bulunamadı.</MudAlert>
     }
     else
     {
-        <MudGrid Justify="Justify.Center">
+        <MudGrid Justify="Justify.Center" Class="mt-4">
             @foreach (var factory in factories)
             {
+                // Fabrika online listesinde var mı?
+                bool isOnline = onlineFactoryIds.Contains(factory.Id);
+
                 <MudItem xs="12" sm="6" md="4">
-                    <MudCard Elevation="4" Class="hover-card" @onclick="() => ChooseFactory(factory.Id)">
+                    <MudCard Elevation="@(isOnline ? 4 : 0)"
+                             Class="@(isOnline ? "hover-card cursor-pointer" : "grey lighten-4")"
+                             @onclick="@(isOnline ? () => ChooseFactory(factory) : null)">
+
                         <MudCardHeader>
                             <CardHeaderAvatar>
-                                <MudAvatar Color="Color.Secondary" Variant="Variant.Filled">
+                                <MudAvatar Color="@(isOnline? Color.Success: Color.Dark)" Variant="Variant.Filled">
                                     <MudIcon Icon="@Icons.Material.Filled.Factory" />
                                 </MudAvatar>
                             </CardHeaderAvatar>
                             <CardHeaderContent>
-                                <MudText Typo="Typo.h6">@factory.FactoryName</MudText>
+                                <MudText Typo="Typo.h6" Color="@(isOnline? Color.Default: Color.Dark)">
+                                    @factory.FactoryName
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="@(isOnline? Color.Success: Color.Error)">
+                                    @(isOnline ? "Çevrimiçi" : "Bağlantı Yok")
+                                </MudText>
                             </CardHeaderContent>
                         </MudCardHeader>
+
                         <MudCardContent>
-                            <MudText>Veri akışını başlatmak için tıklayın.</MudText>
+                            @if (isOnline)
+                            {
+                                <MudText>Giriş yapmak için tıklayın.</MudText>
+                            }
+                            else
+                            {
+                                <MudText Color="Color.Dark">Gateway bağlantısı kesik.</MudText>
+                            }
                         </MudCardContent>
                     </MudCard>
                 </MudItem>
@@ -47,53 +79,92 @@
 
 <style>
     .hover-card {
-        cursor: pointer;
-        transition: transform 0.2s;
+        transition: transform 0.2s, background-color 0.2s;
     }
 
         .hover-card:hover {
             transform: scale(1.05);
             background-color: #f5f5f5;
         }
+
+    /* Sağ üst köşe için stil */
+    .absolute-top-right {
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 100;
+    }
 </style>
 
 @code {
     private bool isLoading = true;
     private List<ScadaDataService.CentralFactoryDto> factories = new();
+    private List<int> onlineFactoryIds = new();
 
     protected override async Task OnInitializedAsync()
     {
-        await ScadaService.InitializeAsync();
-        factories = await ScadaService.GetMyFactoriesAsync();
+        // --- 1. YENİ GÜVENLİK KONTROLÜ: Adminler bu sayfaya giremez ---
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
 
-        // --- KONSOL LOGLAMA BAŞLANGICI ---
-        //("--------------------------------------------------");
-        //($"[FRONTEND LOG] Toplam Gelen Fabrika Sayısı: {factories?.Count ?? 0}");
-
-        if (factories != null)
+        if (user.IsInRole("SystemAdmin"))
         {
-            foreach (var f in factories)
-            {
-                // DTO'nuzda CompanyId eklediyseniz onu da buraya yazın:
-                // Örn: $"ID: {f.Id} | ŞirketID: {f.CompanyId} | İsim: {f.FactoryName}"
-                //($"[DETAY] Fabrika ID: {f.Id} | İsim: {f.FactoryName}");
-            }
+            Navigation.NavigateTo("/admin");
+            return;
         }
-        //("--------------------------------------------------");
-        // --- KONSOL LOGLAMA BİTİŞİ ---
+        else if (user.IsInRole("CompanyAdmin"))
+        {
+            Navigation.NavigateTo("/portal");
+            return;
+        }
+        // -------------------------------------------------------------
 
-        isLoading = false;
+        try
+        {
+            await ScadaService.InitializeAsync();
+            factories = await ScadaService.GetMyFactoriesAsync();
+            onlineFactoryIds = await ScadaService.GetOnlineFactoryIdsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Veriler yüklenirken hata oluştu: " + ex.Message, Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
-    // GÜNCELLEME: Metot adı değiştirildi (SelectFactory -> ChooseFactory)
-    private async Task ChooseFactory(int factoryId)
+    private async Task ChooseFactory(ScadaDataService.CentralFactoryDto factory)
     {
-        isLoading = true;
+        // Çift tıklama koruması veya offline kontrolü
+        if (!onlineFactoryIds.Contains(factory.Id))
+        {
+            Snackbar.Add("Bu fabrika şu an çevrimdışı!", Severity.Warning);
+            return;
+        }
 
-        // 1. Seçilen fabrikanın kanalına abone ol
-        await ScadaService.SelectFactoryAndSubscribeAsync(factoryId);
+        try
+        {
+            isLoading = true;
+            // Düzeltilmiş metot çağrısı (ID ve İsim ile)
+            await ScadaService.SelectFactoryAndSubscribeAsync(factory.Id, factory.FactoryName);
+            Navigation.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            isLoading = false;
+            Snackbar.Add(ex.Message, Severity.Error);
+            // Hata durumunda listeyi tazele
+            onlineFactoryIds = await ScadaService.GetOnlineFactoryIdsAsync();
+        }
+    }
 
-        // 2. Ana Dashboard'a yönlendir
-        Navigation.NavigateTo("/");
+    // YENİ: Çıkış Yap Metodu
+    private async Task HandleLogout()
+    {
+        await AuthProvider.LogoutAsync();
+        ScadaService.ExitFactory(); // Varsa fabrika seçimini de temizle
+        Navigation.NavigateTo("/login", forceLoad: true);
     }
 }

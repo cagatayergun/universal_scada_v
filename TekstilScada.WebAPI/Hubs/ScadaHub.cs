@@ -315,7 +315,12 @@ namespace TekstilScada.WebAPI.Hubs
                 _chunkBuffers.TryRemove(requestId, out _);
             }
         }
-
+        public Task<List<int>> GetOnlineFactoryIds()
+        {
+            // Bağlı olan tüm gateway'lerin Fabrika ID'lerini benzersiz olarak listele
+            var onlineIds = _gatewayConnections.Values.Distinct().ToList();
+            return Task.FromResult(onlineIds);
+        }
         // Yardımcı: Şu anki kullanıcının yetkisine uygun bir Gateway bul
         private string? GetTargetGatewayForCurrentUser()
         {

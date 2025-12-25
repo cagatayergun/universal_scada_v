@@ -1,0 +1,105 @@
+﻿@inherits LayoutComponentBase
+@using TekstilScada.WebApp.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
+@using MudBlazor
+@using System.Security.Claims
+@using TekstilScada.WebApp.Components.Shared
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
+
+@inject TekstilScada.WebApp.Services.ScadaDataService ScadaService
+@inject CustomAuthStateProvider AuthProvider
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IStringLocalizer<SharedResource> Loc
+@inject ISnackbar Snackbar
+@implements IDisposable
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <AlarmBanner />
+
+    <MudAppBar Elevation="1">
+        <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Class="mr-3" />
+        <MudText Typo="Typo.h5">Universal Scada - Yönetim Paneli</MudText>
+
+        <MudSpacer />
+
+        <LanguageSwitcher />
+
+        <AuthorizeView>
+            <Authorized>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="ml-4">
+                    <MudText Typo="Typo.body2"><b>@context.User.Identity?.Name</b></MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="MudBlazor.Color.Inherit" OnClick="HandleLogout" Title="@Loc["CikisYap"]" />
+                </MudStack>
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Secondary" Link="/login" Class="ml-4">@Loc["GirisYap"]</MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+    </MudAppBar>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _isInitialized = false;
+    private int _currentUserId = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!_isInitialized)
+        {
+            await GetCurrentUserAsync();
+            _isInitialized = true;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // API Token'ını yüklemek için servisi başlatıyoruz
+            await ScadaService.InitializeAsync();
+
+            // BURADA "CheckFactorySelection" YOK.
+            // Böylece fabrika seçmeden bu sayfalarda gezebilirsiniz.
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthProvider.LogoutAsync();
+        NavigationManager.NavigateTo("/login", forceLoad: true);
+    }
+
+    private async Task GetCurrentUserAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity != null && user.Identity.IsAuthenticated)
+        {
+            var idClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+            if (idClaim != null && int.TryParse(idClaim.Value, out int id))
+            {
+                _currentUserId = id;
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        // Gerekirse dispose işlemleri
+    }
+}

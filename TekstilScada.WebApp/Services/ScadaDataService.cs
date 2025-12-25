@@ -2,29 +2,19 @@
 
 
 
+using Blazored.LocalStorage; // Bu using'i ekleyin
 using Microsoft.AspNetCore.SignalR.Client;
-
-using System;
-
-using System.Collections.Concurrent;
-
-using System.Net.Http.Json;
-
-using System.Text;
-
-using System.Text.Json;
-
-using System.Threading.Tasks;
-
-using TekstilScada.Models;
-
-using TekstilScada.Repositories;
-
-using TekstilScada.Services;
-
 using Microsoft.Extensions.DependencyInjection; // <--- AddJsonProtocol için BU ŞART
+using System;
+using System.Collections.Concurrent;
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
-
+using System.Threading.Tasks;
+using TekstilScada.Models;
+using TekstilScada.Repositories;
+using TekstilScada.Services;
 // --- DTO Sınıfları (Global) ---
 
 
@@ -234,13 +224,13 @@ namespace TekstilScada.WebApp.Services
         private HubConnection? _hubConnection;
 
         private readonly HttpClient _httpClient;
-
+        public HubConnection? HubConnection => _hubConnection;
         private readonly JsonSerializerOptions _serializerOptions;
-
+        private readonly ILocalStorageService _localStorage; // <--- EKLENDİ
         // KULLANICI YETKİLERİ (Hafızada tutulacak)
         public List<int> UserAllowedFactoryIds { get; private set; } = new();
         public string UserRole { get; private set; } = "";
-
+        private int _currentSelectedFactoryId = 0; // <--- Bağlantı koparsa buradaki ID ile tekrar abone olacağız
         // Canlı Veriler (Anlık Durumlar)
 
         public ConcurrentDictionary<int, FullMachineStatus> MachineData { get; private set; } = new();
@@ -257,22 +247,21 @@ namespace TekstilScada.WebApp.Services
 
         private string _accessToken = string.Empty;
 
-
+        public string CurrentFactoryName { get; private set; } = "";
+        public int TotalFactoriesCount { get; private set; } = 0;
+        public List<CentralFactoryDto> CachedFactories { get; private set; } = new();
 
         public event Action? OnDataUpdated;
-
+        public event Action? OnFactoryChanged; // <--- Bu event eksik kalmasın
         public event Action<TransferJob> OnFtpProgressReceived;
 
 
 
-        public ScadaDataService(HttpClient httpClient)
-
+        public ScadaDataService(HttpClient httpClient, ILocalStorageService localStorage)
         {
-
             _httpClient = httpClient;
-
+            _localStorage = localStorage; // <--- ATANDI
             _serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-
         }
 
 
@@ -282,140 +271,174 @@ namespace TekstilScada.WebApp.Services
 
 
         public async Task InitializeAsync()
-
         {
-
-            // A. Önce Token Al (Login Ol)
-
-            if (string.IsNullOrEmpty(_accessToken))
-
+            try
             {
+                _accessToken = await _localStorage.GetItemAsync<string>("authToken");
 
-                await LoginAndGetTokenAsync();
+                if (string.IsNullOrEmpty(_accessToken)) return;
 
-            }
+                _httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
 
-
-
-            // B. SignalR Bağlantısını Kur
-
-            if (_hubConnection == null || _hubConnection.State == HubConnectionState.Disconnected)
-            {
-                var hubUrl = new Uri(_httpClient.BaseAddress!, "/scadaHub");
-
-                _hubConnection = new HubConnectionBuilder()
-                    .WithUrl(hubUrl, options =>
-                    {
-                        options.AccessTokenProvider = () => Task.FromResult(_accessToken);
-                    })
-                    // --- EKLENECEK KISIM BAŞLANGIÇ ---
-                    .AddJsonProtocol(options =>
-                    {
-                        options.PayloadSerializerOptions.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals;
-                        options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-                        options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
-                    })
-                    // --- EKLENECEK KISIM BİTİŞ ---
-                    .WithAutomaticReconnect()
-                    .Build();
-
-
-
-                // C. Olayları Tanımla
-
-
-
-                // FTP İlerlemesi
-
-                _hubConnection.On<TransferJob>("ReceiveFtpProgress", (job) =>
-
+                if (_hubConnection == null || _hubConnection.State == HubConnectionState.Disconnected)
                 {
+                    var hubUrl = new Uri(_httpClient.BaseAddress!, "/scadaHub");
 
-                    if (job != null) OnFtpProgressReceived?.Invoke(job);
-
-                });
-
-
-
-                // Canlı Veri Akışı ve DİNAMİK KEŞİF
-
-                _hubConnection.On<FullMachineStatus>("ReceiveMachineUpdate", (status) =>
-
-                {
-
-                    if (status != null)
-
-                    {
-
-                        // 1. Canlı veriyi güncelle
-
-                        MachineData[status.MachineId] = status;
-
-
-
-                        // 2. Makine listesinde yoksa EKLE (Dynamic Discovery)
-
-                        // Windows Forms'tan veri geldiği anda makineyi "var" sayıyoruz.
-
-                        if (!MachineDetailsCache.ContainsKey(status.MachineId))
-
+                    _hubConnection = new HubConnectionBuilder()
+                        .WithUrl(hubUrl, options =>
                         {
+                            options.AccessTokenProvider = () => Task.FromResult(_accessToken);
+                        })
+                        .AddJsonProtocol(options =>
+                        {
+                            options.PayloadSerializerOptions.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals;
+                            options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+                            options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+                        })
+                        .WithAutomaticReconnect()
+                        .Build();
 
-                            var discoveredMachine = new Machine
+                    // --- OLAYLAR ---
 
+                    _hubConnection.On<TransferJob>("ReceiveFtpProgress", (job) =>
+                    {
+                        if (job != null) OnFtpProgressReceived?.Invoke(job);
+                    });
+
+                    // Canlı Veri Akışı
+                    _hubConnection.On<FullMachineStatus>("ReceiveMachineUpdate", (status) =>
+                    {
+                        if (status != null)
+                        {
+                            MachineData[status.MachineId] = status;
+
+                            // Dinamik Keşif
+                            if (!MachineDetailsCache.ContainsKey(status.MachineId))
                             {
-
-                                Id = status.MachineId,
-
-                                MachineName = status.MachineName,
-
-                                // WinForms'tan gelen 'MakineTipi'ni kullan, yoksa varsayılan ata
-
-                                MachineSubType = string.IsNullOrEmpty(status.MakineTipi) ? "Standart" : status.MakineTipi
-
-                            };
-
-                            MachineDetailsCache.TryAdd(status.MachineId, discoveredMachine);
-
-                            //($"[ScadaService] Yeni Makine Keşfedildi: {status.MachineName}");
-
+                                var discoveredMachine = new Machine
+                                {
+                                    Id = status.MachineId,
+                                    MachineName = status.MachineName,
+                                    MachineSubType = string.IsNullOrEmpty(status.MakineTipi) ? "Standart" : status.MakineTipi
+                                };
+                                MachineDetailsCache.TryAdd(status.MachineId, discoveredMachine);
+                            }
+                            OnDataUpdated?.Invoke();
                         }
+                    });
 
-
-
-                        OnDataUpdated?.Invoke();
-
-                    }
-
-                });
-
-
-
-                try
-
-                {
+                    // --- KRİTİK EKSİK PARÇA: YENİDEN BAĞLANMA ---
+                    // Bağlantı kopup geri gelirse, sunucuya tekrar abone olmalıyız.
+                    _hubConnection.Reconnected += async (connectionId) =>
+                    {
+                        Console.WriteLine($"[ScadaService] Bağlantı tazelendi. Fabrika ID: {_currentSelectedFactoryId}");
+                        if (_currentSelectedFactoryId > 0)
+                        {
+                            try
+                            {
+                                await _hubConnection.InvokeAsync("SubscribeToFactories", new List<int> { _currentSelectedFactoryId });
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"[ScadaService] Reconnect Hatası: {ex.Message}");
+                            }
+                        }
+                    };
 
                     await _hubConnection.StartAsync();
-
-                    //("[ScadaService] SignalR Bağlantısı Başarılı.");
-
+                    Console.WriteLine("[ScadaService] SignalR Bağlandı.");
                 }
-
-                catch (Exception ex)
-
-                {
-
-                    _hubConnection = null;
-
-                    //($"[ScadaService] SignalR bağlantı hatası: {ex.Message}");
-
-                }
-
             }
-
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ScadaService] InitializeAsync Hatası: {ex.Message}");
+            }
         }
 
-    
+        // --- 2. FABRİKA SEÇİMİ (DÜZELTİLDİ) ---
+        // Not: Parametre olarak (int factoryId, string factoryName) alacak şekilde güncelledik.
+        // SelectFactory.razor sayfanızdaki çağrıyı da buna göre güncellemeniz gerekebilir:
+        // await ScadaService.SelectFactoryAndSubscribeAsync(factory.Id, factory.FactoryName);
+        public async Task SelectFactoryAndSubscribeAsync(int factoryId, string factoryName)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
+
+            // Güvenlik: Fabrika online mı?
+            var onlineIds = await GetOnlineFactoryIdsAsync();
+            if (!onlineIds.Contains(factoryId))
+            {
+                throw new Exception("Bu fabrika şu anda çevrimdışı (Gateway bağlı değil).");
+            }
+
+            try
+            {
+                MachineData.Clear();
+                MachineDetailsCache.Clear();
+
+                // --- DÜZELTME: Değerleri Atıyoruz ---
+                CurrentFactoryName = factoryName;
+                _currentSelectedFactoryId = factoryId; // Hafızaya alıyoruz
+                // ------------------------------------
+
+                OnDataUpdated?.Invoke();
+
+                await _hubConnection.InvokeAsync("SubscribeToFactories", new List<int> { factoryId });
+
+                OnFactoryChanged?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Fabrika seçim hatası: {ex.Message}");
+                throw;
+            }
+        }
+
+        // --- 3. FABRİKADAN ÇIKIŞ ---
+        public void ExitFactory()
+        {
+            CurrentFactoryName = "";
+            _currentSelectedFactoryId = 0; // Seçimi sıfırla
+            MachineData.Clear();
+            OnFactoryChanged?.Invoke();
+        }
+
+        // --- 4. YARDIMCI METOTLAR ---
+        public async Task<List<int>> GetOnlineFactoryIdsAsync()
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<int>();
+
+            try { return await _hubConnection.InvokeAsync<List<int>>("GetOnlineFactoryIds"); }
+            catch { return new List<int>(); }
+        }
+
+        public async Task<List<CentralFactoryDto>> GetMyFactoriesAsync()
+        {
+            try
+            {
+                var factories = await _httpClient.GetFromJsonAsync<List<CentralFactoryDto>>("api/factory/my-factories")
+                                ?? new List<CentralFactoryDto>();
+
+                CachedFactories = factories;
+                TotalFactoriesCount = factories.Count;
+                OnFactoryChanged?.Invoke();
+
+                return factories;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Fabrika listesi hatası: {ex.Message}");
+                return new List<CentralFactoryDto>();
+            }
+        }
+
+       
+
+        // --- 3. FABRİKADAN ÇIKIŞ ---
+        
+
+        
 
         // --- 2. YENİ LOGIN METODU ---
 
@@ -480,9 +503,8 @@ namespace TekstilScada.WebApp.Services
             }
             //($"[ScadaService] Yetkili Fabrikalar: {string.Join(",", UserAllowedFactoryIds)}");
         }
-
-        // --- 2. ABONELİK METODU (YENİ) ---
-        // Dashboard açıldığında bu metot çağrılacak
+        
+        
         public async Task SubscribeToFactoryGroupsAsync()
         {
             if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
@@ -519,20 +541,7 @@ namespace TekstilScada.WebApp.Services
 
 
         // A. Yetkili Fabrikaları Listele
-        public async Task<List<CentralFactoryDto>> GetMyFactoriesAsync()
-        {
-            try
-            {
-                // HttpClient artık yukarıdaki düzeltme sayesinde Authorization header'ı ile gidecek
-                return await _httpClient.GetFromJsonAsync<List<CentralFactoryDto>>("api/factory/my-factories")
-                       ?? new List<CentralFactoryDto>();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Fabrika listesi alınamadı: {ex.Message}");
-                return new List<CentralFactoryDto>();
-            }
-        }
+      
 
         // DTO Sınıfı (ScadaDataService sınıfının dışına veya içine)
         public class CentralFactoryDto

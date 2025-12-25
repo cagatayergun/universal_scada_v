@@ -8,9 +8,9 @@
 @using TekstilScada.Core.Localization
 @using Microsoft.Extensions.Localization
 
+@inject TekstilScada.WebApp.Services.ScadaDataService ScadaService
 @inject CustomAuthStateProvider AuthProvider
 @inject NavigationManager NavigationManager
-@inject ScadaDataService ScadaService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IStringLocalizer<SharedResource> Loc
 @inject ISnackbar Snackbar
@@ -19,24 +19,17 @@
 <MudThemeProvider />
 <MudPopoverProvider />
 <MudDialogProvider />
-@* Snackbar Ayarları: Sağ üst köşe, görünürlük süresi vb. *@
 <MudSnackbarProvider />
 
 <MudLayout>
-
-    <!-- ALARM BANNERINI BURAYA EKLİYORUZ (AppBar'ın üstüne) -->
     <AlarmBanner />
-    <!-- =================================================== -->
-
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="MudBlazor.Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
         <MudText Typo="Typo.h5" Class="ml-3">Universal Scada</MudText>
 
         <MudSpacer />
 
-        <!-- DİL SEÇİM BUTONU -->
         <LanguageSwitcher />
-        <!-- ================= -->
 
         <AuthorizeView>
             <Authorized>
@@ -66,9 +59,19 @@
     bool _drawerOpen = true;
     private bool _isInitialized = false;
     private int _currentUserId = 0;
-
-    // Alarm Takibi İçin (Hangi makinelerde alarm olduğunu hatırlar)
     private HashSet<int> _machinesWithAlarm = new();
+
+    // --- 1. GÜNCELLENMİŞ İZİNLİ SAYFALAR LİSTESİ ---
+    // Buraya "portal" ve "admin" sayfalarını da ekledik.
+    // Artık bu sayfalar fabrika seçimi kontrolüne takılmayacak.
+    private readonly string[] _publicPages = new[]
+    {
+        "select-factory",
+        "login",
+        "logout",
+        "portal",  // YENİ EKLENDİ
+        "admin"    // YENİ EKLENDİ
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -76,50 +79,103 @@
         {
             await GetCurrentUserAsync();
             NavigationManager.LocationChanged += HandleLocationChanged;
-
-            // Alarm Takibini Başlat
             ScadaService.OnDataUpdated += CheckAlarms;
-
             _isInitialized = true;
         }
     }
 
-    // YENİ METOT: Alarm Balonu (Snackbar) Kontrolü
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ScadaService.InitializeAsync();
+
+            // Güvenlik Kontrolü
+            CheckFactorySelection();
+
+            if (ScadaService.HubConnection != null)
+            {
+                ScadaService.HubConnection.Closed += async (error) =>
+                {
+                    ScadaService.ExitFactory();
+                    Snackbar.Add("Sunucu bağlantısı koptu! Fabrika seçim ekranına yönlendiriliyorsunuz.", Severity.Error, config =>
+                    {
+                        config.Icon = Icons.Material.Filled.WifiOff;
+                        config.VisibleStateDuration = 5000;
+                    });
+
+                    await InvokeAsync(() =>
+                    {
+                        NavigationManager.NavigateTo("/select-factory");
+                    });
+                };
+            }
+        }
+    }
+
+    private async Task CheckFactorySelection()
+    {
+        var relativePath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLower();
+
+        // 1. İzinli sayfalardaysak (Login, Logout vb.) kontrol etme
+        if (_publicPages.Any(page => relativePath.StartsWith(page)))
+        {
+            return;
+        }
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        // --- 2. YENİ KURAL: Adminler User sayfalarında (MainLayout) gezemez ---
+        if (user.IsInRole("SystemAdmin"))
+        {
+            // Admin paneline geri yolla
+            NavigationManager.NavigateTo("/admin");
+            return;
+        }
+        if (user.IsInRole("CompanyAdmin"))
+        {
+            // Şirket portalına geri yolla
+            NavigationManager.NavigateTo("/portal");
+            return;
+        }
+        // ----------------------------------------------------------------------
+
+        // 3. Normal Kullanıcılar için Fabrika Seçimi Zorunluluğu (Aynen kalıyor)
+        if (string.IsNullOrEmpty(ScadaService.CurrentFactoryName))
+        {
+            NavigationManager.NavigateTo("/select-factory");
+        }
+    }
+
+    // ... (Geri kalan metotlar: CheckAlarms, DrawerToggle, HandleLogout, GetCurrentUserAsync, HandleLocationChanged, Dispose aynı kalacak) ...
+
     private void CheckAlarms()
     {
         foreach (var machine in ScadaService.MachineData.Values)
         {
-            // Yeni bir alarm başladı mı?
             if (machine.HasActiveAlarm && !_machinesWithAlarm.Contains(machine.MachineId))
             {
                 _machinesWithAlarm.Add(machine.MachineId);
-
-                // Balon Göster (Kırmızı)
-                // Not: .resx dosyanızda "AlarmBalonMesaji" anahtarı "{0} makinesinde alarm oluştu! Kod: {1}" şeklinde olmalıdır.
-                string msg = string.Format(Loc["AlarmBalonMesaji"], machine.MachineName, machine.ActiveAlarmNumber);
+                string format = Loc["AlarmBalonMesaji"] ?? "{0} makinesinde alarm: {1}";
+                string msg = string.Format(format, machine.MachineName, machine.ActiveAlarmNumber);
 
                 Snackbar.Add(msg, Severity.Error, config =>
                 {
                     config.Icon = Icons.Material.Filled.Warning;
                     config.ShowCloseIcon = true;
-                    config.VisibleStateDuration = 10000; // 10 saniye ekranda kalsın
+                    config.VisibleStateDuration = 10000;
                 });
-
-                // İsterseniz burada sesli uyarı JS interop çağrısı da yapabilirsiniz.
             }
-            // Alarm bitti mi? (Daha önce alarmdaydı ama şimdi değil)
             else if (!machine.HasActiveAlarm && _machinesWithAlarm.Contains(machine.MachineId))
             {
                 _machinesWithAlarm.Remove(machine.MachineId);
+                string format = Loc["AlarmGiderildiMesaji"] ?? "{0} makinesindeki alarm düzeldi.";
+                string msg = string.Format(format, machine.MachineName);
 
-                // Balon Göster (Yeşil - Bilgi)
-                // Not: .resx dosyanızda "AlarmGiderildiMesaji" anahtarı "{0} makinesindeki alarm giderildi." şeklinde olmalıdır.
-                string msg = string.Format(Loc["AlarmGiderildiMesaji"], machine.MachineName);
                 Snackbar.Add(msg, Severity.Success);
             }
         }
-
-        // Bu metot sadece bildirim gösterir, StateHasChanged çağırmaya gerek yoktur (Banner kendi içinde hallediyor)
     }
 
     void DrawerToggle()
@@ -167,11 +223,16 @@
             if (string.IsNullOrEmpty(relativePath)) relativePath = "Ana Sayfa";
             _ = ScadaService.LogUserActionAsync(_currentUserId, "Sayfa Ziyareti", $"Görüntülenen Sayfa: {relativePath}");
         }
+
+        CheckFactorySelection();
     }
 
     public void Dispose()
     {
         NavigationManager.LocationChanged -= HandleLocationChanged;
-        ScadaService.OnDataUpdated -= CheckAlarms; // Memory leak önlemek için aboneliği kaldır
+        if (ScadaService != null)
+        {
+            ScadaService.OnDataUpdated -= CheckAlarms;
+        }
     }
 }
