@@ -1,0 +1,14 @@
+# Resmi .NET 8 Runtime imajını kullan (Sadece çalıştırmak için, SDK yok, çok hafif)
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+
+# Çalışma dizinini ayarla
+WORKDIR /app
+
+# Yayınlanan dosyaları konteynerin içine kopyala
+COPY . .
+
+# Uygulamanın dinleyeceği port (Container içi)
+EXPOSE 8080
+
+# Uygulamayı başlat (ProjeAdiniz.dll kısmını kendi projenizin adıyla değiştirin!)
+ENTRYPOINT ["dotnet", "TekstilScada.dll"]

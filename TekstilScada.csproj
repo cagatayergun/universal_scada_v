@@ -26,6 +26,10 @@
 
 	<ItemGroup>
 	  <Compile Remove="Img\**" />
+	  <Compile Remove="linux_publish\**" />
+	  <Compile Remove="publish_api\**" />
+	  <Compile Remove="publish_api_fix\**" />
+	  <Compile Remove="publish_webapp\**" />
 	  <Compile Remove="TekstilScada.Api\**" />
 	  <Compile Remove="TekstilScada.Core1\**" />
 	  <Compile Remove="TekstilScada.Core\**" />
@@ -40,6 +44,10 @@
 	  <Compile Remove="Universalscada.WebApp\**" />
 	  <Compile Remove="yilmak_scada_setup\**" />
 	  <EmbeddedResource Remove="Img\**" />
+	  <EmbeddedResource Remove="linux_publish\**" />
+	  <EmbeddedResource Remove="publish_api\**" />
+	  <EmbeddedResource Remove="publish_api_fix\**" />
+	  <EmbeddedResource Remove="publish_webapp\**" />
 	  <EmbeddedResource Remove="TekstilScada.Api\**" />
 	  <EmbeddedResource Remove="TekstilScada.Core1\**" />
 	  <EmbeddedResource Remove="TekstilScada.Core\**" />
@@ -54,6 +62,10 @@
 	  <EmbeddedResource Remove="Universalscada.WebApp\**" />
 	  <EmbeddedResource Remove="yilmak_scada_setup\**" />
 	  <None Remove="Img\**" />
+	  <None Remove="linux_publish\**" />
+	  <None Remove="publish_api\**" />
+	  <None Remove="publish_api_fix\**" />
+	  <None Remove="publish_webapp\**" />
 	  <None Remove="TekstilScada.Api\**" />
 	  <None Remove="TekstilScada.Core1\**" />
 	  <None Remove="TekstilScada.Core\**" />
@@ -71,6 +83,7 @@
 
 	<ItemGroup>
 	  <None Remove="appsettings.json" />
+	  <None Remove="Dockerfile.txt" />
 	</ItemGroup>
 
 	<ItemGroup>

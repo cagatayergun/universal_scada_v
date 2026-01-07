@@ -186,6 +186,11 @@ namespace TekstilScada.WebAPI.Hubs
             }
             return "localhost:5901"; // Bulunamazsa varsayılan
         }
+        public async Task SendScreenImage(int machineId, string base64Image)
+        {
+            // API görüntüyü aldı, şimdi bunu dinleyen herkese (WebApp'e) gönderiyor
+            await Clients.All.SendAsync("ReceiveScreenImage", machineId, base64Image);
+        }
         public async Task SubscribeToFactories(List<int> factoryIds)
         {
             foreach (var fid in factoryIds)
@@ -198,11 +203,20 @@ namespace TekstilScada.WebAPI.Hubs
         // --- 3. CANLI VERİ YAYINI (GATEWAY -> WEB) ---
         public async Task BroadcastFromLocal(FullMachineStatus status)
         {
-            // Gönderen kim? Hangi fabrikadan geliyor?
+            // Gateway'in hangi ConnectionId ile bağlı olduğuna bakıyoruz
             if (_gatewayConnections.TryGetValue(Context.ConnectionId, out int factoryId))
             {
+                // --- BU LOGU EKLEYİN ---
+                Console.WriteLine($"[CANLI AKIŞ] Fabrika ID: {factoryId} | Makine: {status.MachineName} ({status.MachineId}) -> Gruba Dağıtılıyor...");
+                // ------------------------
+
                 // Sadece o fabrikanın grubuna yayın yap
                 await Clients.Group($"Factory_{factoryId}").SendAsync("ReceiveMachineUpdate", status);
+            }
+            else
+            {
+                // --- BU LOGU DA EKLEYİN ---
+                Console.WriteLine($"[HATA] Veri geldi ama gönderen Gateway Tanımsız! ConnectionId: {Context.ConnectionId}");
             }
         }
 

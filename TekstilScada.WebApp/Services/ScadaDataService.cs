@@ -286,18 +286,38 @@ namespace TekstilScada.WebApp.Services
                     var hubUrl = new Uri(_httpClient.BaseAddress!, "/scadaHub");
 
                     _hubConnection = new HubConnectionBuilder()
-                        .WithUrl(hubUrl, options =>
-                        {
-                            options.AccessTokenProvider = () => Task.FromResult(_accessToken);
-                        })
-                        .AddJsonProtocol(options =>
-                        {
-                            options.PayloadSerializerOptions.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals;
-                            options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-                            options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
-                        })
-                        .WithAutomaticReconnect()
-                        .Build();
+     .WithUrl(hubUrl, options =>
+     {
+         // 1. Token'ı ekle
+         options.AccessTokenProvider = () => Task.FromResult(_accessToken);
+
+         // 2. SSL/Sertifika Hatasını Atla (BU KISIM EKSİK OLABİLİR)
+         options.HttpMessageHandlerFactory = (handler) =>
+         {
+             if (handler is HttpClientHandler clientHandler)
+             {
+                 clientHandler.ServerCertificateCustomValidationCallback =
+                     (sender, certificate, chain, sslPolicyErrors) => true;
+             }
+             return handler;
+         };
+
+         // 3. WebSocket için de Sertifika Hatasını Atla
+         options.WebSocketConfiguration = w =>
+         {
+             w.RemoteCertificateValidationCallback =
+                 (sender, certificate, chain, policyErrors) => true;
+         };
+     })
+     .AddJsonProtocol(options =>
+     {
+         // Mevcut JSON ayarlarınız...
+         options.PayloadSerializerOptions.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals;
+         options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+         options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+     })
+     .WithAutomaticReconnect()
+     .Build();
 
                     // --- OLAYLAR ---
 

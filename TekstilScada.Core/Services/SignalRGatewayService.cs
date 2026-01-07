@@ -193,6 +193,7 @@ namespace TekstilScada.Services
 
             RegisterHandlers();
         }
+
         private string GetLocalIpAddress()
         {
             try
@@ -236,14 +237,9 @@ namespace TekstilScada.Services
                     // ARTIK KENDİMİZİ TANITIYORUZ: "Ben bu anahtara sahip fabrikayım"
                     string localIp = GetLocalIpAddress();
                     await _connection.InvokeAsync("RegisterGateway", _myApiKey, localIp + ":5901");
-                    //("[Gateway] ✅ Bağlantı Sağlandı! Kimlik bildiriliyor...");
-
-                    // Bağlantı kurulur kurulmaz Gateway olduğunu bildir
-                   // await _connection.InvokeAsync("RegisterGateway", _myApiKey);
-
-                    // PLC Servisinden gelen verilere abone ol (Daha önce abone olunmadıysa)
+                    
                     _plcService.OnMachineDataRefreshed -= OnLocalDataRefreshed;
-                  //  _plcService.OnMachineDataRefreshed += OnLocalDataRefreshed;
+                   _plcService.OnMachineDataRefreshed += OnLocalDataRefreshed;
 
                     // Döngüden çık
                     return;
@@ -258,7 +254,15 @@ namespace TekstilScada.Services
                 }
             }
         }
-
+        public async Task SendScreenImageAsync(int machineId, string base64Image)
+        {
+            // _hubConnection değişkeni sınıfınızda tanımlı olmalı. 
+            // Eğer adı farklıysa (örn: connection) lütfen düzeltin.
+            if (_connection != null && _connection.State == Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Connected)
+            {
+                await _connection.InvokeAsync("SendScreenImage", machineId, base64Image);
+            }
+        }
         // 3. RegisterHandlers Metodunu Güncelleyin
         private void RegisterHandlers()
         {
@@ -783,5 +787,7 @@ namespace TekstilScada.Services
 
             return ExcelExportHelper.ExportProductionDetailToExcel(excelDto);
         }
+
     }
+
 }

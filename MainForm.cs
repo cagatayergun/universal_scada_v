@@ -155,8 +155,7 @@ namespace TekstilScada
             // VNC Sunucusunu Baþlat
             try
             {
-                _vncServer = new VncProxyServer(5901);
-                _vncServer.Start();
+                _vncServer = new VncProxyServer(_gatewayService);
             }
             catch (Exception ex)
             {
@@ -178,7 +177,7 @@ namespace TekstilScada
             // 2. Gateway Servisini Baþlat
             try
             {
-                string hubUrl = "http://localhost:7039/scadaHub"; // API Adresiniz
+                string hubUrl = "https://api.malkanteknolojionline.com.tr/scadaHub"; // API Adresiniz
                 string jwtToken = null; // Gateway için token þu an null kalabilir
 
                 _gatewayService = new SignalRGatewayService(
@@ -209,7 +208,30 @@ namespace TekstilScada
                 MessageBox.Show($"Gateway Hatasý: {ex.Message}", "Baðlantý", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             // Cloud Sync Baþlatma (Eski sistem, eðer kullanýyorsanýz kalsýn)
+            try
+            {
+                // --- TEST ÝÇÝN GEÇÝCÝ KOD ---
+                // Program açýlýnca 1 ID'li makine için yayýný zorla baþlatýyoruz.
+                // IP adresini ve þifreyi kendi PLC ayarýnýza göre düzeltin.
 
+                string testIp = "34.59.65.15"; // <-- BURAYA PLC IP'SÝNÝ YAZIN
+                string testPass = "";     // <-- VARSA PLC VNC ÞÝFRESÝ
+                int testMachineId = 1;          // <-- VERÝTABANINDAKÝ MAKÝNE ID'SÝ
+
+                // 5 saniye bekleyip baþlasýn (Gateway tam otursun diye)
+                Task.Delay(5000).ContinueWith(t =>
+                {
+                    if (_vncServer != null)
+                    {
+                        this.Invoke(new Action(() =>
+                        {
+                            _vncServer.StartStream(testMachineId, testIp, testPass);
+                            AppendLog($"[TEST] VNC Yayýný Otomatik Baþlatýldý: {testIp}");
+                        }));
+                    }
+                });
+            }
+            catch { }
         }
 
         private void ApplyPermissions()
@@ -486,7 +508,7 @@ namespace TekstilScada
             // ------------------------------------------
 
 
-            _vncServer?.Stop();
+            _vncServer?.StopStream();
         }
 
         private void CloudSyncService_OnRemoteCommandReceived(int machineId, string command, string parameters)
@@ -514,6 +536,24 @@ namespace TekstilScada
                             // await plcManager.StartMachineAsync();
                             MessageBox.Show($"Makine {machineId} için BAÞLATMA emri!", "Uzak Kontrol", MessageBoxButtons.OK, MessageBoxIcon.Information);
                             break;
+                        case "START_VNC":
+                            // Parameters içinde PLC IP'si ve Þifresi gelebilir (Format: IP;Password)
+                            var parts = parameters.Split(';');
+                            string ip = parts.Length > 0 ? parts[0] : "";
+                            string pass = parts.Length > 1 ? parts[1] : "";
+
+                            if (!string.IsNullOrEmpty(ip))
+                            {
+                                _vncServer.StartStream(machineId, ip, pass);
+                                AppendLog($"Makine {machineId} için VNC yayýný baþlatýldý ({ip}).");
+                            }
+                            break;
+
+                        case "STOP_VNC":
+                            _vncServer.StopStream();
+                            AppendLog($"Makine {machineId} için VNC yayýný durduruldu.");
+                            break;
+                        // -----------------------------
                         default:
                             AppendLog($"Bilinmeyen komut: {command}");
                             break;
