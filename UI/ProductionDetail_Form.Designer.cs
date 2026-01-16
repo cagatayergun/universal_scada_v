@@ -223,9 +223,9 @@
             label11.Font = new Font("Segoe UI", 9F);
             label11.Location = new Point(11, 585);
             label11.Name = "label11";
-            label11.Size = new Size(145, 15);
+            label11.Size = new Size(143, 15);
             label11.TabIndex = 24;
-            label11.Text = "Steam Consumption (m³):";
+            label11.Text = "Steam Consumption (kg):";
             // 
             // txtWater
             // 

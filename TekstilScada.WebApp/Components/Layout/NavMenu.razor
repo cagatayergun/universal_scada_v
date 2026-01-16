@@ -1,25 +1,74 @@
 ﻿@using TekstilScada.Core.Localization
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<SharedResource> Loc
+@inject TekstilScada.WebApp.Services.ScadaDataService ScadaService
+@implements IDisposable
 
 <MudNavMenu>
-    <MudNavLink Href="dashboard" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
-        @Loc["NavMenu_Dashboard"]
+    <MudNavLink Href="/select-factory" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Domain">
+        <div class="d-flex justify-space-between align-center">
+            @(Loc["NavMenu_Factories"] == "NavMenu_Factories" ? "Fabrikalar" : Loc["NavMenu_Factories"])
+
+            @if (ScadaService.TotalFactoriesCount > 0)
+            {
+                <MudBadge Content="@ScadaService.TotalFactoriesCount" Color="Color.Error" Overlap="true" Class="ml-2" />
+            }
+        </div>
     </MudNavLink>
 
-    <MudNavLink Href="proses-izleme" Icon="@Icons.Material.Filled.MonitorHeart">
-        @Loc["NavMenu_ProsesIzleme"]
-    </MudNavLink>
+    <MudDivider Class="my-2" />
 
-    <MudNavLink Href="proses-kontrol" Icon="@Icons.Material.Filled.SettingsRemote">
-        @Loc["NavMenu_ProsesKontrol"]
-    </MudNavLink>
+    @if (!string.IsNullOrEmpty(ScadaService.CurrentFactoryName))
+    {
+        <MudText Typo="Typo.caption" Class="px-4 py-2 d-block" Color="Color.Info">
+            @(Loc["Selected_Factory"] == "Selected_Factory" ? "Seçili:" : Loc["Selected_Factory"])
+            <b>@ScadaService.CurrentFactoryName</b>
+        </MudText>
 
-    <MudNavLink Href="raporlar" Icon="@Icons.Material.Filled.Assessment">
-        @Loc["NavMenu_Raporlar"]
-    </MudNavLink>
+        <MudNavLink Href="dashboard" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
+            @Loc["NavMenu_Dashboard"]
+        </MudNavLink>
 
-    <MudNavLink Href="ayarlar" Icon="@Icons.Material.Filled.Settings">
-        @Loc["NavMenu_Ayarlar"]
-    </MudNavLink>
+        <MudNavLink Href="proses-izleme" Icon="@Icons.Material.Filled.MonitorHeart">
+            @Loc["NavMenu_ProsesIzleme"]
+        </MudNavLink>
+
+        <MudNavLink Href="proses-kontrol" Icon="@Icons.Material.Filled.SettingsRemote">
+            @Loc["NavMenu_ProsesKontrol"]
+        </MudNavLink>
+
+        <MudNavLink Href="raporlar" Icon="@Icons.Material.Filled.Assessment">
+            @Loc["NavMenu_Raporlar"]
+        </MudNavLink>
+
+        <MudNavLink Href="ayarlar" Icon="@Icons.Material.Filled.Settings">
+            @Loc["NavMenu_Ayarlar"]
+        </MudNavLink>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info" NoIcon="true" Class="mx-2 my-2" Dense="true">
+            @(Loc["Please_Select_Factory"] == "Please_Select_Factory" ? "Lütfen Fabrika Seçiniz" : Loc["Please_Select_Factory"])
+        </MudAlert>
+    }
 </MudNavMenu>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Servisteki değişiklikleri dinle (Fabrika seçilince menüyü yenile)
+        ScadaService.OnFactoryChanged += RefreshMenu;
+    }
+
+    private void RefreshMenu()
+    {
+        // Arayüzü tetikle
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        // Hafıza sızıntısını önlemek için abonelikten çık
+        ScadaService.OnFactoryChanged -= RefreshMenu;
+    }
+}

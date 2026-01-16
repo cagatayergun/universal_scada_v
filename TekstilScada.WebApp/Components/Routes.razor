@@ -1,38 +1,47 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using TekstilScada.WebApp.Components.Layout
 @using TekstilScada.WebApp.Components.Shared
-@* (RedirectToLogin.razor'u 'Shared' klasörüne koyduğumuzu varsayarak) *@
 
-<Router AppAssembly="@typeof(Program).Assembly">
-    <Found Context="routeData">
-        @* DefaultLayout olarak MainLayout'u kullan, ancak yetkisiz ise RedirectToLogin'a yönlendir. *@
-        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
-            <NotAuthorized>
-                @* Kullanıcı kimliği doğrulaması TAMAMLANDI ve 
-                   sonuç "yetkisiz" ise, <RedirectToLogin /> ÇALIŞIR.
-                *@
-                <RedirectToLogin />
-            </NotAuthorized>
-            <Authorizing>
-                @* --- YENİ EKLENEN BLOK ---
-                   CustomAuthStateProvider'daki GetAuthenticationStateAsync görevi 
-                   (yani Local Storage'dan token okuma) tamamlanana kadar 
-                   <RedirectToLogin />'in çalışmasını engeller.
-                *@
-                <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Oturum kontrol ediliyor...</span>
+@* DÜZELTME: CascadingAuthenticationState BURAYA EKLENDİ *@
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(Program).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    @if (context.User.Identity?.IsAuthenticated == true)
+                    {
+                        @* YETKİSİZ ERİŞİM *@
+                        <div class="d-flex flex-column justify-content-center align-items-center vh-100 bg-light">
+                            <div class="text-center p-5 shadow rounded bg-white">
+                                <h2 class="text-danger fw-bold">🚫 Erişim Reddedildi</h2>
+                                <p class="lead mt-3">Bu sayfayı görüntülemek için yetkiniz bulunmuyor.</p>
+                                <p class="text-muted">Mevcut Rolünüz: <strong>@(context.User.FindFirst(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value ?? "Rol Bulunamadı")</strong></p>
+                                <a href="/" class="btn btn-primary mt-3">Ana Sayfaya Dön</a>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        @* GİRİŞ YAPMAMIŞ *@
+                        <RedirectToLogin />
+                    }
+                </NotAuthorized>
+                <Authorizing>
+                    <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <span class="ms-3">Yetkiler kontrol ediliyor...</span>
                     </div>
-                    <span class="ms-3">Oturum kontrol ediliyor...</span>
+                </Authorizing>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <div class="p-5 text-center">
+                    <h3>404 - Sayfa Bulunamadı</h3>
+                    <a href="/">Ana Sayfa</a>
                 </div>
-            </Authorizing>
-        </AuthorizeRouteView>
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-    </Found>
-    <NotFound>
-        <LayoutView Layout="@typeof(MainLayout)">
-
-            <p role="alert">Üzgünüz, böyle bir sayfa bulunamadı.</p>
-        </LayoutView>
-    </NotFound>
-</Router>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>

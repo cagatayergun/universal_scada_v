@@ -1,960 +1,1638 @@
-﻿// Dosya: TekstilScada.WebApp/Services/ScadaDataService.cs (SON KARARLI SÜRÜM)
+﻿// Dosya: TekstilScada.WebApp/Services/ScadaDataService.cs (GÜNCELLENMİŞ VERSİYON)
 
+
+
+using Blazored.LocalStorage; // Bu using'i ekleyin
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection; // <--- AddJsonProtocol için BU ŞART
 using System;
 using System.Collections.Concurrent;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using TekstilScada.Models;
 using TekstilScada.Repositories;
 using TekstilScada.Services;
+// --- DTO Sınıfları (Global) ---
 
-// DTO'lar, global namespace'de kalmalı4
-// 1. TrendDataPoint (CS0234 hatasını çözmek için)
+
+
 public class TrendDataPoint
+
 {
+
     public DateTime Timestamp { get; set; }
+
     public double Temperature { get; set; }
+
     public double Rpm { get; set; }
+
     public double WaterLevel { get; set; }
+
 }
 
-// 2. Zenginleştirilmiş ProductionStepDetail DTO (CS1061 hatalarını çözer)
+
+
 public class ProductionStepDetailDto : TekstilScada.Models.ProductionStepDetail
+
 {
-    public double TheoreticalDurationSeconds { get; set; } = 0; // Hesaplanan teorik süre
-    public double Temperature { get; set; } = 0; // Adıma ait sıcaklık (eğri için değil, o anki)
-    public string StepDescription => StepName; // UI için takma ad
+
+    public double TheoreticalDurationSeconds { get; set; } = 0;
+
+    public double Temperature { get; set; } = 0;
+
+    public string StepDescription => StepName;
+
 }
 
-// 3. Zenginleştirilmiş AlarmDetail DTO (CS1061 hatalarını çözer)
+
+
 public class AlarmDetailDto
+
 {
+
     public DateTime AlarmTime { get; set; } = DateTime.MinValue;
+
     public string AlarmType { get; set; } = string.Empty;
+
     public string AlarmDescription { get; set; } = string.Empty;
+
     public TimeSpan Duration { get; set; } = TimeSpan.Zero;
+
 }
 
-// 4. Ana API Yanıt Modeli
+
+
 public class ProductionDetailDto
+
 {
+
     public TekstilScada.Models.ProductionReportItem Header { get; set; } = new();
+
     public List<ProductionStepDetailDto> Steps { get; set; } = new();
+
     public List<AlarmDetailDto> Alarms { get; set; } = new();
+
     public List<TrendDataPoint> LogData { get; set; } = new();
+
     public List<TrendDataPoint> TheoreticalData { get; set; } = new();
+
 }
+
+
+
 public class GeneralDetailedConsumptionFilters
+
 {
+
     public DateTime StartTime { get; set; }
+
     public DateTime EndTime { get; set; }
+
     public List<int>? MachineIds { get; set; }
+
 }
+
+
+
 public class ActionLogFilters
+
 {
+
     public DateTime StartTime { get; set; }
+
     public DateTime EndTime { get; set; }
+
     public string? Username { get; set; }
+
     public string? Details { get; set; }
+
 }
+
+
+
 public class HourlyConsumptionData
+
 {
+
     public double Saat { get; set; }
+
     public double ToplamElektrik { get; set; }
+
     public double ToplamSu { get; set; }
+
     public double ToplamBuhar { get; set; }
+
 }
+
+
 
 public class HourlyOeeData
+
 {
+
     public double Saat { get; set; }
+
     public double AverageOEE { get; set; }
+
 }
+
+
+
 public class ReportFilters1
+
 {
+
     public DateTime StartTime { get; set; }
+
     public DateTime EndTime { get; set; }
-    public int? MachineId { get; set; } // Tek makine filtresi için
-   // public List<int>? MachineIds { get; set; } // KRİTİK DÜZELTME: Sparkline için gerekli alan
+
+    public int? MachineId { get; set; }
+
 }
-// TekstilScada.Models.TopAlarmData'nın kullanıldığı varsayılmıştır.
+
+
+
 public class JsReadyTrendDataPoint
+
 {
+
     public DateTime Timestamp { get; set; }
-    public double TimestampOADate { get; set; } // KRİTİK EKLENTİ
-    public double Temperature { get; set; } // JS tarafında ondalık sorunu yaşamamak için
+
+    public double TimestampOADate { get; set; }
+
+    public double Temperature { get; set; }
+
     public double Rpm { get; set; }
+
     public double WaterLevel { get; set; }
+
 }
+
+
+
 public class StepTypeDto
+
 {
+
     public int Id { get; set; }
+
     public string Name { get; set; }
+
 }
+
+
 
 public class SaveLayoutRequest
+
 {
+
     public string LayoutName { get; set; }
+
     public string MachineSubType { get; set; }
+
     public int StepTypeId { get; set; }
+
     public string LayoutJson { get; set; }
+
 }
+
+
+
 public class GeneralConsumptionExportDto
+
 {
+
     public List<ProductionReportItem>? Items { get; set; }
+
     public string? ConsumptionType { get; set; }
+
 }
+
+
+
 namespace TekstilScada.WebApp.Services
+
 {
-    // KRİTİK GÜNCELLEME: IAsyncDisposable arayüzünü uyguluyoruz
+
     public class ScadaDataService : IAsyncDisposable
+
     {
+
         private HubConnection? _hubConnection;
+
         private readonly HttpClient _httpClient;
+        public HubConnection? HubConnection => _hubConnection;
         private readonly JsonSerializerOptions _serializerOptions;
+        private readonly ILocalStorageService _localStorage; // <--- EKLENDİ
+        // KULLANICI YETKİLERİ (Hafızada tutulacak)
+        public List<int> UserAllowedFactoryIds { get; private set; } = new();
+        public string UserRole { get; private set; } = "";
+        private int _currentSelectedFactoryId = 0; // <--- Bağlantı koparsa buradaki ID ile tekrar abone olacağız
+        // Canlı Veriler (Anlık Durumlar)
+
         public ConcurrentDictionary<int, FullMachineStatus> MachineData { get; private set; } = new();
-        // Dashboard için grup bilgisi önbelleği
+
+
+
+        // Makine Sabit Bilgileri (Grup ismi, Tipi vb.)
+
         public ConcurrentDictionary<int, Machine> MachineDetailsCache { get; private set; } = new();
 
+
+
+        // Token'ı hafızada tutuyoruz
+
+        private string _accessToken = string.Empty;
+
+        public string CurrentFactoryName { get; private set; } = "";
+        public int TotalFactoriesCount { get; private set; } = 0;
+        public List<CentralFactoryDto> CachedFactories { get; private set; } = new();
+
         public event Action? OnDataUpdated;
+        public event Action? OnFactoryChanged; // <--- Bu event eksik kalmasın
         public event Action<TransferJob> OnFtpProgressReceived;
-        public ScadaDataService(HttpClient httpClient)
+
+
+
+        public ScadaDataService(HttpClient httpClient, ILocalStorageService localStorage)
         {
             _httpClient = httpClient;
+            _localStorage = localStorage; // <--- ATANDI
             _serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         }
 
-        // KRİTİK GÜNCELLEME: InitializeAsync metodunda agresif temizlik
+
+
+        // --- 1. BAŞLATMA VE BAĞLANTI (KRİTİK BÖLÜM) ---
+
+
+
         public async Task InitializeAsync()
         {
-            var hubUrl = new Uri(_httpClient.BaseAddress!, "/scadaHub");
-            _hubConnection = new HubConnectionBuilder()
-                .WithUrl(hubUrl)
-                .WithAutomaticReconnect()
-                .Build();
-
-            // --- DEĞİŞİKLİK BURADA ---
-            _hubConnection.On<TransferJob>("ReceiveFtpProgress", (job) =>
-            {
-                // Eğer job null ise eventi tetikleme, böylece UI çökmez.
-                if (job != null)
-                {
-                    OnFtpProgressReceived?.Invoke(job);
-                }
-            });
-            // -------------------------
-
-            _hubConnection.On<FullMachineStatus>("ReceiveMachineUpdate", (status) =>
-            {
-                // Benzer bir korumayı buraya da eklemek iyi bir pratiktir
-                if (status != null)
-                {
-                    MachineData[status.MachineId] = status;
-                    OnDataUpdated?.Invoke();
-                }
-            });
-
             try
             {
-                await _hubConnection.StartAsync();
-            }
-            catch (Exception ex)
-            {
-                _hubConnection = null;
-                Console.WriteLine($"SignalR bağlantı hatası: {ex.Message}");
-            }
-        }
+                _accessToken = await _localStorage.GetItemAsync<string>("authToken");
 
-        // KRİTİK METOT: IAsyncDisposable uygulaması (Çöküşleri ve refresh hatalarını çözer)
-        public async ValueTask DisposeAsync()
-        {
-            var hub = _hubConnection;
-            _hubConnection = null; // CRITICAL: Referansı hemen null yap.
+                if (string.IsNullOrEmpty(_accessToken)) return;
 
-            if (hub is not null)
-            {
-                try
+                _httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
+
+                if (_hubConnection == null || _hubConnection.State == HubConnectionState.Disconnected)
                 {
-                    // Bağlantıyı durdur ve kaynakları serbest bırak.
-                    await hub.StopAsync();
-                    await hub.DisposeAsync();
-                    Console.WriteLine("SignalR bağlantısı güvenle kapatıldı ve atıldı.");
-                }
-                catch { /* Hataları yut */ }
-            }
-        }
+                    var hubUrl = new Uri(_httpClient.BaseAddress!, "/scadaHub");
 
-        // --- Diğer Metotlar (Aynı Kalır) ---
+                    _hubConnection = new HubConnectionBuilder()
+     .WithUrl(hubUrl, options =>
+     {
+         // 1. Token'ı ekle
+         options.AccessTokenProvider = () => Task.FromResult(_accessToken);
 
-        public async Task<List<Machine>?> GetMachinesAsync()
-        {
-            try
-            {
-                var machines = await _httpClient.GetFromJsonAsync<List<Machine>>("api/machines");
-                if (machines != null)
-                {
-                    MachineDetailsCache.Clear();
-                    foreach (var m in machines)
+         // 2. SSL/Sertifika Hatasını Atla (BU KISIM EKSİK OLABİLİR)
+         options.HttpMessageHandlerFactory = (handler) =>
+         {
+             if (handler is HttpClientHandler clientHandler)
+             {
+                 clientHandler.ServerCertificateCustomValidationCallback =
+                     (sender, certificate, chain, sslPolicyErrors) => true;
+             }
+             return handler;
+         };
+
+         // 3. WebSocket için de Sertifika Hatasını Atla
+         options.WebSocketConfiguration = w =>
+         {
+             w.RemoteCertificateValidationCallback =
+                 (sender, certificate, chain, policyErrors) => true;
+         };
+     })
+     .AddJsonProtocol(options =>
+     {
+         // Mevcut JSON ayarlarınız...
+         options.PayloadSerializerOptions.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals;
+         options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+         options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+     })
+     .WithAutomaticReconnect()
+     .Build();
+
+                    // --- OLAYLAR ---
+
+                    _hubConnection.On<TransferJob>("ReceiveFtpProgress", (job) =>
                     {
-                        MachineDetailsCache.TryAdd(m.Id, m);
-                    }
-                }
-                return machines;
-            }
-            catch (Exception ex) { Console.WriteLine($"Makine listesi alınamadı: {ex.Message}"); return null; }
-        }
+                        if (job != null) OnFtpProgressReceived?.Invoke(job);
+                    });
 
-        public async Task<Machine?> AddMachineAsync(Machine machine)
-        {
-            var response = await _httpClient.PostAsJsonAsync("api/machines", machine);
-            return await response.Content.ReadFromJsonAsync<Machine>();
-        }
+                    // Canlı Veri Akışı
+                    _hubConnection.On<FullMachineStatus>("ReceiveMachineUpdate", (status) =>
+                    {
+                        if (status != null)
+                        {
+                            MachineData[status.MachineId] = status;
 
-        public async Task<bool> UpdateMachineAsync(Machine machine)
-        {
-            var response = await _httpClient.PutAsJsonAsync($"api/machines/{machine.Id}", machine);
-            return response.IsSuccessStatusCode;
-        }
+                            // Dinamik Keşif
+                            if (!MachineDetailsCache.ContainsKey(status.MachineId))
+                            {
+                                var discoveredMachine = new Machine
+                                {
+                                    Id = status.MachineId,
+                                    MachineName = status.MachineName,
+                                    MachineSubType = string.IsNullOrEmpty(status.MakineTipi) ? "Standart" : status.MakineTipi
+                                };
+                                MachineDetailsCache.TryAdd(status.MachineId, discoveredMachine);
+                            }
+                            OnDataUpdated?.Invoke();
+                        }
+                    });
 
-        public async Task<bool> DeleteMachineAsync(int machineId)
-        {
-            var response = await _httpClient.DeleteAsync($"api/machines/{machineId}");
-            return response.IsSuccessStatusCode;
-        }
+                    // --- KRİTİK EKSİK PARÇA: YENİDEN BAĞLANMA ---
+                    // Bağlantı kopup geri gelirse, sunucuya tekrar abone olmalıyız.
+                    _hubConnection.Reconnected += async (connectionId) =>
+                    {
+                        Console.WriteLine($"[ScadaService] Bağlantı tazelendi. Fabrika ID: {_currentSelectedFactoryId}");
+                        if (_currentSelectedFactoryId > 0)
+                        {
+                            try
+                            {
+                                await _hubConnection.InvokeAsync("SubscribeToFactories", new List<int> { _currentSelectedFactoryId });
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"[ScadaService] Reconnect Hatası: {ex.Message}");
+                            }
+                        }
+                    };
 
-        public async Task<List<User>?> GetUsersAsync()
-        {
-            try { return await _httpClient.GetFromJsonAsync<List<User>>("api/users"); }
-            catch (Exception ex) { Console.WriteLine($"Kullanıcılar alınamadı: {ex.Message}"); return null; }
-        }
-
-        public async Task<List<ScadaRecipe>?> GetRecipesAsync()
-        {
-            try { return await _httpClient.GetFromJsonAsync<List<ScadaRecipe>>("api/recipes"); }
-            catch (Exception ex) { Console.WriteLine($"Reçete listesi alınamadı: {ex.Message}"); return null; }
-        }
-
-        public async Task<ScadaRecipe?> GetRecipeDetailsAsync(int recipeId)
-        {
-            try { return await _httpClient.GetFromJsonAsync<ScadaRecipe>($"api/recipes/{recipeId}"); }
-            catch (Exception ex) { Console.WriteLine($"Reçete detayı alınamadı: {ex.Message}"); return null; }
-        }
-
-        public async Task<ScadaRecipe?> SaveRecipeAsync(ScadaRecipe recipe)
-        {
-            var response = await _httpClient.PostAsJsonAsync("api/recipes", recipe);
-            return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<ScadaRecipe>() : null;
-        }
-
-        public async Task<bool> DeleteRecipeAsync(int recipeId)
-        {
-            var response = await _httpClient.DeleteAsync($"api/recipes/{recipeId}");
-            return response.IsSuccessStatusCode;
-        }
-
-        public async Task<bool> SendRecipeToPlcAsync(int recipeId, int machineId)
-        {
-            var response = await _httpClient.PostAsync($"api/recipes/{recipeId}/send-to-plc/{machineId}", null);
-            return response.IsSuccessStatusCode;
-        }
-
-        public async Task<ScadaRecipe?> ReadRecipeFromPlcAsync(int machineId)
-        {
-            try { return await _httpClient.GetFromJsonAsync<ScadaRecipe>($"api/recipes/read-from-plc/{machineId}"); }
-            catch { return null; }
-        }
-
-        public async Task<List<ProductionReportItem>?> GetProductionReportAsync(ReportFilters filters)
-        {
-            var response = await _httpClient.PostAsJsonAsync("api/reports/production", filters);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"API Hatası: {response.StatusCode}");
-                Console.WriteLine($"Hata Detayı: {errorContent}");
-                return new List<ProductionReportItem>();
-            }
-
-            return await response.Content.ReadFromJsonAsync<List<ProductionReportItem>>();
-        }
-
-        public async Task<List<string>?> GetHmiRecipesAsync(int machineId)
-        {
-            try
-            {
-                return await _httpClient.GetFromJsonAsync<List<string>>($"api/ftp/list/{machineId}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"HMI reçeteleri alınamadı: {ex.Message}");
-                return new List<string> { $"Hata: {ex.Message}" };
-            }
-        }
-
-        public async Task<List<AlarmReportItem>?> GetAlarmReportAsync(ReportFilters filters)
-        {
-            var response = await _httpClient.PostAsJsonAsync("api/reports/alarms", filters);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"API Hatası (Alarm Raporu): {response.StatusCode}");
-                return new List<AlarmReportItem>();
-            }
-
-            return await response.Content.ReadFromJsonAsync<List<AlarmReportItem>>();
-        }
-
-        public async Task<List<OeeData>?> GetOeeReportAsync(ReportFilters filters)
-        {
-            var response = await _httpClient.PostAsJsonAsync("api/dashboard/oee-report", filters);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"API Hatası (OEE Raporu): {response.StatusCode}");
-                return new List<OeeData>();
-            }
-
-            return await response.Content.ReadFromJsonAsync<List<OeeData>>();
-        }
-
-        public async Task<List<object>?> GetTrendDataAsync(ReportFilters filters)
-        {
-            var response = await _httpClient.PostAsJsonAsync("api/reports/trend", filters);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"API Hatası (Trend Raporu): {response.StatusCode}");
-                return null;
-            }
-
-            return await response.Content.ReadFromJsonAsync<List<object>>();
-        }
-
-        public async Task<List<ProductionReportItem>?> GetRecipeConsumptionHistoryAsync(int recipeId)
-        {
-            try
-            {
-                return await _httpClient.GetFromJsonAsync<List<ProductionReportItem>>($"api/recipes/{recipeId}/usage-history");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Reçete kullanım geçmişi alınamadı: {ex.Message}");
-                return null;
-            }
-        }
-
-        public async Task<ManualConsumptionSummary?> GetManualConsumptionReportAsync(ReportFilters filters)
-        {
-            var response = await _httpClient.PostAsJsonAsync("api/reports/manual-consumption", filters);
-
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                return null;
-            }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"API Hatası (Manuel Tüketim): {response.StatusCode}");
-                return null;
-            }
-
-            return await response.Content.ReadFromJsonAsync<ManualConsumptionSummary>();
-        }
-
-        public async Task<ConsumptionTotals?> GetConsumptionTotalsAsync(ReportFilters filters)
-        {
-            var response = await _httpClient.PostAsJsonAsync("api/reports/consumption-totals", filters);
-
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                return null;
-            }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"API Hatası (Genel Tüketim): {response.StatusCode}");
-                return null;
-            }
-
-            return await response.Content.ReadFromJsonAsync<ConsumptionTotals>();
-        }
-
-        public async Task<List<ProductionReportItem>?> GetGeneralDetailedConsumptionReportAsync(GeneralDetailedConsumptionFilters filters)
-        {
-            var response = await _httpClient.PostAsJsonAsync("api/reports/general-detailed", filters);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"API Hatası (Genel Detaylı Tüketim): {response.StatusCode}");
-                return null;
-            }
-
-            return await response.Content.ReadFromJsonAsync<List<ProductionReportItem>>();
-        }
-
-        //public async Task<List<TekstilScada.Core.Models.ActionLogEntry>?> GetActionLogsAsync(ActionLogFilters filters)
-      //  {
-         //   var response = await _httpClient.PostAsJsonAsync("api/reports/action-logs", filters);
-
-         //   if (!response.IsSuccessStatusCode)
-         //   {
-         //       var errorContent = await response.Content.ReadAsStringAsync();
-         //       Console.WriteLine($"API Hatası (Eylem Kayıtları): {response.StatusCode}");
-         //       return new List<TekstilScada.Core.Models.ActionLogEntry>();
-         //   }
-
-        //    return await response.Content.ReadFromJsonAsync<List<TekstilScada.Core.Models.ActionLogEntry>>();
-       // }
-
-        public async Task<List<HourlyConsumptionData>?> GetHourlyConsumptionAsync()
-        {
-            try
-            {
-                return await _httpClient.GetFromJsonAsync<List<HourlyConsumptionData>>("api/dashboard/hourly-consumption");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Saatlik tüketim verileri alınamadı: {ex.Message}");
-                return null;
-            }
-        }
-
-        public async Task<List<HourlyOeeData>?> GetHourlyOeeAsync()
-        {
-            try
-            {
-                return await _httpClient.GetFromJsonAsync<List<HourlyOeeData>>("api/dashboard/hourly-oee");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Saatlik OEE verileri alınamadı: {ex.Message}");
-                return null;
-            }
-        }
-
-        public async Task<List<TopAlarmData>?> GetTopAlarmsAsync()
-        {
-            try
-            {
-                return await _httpClient.GetFromJsonAsync<List<TopAlarmData>>("api/dashboard/top-alarms");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Popüler alarmlar alınamadı: {ex.Message}");
-                return null;
-            }
-        }
-      
-        // Varsayım: ScadaDataService sınıfınızın içine eklenmiştir.
-        // Varsayım: ScadaRecipe, Machine, HmiRecipeInfo ve API'dan beklenen dönüş tiplerine erişiminiz var.
-
-        // WinForms: LoadHmiRecipes -> plcManager.ReadRecipeNamesFromPlcAsync() mantığına karşılık gelir
-        // Beklenen API Dönüşü: Dictionary<int, string> { SlotNumber: RecipeName }
-        public async Task<Dictionary<int, string>?> GetHmiRecipeNamesAsync(int machineId)
-        {
-            try
-            {
-                // Örnek API yolu: /api/ftp/hmi-recipe-names/{machineId}
-                var response = await _httpClient.GetFromJsonAsync<Dictionary<int, string>>($"api/ftp/hmi-recipe-names/{machineId}");
-                return response;
-            }
-            catch (HttpRequestException ex)
-            {
-                // Loglama veya hata yönetimi eklenebilir
-                Console.WriteLine($"API çağrısı sırasında hata: {ex.Message}");
-                return null;
-            }
-        }
-
-        // WinForms: lstHmiRecipes_SelectedIndexChanged -> FtpService.DownloadFileAsync & RecipeCsvConverter.ToRecipe mantığına karşılık gelir
-        // Beklenen API Dönüşü: ScadaRecipe (Adımları içerir)
-        public async Task<ScadaRecipe?> GetHmiRecipePreviewAsync(int machineId, string remoteFileName)
-        {
-            try
-            {
-                // API'ya dosya adını sorgu parametresi veya gövde olarak gönderin
-                // Örnek API yolu: /api/ftp/hmi-recipe-preview/{machineId}?fileName={remoteFileName}
-                var response = await _httpClient.GetFromJsonAsync<ScadaRecipe>($"api/ftp/hmi-recipe-preview/{machineId}?fileName={remoteFileName}");
-                return response;
-            }
-            catch (HttpRequestException ex)
-            {
-                Console.WriteLine($"API çağrısı sırasında hata: {ex.Message}");
-                return null;
-            }
-        }
-
-        // WinForms: btnSend_Click -> _transferService.QueueSequentiallyNamedSendJobs mantığına karşılık gelir
-        public async Task<bool> QueueSequentiallyNamedSendJobsAsync(List<int> recipeIds, List<int> machineIds, int startNumber)
-        {
-            try
-            {
-                var payload = new
-                {
-                    RecipeIds = recipeIds,
-                    MachineIds = machineIds,
-                    StartNumber = startNumber
-                };
-
-                // Örnek API yolu: /api/ftp/queue-send-jobs
-                var response = await _httpClient.PostAsJsonAsync("api/ftp/queue-send-jobs", payload);
-
-                return response.IsSuccessStatusCode;
-            }
-            catch (HttpRequestException ex)
-            {
-                Console.WriteLine($"API çağrısı sırasında hata: {ex.Message}");
-                return false;
-            }
-        }
-
-        // WinForms: btnReceive_Click -> _transferService.QueueReceiveJobs mantığına karşılık gelir
-        public async Task<bool> QueueReceiveJobsAsync(List<string> fileNames, int machineId)
-        {
-            try
-            {
-                var payload = new
-                {
-                    FileNames = fileNames,
-                    MachineId = machineId
-                };
-
-                // Örnek API yolu: /api/ftp/queue-receive-jobs
-                var response = await _httpClient.PostAsJsonAsync("api/ftp/queue-receive-jobs", payload);
-
-                return response.IsSuccessStatusCode;
-            }
-            catch (HttpRequestException ex)
-            {
-                Console.WriteLine($"API çağrısı sırasında hata: {ex.Message}");
-                return false;
-            }
-        }
-        public async Task<ProductionDetailDto?> GetProductionDetailAsync(int machineId, string batchId)
-        {
-            try
-            {
-                var url = $"api/reports/production-detail/{machineId}/{batchId}";
-                return await _httpClient.GetFromJsonAsync<ProductionDetailDto>(url);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Üretim detayı alınamadı: {ex.Message}");
-                return null;
-            }
-        }
-
-        public async Task<bool> ExportProductionDetailAsync(int machineId, string batchId)
-        {
-            try
-            {
-                var response = await _httpClient.GetAsync($"api/reports/export-production-detail/{machineId}/{batchId}");
-                return response.IsSuccessStatusCode;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Excel dışa aktarımı başarısız: {ex.Message}");
-                return false;
-            }
-        }
-        public async Task<string> GetLayoutJsonAsync(string machineSubType, int stepId)
-        {
-            try
-            {
-                // API'nin iç implementasyonunun değişmesi, bu çağrıyı etkilemez.
-                var response = await _httpClient.GetAsync($"api/Json/config/layout/{machineSubType}/{stepId}");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    return await response.Content.ReadAsStringAsync();
-                }
-                else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    
-                    return string.Empty;
-                }
-                else
-                {
-                    // ... (mevcut hata yönetimi) ...
-                    throw new Exception($"API call failed: {response.ReasonPhrase}");
+                    await _hubConnection.StartAsync();
+                    Console.WriteLine("[ScadaService] SignalR Bağlandı.");
                 }
             }
             catch (Exception ex)
             {
-               
+                Console.WriteLine($"[ScadaService] InitializeAsync Hatası: {ex.Message}");
+            }
+        }
+
+        // --- 2. FABRİKA SEÇİMİ (DÜZELTİLDİ) ---
+        // Not: Parametre olarak (int factoryId, string factoryName) alacak şekilde güncelledik.
+        // SelectFactory.razor sayfanızdaki çağrıyı da buna göre güncellemeniz gerekebilir:
+        // await ScadaService.SelectFactoryAndSubscribeAsync(factory.Id, factory.FactoryName);
+        public async Task SelectFactoryAndSubscribeAsync(int factoryId, string factoryName)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
+
+            // Güvenlik: Fabrika online mı?
+            var onlineIds = await GetOnlineFactoryIdsAsync();
+            if (!onlineIds.Contains(factoryId))
+            {
+                throw new Exception("Bu fabrika şu anda çevrimdışı (Gateway bağlı değil).");
+            }
+
+            try
+            {
+                MachineData.Clear();
+                MachineDetailsCache.Clear();
+
+                // --- DÜZELTME: Değerleri Atıyoruz ---
+                CurrentFactoryName = factoryName;
+                _currentSelectedFactoryId = factoryId; // Hafızaya alıyoruz
+                // ------------------------------------
+
+                OnDataUpdated?.Invoke();
+
+                await _hubConnection.InvokeAsync("SubscribeToFactories", new List<int> { factoryId });
+
+                OnFactoryChanged?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Fabrika seçim hatası: {ex.Message}");
                 throw;
             }
         }
 
-        // --- BİR REÇETE TASARIM EKRANI İÇİN GEREKLİ YENİ METOTLAR ---
+        // --- 3. FABRİKADAN ÇIKIŞ ---
+        public void ExitFactory()
+        {
+            CurrentFactoryName = "";
+            _currentSelectedFactoryId = 0; // Seçimi sıfırla
+            MachineData.Clear();
+            OnFactoryChanged?.Invoke();
+        }
 
-        public async Task<List<StepTypeDto>> GetStepTypesAsync()
+        // --- 4. YARDIMCI METOTLAR ---
+        public async Task<List<int>> GetOnlineFactoryIdsAsync()
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<int>();
+
+            try { return await _hubConnection.InvokeAsync<List<int>>("GetOnlineFactoryIds"); }
+            catch { return new List<int>(); }
+        }
+
+        public async Task<List<CentralFactoryDto>> GetMyFactoriesAsync()
         {
             try
             {
-                return await _httpClient.GetFromJsonAsync<List<StepTypeDto>>("api/Json/config/steptypes");
+                var factories = await _httpClient.GetFromJsonAsync<List<CentralFactoryDto>>("api/factory/my-factories")
+                                ?? new List<CentralFactoryDto>();
+
+                CachedFactories = factories;
+                TotalFactoriesCount = factories.Count;
+                OnFactoryChanged?.Invoke();
+
+                return factories;
             }
             catch (Exception ex)
             {
-           
-                return new List<StepTypeDto>(); // Hata durumunda boş liste dön
+                Console.WriteLine($"Fabrika listesi hatası: {ex.Message}");
+                return new List<CentralFactoryDto>();
+            }
+        }
+
+       
+
+        // --- 3. FABRİKADAN ÇIKIŞ ---
+        
+
+        
+
+        // --- 2. YENİ LOGIN METODU ---
+
+        private async Task LoginAndGetTokenAsync()
+        {
+            try
+            {
+                // API'deki AuthController'a sabit admin bilgileriyle istek atıyoruz (Köprü Modu)
+                var loginData = new { Username = "admin", Password = "1234" };
+                var response = await _httpClient.PostAsJsonAsync("api/auth/login", loginData);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+                    _accessToken = result?.Token ?? string.Empty;
+
+                    // --- EKLENEN KISIM BAŞLANGIÇ ---
+                    // Token'ı HttpClient'ın varsayılan başlıklarına ekliyoruz.
+                    // Böylece GetMyFactoriesAsync gibi sonraki isteklerde bu token otomatik gönderilir.
+                    if (!string.IsNullOrEmpty(_accessToken))
+                    {
+                        _httpClient.DefaultRequestHeaders.Authorization =
+                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
+                    }
+                    // --- EKLENEN KISIM BİTİŞ ---
+                }
+                else
+                {
+                    //("[ScadaService] API Login Başarısız! Token alınamadı.");
+                }
+            }
+            catch (Exception ex)
+            {
+                //($"[ScadaService] Login Hatası: {ex.Message}");
+            }
+        }
+
+        // Yardımcı Metot: Virgülle ayrılmış string'i listeye çevir
+        private void ParseAllowedFactories(string allowedIds)
+        {
+            UserAllowedFactoryIds.Clear();
+
+            if (string.IsNullOrEmpty(allowedIds)) return;
+
+            if (allowedIds.ToUpper() == "ALL")
+            {
+                // 'ALL' yetkisi varsa, dinamik olarak tümünü veya özel bir kodu ekleyebiliriz.
+                // Şimdilik mantıksal olarak 1 ve 2'yi ekleyelim veya veritabanından fabrika listesi çekilmeli.
+                // Burada basitlik adına 1-10 arası yetki veriyoruz (Test için)
+                UserAllowedFactoryIds.AddRange(new[] { 1, 2, 3 });
+            }
+            else
+            {
+                var parts = allowedIds.Split(',');
+                foreach (var part in parts)
+                {
+                    if (int.TryParse(part.Trim(), out int fid))
+                    {
+                        UserAllowedFactoryIds.Add(fid);
+                    }
+                }
+            }
+            //($"[ScadaService] Yetkili Fabrikalar: {string.Join(",", UserAllowedFactoryIds)}");
+        }
+        
+        
+        public async Task SubscribeToFactoryGroupsAsync()
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
+
+            if (UserAllowedFactoryIds.Any())
+            {
+                try
+                {
+                    // Hub üzerindeki 'SubscribeToFactories' metodunu çağır
+                    await _hubConnection.InvokeAsync("SubscribeToFactories", UserAllowedFactoryIds);
+                    //("[ScadaService] Fabrika gruplarına abone olundu.");
+                }
+                catch (Exception ex)
+                {
+                    //($"[ScadaService] Abonelik hatası: {ex.Message}");
+                }
+            }
+        }
+
+        // --- 3. LOGIN RESPONSE MODELİ (GÜNCELLEME) ---
+        // API'deki AuthController'dan dönen JSON yapısıyla aynı olmalı
+        private class LoginResponse
+        {
+            public string Token { get; set; }
+            public string FullName { get; set; }
+            public string Role { get; set; }
+            public string AllowedFactories { get; set; } // "1,2" veya "ALL"
+        }
+
+
+
+        // Token Yanıt Modeli
+
+
+
+        // A. Yetkili Fabrikaları Listele
+      
+
+        // DTO Sınıfı (ScadaDataService sınıfının dışına veya içine)
+        public class CentralFactoryDto
+        {
+            public int Id { get; set; }
+            public string FactoryName { get; set; }
+          
+        }
+
+        // B. Fabrika Seç ve Abone Ol (KRİTİK NOKTA)
+        public async Task SelectFactoryAndSubscribeAsync(int factoryId)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
+
+            try
+            {
+                // 1. Önceki tüm verileri temizle (Önceki fabrikanın verileri kalmasın)
+                MachineData.Clear();
+                MachineDetailsCache.Clear();
+                OnDataUpdated?.Invoke();
+
+                // 2. Hub'a "Sadece BU fabrikanın grubuna abone et" de
+                // Hub'daki metodu tek ID alacak şekilde güncelleyebilir veya List göndeririz.
+                await _hubConnection.InvokeAsync("SubscribeToFactories", new List<int> { factoryId });
+
+                //($"[ScadaService] Fabrika {factoryId} seçildi ve veriler bekleniyor...");
+            }
+            catch (Exception ex)
+            {
+                //($"[ScadaService] Fabrika seçimi hatası: {ex.Message}");
+            }
+        }
+
+        // DTO Sınıfı (Dosya sonuna veya ayrı dosyaya)
+     
+
+        public async ValueTask DisposeAsync()
+
+        {
+
+            var hub = _hubConnection;
+
+            _hubConnection = null;
+
+
+
+            if (hub is not null)
+
+            {
+
+                try
+
+                {
+
+                    await hub.StopAsync();
+
+                    await hub.DisposeAsync();
+
+                }
+
+                catch { }
+
+            }
+
+        }
+
+
+
+        // --- 3. REVİZE EDİLEN METOTLAR ---
+
+
+
+        // Artık veritabanından çekmiyoruz, Cache'deki listeyi dönüyoruz.
+        // --- KULLANICI YÖNETİMİ (SignalR) ---
+
+        public async Task<List<User>?> GetUsersAsync()
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<User>();
+
+            try
+            {
+                return await _hubConnection.InvokeAsync<List<User>>("GetUsers");
+            }
+            catch (Exception ex)
+            {
+                //($"Kullanıcılar alınamadı: {ex.Message}");
+                return new List<User>();
+            }
+        }
+
+        public async Task<List<Role>> GetRolesAsync()
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<Role>();
+
+            try
+            {
+                return await _hubConnection.InvokeAsync<List<Role>>("GetRoles");
+            }
+            catch { return new List<Role>(); }
+        }
+
+        // UserViewModel alan Add metodu (WebApp genellikle bunu kullanır)
+        public async Task AddUserAsync(UserViewModel userVm)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
+
+            try
+            {
+                await _hubConnection.InvokeAsync<bool>("AddUser", userVm);
+            }
+            catch (Exception ex)
+            {
+                //($"Kullanıcı eklenemedi: {ex.Message}");
+            }
+        }
+
+        // UserViewModel alan Update metodu
+        public async Task UpdateUserAsync(UserViewModel userVm)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
+
+            try
+            {
+                await _hubConnection.InvokeAsync<bool>("UpdateUser", userVm);
+            }
+            catch (Exception ex)
+            {
+                //($"Kullanıcı güncellenemedi: {ex.Message}");
+            }
+        }
+
+        // Eski User alan metodları (Eğer kullanılmıyorsa silebilirsiniz, uyumluluk için tutuyorsanız yönlendirin)
+        public async Task AddUserAsync(User user)
+        {
+            // Bu metod UserViewModel bekleyen Hub metoduna uygun değil. 
+            // Eğer kullanıyorsanız, User -> UserViewModel dönüşümü yapıp göndermelisiniz veya Hub'a overload eklemelisiniz.
+            // Şimdilik boş bırakıyorum veya log basabilirsiniz.
+            //("Uyarı: User nesnesi ile ekleme desteklenmiyor, UserViewModel kullanın.");
+        }
+
+        public async Task UpdateUserAsync(User user)
+        {
+            //("Uyarı: User nesnesi ile güncelleme desteklenmiyor, UserViewModel kullanın.");
+        }
+
+        public async Task DeleteUserAsync(int id)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
+
+            try
+            {
+                await _hubConnection.InvokeAsync<bool>("DeleteUser", id);
+            }
+            catch (Exception ex)
+            {
+                //($"Kullanıcı silinemedi: {ex.Message}");
+            }
+        }
+        public async Task<List<Machine>?> GetMachinesAsync()
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+            {
+                // Bağlantı yoksa hafızadaki cache'i dön (Offline destek)
+                return MachineDetailsCache.Values.ToList();
+            }
+
+            try
+            {
+                // Hub üzerinden veritabanındaki tüm makineleri çek
+                var machines = await _hubConnection.InvokeAsync<List<Machine>>("GetAllMachines");
+
+                // Cache'i güncelle (Opsiyonel ama iyi pratik)
+                foreach (var m in machines)
+                {
+                    if (!MachineDetailsCache.ContainsKey(m.Id))
+                    {
+                        MachineDetailsCache.TryAdd(m.Id, m);
+                    }
+                    // Veya MachineDetailsCache tamamen yenilenebilir
+                }
+
+                return machines;
+            }
+            catch (Exception ex)
+            {
+                //($"Makine listesi alınamadı: {ex.Message}");
+                return MachineDetailsCache.Values.ToList();
+            }
+        }
+
+        public async Task<Machine?> AddMachineAsync(Machine machine)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return null;
+
+            try
+            {
+                return await _hubConnection.InvokeAsync<Machine>("AddMachine", machine);
+            }
+            catch { return null; }
+        }
+
+        public async Task<bool> UpdateMachineAsync(Machine machine)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return false;
+
+            try
+            {
+                return await _hubConnection.InvokeAsync<bool>("UpdateMachine", machine);
+            }
+            catch { return false; }
+        }
+
+        public async Task<bool> DeleteMachineAsync(int machineId)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return false;
+
+            try
+            {
+                return await _hubConnection.InvokeAsync<bool>("DeleteMachine", machineId);
+            }
+            catch { return false; }
+        }
+
+        // Özel bir durum için tekil statüs çekmek gerekirse
+        public async Task<FullMachineStatus?> GetMachineStatusAsync(int id)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return null;
+
+            try
+            {
+                return await _hubConnection.InvokeAsync<FullMachineStatus>("GetMachineStatus", id);
+            }
+            catch { return null; }
+        }
+
+
+
+        // ... Diğer Raporlama Metotları (Aynen Kalabilir, hata yakalama blokları var) ...
+
+
+
+       
+
+
+        public async Task<List<ScadaRecipe>?> GetRecipesAsync()
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<ScadaRecipe>();
+
+            try
+            {
+                return await _hubConnection.InvokeAsync<List<ScadaRecipe>>("GetRecipes");
+            }
+            catch (Exception ex)
+            {
+                //($"Reçete listesi alınamadı: {ex.Message}");
+                return new List<ScadaRecipe>(); // null yerine boş liste dönmek daha güvenli olabilir
+            }
+        }
+
+        public async Task<ScadaRecipe?> GetRecipeDetailsAsync(int recipeId)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return null;
+
+            try
+            {
+                return await _hubConnection.InvokeAsync<ScadaRecipe>("GetRecipeDetails", recipeId);
+            }
+            catch (Exception ex)
+            {
+                //($"Reçete detayı alınamadı: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<ScadaRecipe?> SaveRecipeAsync(ScadaRecipe recipe)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return null;
+
+            try
+            {
+                return await _hubConnection.InvokeAsync<ScadaRecipe>("SaveRecipe", recipe);
+            }
+            catch (Exception ex)
+            {
+                //($"Reçete kaydedilemedi: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<bool> DeleteRecipeAsync(int recipeId)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return false;
+
+            try
+            {
+                return await _hubConnection.InvokeAsync<bool>("DeleteRecipe", recipeId);
+            }
+            catch { return false; }
+        }
+
+        public async Task<bool> SendRecipeToPlcAsync(int recipeId, int machineId)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return false;
+
+            try
+            {
+                return await _hubConnection.InvokeAsync<bool>("SendRecipeToPlc", recipeId, machineId);
+            }
+            catch (Exception ex)
+            {
+                //($"PLC'ye gönderme hatası: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<ScadaRecipe?> ReadRecipeFromPlcAsync(int machineId)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return null;
+
+            try
+            {
+                return await _hubConnection.InvokeAsync<ScadaRecipe>("ReadRecipeFromPlc", machineId);
+            }
+            catch (Exception ex)
+            {
+                //($"PLC'den okuma hatası: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<List<ProductionReportItem>?> GetRecipeConsumptionHistoryAsync(int recipeId)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<ProductionReportItem>();
+
+            try
+            {
+                return await _hubConnection.InvokeAsync<List<ProductionReportItem>>("GetRecipeConsumptionHistory", recipeId);
+            }
+            catch (Exception ex)
+            {
+                //($"Reçete geçmişi alınamadı: {ex.Message}");
+                return new List<ProductionReportItem>();
+            }
+        }
+
+
+
+        public async Task<List<ProductionReportItem>?> GetProductionReportAsync(ReportFilters filters)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<ProductionReportItem>();
+
+            try { return await _hubConnection.InvokeAsync<List<ProductionReportItem>>("GetProductionReport", filters); }
+            catch { return new List<ProductionReportItem>(); }
+        }
+
+        // GetAlarmReportAsync (Zaten yapılmıştı, kontrol edin)
+
+        public async Task<List<object>?> GetTrendDataAsync(ReportFilters filters)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return null;
+            try
+            {
+                // Tip uyuşmazlığı olmaması için object olarak alıyoruz veya dynamic
+                var result = await _hubConnection.InvokeAsync<List<object>>("GetTrendData", filters);
+                return result;
+            }
+            catch { return null; }
+        }
+
+        public async Task<ManualConsumptionSummary?> GetManualConsumptionReportAsync(ReportFilters filters)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return null;
+            try { return await _hubConnection.InvokeAsync<ManualConsumptionSummary>("GetManualConsumptionReport", filters); }
+            catch { return null; }
+        }
+
+        public async Task<ConsumptionTotals?> GetConsumptionTotalsAsync(ReportFilters filters)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return null;
+            try { return await _hubConnection.InvokeAsync<ConsumptionTotals>("GetConsumptionTotals", filters); }
+            catch { return null; }
+        }
+
+        public async Task<List<ProductionReportItem>?> GetGeneralDetailedConsumptionReportAsync(GeneralDetailedConsumptionFilters filters)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return null;
+            try { return await _hubConnection.InvokeAsync<List<ProductionReportItem>>("GetGeneralDetailedConsumptionReport", filters); }
+            catch { return null; }
+        }
+
+        public async Task<List<TekstilScada.Core.Models.ActionLogEntry>?> GetActionLogsAsync(ActionLogFilters filters)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return new List<TekstilScada.Core.Models.ActionLogEntry>();
+            try { return await _hubConnection.InvokeAsync<List<TekstilScada.Core.Models.ActionLogEntry>>("GetActionLogs", filters); }
+            catch { return new List<TekstilScada.Core.Models.ActionLogEntry>(); }
+        }
+
+        public async Task<ProductionDetailDto?> GetProductionDetailAsync(int machineId, string batchId)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return null;
+            try { return await _hubConnection.InvokeAsync<ProductionDetailDto>("GetProductionDetail", machineId, batchId); }
+            catch { return null; }
+        }
+
+        // --- EXPORT METOTLARI (Byte[] Döner) ---
+
+        public async Task<byte[]> ExportProductionReportAsync(List<ProductionReportItem> reportItems)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return Array.Empty<byte>();
+            // Hub: ExportProductionReport
+            return await _hubConnection.InvokeAsync<byte[]>("ExportProductionReport", reportItems);
+        }
+
+        public async Task<byte[]> ExportAlarmReportAsync(List<AlarmReportItem> reportItems)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return Array.Empty<byte>();
+            return await _hubConnection.InvokeAsync<byte[]>("ExportAlarmReport", reportItems);
+        }
+
+        public async Task<byte[]> ExportOeeReportAsync(List<OeeData> reportItems)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return Array.Empty<byte>();
+            return await _hubConnection.InvokeAsync<byte[]>("ExportOeeReport", reportItems);
+        }
+
+        public async Task<byte[]> ExportManualConsumptionReportAsync(ManualConsumptionSummary summary)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return Array.Empty<byte>();
+            return await _hubConnection.InvokeAsync<byte[]>("ExportManualConsumptionReport", summary);
+        }
+
+        public async Task<byte[]> ExportGeneralDetailedConsumptionReportAsync(GeneralConsumptionExportDto exportData)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return Array.Empty<byte>();
+            return await _hubConnection.InvokeAsync<byte[]>("ExportGeneralDetailedConsumptionReport", exportData);
+        }
+
+        public async Task<byte[]> ExportActionLogsReportAsync(List<TekstilScada.Core.Models.ActionLogEntry> logs)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return Array.Empty<byte>();
+            return await _hubConnection.InvokeAsync<byte[]>("ExportActionLogsReport", logs);
+        }
+
+        public async Task<byte[]> ExportProductionDetailFileAsync(int machineId, string batchId)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return Array.Empty<byte>();
+            return await _hubConnection.InvokeAsync<byte[]>("ExportProductionDetailFile", machineId, batchId);
+        }
+
+
+
+       
+
+
+
+        public async Task<List<AlarmReportItem>> GetAlarmReportAsync(ReportFilters filters)
+        {
+            // Hub bağlantısı kontrolü
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+            {
+                //("Hub bağlantısı yok, alarm raporu çekilemedi.");
+                return new List<AlarmReportItem>();
+            }
+
+            try
+            {
+                // HTTP Post yerine SignalR Invoke
+                // "GetAlarmReport" -> Hub üzerindeki metodun adı
+                return await _hubConnection.InvokeAsync<List<AlarmReportItem>>("GetAlarmReport", filters);
+            }
+            catch (Exception ex)
+            {
+                //($"SignalR Alarm Raporu Hatası: {ex.Message}");
+                return new List<AlarmReportItem>();
+            }
+        }
+
+
+
+        public async Task<List<OeeData>?> GetOeeReportAsync(ReportFilters filters)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<OeeData>();
+
+            try
+            {
+                // "GetOeeReport" Hub metodu çağrılıyor
+                return await _hubConnection.InvokeAsync<List<OeeData>>("GetOeeReport", filters);
+            }
+            catch (Exception ex)
+            {
+                //($"OEE verisi alınamadı: {ex.Message}");
+                return new List<OeeData>();
+            }
+        }
+
+
+
+        
+
+
+
+        
+
+
+
+        
+
+
+
+        
+
+
+
+        
+
+
+
+        public async Task<List<HourlyConsumptionData>?> GetHourlyConsumptionAsync()
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<HourlyConsumptionData>();
+
+            try
+            {
+                // "GetHourlyConsumption" Hub metodu çağrılıyor
+                return await _hubConnection.InvokeAsync<List<HourlyConsumptionData>>("GetHourlyConsumption");
+            }
+            catch (Exception ex)
+            {
+                //($"Saatlik tüketim verileri alınamadı: {ex.Message}");
+                return null;
+            }
+        }
+
+
+
+        public async Task<List<HourlyOeeData>?> GetHourlyOeeAsync()
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<HourlyOeeData>();
+
+            try
+            {
+                // "GetHourlyOee" Hub metodu çağrılıyor
+                return await _hubConnection.InvokeAsync<List<HourlyOeeData>>("GetHourlyOee");
+            }
+            catch (Exception ex)
+            {
+                //($"Saatlik OEE verileri alınamadı: {ex.Message}");
+                return null;
+            }
+        }
+
+
+
+        public async Task<List<TopAlarmData>?> GetTopAlarmsAsync()
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<TopAlarmData>();
+
+            try
+            {
+                // "GetTopAlarms" Hub metodu çağrılıyor
+                return await _hubConnection.InvokeAsync<List<TopAlarmData>>("GetTopAlarms");
+            }
+            catch (Exception ex)
+            {
+                //($"Popüler alarmlar alınamadı: {ex.Message}");
+                return null;
+            }
+        }
+
+
+
+        public async Task<Dictionary<int, string>?> GetHmiRecipeNamesAsync(int machineId)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return null;
+
+            try
+            {
+                return await _hubConnection.InvokeAsync<Dictionary<int, string>>("GetHmiRecipeNames", machineId);
+            }
+            catch (Exception ex)
+            {
+                //($"HMI İsimleri Hatası: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<ScadaRecipe?> GetHmiRecipePreviewAsync(int machineId, string remoteFileName)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return null;
+
+            try
+            {
+                return await _hubConnection.InvokeAsync<ScadaRecipe>("GetHmiRecipePreview", machineId, remoteFileName);
+            }
+            catch (Exception ex)
+            {
+                //($"Önizleme Hatası: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<bool> QueueSequentiallyNamedSendJobsAsync(List<int> recipeIds, List<int> machineIds, int startNumber)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return false;
+
+            try
+            {
+                // Hub metoduna parametreleri sırasıyla gönderiyoruz
+                return await _hubConnection.InvokeAsync<bool>("QueueSequentiallyNamedSendJobs", recipeIds, machineIds, startNumber);
+            }
+            catch (Exception ex)
+            {
+                //($"Gönderim Kuyruğu Hatası: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> QueueReceiveJobsAsync(List<string> fileNames, int machineId)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return false;
+
+            try
+            {
+                return await _hubConnection.InvokeAsync<bool>("QueueReceiveJobs", fileNames, machineId);
+            }
+            catch (Exception ex)
+            {
+                //($"Alma Kuyruğu Hatası: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<List<TransferJob>> GetActiveFtpJobsAsync()
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<TransferJob>();
+
+            try
+            {
+                return await _hubConnection.InvokeAsync<List<TransferJob>>("GetActiveJobs");
+            }
+            catch (Exception ex)
+            {
+                //($"Aktif İşler Hatası: {ex.Message}");
+                return new List<TransferJob>();
+            }
+        }
+
+
+
+        
+
+
+
+       
+
+
+
+        public async Task<string> GetLayoutJsonAsync(string machineSubType, int stepId)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return string.Empty;
+
+            try
+            {
+                // Hub: GetStepLayout
+                var result = await _hubConnection.InvokeAsync<string>("GetStepLayout", machineSubType, stepId);
+                return result ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                //($"Layout yüklenemedi: {ex.Message}");
+                return string.Empty;
+            }
+        }
+
+        public async Task<List<StepTypeDto>> GetStepTypesAsync()
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<StepTypeDto>();
+
+            try
+            {
+                // Hub: GetStepTypes
+                return await _hubConnection.InvokeAsync<List<StepTypeDto>>("GetStepTypes");
+            }
+            catch
+            {
+                return new List<StepTypeDto>();
             }
         }
 
         public async Task<List<string>> GetMachineSubTypesAsync()
         {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<string> { "DEFAULT" };
+
             try
             {
-                return await _httpClient.GetFromJsonAsync<List<string>>("api/Json/config/machinesubtypes");
+                // Hub: GetMachineSubTypes
+                return await _hubConnection.InvokeAsync<List<string>>("GetMachineSubTypes");
             }
-            catch (Exception ex)
+            catch
             {
-                
-                return new List<string> { "DEFAULT" }; // Hata durumunda sadece DEFAULT dön
+                return new List<string> { "DEFAULT" };
             }
         }
 
         public async Task<bool> SaveLayoutAsync(SaveLayoutRequest request)
         {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return false;
+
             try
             {
-                var response = await _httpClient.PostAsJsonAsync("api/Json/config/savelayout", request);
-                response.EnsureSuccessStatusCode(); // Hata varsa exception fırlatır
-                return true;
+                // Hub: SaveLayout
+                return await _hubConnection.InvokeAsync<bool>("SaveLayout", request);
             }
-            catch (Exception ex)
+            catch
             {
-                
                 return false;
             }
         }
-        public async Task<byte[]> ExportProductionReportAsync(List<ProductionReportItem> reportItems)
-        {
-            // _serializerOptions artık tanımlı
-            var json = JsonSerializer.Serialize(reportItems, _serializerOptions);
 
-            // KRİTİK DÜZELTME 2 (404/Not Found HATASI ÇÖZÜMÜ: api/ ön eki eklendi)
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("api/reports/export/production", content);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
+        
 
-                throw new Exception($"Rapor dışa aktarma başarısız oldu: {response.ReasonPhrase}. Detay: {error}");
-            }
 
-            // Başarılı olursa, response'un içeriğini doğrudan byte dizisi olarak döndür
-            return await response.Content.ReadAsByteArrayAsync();
-        }
-        public async Task<byte[]> ExportAlarmReportAsync(List<AlarmReportItem> reportItems)
-        {
-            var json = JsonSerializer.Serialize(reportItems, _serializerOptions);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            // API endpoint'ini çağır
-            var response = await _httpClient.PostAsync("api/reports/export/alarms", content); // YENİ ENDPOINT
+        
 
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Alarm raporu dışa aktarma başarısız oldu: {response.ReasonPhrase}. Detay: {error}");
-            }
 
-            return await response.Content.ReadAsByteArrayAsync();
-        }
-        public async Task<byte[]> ExportOeeReportAsync(List<OeeData> reportItems)
-        {
-            var json = JsonSerializer.Serialize(reportItems, _serializerOptions);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            // API endpoint'ini çağır
-            var response = await _httpClient.PostAsync("api/reports/export/oee", content); // YENİ ENDPOINT
+        
 
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                throw new Exception($"OEE raporu dışa aktarma başarısız oldu: {response.ReasonPhrase}. Detay: {error}");
-            }
 
-            return await response.Content.ReadAsByteArrayAsync();
-        }
-        // YENİ METOT: Manuel Tüketim Raporunu Excel'e Aktarma API Çağrısı
-        public async Task<byte[]> ExportManualConsumptionReportAsync(ManualConsumptionSummary summary)
-        {
-            // API, bir ManualConsumptionSummary nesnesini bekler.
-            var json = JsonSerializer.Serialize(summary, _serializerOptions);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            // API endpoint'ini çağır
-            var response = await _httpClient.PostAsync("api/reports/export/manual-consumption", content);
+        
 
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Manuel Tüketim raporu dışa aktarma başarısız oldu: {response.ReasonPhrase}. Detay: {error}");
-            }
 
-            return await response.Content.ReadAsByteArrayAsync();
-        }
-        public async Task<byte[]> ExportGeneralDetailedConsumptionReportAsync(GeneralConsumptionExportDto exportData)
-        {
-            // API, GeneralConsumptionExportDto nesnesini bekler.
-            var json = JsonSerializer.Serialize(exportData, _serializerOptions);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            // API endpoint'ini çağır
-            var response = await _httpClient.PostAsync("api/reports/export/general-detailed", content); // YENİ ENDPOINT
+        
 
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Genel Tüketim raporu dışa aktarma başarısız oldu: {response.ReasonPhrase}. Detay: {error}");
-            }
 
-            return await response.Content.ReadAsByteArrayAsync();
-        }
-        public async Task<byte[]> ExportActionLogsReportAsync(List<TekstilScada.Core.Models.ActionLogEntry> logs)
-        {
-            // API, ActionLogEntry listesini bekler.
-            var json = JsonSerializer.Serialize(logs, _serializerOptions);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            // API endpoint'ini çağır
-            var response = await _httpClient.PostAsync("api/reports/export/action-logs", content); // YENİ ENDPOINT
+        
 
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Eylem Kayıtları raporu dışa aktarma başarısız oldu: {response.ReasonPhrase}. Detay: {error}");
-            }
 
-            return await response.Content.ReadAsByteArrayAsync();
-        }
-        // YENİ METOT: Üretim Detayını Excel'e Aktarma API Çağrısı (Byte dizisi döner)
-        public async Task<byte[]> ExportProductionDetailFileAsync(int machineId, string batchId)
-        {
-            // API endpoint'ini çağır, GET request'i ile veriyi alıyoruz.
-            var response = await _httpClient.GetAsync($"api/reports/export/production-detail/{machineId}/{batchId}");
 
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Üretim detayı dışa aktarma başarısız oldu: {response.ReasonPhrase}. Detay: {error}");
-            }
+        
 
-            return await response.Content.ReadAsByteArrayAsync();
-        }
-// --- ALARM YÖNETİMİ METOTLARI ---
-        // Not: Backend tarafında AlarmsController oluşturulması gerekir (Aşağıda verdim).
+
+
         public async Task<List<AlarmDefinition>> GetAlarmsAsync()
         {
-            return await _httpClient.GetFromJsonAsync<List<AlarmDefinition>>("api/alarms");
+            // Bağlantı kontrolü
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<AlarmDefinition>();
+
+            try
+            {
+                // Hub üzerindeki "GetAlarms" metodunu çağırıp sonucu alıyoruz
+                return await _hubConnection.InvokeAsync<List<AlarmDefinition>>("GetAlarms");
+            }
+            catch (Exception ex)
+            {
+                //($"Alarm listesi alınamadı: {ex.Message}");
+                return new List<AlarmDefinition>();
+            }
         }
 
         public async Task AddAlarmAsync(AlarmDefinition alarm)
         {
-            await _httpClient.PostAsJsonAsync("api/alarms", alarm);
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
+
+            try
+            {
+                await _hubConnection.InvokeAsync("AddAlarm", alarm);
+            }
+            catch (Exception ex) { //($"Alarm ekleme hatası: {ex.Message}");
+                                   }
         }
 
         public async Task UpdateAlarmAsync(AlarmDefinition alarm)
         {
-            await _httpClient.PutAsJsonAsync($"api/alarms/{alarm.Id}", alarm);
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
+
+            try
+            {
+                await _hubConnection.InvokeAsync("UpdateAlarm", alarm);
+            }
+            catch (Exception ex) { //($"Alarm güncelleme hatası: {ex.Message}");
+                                   }
         }
 
         public async Task DeleteAlarmAsync(int id)
         {
-            await _httpClient.DeleteAsync($"api/alarms/{id}");
-        }
-        // --- KULLANICI YÖNETİMİ (BU KISIM EKSİKTİ) ---
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
 
-    
-
-        public async Task AddUserAsync(User user)
-        {
-            await _httpClient.PostAsJsonAsync("api/users", user);
-        }
-
-        public async Task UpdateUserAsync(User user)
-        {
-            await _httpClient.PutAsJsonAsync($"api/users/{user.Id}", user);
-        }
-
-        public async Task DeleteUserAsync(int id)
-        {
-            await _httpClient.DeleteAsync($"api/users/{id}");
-        }
-
-        // --- ALARM YÖNETİMİ (İLERİSİ İÇİN HAZIRLIK) ---
-
-        // --- KULLANICI İŞLEMLERİ ---
-       
-
-        // Rolleri çekmek için yeni metod
-        public async Task<List<Role>> GetRolesAsync()
-        {
-            return await _httpClient.GetFromJsonAsync<List<Role>>("api/users/roles");
-        }
-
-        // Artık User değil, UserViewModel gönderiyoruz
-        public async Task AddUserAsync(UserViewModel userVm)
-        {
-            await _httpClient.PostAsJsonAsync("api/users", userVm);
-        }
-
-        public async Task UpdateUserAsync(UserViewModel userVm)
-        {
-            await _httpClient.PutAsJsonAsync($"api/users/{userVm.Id}", userVm);
-        }
-
-        // --- MALİYET YÖNETİMİ ---
-        public async Task<List<CostParameter>> GetCostsAsync()
-        {
             try
             {
-                return await _httpClient.GetFromJsonAsync<List<CostParameter>>("api/costs");
+                await _hubConnection.InvokeAsync("DeleteAlarm", id);
             }
-            catch
+            catch (Exception ex) { //($"Alarm silme hatası: {ex.Message}");
+                                   }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        public async Task<List<CostParameter>> GetCostsAsync()
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<CostParameter>();
+
+            try
             {
+                // Hub: GetCosts
+                return await _hubConnection.InvokeAsync<List<CostParameter>>("GetCosts");
+            }
+            catch (Exception ex)
+            {
+                //($"Maliyet parametreleri alınamadı: {ex.Message}");
                 return new List<CostParameter>();
             }
         }
 
         public async Task UpdateCostsAsync(List<CostParameter> costs)
         {
-            await _httpClient.PostAsJsonAsync("api/costs", costs);
-        }
-        // --- PLC OPERATÖR YÖNETİMİ ---
-        public async Task<List<PlcOperator>> GetPlcOperatorsAsync()
-        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
+
             try
             {
-                return await _httpClient.GetFromJsonAsync<List<PlcOperator>>("api/plcoperators");
+                // Hub: UpdateCosts
+                await _hubConnection.InvokeAsync("UpdateCosts", costs);
             }
-            catch
+            catch (Exception ex)
             {
+                //($"Maliyetler güncellenemedi: {ex.Message}");
+            }
+        }
+
+
+
+        public async Task<List<PlcOperator>> GetPlcOperatorsAsync()
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<PlcOperator>();
+
+            try
+            {
+                // Hub: GetPlcOperators
+                return await _hubConnection.InvokeAsync<List<PlcOperator>>("GetPlcOperators");
+            }
+            catch (Exception ex)
+            {
+                //($"Operatör listesi alınamadı: {ex.Message}");
                 return new List<PlcOperator>();
             }
         }
 
         public async Task SavePlcOperatorAsync(PlcOperator op)
         {
-            await _httpClient.PostAsJsonAsync("api/plcoperators", op);
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
+
+            try
+            {
+                // Hub: SavePlcOperator
+                await _hubConnection.InvokeAsync("SavePlcOperator", op);
+            }
+            catch (Exception ex)
+            {
+                //($"Operatör kaydedilemedi: {ex.Message}");
+            }
         }
 
         public async Task AddDefaultPlcOperatorAsync()
         {
-            await _httpClient.PostAsync("api/plcoperators/default", null);
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
+
+            try
+            {
+                // Hub: AddDefaultPlcOperator
+                await _hubConnection.InvokeAsync("AddDefaultPlcOperator");
+            }
+            catch (Exception ex)
+            {
+                //($"Varsayılan operatör eklenemedi: {ex.Message}");
+            }
         }
 
         public async Task DeletePlcOperatorAsync(int id)
         {
-            await _httpClient.DeleteAsync($"api/plcoperators/{id}");
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
+
+            try
+            {
+                // Hub: DeletePlcOperator
+                await _hubConnection.InvokeAsync("DeletePlcOperator", id);
+            }
+            catch (Exception ex)
+            {
+                //($"Operatör silinemedi: {ex.Message}");
+            }
         }
-        // --- REÇETE TASARIMCISI ---
+
+
+
         public async Task<List<string>> GetMachineSubTypesAsyncDesign()
         {
-            try { return await _httpClient.GetFromJsonAsync<List<string>>("api/recipeconfigurations/subtypes"); }
-            catch { return new List<string>(); }
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<string>();
+
+            try
+            {
+                // Hub: GetMachineSubTypesDesign
+                return await _hubConnection.InvokeAsync<List<string>>("GetMachineSubTypesDesign");
+            }
+            catch
+            {
+                return new List<string>();
+            }
         }
 
         public async Task<List<StepTypeDtoDesign>> GetStepTypesAsyncDesign()
         {
-            try { return await _httpClient.GetFromJsonAsync<List<StepTypeDtoDesign>>("api/recipeconfigurations/steptypes"); }
-            catch { return new List<StepTypeDtoDesign>(); }
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<StepTypeDtoDesign>();
+
+            try
+            {
+                // Hub: GetStepTypesDesign
+                return await _hubConnection.InvokeAsync<List<StepTypeDtoDesign>>("GetStepTypesDesign");
+            }
+            catch
+            {
+                return new List<StepTypeDtoDesign>();
+            }
         }
 
         public async Task<List<ControlMetadata>> GetLayoutAsync(string subType, int stepTypeId)
         {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<ControlMetadata>();
+
             try
             {
-                var jsonString = await _httpClient.GetStringAsync($"api/recipeconfigurations/layout?subType={subType}&stepTypeId={stepTypeId}");
-
-                if (string.IsNullOrEmpty(jsonString)) return new List<ControlMetadata>();
-
-                // --- KRİTİK DÜZELTME BAŞLANGICI ---
-                var options = new System.Text.Json.JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true // Büyük/Küçük harf farkını görmezden gel
-                };
-                return System.Text.Json.JsonSerializer.Deserialize<List<ControlMetadata>>(jsonString, options);
-                // --- KRİTİK DÜZELTME BİTİŞİ ---
+                // Hub: GetLayoutDesign (Nesne listesi döner)
+                return await _hubConnection.InvokeAsync<List<ControlMetadata>>("GetLayoutDesign", subType, stepTypeId);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Tasarım yüklenirken hata: {ex.Message}");
+                //($"Tasarım yüklenirken hata: {ex.Message}");
                 return new List<ControlMetadata>();
             }
         }
 
+        // Not: Bu metod imzasını (string subType, int stepTypeId, List<ControlMetadata> layout) parametre olarak alacak şekilde değiştirdik.
+        // ScadaHub tarafında tek bir DTO yerine ayrı parametreler tanımladığımız için InvokeAsync'e sırayla geçiyoruz.
         public async Task SaveLayoutAsync(string subType, int stepTypeId, List<ControlMetadata> layout)
         {
-            await _httpClient.PostAsJsonAsync($"api/recipeconfigurations/layout?subType={subType}&stepTypeId={stepTypeId}", layout);
-        }
-       
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected) return;
 
-        // GÜNCELLENMİŞ LOGLAMA METODU (UserId parametresi eklendi)
+            try
+            {
+                // Hub: SaveLayoutDesign
+                await _hubConnection.InvokeAsync("SaveLayoutDesign", subType, stepTypeId, layout);
+            }
+            catch (Exception ex)
+            {
+                //($"Tasarım kaydedilemedi: {ex.Message}");
+            }
+        }
+
+        public async Task<string> GetGatewayIpAsync(int machineId)
+        {
+            // Bağlantı yoksa varsayılan dön
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return "localhost:5901";
+
+            try
+            {
+                // Hub üzerindeki 'GetGatewayIpForMachine' metodunu çağır
+                // Bu metot, Gateway'in kaydettiği gerçek IP'yi (örn: 192.168.1.50:5901) dönecek
+                return await _hubConnection.InvokeAsync<string>("GetGatewayIpForMachine", machineId);
+            }
+            catch (Exception ex)
+            {
+                //($"Gateway IP'si alınamadı: {ex.Message}");
+                return "localhost:5901"; // Hata durumunda geliştirme ortamı varsayılanı
+            }
+        }
+
         public async Task LogUserActionAsync(int userId, string actionType, string details)
         {
-           
-
-            try
+            // Hub bağlantısı var mı kontrol et
+            if (_hubConnection is not null && _hubConnection.State == HubConnectionState.Connected)
             {
-                var entry = new TekstilScada.Core.Models.ActionLogEntry
+                try
                 {
-                    UserId = userId,
-                    ActionType = actionType,
-                    Details = details,
-                    Timestamp = DateTime.Now,
-                    Username = "" // <-- Bunu eklerseniz de hata düzelir
-                };
+                    var entry = new TekstilScada.Core.Models.ActionLogEntry
+                    {
+                        UserId = userId,
+                        ActionType = actionType,
+                        Details = details,
+                        Timestamp = DateTime.Now,
+                        Username = "" // Gerekirse doldurulabilir
+                    };
 
-                await _httpClient.PostAsJsonAsync("api/actionlogs", entry);
+                    // Controller yerine Hub üzerindeki metoda çağrı yapıyoruz ("LogAction")
+                    await _hubConnection.InvokeAsync("LogAction", entry);
+                }
+                catch (Exception ex)
+                {
+                    //($"SignalR Log gönderme hatası: {ex.Message}");
+                }
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine($"Log gönderilemedi: {ex.Message}");
+                // Bağlantı yoksa yapılacaklar (örn: offline kuyruğuna atma veya konsola yazma)
+                //("Hub bağlantısı yok, log gönderilemedi.");
             }
         }
 
-        // RAPOR ÇEKME METODU (Zaten eklemiştik, endpoint yolunu güncelliyoruz)
-        public async Task<List<TekstilScada.Core.Models.ActionLogEntry>?> GetActionLogsAsync(ActionLogFilters filters)
-        {
-            var response = await _httpClient.PostAsJsonAsync("api/reports/action-logs", filters);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"API Hatası (Eylem Kayıtları): {response.StatusCode}");
-                return new List<TekstilScada.Core.Models.ActionLogEntry>();
-            }
 
-            return await response.Content.ReadFromJsonAsync<List<TekstilScada.Core.Models.ActionLogEntry>>();
-        }
-        public async Task<List<TransferJob>> GetActiveFtpJobsAsync()
-        {
-            try
-            {
-                // API'den listeyi çek
-                var jobs = await _httpClient.GetFromJsonAsync<List<TransferJob>>("api/ftp/active-jobs");
-                return jobs ?? new List<TransferJob>();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"FTP İşleri alınırken hata: {ex.Message}");
-                return new List<TransferJob>();
-            }
-        }
+        
+
+
+
+     
+
+        
+
     }
+
 }

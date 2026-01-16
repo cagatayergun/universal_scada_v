@@ -83,7 +83,8 @@ else
     private async Task LoadAlarms()
     {
         try { alarms = await DataService.GetAlarmsAsync(); }
-        catch (Exception ex) { Console.WriteLine($"{Loc["Hata"]}: {ex.Message}"); alarms = new List<AlarmDefinition>(); }
+        catch (Exception ex) { //($"{Loc["Hata"]}: {ex.Message}"); alarms = new List<AlarmDefinition>(); 
+        }
     }
 
     private void AddNewAlarm()

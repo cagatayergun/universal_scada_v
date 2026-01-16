@@ -119,9 +119,17 @@ namespace TekstilScada.Core
             {
                 string motherboardId = GetHardwareInfo("Win32_BaseBoard", "SerialNumber");
                 string biosId = GetHardwareInfo("Win32_BIOS", "SerialNumber");
-                string diskId = GetHardwareInfo("Win32_DiskDrive", "SerialNumber");
+
+                // DEĞİŞEN KISIM BURASI:
+                // Eski yöntem: string diskId = GetHardwareInfo("Win32_DiskDrive", "SerialNumber");
+
+                // YENİ GÜVENLİ YÖNTEM (Sadece Windows Diski):
+                string diskId = GetSystemDiskSerial();
+
+                // Eğer disk ID boş geldiyse (WMI hatası vb.), lisans üretme ki güvenlik açığı olmasın.
+                if (string.IsNullOrEmpty(diskId)) return null;
+
                 string combinedString = $"{motherboardId}|{biosId}|{diskId}".Trim();
-                if (string.IsNullOrEmpty(combinedString)) return null;
 
                 using (SHA256 sha256 = SHA256.Create())
                 {
@@ -133,24 +141,63 @@ namespace TekstilScada.Core
             }
             catch { return null; }
         }
-
-        private static string GetHardwareInfo(string wmiClass, string wmiProperty)
+        private static string GetSystemDiskSerial()
         {
             try
             {
-                ManagementObjectSearcher searcher = new ManagementObjectSearcher($"SELECT * FROM {wmiClass}");
-                foreach (ManagementObject obj in searcher.Get())
+                // 1. Windows'un kurulu olduğu sürücü harfini bul (Örn: "C:")
+                string systemDrive = Path.GetPathRoot(Environment.SystemDirectory).Substring(0, 2);
+
+                // 2. Bu sürücü harfinin (LogicalDisk) hangi Bölümde (Partition) olduğunu bul
+                string partitionQuery = $"ASSOCIATORS OF {{Win32_LogicalDisk.DeviceID='{systemDrive}'}} WHERE AssocClass = Win32_LogicalDiskToPartition";
+                ManagementObjectSearcher partitionSearcher = new ManagementObjectSearcher(partitionQuery);
+
+                foreach (ManagementObject partition in partitionSearcher.Get())
                 {
-                    if (obj[wmiProperty] != null) return obj[wmiProperty].ToString().Trim();
+                    // 3. Bu Bölümün (Partition) hangi Fiziksel Diskte (DiskDrive) olduğunu bul
+                    string diskQuery = $"ASSOCIATORS OF {{Win32_DiskPartition.DeviceID='{partition["DeviceID"]}'}} WHERE AssocClass = Win32_DiskDriveToDiskPartition";
+                    ManagementObjectSearcher diskSearcher = new ManagementObjectSearcher(diskQuery);
+
+                    foreach (ManagementObject disk in diskSearcher.Get())
+                    {
+                        // 4. İşte Windows'un olduğu Fiziksel Diski bulduk! Seri numarasını al.
+                        return disk["SerialNumber"].ToString().Trim();
+                    }
                 }
             }
             catch (Exception ex)
             {
-                // Add code here to log or display the reason for the error
-                LogToFile($"WMI access error - Class: {wmiClass}, Error: {ex.Message}");
-
+                LogToFile($"System Disk Error: {ex.Message}");
             }
-            return "";
+
+            return ""; // Bulunamazsa boş dön
+        }
+        private static string GetHardwareInfo(string wmiClass, string wmiProperty)
+        {
+            try
+            {
+                // Donanımları her zaman belirli bir özelliğe göre sırala (Örn: DeviceID veya Name)
+                ManagementObjectSearcher searcher = new ManagementObjectSearcher($"SELECT * FROM {wmiClass}");
+
+                var list = new List<string>();
+                foreach (ManagementObject obj in searcher.Get())
+                {
+                    if (obj[wmiProperty] != null)
+                    {
+                        list.Add(obj[wmiProperty].ToString().Trim());
+                    }
+                }
+
+                // Listeyi sırala ve her zaman ilkini al (Böylece USB takılsa bile sıra değişmez)
+                list.Sort();
+                return list.Count > 0 ? list[0] : "";
+            }
+            catch (Exception ex)
+            {
+                LogToFile($"WMI access error - Class: {wmiClass}, Error: {ex.Message}");
+                // Hata durumunda null dönerek üst katmanın lisansı geçersiz saymasını değil, işlemi durdurmasını sağlayabilirsiniz.
+                return "";
+            }
         }
         private static void LogToFile(string logMessage)
         {

@@ -265,7 +265,7 @@ namespace TekstilScada.UI.Views
             // Dönüşümleri Uygula
             ConvertColumnToDecimalAndDivide("TotalWater", 1000m);       // Litre -> m3
             ConvertColumnToDecimalAndDivide("TotalElectricity", 1000m); // Watt -> kWh
-            ConvertColumnToDecimalAndDivide("TotalSteam", 1000m);       // Litre -> m3
+            ConvertColumnToDecimalAndDivide("TotalSteam", 1);       // Litre -> m3
         }
 
         // --- BAŞLIK VE FORMAT AYARLARI ---
@@ -288,19 +288,19 @@ namespace TekstilScada.UI.Views
             if (dgvReport.Columns.Contains("TotalWater"))
             {
                 dgvReport.Columns["TotalWater"].HeaderText = "Total Water (m³)";
-                dgvReport.Columns["TotalWater"].DefaultCellStyle.Format = "N2";
+                dgvReport.Columns["TotalWater"].DefaultCellStyle.Format = "N3";
             }
 
             if (dgvReport.Columns.Contains("TotalElectricity"))
             {
                 dgvReport.Columns["TotalElectricity"].HeaderText = "Total Electricity (kWh)";
-                dgvReport.Columns["TotalElectricity"].DefaultCellStyle.Format = "N2";
+                dgvReport.Columns["TotalElectricity"].DefaultCellStyle.Format = "N3";
             }
 
             if (dgvReport.Columns.Contains("TotalSteam"))
             {
-                dgvReport.Columns["TotalSteam"].HeaderText = "Total Steam (m³)";
-                dgvReport.Columns["TotalSteam"].DefaultCellStyle.Format = "N2";
+                dgvReport.Columns["TotalSteam"].HeaderText = "Total Steam (kg)";
+                dgvReport.Columns["TotalSteam"].DefaultCellStyle.Format = "N0";
             }
         }
 

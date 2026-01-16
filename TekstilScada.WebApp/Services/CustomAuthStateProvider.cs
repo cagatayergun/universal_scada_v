@@ -96,7 +96,7 @@ namespace TekstilScada.WebApp.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    // 🔴 Console.WriteLine yerine ILogger kullanın
+                    // 🔴 // yerine ILogger kullanın
                     _logger.LogWarning("DEBUG AUTH: Refresh API BAŞARISIZ. Status Code: {StatusCode}. Content: {Content}",
                                        response.StatusCode,
                                        await response.Content.ReadAsStringAsync());
@@ -148,9 +148,9 @@ namespace TekstilScada.WebApp.Services
             }
 
             // 2. Token var mı kontrol et
-            if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(refreshToken))
+            if (string.IsNullOrWhiteSpace(token))
             {
-                _logger.LogInformation("DEBUG AUTH: Token veya RefreshToken Local Storage'da bulunamadı. Anonim dönülüyor.");
+                _logger.LogInformation("DEBUG AUTH: Token bulunamadı. Anonim dönülüyor.");
                 return new AuthenticationState(_anonymous);
             }
 
@@ -188,6 +188,12 @@ namespace TekstilScada.WebApp.Services
             // 5. YENİLEME GEREKİYORSA (Süresi dolduğu için VEYA bozuk olduğu için)
             if (needsRefresh)
             {
+                if (string.IsNullOrWhiteSpace(refreshToken))
+                {
+                    _logger.LogWarning("DEBUG AUTH: Token süresi doldu ve RefreshToken yok. Logout yapılıyor.");
+                    await LogoutAsync();
+                    return new AuthenticationState(_anonymous);
+                }
                 if (await RefreshTokenAsync(refreshToken))
                 {
                     _logger.LogInformation("DEBUG AUTH: Refresh Token başarılı! Yeni token ile devam ediliyor.");
@@ -227,6 +233,7 @@ namespace TekstilScada.WebApp.Services
 
         public async Task<bool> LoginAsync(string username, string password)
         {
+
             // ... (Mevcut HTTP POST kodunuz) ...
             var loginPayload = new { Username = username, Password = password };
             var serializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
@@ -278,27 +285,34 @@ namespace TekstilScada.WebApp.Services
             var jsonBytes = Convert.FromBase64String(payload);
             var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
 
-            // --- DEBUG: Token İçeriğini Konsola Yazdır ---
-            Console.WriteLine("--- TOKEN İÇERİĞİ BAŞLANGIÇ ---");
-            foreach (var kvp in keyValuePairs)
+            // 1. İsim (Name)
+            if (keyValuePairs.TryGetValue(ClaimTypes.Name, out object username) ||
+                keyValuePairs.TryGetValue("unique_name", out username) ||
+                keyValuePairs.TryGetValue("Name", out username))
             {
-                Console.WriteLine($"Anahtar: {kvp.Key}, Değer: {kvp.Value}");
+                claims.Add(new Claim(ClaimTypes.Name, username.ToString()));
             }
-            Console.WriteLine("--- TOKEN İÇERİĞİ BİTİŞ ---");
-            // ---------------------------------------------
 
-            // 1. İsim
-            keyValuePairs.TryGetValue(ClaimTypes.Name, out object username);
-            if (username != null) claims.Add(new Claim(ClaimTypes.Name, username.ToString()));
+            // 2. Rol (Role) - DÜZELTİLMİŞ KISIM
+            object roles = null;
 
-            // 2. Rol
-            keyValuePairs.TryGetValue(ClaimTypes.Role, out object roles);
+            // Tüm ihtimalleri dene:
+            if (!keyValuePairs.TryGetValue(ClaimTypes.Role, out roles) &&
+                !keyValuePairs.TryGetValue("role", out roles) &&
+                !keyValuePairs.TryGetValue("Role", out roles)) // Sizin durumunuz (Büyük R)
+            {
+                // Rol bulunamadı
+            }
+
             if (roles != null)
             {
                 if (roles.ToString().Trim().StartsWith("["))
                 {
                     var parsedRoles = JsonSerializer.Deserialize<string[]>(roles.ToString());
-                    foreach (var parsedRole in parsedRoles) claims.Add(new Claim(ClaimTypes.Role, parsedRole));
+                    foreach (var parsedRole in parsedRoles)
+                    {
+                        claims.Add(new Claim(ClaimTypes.Role, parsedRole));
+                    }
                 }
                 else
                 {
@@ -306,22 +320,26 @@ namespace TekstilScada.WebApp.Services
                 }
             }
 
-            // 3. ID OKUMA (Genişletilmiş Kontrol)
+            // 3. ID ve Diğer Bilgiler
             object idValue = null;
-
-            // Farklı ihtimalleri dene: "nameid", "sub", "id", "NameIdentifier"
             if (keyValuePairs.TryGetValue("nameid", out idValue) ||
                 keyValuePairs.TryGetValue("sub", out idValue) ||
                 keyValuePairs.TryGetValue("id", out idValue) ||
+                
                 keyValuePairs.TryGetValue(ClaimTypes.NameIdentifier, out idValue))
             {
-                Console.WriteLine($"ID BULUNDU: {idValue}"); // Konsolda bunu görmelisiniz
                 claims.Add(new Claim(ClaimTypes.NameIdentifier, idValue.ToString()));
             }
-            else
+
+            if (keyValuePairs.TryGetValue("CompanyId", out object companyId))
             {
-                Console.WriteLine("!!! ID BULUNAMADI !!!");
+                claims.Add(new Claim("CompanyId", companyId.ToString()));
             }
+            if (keyValuePairs.TryGetValue("AllowedFactoryIds", out object allowedIds))
+            {
+                claims.Add(new Claim("AllowedFactoryIds", allowedIds.ToString()));
+            }
+            //($"[API DEBUG] {idValue} Rol: {allowedIds}, Algılanan CompanyId: {companyId}");
 
             return new ClaimsIdentity(claims, "jwt");
         }

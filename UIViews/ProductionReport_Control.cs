@@ -64,7 +64,7 @@ namespace TekstilScada.UI.Views
                 {
                     item.TotalWater = item.TotalWater / 1000.0;
                     item.TotalElectricity = item.TotalElectricity / 1000.0;
-                    item.TotalSteam = item.TotalSteam / 1000.0;
+                    item.TotalSteam = item.TotalSteam ;
                 }
                 dgvProductionReport.DataSource = null;
                 dgvProductionReport.DataSource = reportData;
@@ -160,21 +160,21 @@ namespace TekstilScada.UI.Views
             if (grid.Columns.Contains("TotalWater"))
             {
                 grid.Columns["TotalWater"].HeaderText = "Total Water (m³)";
-                grid.Columns["TotalWater"].DefaultCellStyle.Format = "N2"; // 0.00 formatı
+                grid.Columns["TotalWater"].DefaultCellStyle.Format = "N3"; // 0.00 formatı
             }
 
             // ELEKTRİK
             if (grid.Columns.Contains("TotalElectricity"))
             {
                 grid.Columns["TotalElectricity"].HeaderText = "Total Electricity (kWh)";
-                grid.Columns["TotalElectricity"].DefaultCellStyle.Format = "N2"; // 0.00 formatı
+                grid.Columns["TotalElectricity"].DefaultCellStyle.Format = "N3"; // 0.00 formatı
             }
 
             // BUHAR
             if (grid.Columns.Contains("TotalSteam"))
             {
-                grid.Columns["TotalSteam"].HeaderText = "Total Steam (m³)";
-                grid.Columns["TotalSteam"].DefaultCellStyle.Format = "N2"; // 0.00 formatı
+                grid.Columns["TotalSteam"].HeaderText = "Total Steam (kg)";
+                grid.Columns["TotalSteam"].DefaultCellStyle.Format = "N0"; // 0.00 formatı
             }
 
             SetColumnHeader(grid, "Cost", "Total Cost");

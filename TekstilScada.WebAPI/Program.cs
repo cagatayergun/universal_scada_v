@@ -1,27 +1,45 @@
-// Dosya: TekstilScada.WebAPI/Program.cs
-
-using TekstilScada.Repositories;
-using TekstilScada.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.Text.Json.Serialization;
 using TekstilScada.WebAPI.Hubs;
-using TekstilScada.WebAPI.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer; // Eklendi
-using Microsoft.IdentityModel.Tokens; // Eklendi
-using System.Text; // Eklendi
-using Microsoft.AspNetCore.Authorization; // Eklendi
 
 var builder = WebApplication.CreateBuilder(args);
-// 1. Configuration'dan (appsettings.json) veritabaný baðlantý dizesini oku.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// 2. Okunan baðlantý dizesini Core katmanýndaki statik AppConfig sýnýfýna ata.
-// Bu sayede projedeki tüm Repository sýnýflarý doðru baðlantý dizesini kullanabilir.
-TekstilScada.Core.AppConfig.SetConnectionString(connectionString);
+// --- 1. VERÝTABANI BAÐLANTISI ---
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (!string.IsNullOrEmpty(connectionString))
+{
+    TekstilScada.Core.AppConfig.SetConnectionString(connectionString);
+}
+builder.Services.AddScoped<TekstilScada.WebAPI.Repositories.CentralFactoryRepository>();
+builder.Services.AddScoped<TekstilScada.WebAPI.Repositories.CentralAuthRepository>();
+// --- 2. TEMEL SERVÝSLER ---
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddSignalR();
 
-// === JWT Yapýlandýrmasý BAÞLANGIÇ ===
+// ============================================================
+// DÜZELTME BURADA: SignalR Limit Ayarlarý
+// ============================================================
+builder.Services.AddSignalR(hubOptions =>
+{
+    // Varsayýlan 32KB olan limiti 10MB'a çýkarýyoruz.
+    // Bu sayede Gateway'den gelen büyük raporlar baðlantýyý koparmaz.
+    hubOptions.MaximumReceiveMessageSize = 10 * 1024 * 1024;
+
+    // Geliþtirme aþamasýnda detaylý hata görmek için:
+    hubOptions.EnableDetailedErrors = true;
+})
+.AddJsonProtocol(options =>
+{
+    options.PayloadSerializerOptions.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals;
+    options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+});
+// ============================================================
+
+// --- 3. JWT KÝMLÝK DOÐRULAMA ---
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is missing");
@@ -46,29 +64,9 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization(); // Yetkilendirme servisini ekle
-// === JWT Yapýlandýrmasý SONU ===
+builder.Services.AddAuthorization();
 
-
-// === TekstilScada Servislerini Buraya Ekliyoruz ===
-// Proje boyunca tek bir örneði olacak tüm servisleri Singleton olarak kaydediyoruz.
-// Bu, arka plan servislerinin ve anlýk veri akýþýnýn tutarlý çalýþmasý için gereklidir.
-builder.Services.AddSingleton<MachineRepository>();
-builder.Services.AddSingleton<AlarmRepository>();
-builder.Services.AddSingleton<ProductionRepository>();
-builder.Services.AddSingleton<ProcessLogRepository>();
-builder.Services.AddSingleton<RecipeRepository>();
-builder.Services.AddSingleton<UserRepository>();
-builder.Services.AddSingleton<DashboardRepository>();
-builder.Services.AddSingleton<PlcPollingService>();
-builder.Services.AddSingleton<SignalRBridgeService>();
-builder.Services.AddSingleton<FtpTransferService>();
-
-builder.Services.AddSingleton<RecipeConfigurationRepository>();
-// PLC Polling servisini arka planda çalýþacak bir hizmet olarak ekliyoruz.
-builder.Services.AddHostedService<PlcPollingBackgroundService>();
-builder.Services.AddHostedService<FtpProgressBroadcaster>();
-//builder.Services.AddScoped<FtpService>();
+// --- 5. HÝZMET AYARLARI ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
@@ -80,10 +78,9 @@ builder.Services.AddCors(options =>
         });
 });
 
-// === Servis Ekleme Sonu ===
-
 var app = builder.Build();
 
+// --- PÝPELÝNE ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -93,13 +90,11 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseWebSockets();
-// KRÝTÝK SIRALAMA: Kimlik doðrulama, Yetkilendirmeden önce gelmelidir.
-app.UseAuthentication(); // JWT doðrulamasýný etkinleþtir
-app.UseAuthorization(); // Yetkilendirme kurallarýný etkinleþtir
+
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 app.MapHub<ScadaHub>("/scadaHub");
-
-// Köprü servisinin uygulama baþlarken aktif olmasýný saðlýyoruz.
-app.Services.GetRequiredService<SignalRBridgeService>();
 
 app.Run();

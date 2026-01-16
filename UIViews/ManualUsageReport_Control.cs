@@ -232,13 +232,13 @@ namespace TekstilScada.UI.Views
                 dgvManualUsage.Columns["ToplamElektrikTuketimi_kW"].HeaderText = "Total Electricity (kWh)";
 
             if (dgvManualUsage.Columns["ToplamBuharTuketimi_kg"] != null)
-                dgvManualUsage.Columns["ToplamBuharTuketimi_kg"].HeaderText = "Total Steam (m³)";
+                dgvManualUsage.Columns["ToplamBuharTuketimi_kg"].HeaderText = "Total Steam (kg)";
 
             if (dgvManualUsage.Columns["DurationMinutes"] != null)
                 dgvManualUsage.Columns["DurationMinutes"].HeaderText = "Duration (Minutes)";
 
             // 3. Sayı formatı (Virgülden sonra 2 basamak)
-            dgvManualUsage.DefaultCellStyle.Format = "N2";
+            dgvManualUsage.DefaultCellStyle.Format = "N3";
         }
 
         // Verileri dönüştürmek için (Litre -> m³, Watt -> kW) kullanılan olay
@@ -250,30 +250,30 @@ namespace TekstilScada.UI.Views
 
             string colName = dgvManualUsage.Columns[e.ColumnIndex].Name;
 
-            // Su, Elektrik ve Buhar kolonlarını yakala
-            if (colName == "ToplamSuTuketimi_Litre" ||
-                colName == "ToplamElektrikTuketimi_kW" ||
-                colName == "ToplamBuharTuketimi_kg")
+            try
             {
-                try
+                // Değeri double'a çevir (Her iki durum için de gerekli)
+                double val = Convert.ToDouble(e.Value);
+
+                // 1. GRUP: 1000'e bölünüp, N2 (virgülden sonra 2 hane) gösterilecekler
+                if (colName == "ToplamSuTuketimi_Litre" || colName == "ToplamElektrikTuketimi_kW")
                 {
-                    // Değeri double'a çevir
-                    double val = Convert.ToDouble(e.Value);
-
-                    // 1000'e böl
                     double result = val / 1000.0;
-
-                    // Sonucu virgülden sonra 2 basamaklı String olarak ata
-                    // Bu sayede "N2" formatı ile çakışmaz ve kesin görünür.
-                    e.Value = result.ToString("N2");
-
-                    // Formatlamanın tamamlandığını bildir (Grid tekrar formatlamaya çalışmasın)
+                    e.Value = result.ToString("N3");
                     e.FormattingApplied = true;
                 }
-                catch
+                // 2. GRUP: Bölünmeden, N0 (tamsayı, binlik ayraçlı) gösterilecekler (BUHAR)
+                else if (colName == "ToplamBuharTuketimi_kg")
                 {
-                    // Eğer sayısal bir değer değilse (örn. hata metni varsa) dokunma
+                    // Burada bölme işlemi YOK
+                    // N0 formatı: 1.234 şeklinde gösterir, kuruş hanesi göstermez.
+                    e.Value = val.ToString("N0");
+                    e.FormattingApplied = true;
                 }
+            }
+            catch
+            {
+                // Eğer sayısal bir değer değilse dokunma
             }
         }
 

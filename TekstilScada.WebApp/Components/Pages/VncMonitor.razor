@@ -1,135 +1,164 @@
-﻿@page "/vnc/{MachineId:int}"
+﻿@page "/vnc-monitor-1/{MachineId:int}"
 @using TekstilScada.Models
 @using TekstilScada.WebApp.Services
 @using TekstilScada.Core.Localization
 @using Microsoft.Extensions.Localization
-@using Microsoft.AspNetCore.Components.Authorization
-
+@using MudBlazor
+@using Microsoft.AspNetCore.SignalR.Client
 @inject ScadaDataService ScadaService
 @inject VncSessionService VncSessionService
-@inject AuthenticationStateProvider AuthStateProvider
-@inject IJSRuntime JSRuntime
-@inject NavigationManager NavigationManager
 @inject IStringLocalizer<SharedResource> Loc
-@implements IDisposable
+@inject NavigationManager NavManager
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@implements IAsyncDisposable
 
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
-
-    @if (isAccessDenied)
-    {
-        @* --- SENARYO 1: BAĞLANTI REDDEDİLDİ (BAŞKASI İZLİYOR) --- *@
-        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mb-4">
-            <MudText Typo="Typo.h6">@Loc["VncBaglantiReddedildi"]</MudText>
-            <MudText>@string.Format(Loc["VncBaskasiIzliyor"], currentViewerName)</MudText>
-        </MudAlert>
-
-        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="CloseConnection">@Loc["GeriDon"]</MudButton>
-    }
-    else
-    {
-        @* --- SENARYO 2: NORMAL BAĞLANTI (KİLİT ALINDI) --- *@
-        <div class="d-flex justify-space-between align-center mb-4">
-            <MudText Typo="Typo.h5">@Loc["UzaktanErisim"] @(machine?.MachineName ?? Loc["MakineBilgileriYukleniyor"].Value)</MudText>
-            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Error" OnClick="CloseConnection">@Loc["BaglantiyiKes"]</MudButton>
-        </div>
-
-        @if (machine != null)
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.DesktopWindows" Class="mr-3 mb-n1" />
+            @if (machine != null)
+            {
+                @($"{Loc["UzaktanErisim"]} - {machine.MachineName}")
+            }
+            else
+            {
+                @Loc["UzaktanErisim"]
+            }
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (isAccessDenied)
         {
-            <div id="vnc-container" style="width: 100%; height: 80vh; background-color: #000; border: 2px solid #333;">
+            <MudAlert Severity="Severity.Warning">
+                Erişim Reddedildi! Şu an başka bir operatör (@currentViewerName) bu makineyi izliyor.
+            </MudAlert>
+        }
+        else if (machine == null)
+        {
+            <div class="d-flex flex-column justify-center align-center py-8" style="height: 300px;">
+                <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+                <MudText Class="mt-4">Makine bilgileri yükleniyor...</MudText>
             </div>
         }
         else
         {
-            <MudAlert Severity="Severity.Info">@Loc["MakineBilgileriYukleniyor"]</MudAlert>
+            @* --- YENİ SİSTEM: SIGNALR GÖRÜNTÜ PANELİ --- *@
+            <div style="width: 100%; min-height: 400px; display: flex; justify-content: center; align-items: center; background-color: #000; border: 1px solid #333;">
+                @if (!string.IsNullOrEmpty(imageData))
+                {
+                    <img src="data:image/jpeg;base64,@imageData" style="max-width: 100%; max-height: 600px; object-fit: contain;" />
+                }
+                else
+                {
+                    <div class="d-flex flex-column align-center">
+                        <MudProgressCircular Color="Color.Secondary" Indeterminate="true" />
+                        <MudText Class="mt-2" Typo="Typo.caption" Color="Color.Surface">Görüntü Bekleniyor...</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Surface" Style="opacity:0.5; font-size:10px;">(Gateway bağlantısı kontrol ediliyor)</MudText>
+                    </div>
+                }
+            </div>
         }
-    }
-
-</MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseConnection" Color="Color.Error" Variant="Variant.Filled">Kapat</MudButton>
+    </DialogActions>
+</MudDialog>
 
 @code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
     [Parameter] public int MachineId { get; set; }
-    private Machine? machine;
-    private bool isConnected = false;
 
-    // Oturum Yönetimi Değişkenleri
+    private Machine? machine;
     private bool isAccessDenied = false;
     private string? currentViewerName;
-    private string myUserName = "Anonymous";
+    private string myUserName = "Operator"; // Giriş yapan kullanıcının gerçek adı buraya gelmeli
+
+    // SignalR Değişkenleri
+    private HubConnection? hubConnection;
+    private string? imageData;
 
     protected override async Task OnInitializedAsync()
     {
-        // 1. Aktif Kullanıcı Adını Al
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        if (authState.User.Identity?.IsAuthenticated == true)
+        try
         {
-            myUserName = authState.User.Identity.Name ?? "Unknown";
+            // 1. Makine Bilgisi
+            var machines = await ScadaService.GetMachinesAsync();
+            if (machines != null)
+            {
+                machine = machines.FirstOrDefault(m => m.Id == MachineId);
+            }
+
+            // 2. Kilit Kontrolü (Session Service)
+            // Not: Gerçek kullanıcı adını AuthenticationStateProvider'dan almanız daha doğru olur.
+            var result = VncSessionService.TryEnterSession(MachineId, myUserName);
+            if (!result.Success)
+            {
+                isAccessDenied = true;
+                currentViewerName = result.CurrentUser;
+                return; // Erişim yoksa SignalR başlatma
+            }
+
+            // 3. SignalR Bağlantısını Başlat
+            await StartSignalRConnection();
         }
-
-        // 2. Makine Bilgisini Çek
-        var machines = await ScadaService.GetMachinesAsync();
-        machine = machines?.FirstOrDefault(m => m.Id == MachineId);
-
-        // 3. OTURUM KİLİDİ KONTROLÜ (LOCK CHECK)
-        // Servise "Ben bu makineye girmek istiyorum" diyoruz.
-        var result = VncSessionService.TryEnterSession(MachineId, myUserName);
-
-        if (!result.Success)
+        catch (Exception ex)
         {
-            // Başarısız: Başkası (currentViewerName) şu an izliyor.
-            isAccessDenied = true;
-            currentViewerName = result.CurrentUser;
-        }
-        else
-        {
-            // Başarılı: Kilit bize verildi, bağlantı başlatılabilir.
-            isAccessDenied = false;
+            Console.WriteLine($"[VNC Init Hatası] {ex.Message}");
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private async Task StartSignalRConnection()
     {
-        // Eğer erişim reddedildiyse VNC'yi asla başlatma
-        if (isAccessDenied) return;
-
-        if (machine != null && !isConnected)
+        try
         {
-            isConnected = true;
+            // Token'ı LocalStorage'dan al
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
 
-            // API WebSocket URL'ini oluştur
-            // Canlı ortamda bu adresi appsettings'den veya NavigationManager.BaseUri'den almak daha doğrudur.
-            // Şimdilik manuel:
-            var baseUri = new Uri("http://localhost:7039"); // API ADRESİNİZ
-            var wsScheme = baseUri.Scheme == "https" ? "wss" : "ws";
-            var wsUrl = $"{wsScheme}://{baseUri.Authority}/api/vnc/connect/{MachineId}";
+            // Hub Adresini Appsettings veya NavigationManager'dan dinamik alabilirsiniz
+            // Şimdilik API adresinizi elle veriyoruz (Production için ApiBaseUrl kullanılmalı)
+            var hubUrl = "https://api.malkanteknolojionline.com.tr/scadaHub";
 
-            // JS fonksiyonunu çağırarak noVNC'yi başlat
-            try
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(hubUrl, options =>
+                {
+                    options.AccessTokenProvider = () => Task.FromResult(token);
+                })
+                .WithAutomaticReconnect()
+                .Build();
+
+            // Gelen Resim Verisini Yakala
+            hubConnection.On<int, string>("ReceiveScreenImage", (mId, base64) =>
             {
-                await JSRuntime.InvokeVoidAsync("startVnc", "vnc-container", wsUrl, machine.VncPassword);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"VNC Başlatma Hatası: {ex.Message}");
-            }
+                // Sadece baktığımız makinenin verisi geldiyse ekranı güncelle
+                if (mId == MachineId)
+                {
+                    imageData = base64;
+                    InvokeAsync(StateHasChanged);
+                }
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SignalR Bağlantı Hatası] {ex.Message}");
         }
     }
 
     private void CloseConnection()
     {
-        // Bağlantıyı kes ve geri dön
-        NavigationManager.NavigateTo("/");
+        MudDialog.Close(DialogResult.Ok(true));
     }
 
-    public async void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        // 1. VNC JS bağlantısını kes (Tarayıcı tarafı)
-        if (isConnected)
+        // 1. SignalR Bağlantısını Kes
+        if (hubConnection is not null)
         {
-            try { await JSRuntime.InvokeVoidAsync("stopVnc", "vnc-container"); } catch { }
+            await hubConnection.DisposeAsync();
         }
 
-        // 2. OTURUM KİLİDİNİ KALDIR (Server tarafı)
-        // Sadece kilit bizdeyse kaldırabiliriz (ExitSession içinde kontrol ediliyor)
+        // 2. Oturum Kilidini Kaldır
         if (!isAccessDenied)
         {
             VncSessionService.ExitSession(MachineId, myUserName);

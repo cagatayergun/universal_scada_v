@@ -23,9 +23,7 @@
 </head>
 
 <body>
-    <CascadingAuthenticationState>
-        <Routes @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
-    </CascadingAuthenticationState>
+    <Routes @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
     
     <script src="_framework/blazor.web.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
@@ -231,6 +229,65 @@
             delete container.rfb;
         }
     };
+        window.vncUtils = {
+            calculateCoordinates: function (elementId, clientX, clientY) {
+                var img = document.getElementById(elementId);
+                if (!img) return null;
+
+                // Resmin ekrandaki konumu ve boyutu
+                var rect = img.getBoundingClientRect();
+
+                // Tıklanan noktanın elementin sol-üst köşesine göre konumu
+                var clickX = clientX - rect.left;
+                var clickY = clientY - rect.top;
+
+                // Resmin orijinal (doğal) boyutları (PLC Ekran Çözünürlüğü)
+                var naturalW = img.naturalWidth;
+                var naturalH = img.naturalHeight;
+
+                // Resmin ekranda kapladığı alan (padding dahil, object-fit alanı)
+                var displayedW = rect.width;
+                var displayedH = rect.height;
+
+                if (naturalW === 0 || naturalH === 0) return null;
+
+                var imageRatio = naturalW / naturalH;
+                var containerRatio = displayedW / displayedH;
+
+                var renderW, renderH, offsetX, offsetY;
+
+                // Object-fit: contain hesaplaması
+                if (containerRatio > imageRatio) {
+                    // Resim yüksekliğe göre sığdırılmış (Yanlarda boşluk var)
+                    renderH = displayedH;
+                    renderW = renderH * imageRatio;
+                    offsetX = (displayedW - renderW) / 2;
+                    offsetY = 0;
+                } else {
+                    // Resim genişliğe göre sığdırılmış (Alt/Üstte boşluk var)
+                    renderW = displayedW;
+                    renderH = renderW / imageRatio;
+                    offsetX = 0;
+                    offsetY = (displayedH - renderH) / 2;
+                }
+
+                // Tıklama resmin içinde mi (siyah bantlarda mı) kontrolü
+                if (clickX < offsetX || clickX > offsetX + renderW ||
+                    clickY < offsetY || clickY > offsetY + renderH) {
+                    return null; // Boşluğa tıklandı, işlem yapma
+                }
+
+                // Koordinatları resim başlangıcına göre düzelt
+                var relativeX = clickX - offsetX;
+                var relativeY = clickY - offsetY;
+
+                // Gerçek çözünürlüğe ölçekle
+                var finalX = Math.floor(relativeX * (naturalW / renderW));
+                var finalY = Math.floor(relativeY * (naturalH / renderH));
+
+                return { x: finalX, y: finalY };
+            }
+        };
 </script>
 </body>
 </html>

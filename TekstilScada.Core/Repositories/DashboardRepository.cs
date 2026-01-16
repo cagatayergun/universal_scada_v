@@ -181,7 +181,7 @@ namespace TekstilScada.Repositories
                             SELECT 
                                 MachineId,
                                 HOUR(LogTimestamp) as LogHour,
-                                MIN(TotalWater) as MinWater, MAX(TotalWater) as MaxWater,
+                                MIN(LiveWaterLevel) as MinWater, MAX(LiveWaterLevel) as MaxWater,
                                 MIN(LiveElectricity) as MinElec, MAX(LiveElectricity) as MaxElec,
                                 MIN(LiveSteam) as MinSteam, MAX(LiveSteam) as MaxSteam
                             FROM manual_mode_log
