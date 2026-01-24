@@ -182,6 +182,12 @@
 	<data name="ToplamMakine" xml:space="preserve">
     <value>TOTAL MACHINES</value>
   </data>
+	<data name="Manuelmod" xml:space="preserve">
+    <value>MANUEL MOD</value>
+  </data>
+	<data name="Offlinestatus" xml:space="preserve">
+    <value>OFFLINE STATUS</value>
+  </data>
 	<data name="AktifMakine" xml:space="preserve">
     <value>ACTIVE MACHINES</value>
   </data>
@@ -1079,6 +1085,9 @@
 	<data name="BaslangicBitisPlaceholder" xml:space="preserve">
     <value>Start - End</value>
   </data>
+	<data name="BitisZamani" xml:space="preserve">
+    <value>Finish</value>
+  </data>
 	<data name="MakineLabel" xml:space="preserve">
     <value>Machine</value>
   </data>
@@ -1201,6 +1210,9 @@
   </data>
 	<data name="SuLitre" xml:space="preserve">
     <value>Water (Liter)</value>
+  </data>
+	<data name="SuLitre3" xml:space="preserve">
+    <value>Water (m³)</value>
   </data>
 	<data name="BuharKg" xml:space="preserve">
     <value>Steam (kg)</value>

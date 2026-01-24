@@ -193,6 +193,8 @@ html, body {
 :root {
     /* Genel Bakis Control'den gelen renkler (KpiCard.razor için) */
     --kpi-info: #2980b9; /* Koyu Mavi (Total Machines) */
+    --kpi-offline: rgb(149, 165, 166);
+    --kpi-manuel: rgb(155, 89, 182);
     --kpi-success: #2ecc71; /* Zümrüt Yeþili (Running Machines) */
     --kpi-danger: #e74c3c; /* Koyu Kýrmýzý (Alarm Machines) */
     --kpi-warning: #f39c12; /* Koyu Turuncu (Idle Machines) */
@@ -264,7 +266,12 @@ html, body {
 .kpi-info {
     background-color: var(--kpi-info);
 }
-
+.kpi-manuel {
+    background-color: var(--kpi-manuel);
+}
+.kpi-offline {
+    background-color: var(--kpi-offline);
+}
 .kpi-success {
     background-color: var(--kpi-success);
 }

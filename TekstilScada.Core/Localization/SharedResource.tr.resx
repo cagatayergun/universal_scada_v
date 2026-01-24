@@ -182,6 +182,12 @@
 	<data name="ToplamMakine" xml:space="preserve">
     <value>TOPLAM MAKİNE</value>
   </data>
+	<data name="Offlinestatus" xml:space="preserve">
+    <value>OFFLINE MAKİNE</value>
+  </data>
+	<data name="Manuelmod" xml:space="preserve">
+    <value>MANUEL ÇALIŞAN</value>
+  </data>
 	<data name="AktifMakine" xml:space="preserve">
     <value>AKTİF MAKİNE</value>
   </data>
@@ -742,6 +748,9 @@
   </data>
 	<data name="BitisZamani" xml:space="preserve">
     <value>Bitiş</value>
+  </data>
+	<data name="SuLitre3" xml:space="preserve">
+    <value>Su (m³)</value>
   </data>
 	<data name="ToplamSure" xml:space="preserve">
     <value>Toplam Süre</value>

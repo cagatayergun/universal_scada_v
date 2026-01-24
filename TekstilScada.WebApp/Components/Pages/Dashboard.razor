@@ -26,9 +26,16 @@
     {
         <div class="kpi-cards-row">
             <KpiCard Title="@Loc["ToplamMakine"]" Value="@TotalMachines.ToString()" CssClass="kpi-info" />
+            <KpiCard Title="@Loc["Offlinestatus"]" Value="@offlineMachines.ToString()" CssClass="kpi-offline" />
             <KpiCard Title="@Loc["AktifMakine"]" Value="@RunningMachines.ToString()" CssClass="kpi-success" />
             <KpiCard Title="@Loc["AlarmdakiMakine"]" Value="@AlarmMachines.ToString()" CssClass="kpi-danger" />
+            <KpiCard Title="@Loc["Manuelmod"]" Value="@manualMachines.ToString()" CssClass="kpi-manuel" />
             <KpiCard Title="@Loc["BekleyenMakine"]" Value="@IdleMachines.ToString()" CssClass="kpi-warning" />
+
+
+
+          
+
         </div>
 
         <div class="main-content-area">
@@ -61,6 +68,7 @@
 
             @* Sidebar Charts *@
             <div class="sidebar-charts-column pl-2" style="min-width: 300px;">
+                @*
                 <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
                     <div id="oeeChartContainer" style="width:100%; height:250px;"></div>
                     @if (!HourlyOeeData.Any())
@@ -68,6 +76,7 @@
                         <MudText Typo="Typo.caption" Align="MudBlazor.Align.Center" Class="d-block text-muted">@Loc["VeriBekleniyor"]</MudText>
                     }
                 </MudPaper>
+                *@
                 <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
                     <div id="electricChartContainer" style="width:100%; height:250px;"></div>
                 </MudPaper>
@@ -108,7 +117,8 @@
     private int RunningMachines = 0;
     private int AlarmMachines = 0;
     private int IdleMachines = 0;
-
+    private int offlineMachines = 0;
+    private int manualMachines = 0;
     private readonly List<string> DarkColors = new List<string>
     {
         "#2c3e50", "#2ecc71", "#e74c3c", "#9b59b6", "#3498db",
@@ -218,10 +228,14 @@
 
         // --- İstatistikler ---
         TotalMachines = allStatuses.Count;
-        RunningMachines = allStatuses.Count(s => s.IsInRecipeMode && !s.HasActiveAlarm);
-        AlarmMachines = allStatuses.Count(s => s.HasActiveAlarm);
-        IdleMachines = TotalMachines - RunningMachines - AlarmMachines;
-
+        RunningMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.IsInRecipeMode && !s.HasActiveAlarm);
+        AlarmMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.HasActiveAlarm);
+        IdleMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && !s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
+       
+        offlineMachines = allStatuses.Count(s => s.ConnectionState != ConnectionStatus.Connected);
+       
+        manualMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
+     
         if (TotalMachines == 0)
         {
             GroupedMachines = new List<IGrouping<string, FullMachineStatus>>();

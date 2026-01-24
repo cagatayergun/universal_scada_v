@@ -320,7 +320,8 @@ namespace TekstilScada.Services
 
                 try
                 {
-                    await _connection.InvokeAsync("RegisterGateway", _myApiKey);
+                    string localIp = GetLocalIpAddress();
+                    await _connection.InvokeAsync("RegisterGateway", _myApiKey, localIp + ":5901");
                 }
                 catch (Exception ex)
                 {

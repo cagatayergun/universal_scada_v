@@ -24,15 +24,19 @@
             <li class="nav-item">
                 <a class="nav-link @(activeTab == "alarmlar" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "alarmlar"'>@Loc["GecmisAlarmlarTab"]</a>
             </li>
+            @*
             <li class="nav-item">
                 <a class="nav-link @(activeTab == "oee" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "oee"'>@Loc["OeeRaporuTab"]</a>
             </li>
+            *@
             <li class="nav-item">
                 <a class="nav-link @(activeTab == "trend" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "trend"'>@Loc["TrendAnaliziTabRaporlar"]</a>
             </li>
+            @*
             <li class="nav-item">
                 <a class="nav-link @(activeTab == "receteTuketim" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "receteTuketim"'>@Loc["ReceteTuketimAnaliziTab"]</a>
             </li>
+             *@
             <li class="nav-item">
                 <a class="nav-link @(activeTab == "manuelTuketim" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "manuelTuketim"'>@Loc["ManuelTuketimTab"]</a>
             </li>
@@ -272,7 +276,7 @@
                     <MudAlert Severity="Severity.Info" Variant="Variant.Filled">@Loc["KriterlereUygunKayitYok"]</MudAlert>
                 }
                 break;
-
+                @*
             case "oee":
                 <MudCard Class="mb-4" Elevation="3">
                     <MudCardContent>
@@ -369,7 +373,7 @@
                     <MudAlert Severity="Severity.Info" Variant="Variant.Filled">@Loc["KriterlereUygunKayitYok"]</MudAlert>
                 }
                 break;
-
+                *@
             case "trend":
                 <MudCard Class="mb-4" Elevation="3">
                     <MudCardContent>
@@ -496,7 +500,7 @@
                     <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mt-4">@Loc["TrendVerisiYokTarih"]</MudAlert>
                 }
                 break;
-
+                @*
             case "receteTuketim":
                 <MudGrid>
                     <MudItem xs="12" md="4">
@@ -604,8 +608,9 @@
                     </MudItem>
                 </MudGrid>
                 break;
-
+                *@
             case "manuelTuketim":
+                @* --- GÜNCELLENEN MANUEL TÜKETİM ALANI (WinForms Mantığı) --- *@
                 <MudCard Class="mb-4" Elevation="3">
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
@@ -618,8 +623,11 @@
                             </MudItem>
 
                             <MudItem xs="12" md="4">
-                                <MudSelect T="int" Label="@Loc["MakineSecimiLabel"]" @bind-Value="selectedManualMachineId" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
-                                    <MudSelectItem Value="0">@Loc["MakineSecinizPlaceholder"]</MudSelectItem>
+                                @* Çoklu seçim için MudSelect güncellendi *@
+                                <MudSelect T="int" Label="@Loc["MakineSecimiLabel"]"
+                                           MultiSelection="true"
+                                           @bind-SelectedValues="_selectedManualMachineIds"
+                                           Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
                                     @if (machines != null)
                                     {
                                         foreach (var machine in machines)
@@ -634,7 +642,8 @@
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Analytics" OnClick="GenerateManualConsumptionReport" Disabled="@isLoading">
                                     @(isLoading? Loc["AnalizEdiliyor"].Value : Loc["RaporlaButon"].Value)
                                 </MudButton>
-                                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Success" StartIcon="@Icons.Material.Filled.FileDownload" OnClick="ExportManualConsumptionToExcel" Disabled="@(consumptionSummary == null)">
+                                @* Excel butonu sadece veri varsa aktif *@
+                                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Success" StartIcon="@Icons.Material.Filled.FileDownload" OnClick="ExportManualConsumptionToExcel" Disabled="@(manualConsumptionReports == null || !manualConsumptionReports.Any())">
                                     @Loc["ExcelIndirButon"]
                                 </MudButton>
                             </MudItem>
@@ -646,84 +655,56 @@
                 {
                     <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" Class="my-7" />
                 }
-                else if (consumptionSummary != null)
+                else if (manualConsumptionReports != null && manualConsumptionReports.Any())
                 {
-                    <MudGrid>
-                        <MudItem xs="12">
-                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3">
-                                <MudText Typo="Typo.subtitle1"><b>@consumptionSummary.Makine</b> - @Loc["ManuelModOzet"]</MudText>
-                                <MudText Typo="Typo.caption">@Loc["RaporAraligi"] @consumptionSummary.RaporAraligi</MudText>
-                            </MudAlert>
-                        </MudItem>
+                    <MudDataGrid T="ManualConsumptionSummary"
+                                 Items="@manualConsumptionReports"
+                                 Filterable="true"
+                                 SortMode="SortMode.Multiple"
+                                 Groupable="true"
+                                 Dense="true"
+                                 Striped="true"
+                                 Bordered="true"
+                                 RowsPerPage="15">
 
-                        <MudItem xs="12" md="4">
-                            <MudPaper Elevation="2" Class="pa-4 d-flex flex-column align-center" Style="border-top: 4px solid #7e57c2;">
-                                <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" Class="mb-2" />
-                                <MudText Typo="Typo.h5">@consumptionSummary.ToplamManuelSure</MudText>
-                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@Loc["ToplamSure"]</MudText>
-                            </MudPaper>
-                        </MudItem>
+                        <ToolBarContent>
+                            <MudText Typo="Typo.h6">@Loc["ManuelModOzet"]</MudText>
+                            <MudSpacer />
+                        </ToolBarContent>
 
-                        <MudItem xs="12" md="4">
-                            <MudPaper Elevation="2" Class="pa-4 d-flex flex-column align-center" Style="border-top: 4px solid #ef5350;">
-                                <MudIcon Icon="@Icons.Material.Filled.Thermostat" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Error" Class="mb-2" />
-                                <MudText Typo="Typo.h5">@consumptionSummary.OrtalamaSicaklik.ToString("N1") °C</MudText>
-                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@Loc["Sicaklik"]</MudText>
-                            </MudPaper>
-                        </MudItem>
+                        <Columns>
+                            @* WinForms mantığına uygun kolonlar *@
+                            <PropertyColumn Property="x => x.Makine" Title="@Loc["MakineLabel"]" Groupable="true" />
+                            <PropertyColumn Property="x => x.RaporAraligi" Title="@Loc["RaporAraligi"]" />
+                            <PropertyColumn Property="x => x.ToplamManuelSure" Title="@Loc["Sure"]" />
 
-                        <MudItem xs="12" md="4">
-                            <MudPaper Elevation="2" Class="pa-4 d-flex flex-column align-center" Style="border-top: 4px solid #26a69a;">
-                                <MudIcon Icon="@Icons.Material.Filled.Speed" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Success" Class="mb-2" />
-                                <MudText Typo="Typo.h5">@consumptionSummary.OrtalamaDevir.ToString("N0") d/d</MudText>
-                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@Loc["OrtalamaDevir"]</MudText>
-                            </MudPaper>
-                        </MudItem>
+                            @* WinForms mantığı: Litre / 1000 = m³ *@
+                            <TemplateColumn Title="@Loc["SuLitre3"]" Sortable="true">
+                                <CellTemplate>
+                                    @* 1000.0 yerine 1000.0m yazarak decimal formatına çeviriyoruz *@
+                                    @((context.Item.ToplamSuTuketimi_Litre / 1000.0m).ToString("N3"))
+                                </CellTemplate>
+                            </TemplateColumn>
 
-                        <MudItem xs="12" md="4">
-                            <MudCard Elevation="3">
-                                <MudCardHeader>
-                                    <CardHeaderAvatar>
-                                        <MudAvatar Color="MudBlazor.Color.Info" Variant="Variant.Filled"><MudIcon Icon="@Icons.Material.Filled.WaterDrop" /></MudAvatar>
-                                    </CardHeaderAvatar>
-                                    <CardHeaderContent>
-                                        <MudText Typo="Typo.body1">@Loc["SuLitre"]</MudText>
-                                        <MudText Typo="Typo.h5"><b>@consumptionSummary.ToplamSuTuketimi_Litre.ToString("N0")</b> L</MudText>
-                                    </CardHeaderContent>
-                                </MudCardHeader>
-                            </MudCard>
-                        </MudItem>
+                            @* WinForms mantığı: Watt / 1000 = kW *@
+                            <TemplateColumn Title="@Loc["ElektrikKw"]" Sortable="true">
+                                <CellTemplate>
+                                    @* Burada da 1000.0m kullanıyoruz *@
+                                    @((context.Item.ToplamElektrikTuketimi_kW / 1000.0m).ToString("N3"))
+                                </CellTemplate>
+                            </TemplateColumn>
 
-                        <MudItem xs="12" md="4">
-                            <MudCard Elevation="3">
-                                <MudCardHeader>
-                                    <CardHeaderAvatar>
-                                        <MudAvatar Color="MudBlazor.Color.Warning" Variant="Variant.Filled"><MudIcon Icon="@Icons.Material.Filled.Bolt" /></MudAvatar>
-                                    </CardHeaderAvatar>
-                                    <CardHeaderContent>
-                                        <MudText Typo="Typo.body1">@Loc["ElektrikKw"]</MudText>
-                                        <MudText Typo="Typo.h5"><b>@consumptionSummary.ToplamElektrikTuketimi_kW.ToString("N1")</b> kW</MudText>
-                                    </CardHeaderContent>
-                                </MudCardHeader>
-                            </MudCard>
-                        </MudItem>
+                            @* Buhar direkt kg olarak gösteriliyor (N0 formatı) *@
+                            <PropertyColumn Property="x => x.ToplamBuharTuketimi_kg" Title="@Loc["BuharKg"]" Format="N0" />
 
-                        <MudItem xs="12" md="4">
-                            <MudCard Elevation="3">
-                                <MudCardHeader>
-                                    <CardHeaderAvatar>
-                                        <MudAvatar Color="MudBlazor.Color.Secondary" Variant="Variant.Filled"><MudIcon Icon="@Icons.Material.Filled.Cloud" /></MudAvatar>
-                                    </CardHeaderAvatar>
-                                    <CardHeaderContent>
-                                        <MudText Typo="Typo.body1">@Loc["BuharKg"]</MudText>
-                                        <MudText Typo="Typo.h5"><b>@consumptionSummary.ToplamBuharTuketimi_kg.ToString("N1")</b> kg</MudText>
-                                    </CardHeaderContent>
-                                </MudCardHeader>
-                            </MudCard>
-                        </MudItem>
-                    </MudGrid>
+                        </Columns>
+
+                        <PagerContent>
+                            <MudDataGridPager T="ManualConsumptionSummary" />
+                        </PagerContent>
+                    </MudDataGrid>
                 }
-                else if (consumptionSummary == null && selectedManualMachineId != 0)
+                else if (manualConsumptionReports != null)
                 {
                     <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mt-4">@Loc["ManuelKayitYok"]</MudAlert>
                 }
@@ -1023,6 +1004,13 @@
         public decimal MaxLevel { get; set; }
         public decimal AvgLevel { get; set; }
     }
+
+    // --- MANUEL TÜKETİM DEĞİŞKENLERİ ---
+   
+    // Liste yapısına dönüştü (Tekli consumptionSummary yerine)
+    private List<ManualConsumptionSummary>? manualConsumptionReports;
+    // Çoklu Seçim Değişkeni
+    private IEnumerable<int> _selectedManualMachineIds { get; set; } = new HashSet<int>();
     // --- EKSİK OLAN DEĞİŞKENLER (BUNLARI EKLEYİN) ---
 
     // 1. Tarih Aralıkları (DateRange)
@@ -1467,39 +1455,54 @@
             await InvokeAsync(StateHasChanged);
         }
     }
-    private async Task GenerateManualConsumptionReport()
+  private async Task GenerateManualConsumptionReport()
     {
-        // Tarihleri UI'dan filtre nesnesine aktar
         if (_manualDateRange.Start.HasValue) manualFilters.StartTime = _manualDateRange.Start.Value;
         if (_manualDateRange.End.HasValue) manualFilters.EndTime = _manualDateRange.End.Value;
 
-        isLoading = true;
-        consumptionSummary = null;
-        await InvokeAsync(StateHasChanged);
-
-        if (selectedManualMachineId == 0)
+        // Kontrol: Hiç makine seçilmediyse
+        if (_selectedManualMachineIds == null || !_selectedManualMachineIds.Any())
         {
-            await JSRuntime.InvokeVoidAsync("alert", "Manuel tüketim raporu için tek bir makine seçimi zorunludur.");
-            isLoading = false;
+            await JSRuntime.InvokeVoidAsync("alert", "Lütfen en az bir makine seçiniz.");
             return;
         }
 
+        isLoading = true;
+        // Listeyi sıfırla
+        manualConsumptionReports = new List<ManualConsumptionSummary>();
+        await InvokeAsync(StateHasChanged);
+
         try
         {
-            // ... (API çağırma kodu aynı kalacak) ...
-            var effectiveFilters = new ReportFilters
+            // Seçili her makine için döngü (WinForms'taki mantık)
+            foreach (var mId in _selectedManualMachineIds)
             {
-                StartTime = manualFilters.StartTime.Date,
-                EndTime = manualFilters.EndTime.Date.AddDays(1), // Gün sonuna kadar
-                MachineId = selectedManualMachineId
-                // Diğerleri null...
-            };
+                 var effectiveFilters = new ReportFilters
+                 {
+                     StartTime = manualFilters.StartTime.Date,
+                     EndTime = manualFilters.EndTime.Date.AddDays(1),
+                     MachineId = mId
+                 };
 
-            consumptionSummary = await ScadaDataService.GetManualConsumptionReportAsync(effectiveFilters);
+                 // Her makine için API'yi çağır
+                 var summary = await ScadaDataService.GetManualConsumptionReportAsync(effectiveFilters);
+
+                 if (summary != null)
+                 {
+                     // Makine tipini bul (Kurutma makineleri için su tüketimini sıfırla)
+                     var machineInfo = machines?.FirstOrDefault(m => m.Id == mId);
+                     if (machineInfo != null && machineInfo.MachineType == "Kurutma Makinesi")
+                     {
+                         summary.ToplamSuTuketimi_Litre = 0;
+                     }
+
+                     manualConsumptionReports.Add(summary);
+                 }
+            }
         }
         catch (Exception ex)
         {
-            // Hata yönetimi
+             await JSRuntime.InvokeVoidAsync("console.error", "Manuel Tüketim hatası:", ex.ToString());
         }
         finally
         {
@@ -1600,19 +1603,28 @@
     {
         return type switch
         {
-            "TotalWater" => "Su (Litre)",
-            "TotalElectricity" => "Elektrik (kW)",
-            "TotalSteam" => "Buhar (kg)",
-            _ => "Tüketim Değeri"
+            "TotalWater" => "Water (m³)",          // Litre yerine m³
+            "TotalElectricity" => "Electricity (kWh)", // kW yerine kWh (veya kW)
+            "TotalSteam" => "Steam (kg)",
+            _ => "Consumption Value"
         };
     }
+
+    // Yardımcı Metot: Değeri hesaplar ve formatlar
     private object GetConsumptionValue(ProductionReportItem item, string type)
     {
         return type switch
         {
-            "TotalWater" => item.TotalWater.ToString("N0"),
-            "TotalElectricity" => item.TotalElectricity.ToString("N2"),
-            "TotalSteam" => item.TotalSteam.ToString("N2"),
+            // Su: Litre -> m³ (1000'e böl, 3 hane)
+            // Not: Veri tipi decimal ise .0m, double ise .0 kullanın. Genelde decimal olduğu için m ekledik.
+            "TotalWater" => (item.TotalWater / 1000).ToString("N3"),
+
+            // Elektrik: Watt -> kWh (1000'e böl, 3 hane)
+            "TotalElectricity" => (item.TotalElectricity / 1000).ToString("N3"),
+
+            // Buhar: Değişiklik istenmedi, mevcut hali (kg) kalabilir (Örn: N2)
+            "TotalSteam" => item.TotalSteam.ToString("N0"),
+
             _ => "N/A"
         };
     }

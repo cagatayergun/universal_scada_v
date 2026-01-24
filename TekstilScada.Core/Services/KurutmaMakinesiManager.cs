@@ -233,7 +233,7 @@ namespace TekstilScada.Services
                 if (!stepDataResult.IsSuccess) return OperateResult.CreateFailedResult<FullMachineStatus>(stepDataResult);
                 status.AktifAdimDataWords = stepDataResult.Content;
 
-                var manuel_stat = _plcClient.ReadBool(MANUAL_MODE); // k30c
+                var manuel_stat = _plcClient.ReadCoil(MANUAL_MODE); // k30c
                 if (!manuel_stat.IsSuccess) return OperateResult.CreateFailedResult<FullMachineStatus>(manuel_stat);
                 status.manuel_status = manuel_stat.Content;
 
