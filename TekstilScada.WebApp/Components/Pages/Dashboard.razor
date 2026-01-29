@@ -7,11 +7,10 @@
 @using TekstilScada.Core.Localization
 @using Microsoft.Extensions.Localization
 @using System.Globalization
-@using System.Threading
 @inject ScadaDataService ScadaService
+@inject FactoryStateService StateService
 @inject NavigationManager NavManager
 @inject IStringLocalizer<SharedResource> Loc
-
 @implements IDisposable
 
 <div class="dashboard-container">
@@ -19,7 +18,8 @@
     @if (_isLoading)
     {
         <div class="loading-overlay">
-            <p>@Loc["VerilerYukleniyor"]</p>
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">@Loc["VerilerYukleniyor"]</p>
         </div>
     }
     else
@@ -31,11 +31,6 @@
             <KpiCard Title="@Loc["AlarmdakiMakine"]" Value="@AlarmMachines.ToString()" CssClass="kpi-danger" />
             <KpiCard Title="@Loc["Manuelmod"]" Value="@manualMachines.ToString()" CssClass="kpi-manuel" />
             <KpiCard Title="@Loc["BekleyenMakine"]" Value="@IdleMachines.ToString()" CssClass="kpi-warning" />
-
-
-
-          
-
         </div>
 
         <div class="main-content-area">
@@ -44,7 +39,7 @@
                 {
                     <div class="empty-state-message">
                         <p>@Loc["MakineTanimlanmamis"]</p>
-                        <small>Fabrikadan veri bekleniyor...</small>
+                        <small>Veri bekleniyor...</small>
                     </div>
                 }
                 else
@@ -68,15 +63,6 @@
 
             @* Sidebar Charts *@
             <div class="sidebar-charts-column pl-2" style="min-width: 300px;">
-                @*
-                <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
-                    <div id="oeeChartContainer" style="width:100%; height:250px;"></div>
-                    @if (!HourlyOeeData.Any())
-                    {
-                        <MudText Typo="Typo.caption" Align="MudBlazor.Align.Center" Class="d-block text-muted">@Loc["VeriBekleniyor"]</MudText>
-                    }
-                </MudPaper>
-                *@
                 <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
                     <div id="electricChartContainer" style="width:100%; height:250px;"></div>
                 </MudPaper>
@@ -100,12 +86,8 @@
 
     private List<IGrouping<string, FullMachineStatus>> GroupedMachines = new();
     private bool _isLoading = true;
-    private bool _isDisposed = false;
     private bool _shouldRenderCharts = false;
     private CultureInfo _userCulture;
-
-    // Timer Tanımı (Süreli Yenileme İçin)
-    private Timer _refreshTimer;
 
     // Sidebar verileri
     private List<HourlyConsumptionData> HourlyConsumptionData = new();
@@ -119,6 +101,7 @@
     private int IdleMachines = 0;
     private int offlineMachines = 0;
     private int manualMachines = 0;
+
     private readonly List<string> DarkColors = new List<string>
     {
         "#2c3e50", "#2ecc71", "#e74c3c", "#9b59b6", "#3498db",
@@ -133,35 +116,22 @@
         {
             _userCulture = CultureInfo.CurrentUICulture;
 
-            // 1. SignalR Başlat
-            await ScadaService.InitializeAsync();
+            // 1. RAM Cache Servisine Abone Ol (Timer yerine Event)
+            StateService.OnChange += HandleDataUpdate;
 
-            // 2. Statik Makine Listesini Çek (Cache'i doldur)
-            // Bu, "Bağlantı Yok" durumundaki makineleri bile listelememizi sağlar.
-            await ScadaService.GetMachinesAsync();
+            // 2. İlk Verileri Yükle (Eğer RAM'de veri varsa hemen gösterir)
+            HandleDataUpdate();
 
-            // --- DEĞİŞİKLİK: Event yerine Timer kullanıyoruz ---
-            // ScadaService.OnDataUpdated += HandleDataUpdate; // İPTAL
-
-            // Timer Başlat: İlk çalışma 1sn sonra, ardından her 5 saniyede bir.
-            _refreshTimer = new Timer(async _ =>
-            {
-                // UI Thread'inde çalıştır
-                await InvokeAsync(HandleDataUpdate);
-            }, null, 1000, 5000);
-
+            // 3. Grafik Verilerini Yükle
             await LoadSidebarDataAsync();
-            UpdateDashboardData(); // İlk veri ile ekranı doldur
 
             _isLoading = false;
         }
         catch (Exception ex)
         {
-            //($"Dashboard Yükleme Hatası: {ex.Message}");
+            // Hata yönetimi
             _isLoading = false;
         }
-
-        await base.OnInitializedAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -176,7 +146,7 @@
             }
             catch (Exception ex)
             {
-                //($"JS Grafik Hatası: {ex.Message}");
+                // Grafik JS hatası
             }
         }
     }
@@ -189,66 +159,55 @@
         _shouldRenderCharts = true;
     }
 
-    // --- OPTİMİZE EDİLMİŞ VERİ GÜNCELLEME METODU ---
+    // FactoryStateService tarafından tetiklenen metod
+    private void HandleDataUpdate()
+    {
+        // Arka plan servisinden geldiği için UI thread'inde çalıştırıyoruz
+        InvokeAsync(() =>
+        {
+            UpdateDashboardData();
+            StateHasChanged();
+        });
+    }
+
     private void UpdateDashboardData()
     {
-        // 1. Veritabanındaki SABİT makine listesini referans al (Örn: 20 Makine)
-        // Böylece veri gelmese bile tüm makineleri biliriz.
-        var definedMachines = ScadaService.MachineDetailsCache.Values.ToList();
-
+        // --- 1. RAM'den (FactoryStateService) Verileri Çek ---
         var allStatuses = new List<FullMachineStatus>();
 
-        foreach (var defMachine in definedMachines)
+        // RAM'deki (Cache) tüm fabrika paketlerini açıp tek listeye indiriyoruz.
+        // Yetkilendirme filtrelemesi zaten sizin tarafınızda yapıldığı için
+        // buraya cache'teki her şeyi getiriyoruz.
+        foreach (var machineList in StateService.FactoryDataCache.Values)
         {
-            // 2. Bu makine için canlı veri (MachineData) gelmiş mi?
-            if (ScadaService.MachineData.TryGetValue(defMachine.Id, out var liveStatus))
-            {
-                // Veri varsa kullan. Tip bilgisi eksikse tamamla.
-                if (string.IsNullOrEmpty(liveStatus.MakineTipi))
-                {
-                    liveStatus.MakineTipi = defMachine.MachineSubType;
-                }
-                allStatuses.Add(liveStatus);
-            }
-            else
-            {
-                // 3. Veri yoksa, "Bağlantı Yok" durumunda bir kart oluştur.
-                // Bu sayede kartlar eksik gelmez, gri renkte görünür.
-                allStatuses.Add(new FullMachineStatus
-                {
-                    MachineId = defMachine.Id,
-                    MachineName = defMachine.MachineName,
-                    MakineTipi = defMachine.MachineSubType, // Tanımdan al
-                    ConnectionState = ConnectionStatus.Disconnected,
-                    IsInRecipeMode = false,
-                    HasActiveAlarm = false
-                });
-            }
+            allStatuses.AddRange(machineList);
         }
 
-        // --- İstatistikler ---
+        // --- 2. İstatistikler ---
         TotalMachines = allStatuses.Count;
+
         RunningMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.IsInRecipeMode && !s.HasActiveAlarm);
+
         AlarmMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.HasActiveAlarm);
+
         IdleMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && !s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
-       
+
         offlineMachines = allStatuses.Count(s => s.ConnectionState != ConnectionStatus.Connected);
-       
+
         manualMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
-     
+
         if (TotalMachines == 0)
         {
             GroupedMachines = new List<IGrouping<string, FullMachineStatus>>();
             return;
         }
 
-        // --- Sıralama ---
+        // --- 3. Sıralama ve Gruplama ---
         var sortedMachines = allStatuses
             .OrderByDescending(m => m.IsInRecipeMode)
             .ThenBy(m => m.HasActiveAlarm)
             .ThenBy(m => m.MachineName);
 
-        // --- Gruplama ---
         GroupedMachines = sortedMachines
              .GroupBy(m =>
              {
@@ -260,7 +219,7 @@
              .ThenBy(g => g.Key)
              .ToList();
 
-        // --- Renk Atama ---
+        // --- 4. Renk Atama ---
         if (GroupColors.Count != GroupedMachines.Count)
         {
             _colorIndex = 0;
@@ -270,34 +229,6 @@
                 GroupColors.TryAdd(group.Key, DarkColors[_colorIndex % DarkColors.Count]);
                 _colorIndex++;
             }
-        }
-    }
-
-    // Timer tarafından çağrılan metod
-    private void HandleDataUpdate()
-    {
-        try
-        {
-            if (_isDisposed) return;
-
-            if (_userCulture != null)
-            {
-                CultureInfo.CurrentCulture = _userCulture;
-                CultureInfo.CurrentUICulture = _userCulture;
-            }
-
-            // Verileri işle
-            UpdateDashboardData();
-
-            // Grafikleri yenile (İsterseniz burayı da bir sayaça bağlayıp daha seyrek yapabilirsiniz)
-            _shouldRenderCharts = true;
-
-            // Arayüzü çiz
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            //($"Veri Güncelleme Hatası: {ex.Message}");
         }
     }
 
@@ -313,15 +244,7 @@
 
     public void Dispose()
     {
-        _isDisposed = true;
-
-        // Timer'ı temizle
-        _refreshTimer?.Dispose();
-
-        // Event aboneliği varsa kaldır (Güvenlik için)
-        if (ScadaService != null)
-        {
-            // ScadaService.OnDataUpdated -= HandleDataUpdate;
-        }
+        // Sayfadan çıkınca aboneliği iptal et (Hafıza sızıntısını önler)
+        StateService.OnChange -= HandleDataUpdate;
     }
 }

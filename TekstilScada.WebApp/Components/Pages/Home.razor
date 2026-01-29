@@ -8,6 +8,7 @@
 @using System.Threading
 @using System.Globalization
 @inject ScadaDataService ScadaDataService
+@inject FactoryStateService StateService
 @inject NavigationManager NavManager
 @inject IStringLocalizer<SharedResource> Loc
 @implements IDisposable
@@ -21,7 +22,6 @@
 
 <h1>@Loc["GenelMakineDurumu"]</h1>
 
-@* --- DEĞİŞİKLİK 1: Sabit Listeyi Kontrol Et --- *@
 @if (AllMachines.Count == 0)
 {
     <div class="d-flex justify-center align-center" style="height:200px">
@@ -32,7 +32,6 @@
 else
 {
     <div class="machine-grid">
-        @* --- DEĞİŞİKLİK 2: Local Listeyi Döngüye Al --- *@
         @foreach (var machineStatus in AllMachines.OrderBy(m => m.MachineId))
         {
             <MachineCard MachineStatus="machineStatus"
@@ -47,10 +46,8 @@ else
     private bool showDetailModal = false;
     private int selectedMachineId = 0;
 
-    // Timer ve Veri Listesi
-    private Timer _refreshTimer;
+    // Veri Listesi
     private List<FullMachineStatus> AllMachines = new();
-    private bool _isDisposed = false;
     private CultureInfo _userCulture;
 
     protected override async Task OnInitializedAsync()
@@ -59,23 +56,11 @@ else
         {
             _userCulture = CultureInfo.CurrentUICulture;
 
-            // 1. Servisi Başlat
-            await ScadaDataService.InitializeAsync();
+            // 1. Servise Abone Ol (Timer yerine Event)
+            StateService.OnChange += HandleDataUpdate;
 
-            // 2. Statik Listeyi Çek (Eksik makineleri tamamlamak için şart)
-            await ScadaDataService.GetMachinesAsync();
-
-            // --- ESKİ YÖNTEMİ İPTAL ET ---
-            // ScadaDataService.OnDataUpdated += OnDataUpdatedHandler;
-
-            // --- YENİ YÖNTEM: Timer Başlat (5 sn) ---
-            _refreshTimer = new Timer(async _ =>
-            {
-                await InvokeAsync(OnTimerTick);
-            }, null, 1000, 5000);
-
-            // İlk açılışta verileri hemen doldur
-            UpdateMachineData();
+            // 2. İlk Verileri Çek
+            HandleDataUpdate();
         }
         catch (Exception ex)
         {
@@ -83,63 +68,34 @@ else
         }
     }
 
-    // --- YENİ VERİ BİRLEŞTİRME MANTIĞI ---
+    // FactoryStateService tetiklediğinde çalışır
+    private void HandleDataUpdate()
+    {
+        InvokeAsync(() =>
+        {
+            UpdateMachineData();
+            StateHasChanged();
+        });
+    }
+
     private void UpdateMachineData()
     {
-        // 1. Veritabanındaki tüm makineleri al
-        var definedMachines = ScadaDataService.MachineDetailsCache.Values.ToList();
+        // RAM'deki (Cache) tüm fabrika paketlerini tek bir listeye indiriyoruz.
         var tempList = new List<FullMachineStatus>();
 
-        foreach (var defMachine in definedMachines)
+        foreach (var machineList in StateService.FactoryDataCache.Values)
         {
-            // 2. Canlı verisi var mı kontrol et
-            if (ScadaDataService.MachineData.TryGetValue(defMachine.Id, out var liveStatus))
-            {
-                // Varsa kullan (Tip bilgisi eksikse tamamla)
-                if (string.IsNullOrEmpty(liveStatus.MakineTipi))
-                    liveStatus.MakineTipi = defMachine.MachineSubType;
-
-                tempList.Add(liveStatus);
-            }
-            else
-            {
-                // 3. Yoksa "Offline" kart oluştur
-                tempList.Add(new FullMachineStatus
-                {
-                    MachineId = defMachine.Id,
-                    MachineName = defMachine.MachineName,
-                    MakineTipi = defMachine.MachineSubType,
-                    ConnectionState = ConnectionStatus.Disconnected,
-                    IsInRecipeMode = false,
-                    HasActiveAlarm = false
-                });
-            }
+            tempList.AddRange(machineList);
         }
 
         // Listeyi güncelle
         AllMachines = tempList;
     }
 
-    private void OnTimerTick()
-    {
-        if (_isDisposed) return;
-
-        // Dil ayarını koru (Thread değiştiği için)
-        if (_userCulture != null)
-        {
-            CultureInfo.CurrentCulture = _userCulture;
-            CultureInfo.CurrentUICulture = _userCulture;
-        }
-
-        UpdateMachineData();
-        StateHasChanged();
-    }
-
     private void HandleInfoClickAction(int machineId)
     {
         selectedMachineId = machineId;
         showDetailModal = true;
-        // Modal açıldığında anlık zorla yenileme yapılabilir
         StateHasChanged();
     }
 
@@ -157,13 +113,7 @@ else
 
     public void Dispose()
     {
-        _isDisposed = true;
-        _refreshTimer?.Dispose();
-
-        // Eski koddan kalan event varsa çıkar
-        if (ScadaDataService != null)
-        {
-            // ScadaDataService.OnDataUpdated -= OnDataUpdatedHandler;
-        }
+        // Sayfadan çıkıldığında aboneliği iptal et
+        StateService.OnChange -= HandleDataUpdate;
     }
 }

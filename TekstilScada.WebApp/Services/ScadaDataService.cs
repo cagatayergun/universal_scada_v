@@ -1622,16 +1622,94 @@ namespace TekstilScada.WebApp.Services
                 //("Hub bağlantısı yok, log gönderilemedi.");
             }
         }
+        // 1. Tüm Fabrikaları Getir (Cache servisi bunu kullanır)
+        public async Task<List<CentralFactoryDto>> GetAllFactoriesAsync()
+        {
+            // Mevcut GetMyFactoriesAsync mantığını kullanabiliriz.
+            // Arka plan servisi admin olarak giriş yaptığı için tüm listeyi görecektir.
+            return await GetMyFactoriesAsync();
+        }
+
+        // 2. Fabrika Bazlı Canlı Durum Çekme
+        public async Task<List<FullMachineStatus>> GetLiveMachineStatusByFactoryId(int factoryId)
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+                return new List<FullMachineStatus>();
+
+            try
+            {
+                // SignalR üzerinden bu fabrikaya ait makine durumlarını istiyoruz.
+                // NOT: Hub tarafında (ScadaHub.cs) bu isimde bir metot yoksa, 
+                // Hub'a da: public List<FullMachineStatus> GetLiveMachineStatusByFactoryId(int factoryId) {...} 
+                // metodunu eklemeniz veya mevcut bir metodu kullanmanız gerekir.
+                return await _hubConnection.InvokeAsync<List<FullMachineStatus>>("GetLiveMachineStatusByFactoryId", factoryId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ScadaDataService] Live Status Hatası (Fabrika {factoryId}): {ex.Message}");
+                return new List<FullMachineStatus>();
+            }
+        }
+
+        // 3. Arka Plan Servisi İçin Başlatma (LocalStorage OLMADAN)
+        // Blazored.LocalStorage tarayıcı tabanlıdır, arka planda (Windows Service/Server) çalışmaz.
+        // Bu yüzden arka plan servisi için manuel token alma işlemi yapıyoruz.
+        public async Task InitializeForBackgroundServiceAsync()
+        {
+            try
+            {
+                Console.WriteLine("[ScadaDataService] Arka plan servisi başlatılıyor...");
+
+                // A. Token Al (Admin girişi yaparak)
+                await LoginAndGetTokenAsync();
+
+                // B. Token'ı Header'a ekle
+                if (!string.IsNullOrEmpty(_accessToken))
+                {
+                    _httpClient.DefaultRequestHeaders.Authorization =
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
+                }
+
+                // C. SignalR Bağlantısını Kur
+                if (_hubConnection == null || _hubConnection.State == HubConnectionState.Disconnected)
+                {
+                    var hubUrl = new Uri(_httpClient.BaseAddress!, "/scadaHub");
+
+                    _hubConnection = new HubConnectionBuilder()
+                        .WithUrl(hubUrl, options =>
+                        {
+                            options.AccessTokenProvider = () => Task.FromResult(_accessToken);
+                            // Sertifika hatalarını yoksay (Geliştirme ortamı için)
+                            options.HttpMessageHandlerFactory = (handler) =>
+                            {
+                                if (handler is HttpClientHandler clientHandler)
+                                    clientHandler.ServerCertificateCustomValidationCallback = (s, c, ch, e) => true;
+                                return handler;
+                            };
+                            options.WebSocketConfiguration = w =>
+                                w.RemoteCertificateValidationCallback = (s, c, ch, e) => true;
+                        })
+                        .WithAutomaticReconnect() // Otomatik yeniden bağlanma
+                        .Build();
+
+                    await _hubConnection.StartAsync();
+                    Console.WriteLine("[ScadaDataService] Arka plan SignalR bağlantısı kuruldu.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ScadaDataService] Background Init Hatası: {ex.Message}");
+            }
+        }
 
 
 
-        
 
 
 
-     
 
-        
+
+
 
     }
 

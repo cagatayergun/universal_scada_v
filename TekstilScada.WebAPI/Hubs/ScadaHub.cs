@@ -169,7 +169,67 @@ namespace TekstilScada.WebAPI.Hubs
 
             Console.WriteLine($"[Hub] Gateway Onaylandı: {factory.FactoryName} (ID: {factory.Id})");
         }
+        // --- 2. YENİ EKLENEN METOT (Arka Plan Servisi İçin) ---
+        public async Task<List<FullMachineStatus>> GetLiveMachineStatusByFactoryId(int factoryId)
+        {
+            // Bu Fabrika ID'sine ait bağlı Gateway'i bul
+            string? targetConnectionId = _gatewayConnections.FirstOrDefault(x => x.Value == factoryId).Key;
 
+            if (string.IsNullOrEmpty(targetConnectionId))
+            {
+                // Gateway bağlı değil, boş dön
+                return new List<FullMachineStatus>();
+            }
+
+            // Gateway'e istek at ve cevabı bekle
+            // NOT: Gateway uygulamanızda "GetAllMachineStatuses" metodunun tanımlı olması gerekir.
+            var result = await SendRequestToGateway<List<FullMachineStatus>>(targetConnectionId, "GetAllMachineStatuses");
+
+            return result ?? new List<FullMachineStatus>();
+        }
+
+        // --- 3. MERKEZİ İSTEK GÖNDERME YARDIMCISI ---
+        private async Task<T?> SendRequestToGateway<T>(string targetConnectionId, string targetMethod, params object[] args)
+        {
+            var requestId = Guid.NewGuid().ToString();
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)); // 10sn Timeout
+            cts.Token.Register(() => {
+                if (_pendingRequests.TryRemove(requestId, out var pendingTcs))
+                    pendingTcs.TrySetException(new TimeoutException("Gateway cevap vermedi."));
+            });
+
+            _pendingRequests[requestId] = tcs;
+
+            try
+            {
+                // Gateway'e gönder
+                await Clients.Client(targetConnectionId).SendAsync("HandleRequest", requestId, targetMethod, args);
+
+                // Cevabı bekle
+                var result = await tcs.Task;
+                if (result == null) return default;
+
+                // JSON Parse İşlemleri (Sizin mevcut kodunuzdaki gibi)
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, ReferenceHandler = ReferenceHandler.IgnoreCycles, NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals };
+
+                string jsonString = "";
+                if (result is string s) jsonString = s;
+                else if (result is JsonElement e) jsonString = e.GetRawText();
+                else return (T)result;
+
+                return JsonSerializer.Deserialize<T>(jsonString, options);
+            }
+            catch
+            {
+                return default;
+            }
+            finally
+            {
+                _pendingRequests.TryRemove(requestId, out _);
+            }
+        }
         // --- 2. WEB KULLANICI ABONELİĞİ (BLAZOR) ---
         public string GetGatewayIpForMachine(int machineId)
         {

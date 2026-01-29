@@ -1,4 +1,3 @@
-// Dosya: TekstilScada.WebApp/Program.cs
 using MudBlazor.Services;
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -9,15 +8,15 @@ using Microsoft.AspNetCore.Localization;
 using System.Globalization;
 using TekstilScada.WebApp.Components;
 using TekstilScada.WebApp.Services;
-// Core projesinde Localization varsa:
-// using TekstilScada.Core.Localization;
+// Core namespace'inizin doðru olduðundan emin olun
+using TekstilScada.Core.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // --- 1. Temel Servisler ---
 builder.Services.AddMudServices();
 builder.Services.AddLocalization();
-builder.Services.AddControllers(); // Controller desteði
+builder.Services.AddControllers();
 
 // --- 2. Authentication (Kimlik Doðrulama) Servisi ---
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -38,13 +37,26 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         };
     });
 
-// --- 3. Blazor Servisleri ---
+// --- 3. Blazor Servisleri ve SignalR Ayarlarý ---
+// DEÐÝÞÝKLÝK 1: HubOptions eklendi (Kopma toleransý için)
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
-    .AddCircuitOptions(options => { options.DetailedErrors = true; });
+    .AddCircuitOptions(options => { options.DetailedErrors = true; })
+    .AddHubOptions(options =>
+    {
+        options.ClientTimeoutInterval = TimeSpan.FromSeconds(60); // 60 sn bekle
+        options.HandshakeTimeout = TimeSpan.FromSeconds(30);
+    });
+
+builder.Services.AddServerSideBlazor()
+       .AddHubOptions(options =>
+       {
+           options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
+           options.HandshakeTimeout = TimeSpan.FromSeconds(30);
+       });
 
 builder.Services.AddBlazoredLocalStorage();
-builder.Services.AddAuthorizationCore(); // [Authorize] için gerekli
+builder.Services.AddAuthorizationCore();
 
 // --- 4. Custom Auth Provider ---
 builder.Services.AddScoped<CustomAuthStateProvider>(sp =>
@@ -75,20 +87,29 @@ builder.Services.AddHttpClient("WebApiClient", client =>
 });
 
 // --- 6. Scada & Diðer Servisler ---
+
+// Mevcut ScadaDataService Kaydý
 builder.Services.AddScoped<ScadaDataService>(sp =>
 {
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
     var httpClient = httpClientFactory.CreateClient("WebApiClient");
-
-    // Eksik olan parametreyi (localStorage) burada servisten çaðýrýp gönderiyoruz
     var localStorage = sp.GetRequiredService<ILocalStorageService>();
-
     return new ScadaDataService(httpClient, localStorage);
 });
 
-// *** YENÝ EKLENEN SERVÝS (Singleton olmalý ki herkes ayný listeyi görsün) ***
-builder.Services.AddSingleton<VncSessionService>();
+// DEÐÝÞÝKLÝK 2: Interface Eþleþtirmesi (Arka plan servisi IScadaDataService arýyor olabilir)
+// Eðer IScadaDataService interface'iniz yoksa FactoryStateService.cs içindeki IScadaDataService yerine direkt ScadaDataService yazýnýz.
+// Varsa bu satýrý ekleyin:
 
+
+
+// DEÐÝÞÝKLÝK 3: Factory-Based Caching Servisi
+// Hem Singleton (Sayfalar okusun diye) hem HostedService (Arka planda çalýþsýn diye)
+builder.Services.AddSingleton<FactoryStateService>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<FactoryStateService>());
+
+
+builder.Services.AddSingleton<VncSessionService>();
 builder.Services.AddScoped<CircuitHandler, UnhandledCircuitExceptionHandler>();
 builder.Services.AddLogging();
 
@@ -127,13 +148,8 @@ app.UseAntiforgery();
 // 6. Endpoint Tanýmlarý
 app.MapControllers();
 
-// Blazor Endpoint'i
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
-
-// --- Veri Baþlatma ---
-//var scadaDataService = app.Services.GetRequiredService<ScadaDataService>();
-//await scadaDataService.InitializeAsync();
 
 // --- Global Hata Yakalama ---
 var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();

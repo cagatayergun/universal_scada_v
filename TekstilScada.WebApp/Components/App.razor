@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html>
 @using System.Globalization
-@using TekstilScada.Core.Localization 
+@using TekstilScada.Core.Localization
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<SharedResource> Loc
 
@@ -15,17 +15,34 @@
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="TekstilScada.WebApp.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    
+
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
-    
+
     <HeadOutlet @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
 </head>
 
 <body>
     <Routes @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
-    
-    <script src="_framework/blazor.web.js"></script>
+
+    @* --- DEĞİŞİKLİK: Blazor Başlatma Ayarı (Gri Ekranı Engelleme) --- *@
+    <script src="_framework/blazor.web.js" autostart="false"></script>
+    <script>
+        Blazor.start({
+            reconnectionHandler: {
+                onConnectionDown: (options, error) => {
+                    console.warn("Bağlantı zayıf, arka planda tekrar deneniyor...", error);
+                    // Burası boş bırakıldığı için veya custom bir işlem yapılmadığı sürece
+                    // o meşhur "Attempting to reconnect..." gri ekranı çıkmaz.
+                },
+                onConnectionUp: () => {
+                    console.log("Bağlantı tekrar sağlandı.");
+                }
+            }
+        });
+    </script>
+    @* --------------------------------------------------------------- *@
+
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="_content/Blazor-ApexCharts/js/apex-charts.min.js"></script>
     <script src="_content/Blazor-ApexCharts/js/blazor-apex-charts.js"></script>
@@ -53,13 +70,13 @@
                 font: { size: isMobile ? 9 : 11, color: '#b0b0b0' },
                 margin: { t: 30, b: isMobile ? 25 : 40, l: isMobile ? 30 : 40, r: 10 },
                 autosize: true,
-                xaxis: { 
+                xaxis: {
                     tickcolor: '#9e9e9e', gridcolor: '#333', gridwidth: 0.5,
-                    tickangle: isMobile ? 0 : -45, automargin: true 
+                    tickangle: isMobile ? 0 : -45, automargin: true
                 },
-                yaxis: { 
+                yaxis: {
                     title: { text: yTitle }, tickcolor: '#9e9e9e',
-                    gridcolor: '#333', gridwidth: 0.5, zeroline: false, automargin: true 
+                    gridcolor: '#333', gridwidth: 0.5, zeroline: false, automargin: true
                 },
                 showlegend: false
             };
@@ -150,7 +167,7 @@
                  x: steps, y: chartData.map(d => d.temperature),
                  mode: 'lines+markers', type: 'scatter', name: window.appLabels.temperature, line: { color: '#e74c3c', width: 2 }
              };
-             
+
              const layout = getCommonLayout('Adım Sıcaklık Trendi', `${window.appLabels.temperature} (°C)`, window.innerWidth <= 768);
              layout.xaxis.tickangle = 45;
              Plotly.newPlot(elementId, [trace], layout, { responsive: true });
@@ -176,7 +193,7 @@
             if (!document.getElementById(chartId)) return;
             if (!dataPoints) dataPoints = [];
             const x = dataPoints.map(p => p.timestamp);
-            
+
             // Çevirileri 'window.appLabels' üzerinden kullanıyoruz
             const t1 = { x:x, y:dataPoints.map(d=>d.temperature), name: window.appLabels.temperature, type:'scatter', line:{color:'#e74c3c'}, yaxis:'y1' };
             const t2 = { x:x, y:dataPoints.map(d=>d.rpm), name: window.appLabels.rpm, type:'scatter', line:{color:'#3498db'}, yaxis:'y2' };
@@ -203,91 +220,91 @@
         };
     </script>
     <script>
-    window.startVnc = async (elementId, url, password) => {
-        
-        const { default: RFB } = await import("https://cdn.jsdelivr.net/npm/@@novnc/novnc@@1.4.0/core/rfb.js");
-        
-        const container = document.getElementById(elementId);
-        if(container.rfb) {
-           container.rfb.disconnect();
-        }
+        window.startVnc = async (elementId, url, password) => {
 
-        const rfb = new RFB(container, url, {
-            credentials: { password: password }
-        });
+            const { default: RFB } = await import("https://cdn.jsdelivr.net/npm/@@novnc/novnc@@1.4.0/core/rfb.js");
 
-        rfb.scaleViewport = true;
-        rfb.resizeSession = true;
-        
-        container.rfb = rfb;
-    };
+            const container = document.getElementById(elementId);
+            if(container.rfb) {
+               container.rfb.disconnect();
+            }
 
-    window.stopVnc = (elementId) => {
-        const container = document.getElementById(elementId);
-        if (container && container.rfb) {
-            container.rfb.disconnect();
-            delete container.rfb;
-        }
-    };
-        window.vncUtils = {
-            calculateCoordinates: function (elementId, clientX, clientY) {
-                var img = document.getElementById(elementId);
-                if (!img) return null;
+            const rfb = new RFB(container, url, {
+                credentials: { password: password }
+            });
 
-                // Resmin ekrandaki konumu ve boyutu
-                var rect = img.getBoundingClientRect();
+            rfb.scaleViewport = true;
+            rfb.resizeSession = true;
 
-                // Tıklanan noktanın elementin sol-üst köşesine göre konumu
-                var clickX = clientX - rect.left;
-                var clickY = clientY - rect.top;
+            container.rfb = rfb;
+        };
 
-                // Resmin orijinal (doğal) boyutları (PLC Ekran Çözünürlüğü)
-                var naturalW = img.naturalWidth;
-                var naturalH = img.naturalHeight;
-
-                // Resmin ekranda kapladığı alan (padding dahil, object-fit alanı)
-                var displayedW = rect.width;
-                var displayedH = rect.height;
-
-                if (naturalW === 0 || naturalH === 0) return null;
-
-                var imageRatio = naturalW / naturalH;
-                var containerRatio = displayedW / displayedH;
-
-                var renderW, renderH, offsetX, offsetY;
-
-                // Object-fit: contain hesaplaması
-                if (containerRatio > imageRatio) {
-                    // Resim yüksekliğe göre sığdırılmış (Yanlarda boşluk var)
-                    renderH = displayedH;
-                    renderW = renderH * imageRatio;
-                    offsetX = (displayedW - renderW) / 2;
-                    offsetY = 0;
-                } else {
-                    // Resim genişliğe göre sığdırılmış (Alt/Üstte boşluk var)
-                    renderW = displayedW;
-                    renderH = renderW / imageRatio;
-                    offsetX = 0;
-                    offsetY = (displayedH - renderH) / 2;
-                }
-
-                // Tıklama resmin içinde mi (siyah bantlarda mı) kontrolü
-                if (clickX < offsetX || clickX > offsetX + renderW ||
-                    clickY < offsetY || clickY > offsetY + renderH) {
-                    return null; // Boşluğa tıklandı, işlem yapma
-                }
-
-                // Koordinatları resim başlangıcına göre düzelt
-                var relativeX = clickX - offsetX;
-                var relativeY = clickY - offsetY;
-
-                // Gerçek çözünürlüğe ölçekle
-                var finalX = Math.floor(relativeX * (naturalW / renderW));
-                var finalY = Math.floor(relativeY * (naturalH / renderH));
-
-                return { x: finalX, y: finalY };
+        window.stopVnc = (elementId) => {
+            const container = document.getElementById(elementId);
+            if (container && container.rfb) {
+                container.rfb.disconnect();
+                delete container.rfb;
             }
         };
-</script>
+            window.vncUtils = {
+                calculateCoordinates: function (elementId, clientX, clientY) {
+                    var img = document.getElementById(elementId);
+                    if (!img) return null;
+
+                    // Resmin ekrandaki konumu ve boyutu
+                    var rect = img.getBoundingClientRect();
+
+                    // Tıklanan noktanın elementin sol-üst köşesine göre konumu
+                    var clickX = clientX - rect.left;
+                    var clickY = clientY - rect.top;
+
+                    // Resmin orijinal (doğal) boyutları (PLC Ekran Çözünürlüğü)
+                    var naturalW = img.naturalWidth;
+                    var naturalH = img.naturalHeight;
+
+                    // Resmin ekranda kapladığı alan (padding dahil, object-fit alanı)
+                    var displayedW = rect.width;
+                    var displayedH = rect.height;
+
+                    if (naturalW === 0 || naturalH === 0) return null;
+
+                    var imageRatio = naturalW / naturalH;
+                    var containerRatio = displayedW / displayedH;
+
+                    var renderW, renderH, offsetX, offsetY;
+
+                    // Object-fit: contain hesaplaması
+                    if (containerRatio > imageRatio) {
+                        // Resim yüksekliğe göre sığdırılmış (Yanlarda boşluk var)
+                        renderH = displayedH;
+                        renderW = renderH * imageRatio;
+                        offsetX = (displayedW - renderW) / 2;
+                        offsetY = 0;
+                    } else {
+                        // Resim genişliğe göre sığdırılmış (Alt/Üstte boşluk var)
+                        renderW = displayedW;
+                        renderH = renderW / imageRatio;
+                        offsetX = 0;
+                        offsetY = (displayedH - renderH) / 2;
+                    }
+
+                    // Tıklama resmin içinde mi (siyah bantlarda mı) kontrolü
+                    if (clickX < offsetX || clickX > offsetX + renderW ||
+                        clickY < offsetY || clickY > offsetY + renderH) {
+                        return null; // Boşluğa tıklandı, işlem yapma
+                    }
+
+                    // Koordinatları resim başlangıcına göre düzelt
+                    var relativeX = clickX - offsetX;
+                    var relativeY = clickY - offsetY;
+
+                    // Gerçek çözünürlüğe ölçekle
+                    var finalX = Math.floor(relativeX * (naturalW / renderW));
+                    var finalY = Math.floor(relativeY * (naturalH / renderH));
+
+                    return { x: finalX, y: finalY };
+                }
+            };
+    </script>
 </body>
 </html>
