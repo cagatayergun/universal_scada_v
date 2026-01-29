@@ -25,6 +25,7 @@ namespace TekstilScada.UI.Views
         {
             splitContainer1 = new SplitContainer();
             lstRecipes = new ListBox();
+            lstRecipeHistory = new ListBox(); // YENİ: Başlatma
             panel1 = new Panel();
             yenile = new Button();
             btnDeleteRecipe = new Button();
@@ -52,8 +53,8 @@ namespace TekstilScada.UI.Views
             this.radioSortDate = new System.Windows.Forms.RadioButton();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
-            this.pnlSearch.SuspendLayout(); // YENİ
-            this.pnlSort.SuspendLayout();   // YENİ
+            this.pnlSearch.SuspendLayout();
+            this.pnlSort.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
             splitContainer1.SuspendLayout();
             panel1.SuspendLayout();
@@ -71,13 +72,14 @@ namespace TekstilScada.UI.Views
             // splitContainer1.Panel1
             // 
             splitContainer1.Panel1.Controls.Add(lstRecipes);
+            // YENİ: Geçmiş listesini ekliyoruz (lstRecipes'in altında yer alacak şekilde Docking ayarlayacağız)
+            splitContainer1.Panel1.Controls.Add(lstRecipeHistory);
+
             splitContainer1.Panel1.Controls.Add(panel1);
-            this.splitContainer1.Panel1.Controls.Add(this.lstRecipes); // Fill (En altta kalacak, diğerleri üstüne binecek)
             this.splitContainer1.Panel1.Controls.Add(this.pnlSort);    // Top (Aramanın altında)
             this.splitContainer1.Panel1.Controls.Add(this.pnlSearch);  // Top (Başlığın altında)
             this.splitContainer1.Panel1.Controls.Add(this.label1);     // Top (En üstte)
-            this.splitContainer1.Panel1.Controls.Add(this.panel1);     // Bottom (Butonlar)
-            splitContainer1.Panel1.Controls.Add(label1);
+
             // 
             // splitContainer1.Panel2
             // 
@@ -86,19 +88,33 @@ namespace TekstilScada.UI.Views
             splitContainer1.Size = new Size(939, 448);
             splitContainer1.SplitterDistance = 169;
             splitContainer1.TabIndex = 0;
+
             // 
             // lstRecipes
             // 
             this.lstRecipes.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lstRecipes.BringToFront(); // En öne getir ki diğer panellerin altında kalmasın (Fill mantığı)
+            this.lstRecipes.BringToFront();
             lstRecipes.FormattingEnabled = true;
             lstRecipes.ItemHeight = 15;
-            lstRecipes.Location = new Point(0, 22);
+            lstRecipes.Location = new Point(0, 102); // Konumu diğer panellerden sonra gelecek şekilde
             lstRecipes.Margin = new Padding(3, 2, 3, 2);
             lstRecipes.Name = "lstRecipes";
             lstRecipes.SelectionMode = SelectionMode.MultiExtended;
-            lstRecipes.Size = new Size(169, 388);
+            lstRecipes.Size = new Size(169, 208); // Yüksekliği paylaştırıyoruz
             lstRecipes.TabIndex = 1;
+
+            // 
+            // lstRecipeHistory (YENİ LİSTE KUTUSU)
+            // 
+            this.lstRecipeHistory.Dock = System.Windows.Forms.DockStyle.Bottom; // En alta, buton panelinin üstüne
+            this.lstRecipeHistory.FormattingEnabled = true;
+            this.lstRecipeHistory.ItemHeight = 12; // Biraz daha küçük yazı tipi için
+            this.lstRecipeHistory.Location = new Point(0, 310);
+            this.lstRecipeHistory.Name = "lstRecipeHistory";
+            this.lstRecipeHistory.Size = new Size(169, 100); // 100px yükseklik (yaklaşık 7-8 satır)
+            this.lstRecipeHistory.TabIndex = 5;
+            this.lstRecipeHistory.BackColor = System.Drawing.Color.WhiteSmoke; // Ayırt edilmesi için hafif gri
+
             // 
             // panel1
             // 
@@ -124,7 +140,7 @@ namespace TekstilScada.UI.Views
             yenile.UseVisualStyleBackColor = true;
             yenile.Click += yenile_Click;
             // 
-            // pnlSearch (YENİ - Arama Paneli)
+            // pnlSearch
             // 
             this.pnlSearch.Controls.Add(this.txtSearchRecipe);
             this.pnlSearch.Controls.Add(this.lblSearch);
@@ -134,7 +150,6 @@ namespace TekstilScada.UI.Views
             this.pnlSearch.Padding = new System.Windows.Forms.Padding(5);
             this.pnlSearch.Size = new System.Drawing.Size(169, 50);
             this.pnlSearch.TabIndex = 3;
-
             // 
             // lblSearch
             // 
@@ -145,7 +160,6 @@ namespace TekstilScada.UI.Views
             this.lblSearch.Size = new System.Drawing.Size(45, 15);
             this.lblSearch.TabIndex = 0;
             this.lblSearch.Text = "Search:";
-
             // 
             // txtSearchRecipe
             // 
@@ -155,9 +169,8 @@ namespace TekstilScada.UI.Views
             this.txtSearchRecipe.Size = new System.Drawing.Size(159, 23);
             this.txtSearchRecipe.TabIndex = 1;
             this.txtSearchRecipe.TextChanged += new System.EventHandler(this.txtSearchRecipe_TextChanged);
-
             // 
-            // pnlSort (YENİ - Sıralama Paneli)
+            // pnlSort
             // 
             this.pnlSort.Controls.Add(this.radioSortDate);
             this.pnlSort.Controls.Add(this.radioSortName);
@@ -166,12 +179,11 @@ namespace TekstilScada.UI.Views
             this.pnlSort.Name = "pnlSort";
             this.pnlSort.Size = new System.Drawing.Size(169, 30);
             this.pnlSort.TabIndex = 4;
-
             // 
             // radioSortName
             // 
             this.radioSortName.AutoSize = true;
-            this.radioSortName.Checked = true; // Varsayılan: İsim
+            this.radioSortName.Checked = true;
             this.radioSortName.Location = new System.Drawing.Point(5, 5);
             this.radioSortName.Name = "radioSortName";
             this.radioSortName.Size = new System.Drawing.Size(53, 19);
@@ -180,7 +192,6 @@ namespace TekstilScada.UI.Views
             this.radioSortName.Text = "A-Z";
             this.radioSortName.UseVisualStyleBackColor = true;
             this.radioSortName.CheckedChanged += new System.EventHandler(this.SortOption_CheckedChanged);
-
             // 
             // radioSortDate
             // 
@@ -189,7 +200,7 @@ namespace TekstilScada.UI.Views
             this.radioSortDate.Name = "radioSortDate";
             this.radioSortDate.Size = new System.Drawing.Size(73, 19);
             this.radioSortDate.TabIndex = 1;
-            this.radioSortDate.Text = "Newest"; // Veya "Date"
+            this.radioSortDate.Text = "Newest";
             this.radioSortDate.UseVisualStyleBackColor = true;
             this.radioSortDate.CheckedChanged += new System.EventHandler(this.SortOption_CheckedChanged);
             // 
@@ -406,6 +417,7 @@ namespace TekstilScada.UI.Views
         private System.Windows.Forms.SplitContainer splitContainer1;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.ListBox lstRecipes;
+        private System.Windows.Forms.ListBox lstRecipeHistory; // YENİ EKLENEN
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.Button btnDeleteRecipe;
         private System.Windows.Forms.Button btnNewRecipe;

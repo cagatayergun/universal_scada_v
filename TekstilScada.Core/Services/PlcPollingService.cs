@@ -20,18 +20,20 @@ namespace TekstilScada.Services
         public event Action<int, FullMachineStatus> OnMachineDataRefreshed;
         public event Action<int, FullMachineStatus> OnMachineConnectionStateChanged;
         public event Action<int, FullMachineStatus> OnActiveAlarmStateChanged;
+
         // --- DATA STRUCTURES & CACHE ---
-        // Sınıfın en başına, diğer Dictionary tanımlarının olduğu yere:
         private ConcurrentDictionary<int, DateTime> _batchStartDebounce = new ConcurrentDictionary<int, DateTime>();
         private ConcurrentDictionary<int, DateTime> _batchEndDebounce = new ConcurrentDictionary<int, DateTime>();
-        // Mevcut: Alarmın BAŞLANGIÇ zamanını tutar (Hangi alarm ne zaman başladı?)
+
+        // Alarmın BAŞLANGIÇ zamanını tutar
         private ConcurrentDictionary<int, ConcurrentDictionary<int, DateTime>> _activeAlarmsTracker;
 
-        // YENİ: Alarmın EN SON GÖRÜLDÜĞÜ zamanı tutar (45 sn kuralı için)
+        // Alarmın EN SON GÖRÜLDÜĞÜ zamanı tutar (45 sn kuralı için)
         private ConcurrentDictionary<int, ConcurrentDictionary<int, DateTime>> _alarmLastSeenTracker;
 
-        // Mevcut: Toplu bitirme için 0 sinyali sayacı
+        // Toplu bitirme için 0 sinyali sayacı
         private ConcurrentDictionary<int, DateTime?> _alarmZeroSignalTrackers = new ConcurrentDictionary<int, DateTime?>();
+
         // --- DEPENDENCIES ---
         private readonly AlarmRepository _alarmRepository;
         private readonly ProcessLogRepository _processLogRepository;
@@ -47,11 +49,12 @@ namespace TekstilScada.Services
         private ConcurrentDictionary<int, DateTime> _reconnectAttempts;
         private ConcurrentDictionary<int, ConnectionStatus> _connectionStates;
         private ConcurrentDictionary<int, AlarmDefinition> _alarmDefinitionsCache;
-      
+
         private readonly ConcurrentDictionary<int, LiveStepAnalyzer> _liveAnalyzers;
         private readonly ConcurrentDictionary<int, (int machineAlarmSeconds, int operatorPauseSeconds)> _liveAlarmCounters;
         private ConcurrentDictionary<int, DateTime> _lastManualLogTime = new ConcurrentDictionary<int, DateTime>();
-        // --- YENİ: SCADA Tarafından Oluşturulan Batch ID'leri Tutmak İçin ---
+
+        // SCADA Tarafından Oluşturulan Batch ID'leri Tutmak İçin
         private ConcurrentDictionary<int, string> _generatedBatchIds;
 
         // --- BATCH TRACKING ---
@@ -62,17 +65,23 @@ namespace TekstilScada.Services
         // --- THREADING & TIMING ---
         private System.Threading.Timer _loggingTimer;
         private CancellationTokenSource _cancellationTokenSource;
+
+        // Batch Yönetimi için Task Listesi
         private List<Task> _pollingTasks;
         private readonly object _timerLock = new object();
 
         private readonly int _pollingIntervalMs = 1000;
-        private readonly int _loggingIntervalMs = 1000;
+        private readonly int _loggingIntervalMs = 6000;
+
+        // OPTİMİZASYON: Her Batch'te kaç makine olacağı (300 makine için 50 idealdir -> 6 Ana Thread)
+        private const int BatchSize = 50;
+
         private ConcurrentDictionary<int, DateTime> _lastConnectionTime = new ConcurrentDictionary<int, DateTime>();
         private ConcurrentDictionary<int, int> _lastLoggedStepNumber = new ConcurrentDictionary<int, int>();
         private const int StabilizationSeconds = 5;
-      
+
         private ConcurrentDictionary<int, DateTime> _batchEndDebounceTimers = new ConcurrentDictionary<int, DateTime>();
-        //
+
         public PlcPollingService(
             AlarmRepository alarmRepository,
             ProcessLogRepository processLogRepository,
@@ -98,7 +107,6 @@ namespace TekstilScada.Services
             _liveAlarmCounters = new ConcurrentDictionary<int, (int, int)>();
             _pollingTasks = new List<Task>();
             _alarmLastSeenTracker = new ConcurrentDictionary<int, ConcurrentDictionary<int, DateTime>>();
-            // YENİ: Sözlüğü başlat
             _generatedBatchIds = new ConcurrentDictionary<int, string>();
 
             _batchTotalTheoreticalTimes = new ConcurrentDictionary<int, double>();
@@ -113,6 +121,7 @@ namespace TekstilScada.Services
 
             LoadAlarmDefinitionsCache();
 
+            // 1. Tüm Makineleri Hazırla (Manager oluştur, Cache doldur)
             foreach (var machine in machines)
             {
                 try
@@ -129,9 +138,6 @@ namespace TekstilScada.Services
                     });
                     _activeAlarmsTracker.TryAdd(machine.Id, new ConcurrentDictionary<int, DateTime>());
                     _currentBatches.TryAdd(machine.Id, null);
-
-                    var machineTask = Task.Run(() => PollMachineLoop(machine, plcManager, _cancellationTokenSource.Token));
-                    _pollingTasks.Add(machineTask);
                 }
                 catch (Exception ex)
                 {
@@ -139,8 +145,23 @@ namespace TekstilScada.Services
                 }
             }
 
+            // 2. Makineleri Gruplara Ayır (Batching)
+            // Örnek: 300 Makine -> 50'şerli 6 Grup
+            var machineBatches = machines
+                .Select((x, i) => new { Index = i, Value = x })
+                .GroupBy(x => x.Index / BatchSize)
+                .Select(x => x.Select(v => v.Value).ToList())
+                .ToList();
+
+            // 3. Her Grup İçin Bir Yönetici Task Başlat
+            foreach (var batch in machineBatches)
+            {
+                var batchTask = Task.Run(() => PollBatchLoop(batch, _cancellationTokenSource.Token));
+                _pollingTasks.Add(batchTask);
+            }
+
             _loggingTimer = new System.Threading.Timer(LoggingTimer_Tick, null, 1000, Timeout.Infinite);
-            _logger.LogInformation("{Count} makine için Polling Servisi başlatıldı.", machines.Count);
+            _logger.LogInformation("{Count} makine için Polling Servisi başlatıldı. ({BatchCount} Grup Halinde)", machines.Count, machineBatches.Count);
         }
 
         public void Stop()
@@ -174,127 +195,155 @@ namespace TekstilScada.Services
             _connectionStates?.Clear();
             _activeAlarmsTracker?.Clear();
             _currentBatches?.Clear();
-            _generatedBatchIds?.Clear(); // Temizlik
+            _generatedBatchIds?.Clear();
             _pollingTasks?.Clear();
 
             _logger.LogInformation("Polling Servisi durduruldu.");
         }
 
-        private async Task PollMachineLoop(Machine machine, IPlcManager manager, CancellationToken token)
+        /// <summary>
+        /// Bir makine grubu (örn: 50 makine) için döngü yönetimi yapar.
+        /// </summary>
+        private async Task PollBatchLoop(List<Machine> machineBatch, CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
+                var stopwatch = Stopwatch.StartNew();
+
                 try
                 {
-                    if (!MachineDataCache.TryGetValue(machine.Id, out var status))
-                    {
-                        await Task.Delay(1000, token);
-                        continue;
-                    }
+                    // Gruptaki tüm makineler için tek seferlik sorguyu asenkron başlat
+                    var pollTasks = new List<Task>();
 
-                    if (status.ConnectionState != ConnectionStatus.Connected)
+                    foreach (var machine in machineBatch)
                     {
-                        await HandleReconnectionAsync(machine.Id, manager);
-                    }
-                    else
-                    {
-                        var readResult = await manager.ReadLiveStatusDataAsync();
-
-                        if (readResult.IsSuccess)
+                        if (_plcManagers.TryGetValue(machine.Id, out var manager))
                         {
-                            var newStatus = readResult.Content;
-                            newStatus.MachineId = machine.Id;
-                            newStatus.MachineName = status.MachineName;
-                            newStatus.ConnectionState = ConnectionStatus.Connected;
-                            newStatus.AktifAdimAdi = GetStepTypeName(newStatus.AktifAdimTipiWordu);
-
-                            // --- BATCH ID YÖNETİMİ (YENİ EKLEME) ---
-                            if (newStatus.IsInRecipeMode)
-                            {
-                                _batchEndDebounceTimers.TryRemove(machine.Id, out _);
-                            }
-                            else
-                            {
-                                // Makine "Durdum" diyor. Ama gerçekten durdu mu yoksa sinyal mi gitti?
-                                // Eğer halihazırda devam eden bir Batch varsa (ID üretilmişse) hemen bitirme.
-                                if (_generatedBatchIds.ContainsKey(machine.Id))
-                                {
-                                    // İlk kez "Durdum" dediyse zamanı kaydet
-                                    var firstStopMoment = _batchEndDebounceTimers.GetOrAdd(machine.Id, DateTime.Now);
-
-                                    // 15 Saniye (veya ihtiyaca göre artırın) boyunca sinyal gelmezse gerçekten bitir.
-                                    // Bu süre içinde sinyal "1" olursa yukarıdaki if bloğu bu sayacı siler.
-                                    if ((DateTime.Now - firstStopMoment).TotalSeconds < 7)
-                                    {
-                                        // SİSTEMİ KANDIR: Henüz 15 saniye olmadı, Batch devam ediyor say!
-                                        newStatus.IsInRecipeMode = true;
-                                    }
-                                    else
-                                    {
-                                        // 15 saniyedir ses yok, gerçekten bitmiş.
-                                        // Sayacı temizle ki bir sonraki batch için hazır olsun
-                                        _batchEndDebounceTimers.TryRemove(machine.Id, out _);
-                                    }
-                                }
-                            }
-                            // ------------------------------------------------
-
-                            // --- BATCH ID YÖNETİMİ (MEVCUT KODUNUZUN GÜNCELLENMİŞ HALİ) ---
-                            if (newStatus.IsInRecipeMode)
-                            {
-                                // Eğer makine çalışıyor (veya biz yukarıda çalışıyor saydık) ama ID yoksa:
-                                if (!_generatedBatchIds.TryGetValue(machine.Id, out string currentBatchId))
-                                {
-                                    // Benzersiz ID oluştur: YYYYMMDDHHmmss_MakineID
-                                    currentBatchId = $"{DateTime.Now:yyyyMMddHHmmss}_{machine.Id}";
-                                    _generatedBatchIds.TryAdd(machine.Id, currentBatchId);
-                                    _logger.LogInformation($"Makine {machine.Id} için yeni Batch ID oluşturuldu: {currentBatchId}");
-                                }
-
-                                // Oluşturulan (veya var olan) ID'yi status nesnesine ata
-                                newStatus.BatchNumarasi = currentBatchId;
-                            }
-                            else
-                            {
-                                // Makine gerçekten durduysa (15 sn bekleme süresi de dolduysa):
-                                if (_generatedBatchIds.ContainsKey(machine.Id))
-                                {
-                                    _generatedBatchIds.TryRemove(machine.Id, out _);
-                                }
-                                newStatus.BatchNumarasi = "";
-                            }
-                            // ---------------------------------------
-
-                            PerformLiveAnalysis(machine.Id, newStatus);
-                            ProcessLiveStepAnalysis(machine.Id, newStatus);
-                            CheckAndLogBatchStartAndEnd(machine.Id, newStatus);
-                            CheckAndLogAlarms(machine.Id, newStatus);
-
-                            status = newStatus;
-                            UpdateLiveCounters(machine.Id, newStatus);
-                        }
-                        else
-                        {
-                            HandleDisconnection(machine.Id);
-                            if (MachineDataCache.ContainsKey(machine.Id))
-                                status = MachineDataCache[machine.Id];
+                            pollTasks.Add(ProcessSingleMachineAsync(machine, manager, token));
                         }
                     }
 
-                    if (MachineDataCache.ContainsKey(machine.Id))
-                    {
-                        MachineDataCache[machine.Id] = status;
-                    }
-                    OnMachineDataRefreshed?.Invoke(machine.Id, status);
+                    // Hepsini bekle (Paralel çalışırlar)
+                    await Task.WhenAll(pollTasks);
                 }
                 catch (OperationCanceledException) { break; }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Makine döngü hatası: {MachineId}", machine.Id);
+                    _logger.LogError(ex, "Batch döngü hatası.");
                 }
 
-                try { await Task.Delay(_pollingIntervalMs, token); }
-                catch (OperationCanceledException) { break; }
+                stopwatch.Stop();
+
+                // Döngü süresini 1000ms'ye tamamlayacak şekilde bekle
+                // Eğer işlemler 200ms sürdüyse, 800ms bekle. Eğer 1100ms sürdüyse bekleme.
+                int elapsed = (int)stopwatch.ElapsedMilliseconds;
+                int delay = Math.Max(0, _pollingIntervalMs - elapsed);
+
+                if (delay > 0)
+                {
+                    try { await Task.Delay(delay, token); }
+                    catch (OperationCanceledException) { break; }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tek bir makinenin 1 çevrimlik işlem mantığı (Eski PollMachineLoop içeriği)
+        /// </summary>
+        private async Task ProcessSingleMachineAsync(Machine machine, IPlcManager manager, CancellationToken token)
+        {
+            try
+            {
+                if (!MachineDataCache.TryGetValue(machine.Id, out var status))
+                {
+                    return;
+                }
+
+                if (status.ConnectionState != ConnectionStatus.Connected)
+                {
+                    await HandleReconnectionAsync(machine.Id, manager);
+                }
+                else
+                {
+                    var readResult = await manager.ReadLiveStatusDataAsync();
+
+                    if (readResult.IsSuccess)
+                    {
+                        var newStatus = readResult.Content;
+                        newStatus.MachineId = machine.Id;
+                        newStatus.MachineName = status.MachineName;
+                        newStatus.ConnectionState = ConnectionStatus.Connected;
+                        newStatus.AktifAdimAdi = GetStepTypeName(newStatus.AktifAdimTipiWordu);
+
+                        // --- BATCH ID YÖNETİMİ ---
+                        if (newStatus.IsInRecipeMode)
+                        {
+                            _batchEndDebounceTimers.TryRemove(machine.Id, out _);
+                        }
+                        else
+                        {
+                            if (_generatedBatchIds.ContainsKey(machine.Id))
+                            {
+                                var firstStopMoment = _batchEndDebounceTimers.GetOrAdd(machine.Id, DateTime.Now);
+                                if ((DateTime.Now - firstStopMoment).TotalSeconds < 7)
+                                {
+                                    newStatus.IsInRecipeMode = true;
+                                }
+                                else
+                                {
+                                    _batchEndDebounceTimers.TryRemove(machine.Id, out _);
+                                }
+                            }
+                        }
+                        // ------------------------------------------------
+
+                        // --- BATCH ID ATAMA ---
+                        if (newStatus.IsInRecipeMode)
+                        {
+                            if (!_generatedBatchIds.TryGetValue(machine.Id, out string currentBatchId))
+                            {
+                                currentBatchId = $"{DateTime.Now:yyyyMMddHHmmss}_{machine.Id}";
+                                _generatedBatchIds.TryAdd(machine.Id, currentBatchId);
+                                _logger.LogInformation($"Makine {machine.Id} için yeni Batch ID oluşturuldu: {currentBatchId}");
+                            }
+                            newStatus.BatchNumarasi = currentBatchId;
+                        }
+                        else
+                        {
+                            if (_generatedBatchIds.ContainsKey(machine.Id))
+                            {
+                                _generatedBatchIds.TryRemove(machine.Id, out _);
+                            }
+                            newStatus.BatchNumarasi = "";
+                        }
+                        // ---------------------------------------
+
+                        PerformLiveAnalysis(machine.Id, newStatus);
+                        ProcessLiveStepAnalysis(machine.Id, newStatus);
+                        CheckAndLogBatchStartAndEnd(machine.Id, newStatus);
+                        CheckAndLogAlarms(machine.Id, newStatus);
+
+                        status = newStatus;
+                        UpdateLiveCounters(machine.Id, newStatus);
+                    }
+                    else
+                    {
+                        HandleDisconnection(machine.Id);
+                        if (MachineDataCache.ContainsKey(machine.Id))
+                            status = MachineDataCache[machine.Id];
+                    }
+                }
+
+                if (MachineDataCache.ContainsKey(machine.Id))
+                {
+                    MachineDataCache[machine.Id] = status;
+                }
+                OnMachineDataRefreshed?.Invoke(machine.Id, status);
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Makine işlem hatası: {MachineId}", machine.Id);
             }
         }
 
@@ -320,38 +369,27 @@ namespace TekstilScada.Services
                 {
                     if (machineStatus.ConnectionState == ConnectionStatus.Connected)
                     {
-
-                        
-                        
                         // --- REÇETE (BATCH) MODU ---
                         if (machineStatus.IsInRecipeMode)
                         {
-                            // Batch logları genelde sabit 5sn veya 10sn de bir alınır.
-                            // Eğer Batch için de 1sn çok fazlaysa buraya da bir kontrol koyabilirsiniz.
-                            // Şimdilik her saniye alacak şekilde bırakıyorum veya mevcut _loggingIntervalMs mantığınıza göre düzenleyebilirsiniz.
                             batchLogList.Add(machineStatus);
                         }
                         // --- MANUEL MOD ---
                         else
                         {
-                            // Makinenin son log zamanını al, yoksa MinValue olsun
                             if (!_lastManualLogTime.TryGetValue(machineStatus.MachineId, out DateTime lastLog))
                             {
                                 lastLog = DateTime.MinValue;
                             }
 
-                            // MANTIK BURADA:
                             bool shouldLog = false;
-
-                            if (machineStatus.manuel_status) // <-- PLC'den gelen "Manuel Çalışma Aktif" biti
+                            if (machineStatus.manuel_status)
                             {
-                                // Manuel Status VARSA: Her 1 saniyede bir log al (Zaten timer 1sn çalışıyor)
                                 shouldLog = true;
                             }
                             else
                             {
-                                // Manuel Status YOKSA (Bekleme): 7 saniyede bir log al
-                                if ((now - lastLog).TotalSeconds >= 7)
+                                if ((now - lastLog).TotalSeconds >= 16)
                                 {
                                     shouldLog = true;
                                 }
@@ -360,7 +398,7 @@ namespace TekstilScada.Services
                             if (shouldLog)
                             {
                                 manualLogList.Add(machineStatus);
-                                _lastManualLogTime[machineStatus.MachineId] = now; // Son log zamanını güncelle
+                                _lastManualLogTime[machineStatus.MachineId] = now;
                             }
                         }
                     }
@@ -379,13 +417,11 @@ namespace TekstilScada.Services
                 {
                     if (_loggingTimer != null && _cancellationTokenSource != null && !_cancellationTokenSource.IsCancellationRequested)
                     {
-                        // Timer'ı tekrar 1 saniye sonrasına kur
                         _loggingTimer.Change(_loggingIntervalMs, Timeout.Infinite);
                     }
                 }
             }
         }
-
 
         private void PerformLiveAnalysis(int machineId, FullMachineStatus newStatus)
         {
@@ -431,30 +467,23 @@ namespace TekstilScada.Services
 
         private async Task HandleReconnectionAsync(int machineId, IPlcManager manager)
         {
-            // Kural: Son denemenin üzerinden 10 saniye geçti mi?
             if (!_reconnectAttempts.ContainsKey(machineId) || (DateTime.UtcNow - _reconnectAttempts[machineId]).TotalSeconds > 10)
             {
                 _reconnectAttempts[machineId] = DateTime.UtcNow;
 
                 if (!MachineDataCache.TryGetValue(machineId, out var status)) return;
 
-                // UI'da "Bağlanıyor..." (Sarı) göstermek istiyorsanız burası kalabilir
-                // Ancak "Boşta" (Yeşil) görünmemesi için Connecting durumunun UI'daki karşılığını kontrol edin.
                 status.ConnectionState = ConnectionStatus.Connecting;
                 _connectionStates[machineId] = ConnectionStatus.Connecting;
 
-                // Bu event UI'da sarı ikon yakar, sorun yok
                 OnMachineConnectionStateChanged?.Invoke(machineId, status);
 
                 try
                 {
-                    // ADIM 1: Eski bağlantı kalıntılarını temizle
                     try { manager.Disconnect(); } catch { }
 
-                    // ADIM 2: Bağlantı Denemesi
                     var connectTask = manager.ConnectAsync();
                     var timeoutTask = Task.Delay(3000);
-
                     var completedTask = await Task.WhenAny(connectTask, timeoutTask);
 
                     if (completedTask == timeoutTask)
@@ -466,23 +495,14 @@ namespace TekstilScada.Services
 
                     if (connectResult.IsSuccess)
                     {
-                        // --- DÜZELTME BAŞLANGICI ---
-
-                        // HATA BURADAYDI: Hemen "Connected" yapıyorduk.
-                        // YENİ MANTIK: Bağlantı var ama veri okuyabiliyor muyuz? Teyit et.
-
                         var verifyRead = await manager.ReadLiveStatusDataAsync();
 
                         if (verifyRead.IsSuccess)
                         {
-                            // Hem bağlantı var HEM DE veri okunabiliyor. Şimdi Connected yapabiliriz.
-
-                            // Okunan ilk veriyi hemen status'e işle ki "Boşta" görünmesin (Eğer çalışıyorsa çalışıyor görünsün)
                             var initialData = verifyRead.Content;
                             status.IsInRecipeMode = initialData.IsInRecipeMode;
                             status.manuel_status = initialData.manuel_status;
                             status.HasActiveAlarm = initialData.HasActiveAlarm;
-                            // Diğer kritik verileri de eşitleyebilirsiniz...
 
                             status.ConnectionState = ConnectionStatus.Connected;
                             _connectionStates[machineId] = ConnectionStatus.Connected;
@@ -496,17 +516,12 @@ namespace TekstilScada.Services
                         }
                         else
                         {
-                            // Bağlantı başarılı ama veri okunamadı.
-                            // Bu durumda "Connected" yapma, bağlantıyı kopar ve başarısız say.
                             manager.Disconnect();
                             throw new Exception("Socket bağlandı ancak ilk veri okunamadı.");
                         }
-
-                        // --- DÜZELTME BİTİŞİ ---
                     }
                     else
                     {
-                        // Bağlantı reddedildi
                         status.ConnectionState = ConnectionStatus.Disconnected;
                         _connectionStates[machineId] = ConnectionStatus.Disconnected;
                         OnMachineConnectionStateChanged?.Invoke(machineId, status);
@@ -514,13 +529,13 @@ namespace TekstilScada.Services
                 }
                 catch (Exception ex)
                 {
-                    // Hata durumu
                     status.ConnectionState = ConnectionStatus.Disconnected;
                     _connectionStates[machineId] = ConnectionStatus.Disconnected;
                     OnMachineConnectionStateChanged?.Invoke(machineId, status);
                 }
             }
         }
+
         private void HandleDisconnection(int machineId)
         {
             if (!MachineDataCache.TryGetValue(machineId, out var status)) return;
@@ -536,7 +551,6 @@ namespace TekstilScada.Services
         {
             try
             {
-                // 1. Stabilizasyon Kontrolü (Sadece bağlantı kalitesi için)
                 bool isSystemStable = true;
                 if (currentStatus.ConnectionState != ConnectionStatus.Connected) isSystemStable = false;
                 if (_lastConnectionTime.TryGetValue(machineId, out DateTime connectTime))
@@ -544,36 +558,24 @@ namespace TekstilScada.Services
                     if ((DateTime.Now - connectTime).TotalSeconds < StabilizationSeconds) isSystemStable = false;
                 }
 
-                // Kararsızsa işlem yapma
                 if (!isSystemStable) return;
 
-                // Şu an sistemin takip ettiği Batch ID (Hafızadaki)
                 _currentBatches.TryGetValue(machineId, out string lastTrackedBatchId);
-
-                // PLC Sinyali Var mı?
                 bool isRecipeSignalActive = currentStatus.IsInRecipeMode;
 
                 // ==============================================================================
-                // DURUM A: SİNYAL AKTİF (Makine Çalışıyor veya Çalışmaya Başlıyor)
+                // DURUM A: SİNYAL AKTİF
                 // ==============================================================================
                 if (isRecipeSignalActive)
                 {
-                    // Sinyal geldiği için Bitiş Sayacını (End Debounce) iptal et.
                     _batchEndDebounce.TryRemove(machineId, out _);
 
-                    // Eğer sistemde zaten bir batch takibi yapmıyorsak (lastTrackedBatchId == null)
-                    // Bu yeni bir başlangıç veya restart sonrası durum olabilir.
                     if (string.IsNullOrEmpty(lastTrackedBatchId))
                     {
-                        // 1. Başlangıç sayacını başlat
                         var firstSignalTime = _batchStartDebounce.GetOrAdd(machineId, DateTime.Now);
 
-                        // 2. Sinyal 5 saniyedir kesintisiz var mı?
                         if ((DateTime.Now - firstSignalTime).TotalSeconds >= 5)
                         {
-                            // --- KRİTİK KONTROL: RESUME Mİ NEW Mİ? ---
-
-                            // Son 4 günü kapsayan filtre (Mevcut 'GetProductionReport' metodunu kullanarak)
                             var filter = new ReportFilters
                             {
                                 MachineId = machineId,
@@ -583,7 +585,6 @@ namespace TekstilScada.Services
 
                             var recentBatches = _productionRepository.GetProductionReport(filter);
 
-                            // YENİ MANTIK: Sadece zamana göre EN SON kaydı al.
                             var lastRecordedBatch = recentBatches
                                 .OrderByDescending(b => b.StartTime)
                                 .FirstOrDefault();
@@ -592,7 +593,6 @@ namespace TekstilScada.Services
                             bool isResume = false;
                             ProductionReportItem existingActiveBatchItem = null;
 
-                            // Eğer son bir kayıt varsa VE bu kaydın bitiş tarihi yoksa (Hala açıksa)
                             if (lastRecordedBatch != null && lastRecordedBatch.EndTime == DateTime.MinValue)
                             {
                                 existingActiveBatchItem = lastRecordedBatch;
@@ -600,22 +600,18 @@ namespace TekstilScada.Services
 
                             if (existingActiveBatchItem != null)
                             {
-                                // Veritabanındaki SON kayıt açık, demek ki makine bu işe devam ediyor.
                                 batchIdToUse = existingActiveBatchItem.BatchId;
                                 isResume = true;
                                 _logger.LogInformation($"Makine {machineId} için son açık batch bulundu, devam ediliyor. ID: {batchIdToUse}");
                             }
                             else
                             {
-                                // Son kayıt kapalıysa (veya hiç kayıt yoksa), geçmişte açık kalanları umursama. Yeni iş başlat.
                                 if (string.IsNullOrEmpty(batchIdToUse))
                                     batchIdToUse = $"{DateTime.Now:yyyyMMddHHmmss}_{machineId}";
                             }
 
-                            // --- KRİTİK BÖLÜM: ÖNCE DB, SONRA HAFIZA ---
                             try
                             {
-                                // 1. Önce Veritabanı İşlemi
                                 if (!isResume)
                                 {
                                     _productionRepository.StartNewBatch(currentStatus);
@@ -623,20 +619,14 @@ namespace TekstilScada.Services
                                 }
                                 else
                                 {
-                                    // Resume ise, başlangıç saatini DB'den al
                                     _batchStartTimes[machineId] = existingActiveBatchItem.StartTime;
                                 }
 
-                                // 2. DB Başarılıysa Hafızaya Al (Bu satırlar try bloğu içinde olmalı)
                                 _currentBatches[machineId] = batchIdToUse;
-                                currentStatus.BatchNumarasi = batchIdToUse; // Status'ü de güncelle ki UI doğru görsün
+                                currentStatus.BatchNumarasi = batchIdToUse;
 
-                                // 3. Analyzer ve Reçete Verilerini Yükle
                                 if (_plcManagers.TryGetValue(machineId, out var plcManager))
                                 {
-                                    // Reçete okuma işlemi asenkron olduğu için ve hata verirse batch'i durdurmaması gerektiği için
-                                    // Burayı ayrı bir güvenli blokta yapabiliriz veya devam ettirebiliriz.
-                                    // Ana batch kaydı oluştuğu için buradaki hata sadece reçete detayını etkiler.
                                     try
                                     {
                                         var recipeReadResult = await plcManager.ReadFullRecipeDataAsync();
@@ -645,63 +635,49 @@ namespace TekstilScada.Services
                                             var fullRecipe = recipeReadResult.Content;
                                             fullRecipe.RecipeName = currentStatus.RecipeName;
 
-                                            // Analyzer'ı sıfırdan oluştur
                                             _liveAnalyzers[machineId] = new LiveStepAnalyzer(fullRecipe, _productionRepository);
 
                                             _batchTotalTheoreticalTimes[machineId] = RecipeAnalysis.CalculateTotalTheoreticalTimeSeconds(fullRecipe);
                                             _batchNonProductiveSeconds[machineId] = 0;
 
-                                            // Sadece yeni ise kaydet, güncellemeye gerek yok
                                             if (!isResume)
                                                 _productionRepository.SaveBatchRecipe(machineId, batchIdToUse, fullRecipe);
                                         }
                                     }
                                     catch (Exception recipeEx)
                                     {
-                                        _logger.LogError(recipeEx, "Batch başlatıldı ancak reçete detayları okunurken hata oluştu: {MachineId}", machineId);
+                                        _logger.LogError(recipeEx, "Batch reçete detayı okuma hatası: {MachineId}", machineId);
                                     }
                                 }
 
-                                // İşlem tamam, sayacı temizle
                                 _batchStartDebounce.TryRemove(machineId, out _);
                             }
                             catch (Exception dbEx)
                             {
-                                // Veritabanı hatası oluşursa hafızaya (_currentBatches) ekleme YAPILMAZ.
-                                // Böylece bir sonraki döngüde (1 sn sonra) sistem tekrar dener.
-                                _logger.LogError(dbEx, "Yeni parti başlatılırken veritabanı hatası oluştu. Tekrar denenecek: {MachineId}", machineId);
+                                _logger.LogError(dbEx, "Yeni parti başlatılırken veritabanı hatası: {MachineId}", machineId);
                             }
                         }
                     }
                     else
                     {
-                        // Zaten takipteyiz, start sayacına gerek yok.
                         _batchStartDebounce.TryRemove(machineId, out _);
                     }
                 }
                 // ==============================================================================
-                // DURUM B: SİNYAL PASİF (Makine Durdu veya Sinyal Gitti)
+                // DURUM B: SİNYAL PASİF
                 // ==============================================================================
                 else
                 {
-                    // Sinyal yok, Start sayacını iptal et.
                     _batchStartDebounce.TryRemove(machineId, out _);
 
-                    // Eğer şu an bir batch takibi yapıyorsak (lastTrackedBatchId != null)
-                    // Bu batch'i bitirmeli miyiz diye kontrol etmeliyiz.
                     if (lastTrackedBatchId != null)
                     {
-                        // 1. Bitiş sayacını başlat
                         var stopSignalTime = _batchEndDebounce.GetOrAdd(machineId, DateTime.Now);
 
-                        // 2. Sinyal 10 saniyedir kesintisiz YOK mu?
                         if ((DateTime.Now - stopSignalTime).TotalSeconds >= 4)
                         {
-                            // --- BATCH BİTİRME İŞLEMLERİ ---
-
                             if (_liveAnalyzers.TryGetValue(machineId, out var analyzer))
                             {
-                                // Son aktif adımı kapat (Processing -> Completed)
                                 FinalizeAndLogActiveStep(analyzer, machineId, lastTrackedBatchId);
                             }
 
@@ -715,9 +691,8 @@ namespace TekstilScada.Services
                                 finalCounters.machineAlarmSeconds + finalCounters.operatorPauseSeconds,
                                 theoreticalTime);
 
-                            // Temizlik
-                            _currentBatches[machineId] = null; // Takibi bırak
-                            _batchEndDebounce.TryRemove(machineId, out _); // Sayacı temizle
+                            _currentBatches[machineId] = null;
+                            _batchEndDebounce.TryRemove(machineId, out _);
 
                             _liveAlarmCounters.TryRemove(machineId, out _);
                             _liveAnalyzers.TryRemove(machineId, out _);
@@ -726,7 +701,6 @@ namespace TekstilScada.Services
                             _batchNonProductiveSeconds.TryRemove(machineId, out _);
                             _lastLoggedStepNumber.TryRemove(machineId, out _);
 
-                            // PLC Sayaçlarını Sıfırla (Arka Planda)
                             if (_plcManagers.TryGetValue(machineId, out var plcManager))
                             {
                                 _ = Task.Run(async () => {
@@ -745,28 +719,22 @@ namespace TekstilScada.Services
                     }
                     else
                     {
-                        // Zaten batch yok, sinyal de yok. Sayacı temizle.
                         _batchEndDebounce.TryRemove(machineId, out _);
                     }
                 }
             }
-            catch (Exception ex) { _logger.LogError(ex, "Batch takibi sırasında genel hata: {MachineId}", machineId); }
+            catch (Exception ex) { _logger.LogError(ex, "Batch takibi hatası: {MachineId}", machineId); }
         }
 
-        // --- YENİ YARDIMCI METOT: AKTİF ADIMI BUL, KAPAT VE KAYDET ---
         private void FinalizeAndLogActiveStep(LiveStepAnalyzer analyzer, int machineId, string batchId)
         {
             try
             {
-                // Çalışmakta olan (Processing...) son adımı bul
                 var activeStep = analyzer.AnalyzedSteps.LastOrDefault(s => s.WorkingTime == "Processing...");
 
                 if (activeStep != null)
                 {
-                    // Analyzer içindeki veriyi güncelle (Bitiş zamanı atanır)
                     analyzer.FinalizeStep(activeStep.StepNumber, batchId, machineId);
-
-                    // Çift Kayıt Kontrolü
                     _lastLoggedStepNumber.TryGetValue(machineId, out int lastLoggedNo);
 
                     if (activeStep.StepNumber != lastLoggedNo)
@@ -794,20 +762,17 @@ namespace TekstilScada.Services
 
                 if (_liveAnalyzers.TryGetValue(machineId, out var analyzer))
                 {
-                    // Analyzer veriyi işlediğinde bir adım tamamlandıysa true döner
                     if (analyzer.ProcessData(currentStatus))
                     {
                         var completedStepAnalysis = analyzer.GetLastCompletedStep();
                         if (completedStepAnalysis != null)
                         {
-                            // Çok kısa süren gürültü adımları filtrele (3 saniye)
                             if (TimeSpan.TryParse(completedStepAnalysis.WorkingTime, out TimeSpan duration))
                             {
                                 if (duration.TotalSeconds < 3) return;
                             }
                             else return;
 
-                            // ÇİFT KAYIT KONTROLÜ
                             _lastLoggedStepNumber.TryGetValue(machineId, out int lastStepNo);
                             if (lastStepNo == completedStepAnalysis.StepNumber) return;
 
@@ -824,10 +789,8 @@ namespace TekstilScada.Services
         {
             try
             {
-                // Stabilizasyon / Bağlantı Kontrolü
                 if (currentStatus.ConnectionState != ConnectionStatus.Connected) return;
 
-                // 1. Gerekli Takip Listelerini Al veya Oluştur
                 var activeAlarms = _activeAlarmsTracker.GetOrAdd(machineId, new ConcurrentDictionary<int, DateTime>());
                 var lastSeenAlarms = _alarmLastSeenTracker.GetOrAdd(machineId, new ConcurrentDictionary<int, DateTime>());
 
@@ -837,79 +800,61 @@ namespace TekstilScada.Services
                 // --- AŞAMA 1: GELEN VERİYİ İŞLEME ---
                 if (currentWordValue > 0)
                 {
-                    // Alarm verisi geldiği için "Sıfır Sayacı"nı iptal et.
                     _alarmZeroSignalTrackers.TryRemove(machineId, out _);
 
-                    // Bu alarm tanımlı mı?
                     if (_alarmDefinitionsCache.TryGetValue(currentWordValue, out var alarmDef))
                     {
-                        // A) Bu alarmın "En Son Görülme" zamanını güncelle (Döngüde hala var demektir)
                         lastSeenAlarms[currentWordValue] = now;
 
-                        // B) Bu alarm "Aktif Listede" yoksa -> YENİ ALARM BAŞLANGICI
                         if (!activeAlarms.ContainsKey(currentWordValue))
                         {
-                            activeAlarms[currentWordValue] = now; // Başlangıç zamanı
-
+                            activeAlarms[currentWordValue] = now;
                             _alarmRepository.WriteAlarmHistoryEvent(machineId, alarmDef.Id, "ACTIVE");
                             LiveEventAggregator.Instance.PublishAlarm(currentStatus.MachineName, alarmDef.AlarmText);
                         }
                     }
                 }
-                else // Gelen Değer 0 ise
+                else
                 {
-                    // "Sıfır Sayacı" kontrolü (Toplu bitirme mantığı - KORUNUYOR)
                     if (!activeAlarms.IsEmpty)
                     {
                         if (!_alarmZeroSignalTrackers.TryGetValue(machineId, out DateTime? zeroStartTime) || zeroStartTime == null)
                         {
-                            _alarmZeroSignalTrackers[machineId] = now; // Kronometreyi başlat
+                            _alarmZeroSignalTrackers[machineId] = now;
                         }
                         else
                         {
-                            // 3 saniyedir 0 mı geliyor?
                             if ((now - zeroStartTime.Value).TotalSeconds >= 3)
                             {
-                                // HEPSİNİ KAPAT (Toplu Bitiş)
                                 foreach (var kvp in activeAlarms)
                                 {
                                     CloseAlarm(machineId, kvp.Key, currentStatus.MachineName);
                                 }
                                 activeAlarms.Clear();
-                                lastSeenAlarms.Clear(); // Last seen de temizlenmeli
+                                lastSeenAlarms.Clear();
                                 _alarmZeroSignalTrackers.TryRemove(machineId, out _);
                             }
                         }
                     }
                 }
 
-                // --- AŞAMA 2: BİREYSEL ZAMAN AŞIMI (TIMEOUT) KONTROLÜ ---
-                // Burada 45 saniyedir sinyal göndermeyen "tekil" alarmları ayıklıyoruz.
-                // Bu işlem, currentWordValue 0 olsa da olmasa da yapılmalıdır (Çünkü döngüde başka alarmlar gelirken biri düşmüş olabilir).
-
+                // --- AŞAMA 2: BİREYSEL ZAMAN AŞIMI KONTROLÜ ---
                 if (!activeAlarms.IsEmpty)
                 {
-                    // O anki aktif listeyi kopyalayarak dön (Koleksiyon değişti hatası almamak için)
                     var activeKeys = activeAlarms.Keys.ToList();
-
                     foreach (var alarmId in activeKeys)
                     {
-                        // Bu alarm en son ne zaman görüldü?
                         if (lastSeenAlarms.TryGetValue(alarmId, out DateTime lastSeenTime))
                         {
-                            // Eğer 45 saniyedir bu kod gelmediyse -> ALARMI KAPAT
                             if ((now - lastSeenTime).TotalSeconds > 45)
                             {
                                 CloseAlarm(machineId, alarmId, currentStatus.MachineName);
-
-                                // Listelerden düşür
                                 activeAlarms.TryRemove(alarmId, out _);
                                 lastSeenAlarms.TryRemove(alarmId, out _);
                             }
                         }
                         else
                         {
-                            // (Hata toleransı) Eğer LastSeen kaydı yoksa, şu anki zamanı baz alarak oluştur ki hemen silinmesin.
                             lastSeenAlarms[alarmId] = now;
                         }
                     }
@@ -920,11 +865,7 @@ namespace TekstilScada.Services
 
                 if (currentStatus.HasActiveAlarm)
                 {
-                    // Ekranda hangisini göstereceğiz?
-                    // Öncelik: Şu an PLC'den gelen değer (>0 ise).
-                    // Yoksa: Listede en son görülen alarm.
                     int displayId = (currentWordValue > 0) ? currentWordValue : activeAlarms.Keys.LastOrDefault();
-
                     currentStatus.ActiveAlarmNumber = displayId;
                     if (_alarmDefinitionsCache.TryGetValue(displayId, out var def))
                         currentStatus.ActiveAlarmText = def.AlarmText;
@@ -937,7 +878,6 @@ namespace TekstilScada.Services
                     currentStatus.ActiveAlarmText = "";
                 }
 
-                // Event Tetikleme
                 MachineDataCache.TryGetValue(machineId, out var previousStatus);
                 if ((previousStatus?.HasActiveAlarm ?? false) != currentStatus.HasActiveAlarm ||
                     (previousStatus?.ActiveAlarmNumber ?? 0) != currentStatus.ActiveAlarmNumber)
@@ -951,7 +891,6 @@ namespace TekstilScada.Services
             }
         }
 
-        // Kod tekrarını önlemek için yardımcı metod
         private void CloseAlarm(int machineId, int alarmId, string machineName)
         {
             if (_alarmDefinitionsCache.TryGetValue(alarmId, out var closingAlarmDef))
@@ -983,7 +922,6 @@ namespace TekstilScada.Services
         private string GetStepTypeName(short controlWord)
         {
             var stepTypes = new List<string>();
-            // TODO: Bu stringler localization servisinden çekilmeli
             if ((controlWord & 1) != 0) stepTypes.Add("Take Water");
             if ((controlWord & 2) != 0) stepTypes.Add("Heating");
             if ((controlWord & 4) != 0) stepTypes.Add("Working");

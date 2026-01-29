@@ -169,7 +169,7 @@ namespace TekstilScada
             // 2. Gateway Servisini Baþlat
             try
             {
-                string hubUrl = "http://localhost:7039/scadaHub"; // API Adresiniz
+                string hubUrl = "https://api.malkanteknolojionline.com.tr/scadaHub"; // API Adresiniz
                 string jwtToken = null; // Gateway için token þu an null kalabilir
 
                 _gatewayService = new SignalRGatewayService(
@@ -276,7 +276,7 @@ namespace TekstilScada
 
             // Kontrolleri Initialize Et
             _prosesIzlemeView.InitializeView(machines, _pollingService);
-            _prosesKontrolView.InitializeControl(_recipeRepository, _machineRepository, plcManagers, _pollingService, _ftpTransferService);
+            _prosesKontrolView.InitializeControl(_recipeRepository, _machineRepository, plcManagers, _pollingService, _ftpTransferService, _userRepository);
             _ayarlarView.InitializeControl(_machineRepository, plcManagers);
 
             // CostRepository eklendi

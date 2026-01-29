@@ -18,7 +18,7 @@ namespace TekstilScada.UI.Views
         private RecipeRepository _recipeRepository;
         private MachineRepository _machineRepository;
         private Dictionary<int, IPlcManager> _plcManagers;
-
+        private UserRepository _userRepository; // YENİ: Loglama için eklendi
         private List<ScadaRecipe> _recipeList;
         private ScadaRecipe _currentRecipe;
 
@@ -51,13 +51,14 @@ namespace TekstilScada.UI.Views
             lstRecipes.KeyDown += LstRecipes_KeyDown;
         }
 
-        public void InitializeControl(RecipeRepository recipeRepo, MachineRepository machineRepo, Dictionary<int, IPlcManager> plcManagers, PlcPollingService plcPollingService, FtpTransferService ftpTransferService)
+        public void InitializeControl(RecipeRepository recipeRepo, MachineRepository machineRepo, Dictionary<int, IPlcManager> plcManagers, PlcPollingService plcPollingService, FtpTransferService ftpTransferService, UserRepository userRepo)
         {
             _recipeRepository = recipeRepo;
             _machineRepository = machineRepo;
             _plcManagers = plcManagers;
             _plcPollingService = plcPollingService;
             _ftpTransferService = ftpTransferService; // YENİ: Alanı atayın
+            _userRepository = userRepo;
         }
 
         private void ProsesKontrol_Control_Load(object sender, EventArgs e)
@@ -285,14 +286,89 @@ namespace TekstilScada.UI.Views
             {
                 txtRecipeName.Text = _currentRecipe.RecipeName;
                 LoadEditorForSelectedMachine();
+
+                // --- DÜZELTME: İsim yerine ID gönderiyoruz ---
+                LoadRecipeHistory(_currentRecipe.Id);
             }
             else
             {
                 txtRecipeName.Text = "";
                 pnlEditorArea.Controls.Clear();
+
+                if (lstRecipeHistory != null) lstRecipeHistory.Items.Clear();
+            }
+        }
+        private void LoadRecipeHistory(int recipeId)
+        {
+            // ListBox tasarımda eklenmemişse hata vermesin
+            if (lstRecipeHistory == null) return;
+
+            lstRecipeHistory.Items.Clear();
+
+            if (_userRepository == null)
+            {
+                lstRecipeHistory.Items.Add("Log servisi devre dışı.");
+                return;
+            }
+
+            // Eğer yeni bir reçete ise (henüz kaydedilmemişse ID 0'dır) log aramaya gerek yok.
+            if (recipeId <= 0)
+            {
+                lstRecipeHistory.Items.Add("Yeni reçete, geçmiş kaydı yok.");
+                return;
+            }
+
+            try
+            {
+                // --- KRİTİK DÜZELTME BURADA ---
+                // Artık reçete ismini değil, özel oluşturduğumuz "[rcp-123]" etiketini arıyoruz.
+                string searchTag = $"[rcp-{recipeId}]";
+
+                // Repository, SQL içinde 'LIKE %searchTag%' araması yapacak.
+                // Böylece sadece bu ID'ye sahip işlemler gelecek.
+                var logs = _userRepository.GetActionLogs(null, null, null, searchTag);
+
+                // Tarihe göre yeniden eskiye sıralayıp ilk 10 tanesini al.
+                var recentLogs = logs
+                    .OrderByDescending(l => l.Timestamp)
+                    .Take(10)
+                    .ToList();
+
+                if (recentLogs.Any())
+                {
+                    foreach (var log in recentLogs)
+                    {
+                        // Gösterim: 24.01 14:30 [Admin] - Reçete güncellendi...
+                        string displayText = $"{log.Timestamp:dd.MM HH:mm} [{log.Username}] - {GetFriendlyActionName(log.ActionType)}";
+                        lstRecipeHistory.Items.Add(displayText);
+                    }
+                }
+                else
+                {
+                    lstRecipeHistory.Items.Add("Bu reçeteye ait işlem bulunamadı.");
+                }
+            }
+            catch (Exception ex)
+            {
+                lstRecipeHistory.Items.Add("Loglar yüklenemedi.");
+                System.Diagnostics.Debug.WriteLine("Log Load Error: " + ex.Message);
             }
         }
 
+        // 3. YARDIMCI METOT (İşlem Kodlarını Okunabilir Yapmak İçin)
+        private string GetFriendlyActionName(string actionType)
+        {
+            return actionType switch
+            {
+                "RECIPE_CREATE" => "Oluşturuldu",
+                "RECIPE_UPDATE" => "Düzenlendi",
+                "RECIPE_DELETE" => "Silindi",
+                "RECIPE_SEND_FTP" => "Makineye Gönderildi (FTP)",
+                "RECIPE_SEND_PLC" => "Makineye Yazıldı (PLC)",
+                "RECIPE_READ_PLC" => "Makineden Okundu",
+                _ => actionType // Bilinmeyen tipler olduğu gibi kalsın
+            };
+        }
         private void LoadEditorForSelectedMachine()
         {
             pnlEditorArea.Controls.Clear();
@@ -628,7 +704,7 @@ namespace TekstilScada.UI.Views
                     {
 
                         // FtpSync_Form'u seçilen makine tipiyle başlat.
-                        _ftpFormInstance = new FtpSync_Form(_machineRepository, _recipeRepository, _plcPollingService, selectedType, _ftpTransferService); // DÜZELTME
+                        _ftpFormInstance = new FtpSync_Form(_machineRepository, _recipeRepository, _plcPollingService, selectedType, _ftpTransferService, _userRepository); // DÜZELTME
                         _ftpFormInstance.FormClosed += (s, args) => _ftpFormInstance = null;
                         _ftpFormInstance.Show(this);
                     }
@@ -643,9 +719,11 @@ namespace TekstilScada.UI.Views
                 MessageBox.Show("Please select a recipe and target machine.", "Warning");
                 return;
             }
+
             // Butonları ve imleci işlem süresince yönet
             btnSendToPlc.Enabled = false;
             this.Cursor = Cursors.WaitCursor;
+
             try
             {
                 // --- YENİ MANTIK: MAKİNE TİPİNE GÖRE İŞLEM SEÇİMİ ---
@@ -674,8 +752,7 @@ namespace TekstilScada.UI.Views
                     // 3. Dosya adını otomatik olarak XPR0000.csv formatına çevir
                     string remoteFileName = string.Format("XPR{0:D5}.csv", recipeNumber);
 
-                    btnSendToPlc.Enabled = false;
-                    this.Cursor = Cursors.WaitCursor;
+                    // İçerideki try-catch FTP işlemleri için
                     try
                     {
                         // 4. Reçeteyi CSV'ye çevir
@@ -685,16 +762,22 @@ namespace TekstilScada.UI.Views
                         var ftpService = new FtpService(selectedMachine.IpAddress, selectedMachine.FtpUsername, selectedMachine.FtpPassword);
                         await ftpService.UploadFileAsync($"/{remoteFileName}", csvContent);
 
+                        // --- LOGLAMA (FTP Gönderimi) ---
+                        if (CurrentUser.User != null && _userRepository != null)
+                        {
+                            _userRepository.LogAction(
+                                CurrentUser.User.Id,
+                                "RECIPE_SEND_FTP",
+                                $"Recipe '{_currentRecipe.RecipeName}' sent to '{selectedMachine.MachineName}' as '{remoteFileName}' [rcp-{_currentRecipe.Id}]"
+                            );
+                        }
+                        // ------------------------------
+
                         MessageBox.Show($"'Recipe '{_currentRecipe.RecipeName}' was successfully sent to machine '{selectedMachine.MachineName}' with name '{remoteFileName}'.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                     catch (Exception ex)
                     {
                         MessageBox.Show($"Error sending recipe via FTP: {ex.Message}", "FTP Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                    finally
-                    {
-                        this.Cursor = Cursors.Default;
-                        btnSendToPlc.Enabled = true;
                     }
                 }
                 else // Kurutma Makinesi gibi diğer makineler için eski, doğrudan PLC'ye yazma yöntemi devam eder
@@ -724,14 +807,25 @@ namespace TekstilScada.UI.Views
                         }
                     }
 
-                    btnSendToPlc.Enabled = false;
-                    this.Cursor = Cursors.WaitCursor;
+                    // İçerideki try-catch PLC işlemleri için
                     try
                     {
                         var result = await plcManager.WriteRecipeToPlcAsync(_currentRecipe, recipeSlot);
 
                         if (result.IsSuccess)
                         {
+                            // --- LOGLAMA (PLC Gönderimi) ---
+                            if (CurrentUser.User != null && _userRepository != null)
+                            {
+                                string slotInfo = recipeSlot.HasValue ? $"(Slot: {recipeSlot})" : "";
+                                _userRepository.LogAction(
+                                    CurrentUser.User.Id,
+                                    "RECIPE_SEND_PLC",
+                                    $"Recipe '{_currentRecipe.RecipeName}' written to PLC of '{selectedMachine.MachineName}' {slotInfo} [rcp-{_currentRecipe.Id}]"
+                                );
+                            }
+                            // ------------------------------
+
                             MessageBox.Show($"'Recipe '{_currentRecipe.RecipeName}' was successfully sent to machine '{selectedMachine.MachineName}'.", "Success");
                         }
                         else
@@ -743,12 +837,6 @@ namespace TekstilScada.UI.Views
                     {
                         MessageBox.Show($"An unexpected error occurred: {ex.Message}", "System Error");
                     }
-                    finally
-                    {
-                        this.Cursor = Cursors.Default;
-                        btnSendToPlc.Enabled = true;
-                    }
-
                 }
             }
             catch (Exception ex)
@@ -843,11 +931,22 @@ namespace TekstilScada.UI.Views
                             _currentRecipe.Id = 0;
 
                             string targetType = !string.IsNullOrEmpty(selectedMachine.MachineSubType)
-                                                    ? selectedMachine.MachineSubType
-                                                    : selectedMachine.MachineType;
+                                                ? selectedMachine.MachineSubType
+                                                : selectedMachine.MachineType;
                             _currentRecipe.TargetMachineType = targetType;
 
                             DisplayCurrentRecipe();
+
+                            // --- LOGLAMA (Kurutma Okuma) ---
+                            if (CurrentUser.User != null && _userRepository != null)
+                            {
+                                _userRepository.LogAction(
+                                    CurrentUser.User.Id,
+                                    "RECIPE_READ_PLC",
+                                    $"Recipe read from PLC of '{selectedMachine.MachineName}' [rcp-{_currentRecipe.Id}]" // Genelde rcp-0 yazar
+                                );
+                            }
+                            // ------------------------------
 
                             MessageBox.Show($"{slotNumber}. Slot başarıyla okundu.\nRecipe Name: {_currentRecipe.RecipeName}", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
@@ -878,7 +977,6 @@ namespace TekstilScada.UI.Views
             // -------------------------------------------------------------
 
             // --- DİĞER MAKİNELER (BYMakinesi vb.) İÇİN MEVCUT MANTIK ---
-            // (Mevcut kodunuzun geri kalanı buraya gelecek...)
             btnReadFromPlc.Enabled = false;
             this.Cursor = Cursors.WaitCursor;
             try
@@ -893,8 +991,8 @@ namespace TekstilScada.UI.Views
                     };
 
                     string targetType = !string.IsNullOrEmpty(selectedMachine.MachineSubType)
-                                            ? selectedMachine.MachineSubType
-                                            : selectedMachine.MachineType;
+                                        ? selectedMachine.MachineSubType
+                                        : selectedMachine.MachineType;
 
                     recipeFromPlc.TargetMachineType = targetType;
 
@@ -916,6 +1014,17 @@ namespace TekstilScada.UI.Views
 
                     _currentRecipe = recipeFromPlc;
                     DisplayCurrentRecipe();
+
+                    // --- LOGLAMA (Standart PLC Okuma) ---
+                    if (CurrentUser.User != null && _userRepository != null)
+                    {
+                        _userRepository.LogAction(
+                            CurrentUser.User.Id,
+                            "RECIPE_READ_PLC",
+                            $"Recipe read from PLC of '{selectedMachine.MachineName}' (Active Memory)"
+                        );
+                    }
+                    // -----------------------------------
 
                     MessageBox.Show($"Recipe read successfully from '{selectedMachine.MachineName}'.\nPlease rename and save it.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
@@ -946,48 +1055,75 @@ namespace TekstilScada.UI.Views
         {
             if (_currentRecipe == null) { MessageBox.Show("There is no prescription to save.", "Warning"); return; }
             if (string.IsNullOrWhiteSpace(txtRecipeName.Text)) { MessageBox.Show("Prescription name cannot be empty.", "Warning"); return; }
+
             _currentRecipe.RecipeName = txtRecipeName.Text;
+
             try
             {
+                // 1. Kayıt Tipi Belirleme (Yeni mi, Güncelleme mi?)
+                bool isNew = _currentRecipe.Id == 0;
+                string actionType = isNew ? "RECIPE_CREATE" : "RECIPE_UPDATE";
+
+                // 2. Kaydetme İşlemi (Bu işlem _currentRecipe.Id'yi günceller)
                 _recipeRepository.SaveRecipe(_currentRecipe);
-                MessageBox.Show("Recipe sucsessfly saved.", "Sucsessfly");
+
+                // 3. LOGLAMA (ID Formatı Eklendi)
+                if (CurrentUser.User != null && _userRepository != null)
+                {
+                    // Örnek Çıktı: New recipe created: Havlu Boyama (Kurutma Makinesi) [rcp-1042]
+                    string details = isNew
+                        ? $"New recipe created: {_currentRecipe.RecipeName} ({_currentRecipe.TargetMachineType}) [rcp-{_currentRecipe.Id}]"
+                        : $"Recipe updated: {_currentRecipe.RecipeName} [rcp-{_currentRecipe.Id}]";
+
+                    _userRepository.LogAction(CurrentUser.User.Id, actionType, details);
+                }
+
+                MessageBox.Show("Recipe successfully saved.", "Success");
                 LoadRecipeList();
+
+                // Listeyi yeniledikten sonra az önce kaydettiğimiz reçeteyi tekrar seçili hale getirelim
+                // Böylece log geçmişi kutusunda yeni logu hemen görebilirsiniz.
+                DisplayCurrentRecipe();
             }
             catch (Exception ex) { MessageBox.Show($"An error occurred while saving the recipe: {ex.Message}", "Error"); }
         }
 
         private void BtnDeleteRecipe_Click(object sender, EventArgs e)
         {
-            // 1. Listeden seçili olan tüm reçeteleri al.
             var selectedRecipes = lstRecipes.SelectedItems.Cast<ScadaRecipe>().ToList();
 
-            // 2. Hiçbir reçete seçilmediyse uyarı ver ve metottan çık.
             if (!selectedRecipes.Any())
             {
                 MessageBox.Show("Please select at least one recipe from the list to delete.", "Warning");
                 return;
             }
 
-            // 3. Kullanıcıdan toplu silme için onay al.
             var result = MessageBox.Show(
                 $"{selectedRecipes.Count} Are you sure you want to permanently delete the prescription?\nThis action cannot be undone.", "Bulk Deletion Confirmation",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning);
 
-            // 4. Kullanıcı "Evet" derse silme işlemine başla.
             if (result == DialogResult.Yes)
             {
                 try
                 {
-                    // Seçilen her bir reçete için döngü kur ve sil.
                     foreach (var recipeToDelete in selectedRecipes)
                     {
                         _recipeRepository.DeleteRecipe(recipeToDelete.Id);
+
+                        // LOGLAMA (ID Formatı Eklendi)
+                        if (CurrentUser.User != null && _userRepository != null)
+                        {
+                            _userRepository.LogAction(
+                                CurrentUser.User.Id,
+                                "RECIPE_DELETE",
+                                $"Recipe deleted: {recipeToDelete.RecipeName} [rcp-{recipeToDelete.Id}]"
+                            );
+                        }
                     }
 
                     MessageBox.Show($"{selectedRecipes.Count} The prescription was deleted successfully.", "Process Completed");
 
-                    // 5. Mevcut reçete ekranını temizle ve listeyi yenile.
                     _currentRecipe = null;
                     DisplayCurrentRecipe();
                     LoadRecipeList();

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Windows.Forms;
 using TekstilScada.Core;
 using TekstilScada.Models;
@@ -15,6 +16,7 @@ using TekstilScada.UI.Controls;
 using TekstilScada.UI.Controls.RecipeStepEditors;
 using TekstilScada.UI.Views;
 using TekstilScada.Core.Models;
+
 namespace TekstilScada.UI
 {
     public partial class FtpSync_Form : Form
@@ -22,6 +24,7 @@ namespace TekstilScada.UI
         private readonly MachineRepository _machineRepository;
         private readonly RecipeRepository _recipeRepository;
         private readonly FtpTransferService _transferService;
+        private readonly UserRepository _userRepository; // YENİ: Loglama için eklendi
 
         // Ön izleme editörü için gerekli değişkenler
         private SplitContainer _byMakinesiEditor;
@@ -29,16 +32,25 @@ namespace TekstilScada.UI
         private Panel pnlStepDetails;
         private ScadaRecipe _previewRecipe;
         private readonly string _targetMachineType;
-        private readonly PlcPollingService _plcPollingService; // <-- YENİ DEĞİŞKENİ EKLEYİN
-        public FtpSync_Form(MachineRepository machineRepo, RecipeRepository recipeRepo, PlcPollingService plcPollingService, string targetMachineType, FtpTransferService transferService)
+        private readonly PlcPollingService _plcPollingService;
+
+        // GÜNCELLEME: UserRepository parametresi eklendi
+        public FtpSync_Form(
+            MachineRepository machineRepo,
+            RecipeRepository recipeRepo,
+            PlcPollingService plcPollingService,
+            string targetMachineType,
+            FtpTransferService transferService,
+            UserRepository userRepo) // <--- Yeni Parametre
         {
             InitializeComponent();
             _machineRepository = machineRepo;
             _recipeRepository = recipeRepo;
             _targetMachineType = targetMachineType;
-            _transferService = transferService; // DÜZELTME: Dışarıdan gelen nesneyi kullanın.
+            _transferService = transferService;
             _transferService.SetSyncContext(SynchronizationContext.Current);
             _plcPollingService = plcPollingService;
+            _userRepository = userRepo; // Atama yapıldı
         }
 
         private void FtpSync_Form_Load(object sender, EventArgs e)
@@ -52,20 +64,13 @@ namespace TekstilScada.UI
 
         private void LoadMachines()
         {
-            // 1. Servisin anlık veri önbelleğini al.
             var machineCache = _plcPollingService.MachineDataCache;
 
-            // 2. Makineleri veritabanından çekerken bu önbelleğe göre filtrele.
             var machines = _machineRepository.GetAllEnabledMachines()
                 .Where(m =>
-                    // Mevcut Filtrelerin
                     !string.IsNullOrEmpty(m.FtpUsername) &&
                     m.MachineType != "Kurutma Makinesi" &&
                     (!string.IsNullOrEmpty(m.MachineSubType) ? m.MachineSubType : m.MachineType) == _targetMachineType &&
-
-                    // NİHAİ VE KAYNAK KODUNA UYGUN KONTROL:
-                    // Bu makinenin kaydı Cache'de var mı? VE
-                    // Bu kaydın içindeki anlık bağlantı durumu "Connected" mı?
                     machineCache.TryGetValue(m.Id, out FullMachineStatus status) && status.ConnectionState == ConnectionStatus.Connected
                 )
                 .ToList();
@@ -77,26 +82,21 @@ namespace TekstilScada.UI
 
         private void LoadLocalRecipes()
         {
-            // KRİTİK ADIM 1: Yeni veri yüklenmeden önce mevcut seçimi ve indeksi temizle
             if (lstLocalRecipes.Items.Count > 0)
             {
                 lstLocalRecipes.SelectedIndex = -1;
                 lstLocalRecipes.ClearSelected();
             }
 
-            // Reçeteleri seçilen makine tipine göre filtrele
             lstLocalRecipes.DataSource = _recipeRepository.GetAllRecipes()
                 .Where(r => r.TargetMachineType == _targetMachineType)
                 .ToList();
             lstLocalRecipes.DisplayMember = "RecipeName";
             lstLocalRecipes.ValueMember = "Id";
 
-            // KRİTİK ADIM 2: DataSource atandıktan sonra seçimi tekrar sıfırla
             lstLocalRecipes.SelectedIndex = -1;
         }
 
-        // FtpSync_Form.cs
-        // FtpSync_Form.cs
         private async void LoadHmiRecipes()
         {
             var selectedMachine = clbMachines.CheckedItems.Count == 1
@@ -112,7 +112,6 @@ namespace TekstilScada.UI
             }
 
             btnReceive.Enabled = true;
-
             btnRefreshHmi.Enabled = false;
             lstHmiRecipes.DataSource = new List<string> { "Prescription names are read from the PLC..." };
             ClearPreview();
@@ -140,7 +139,7 @@ namespace TekstilScada.UI
                     }
 
                     lstHmiRecipes.DataSource = displayList;
-                    lstHmiRecipes.ClearSelected(); // Clear selection after loading new data
+                    lstHmiRecipes.ClearSelected();
                 }
                 else
                 {
@@ -184,26 +183,29 @@ namespace TekstilScada.UI
                     return;
                 }
 
-                // Kullanıcıdan başlangıç numarasını al
                 string startNumberStr = ProsesKontrol_Control.ShowInputDialog("Enter the first prescription number to be sent (1-98):", true);
                 if (string.IsNullOrEmpty(startNumberStr) || !int.TryParse(startNumberStr, out int startNumber))
                 {
-                    return; // Kullanıcı iptal etti veya geçersiz giriş yaptı
+                    return;
                 }
 
-                // Seçilen reçete sayısı, kalan numaralara sığıyor mu kontrol et
                 if (startNumber + selectedRecipes.Count - 1 > 98)
                 {
                     MessageBox.Show($"The {selectedRecipes.Count} number of recipes you selected exceeds the limit of 98 with a starting number of {startNumber}. Please select a lower starting number.", "Error");
                     return;
                 }
 
-                // Yeni servis metodunu çağır
                 _transferService.QueueSequentiallyNamedSendJobs(selectedRecipes, selectedMachines, startNumber);
+
+                // --- LOGLAMA (Toplu Gönderim) ---
+                if (CurrentUser.User != null && _userRepository != null)
+                {
+                    string details = $"{selectedRecipes.Count} recipes queued for sending to {selectedMachines.Count} machines. Start #: {startNumber}";
+                    _userRepository.LogAction(CurrentUser.User.Id, "FTP_BATCH_SEND", details);
+                }
             }
             catch (Exception ex)
             {
-                // Gönderim veya UI işleme sırasında oluşan diğer hataları yakalar
                 MessageBox.Show($"An unexpected error occurred during submission: {ex.Message}", "Critical Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -227,18 +229,22 @@ namespace TekstilScada.UI
                 return;
             }
 
-            // Seçilen her bir öğenin indeksine göre doğru dosya adlarını oluştur.
             var filesToReceive = new List<string>();
             foreach (int index in selectedIndices)
             {
-                // ListBox indeksi 0'dan başladığı için, reçete numarası için 1 ekliyoruz.
                 int recipeNumber = index + 1;
                 string remoteFileName = $"XPR{recipeNumber:D5}.csv";
                 filesToReceive.Add(remoteFileName);
             }
 
-            // FtpTransferService'e doğru dosya adlarıyla kuyruğa ekleme emrini ver.
             _transferService.QueueReceiveJobs(filesToReceive, selectedMachine);
+
+            // --- LOGLAMA (Toplu Alma) ---
+            if (CurrentUser.User != null && _userRepository != null)
+            {
+                string details = $"{filesToReceive.Count} recipes queued for download from machine '{selectedMachine.MachineName}'.";
+                _userRepository.LogAction(CurrentUser.User.Id, "FTP_BATCH_RECEIVE", details);
+            }
         }
 
         private void btnRefreshHmi_Click(object sender, EventArgs e)
@@ -253,31 +259,22 @@ namespace TekstilScada.UI
 
         private void Jobs_ListChanged(object sender, ListChangedEventArgs e)
         {
-            // Hata oluşma potansiyeli olan kısmı ana UI thread'ine yönlendiriyoruz
             if (this.InvokeRequired)
             {
                 this.Invoke(new Action(() => Jobs_ListChanged(sender, e)));
                 return;
             }
 
-            // --- Bu noktadan sonrası artık UI Thread'de çalışır ---
-
             if (e.ListChangedType == ListChangedType.ItemChanged)
             {
                 var job = _transferService.Jobs[e.NewIndex] as TransferJob;
                 if (job != null && job.OperationType == TransferType.Send && job.Status == TransferStatus.Successful)
                 {
-                    // LoadLocalRecipes() UI kontrolünü güncellediği için artık güvenli
                     LoadLocalRecipes();
                 }
             }
 
             if (this.IsDisposed || !this.IsHandleCreated) return;
-
-            // dgvTransfers.Refresh() işlemi de UI Thread'de olmalıdır, ancak Jobs_ListChanged
-            // metodunun başında Invoke kontrolü eklendiği için aşağıdaki özel Invoke kontrolü gereksiz hale gelir.
-
-            // DÜZELTME: Güvenli olması için InvokeRequired kontrolü kaldırıldı, en yukarıdaki Invoke kontrolü yeterlidir.
             dgvTransfers.Refresh();
         }
 
@@ -288,15 +285,6 @@ namespace TekstilScada.UI
         }
 
         #region Ön İzleme Metotları
-
-        // FtpSync_Form.cs
-        // ...
-        // FtpSync_Form.cs
-
-        // ... Diğer metotlarınız ...
-
-        // FtpSync_Form.cs
-        // ...
 
         private async void lstHmiRecipes_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -313,11 +301,7 @@ namespace TekstilScada.UI
                 return;
             }
 
-            // Reçete numarasını ListBox'taki sırasına göre alıyoruz.
-            // İndeks 0'dan başladığı için 1 ekliyoruz.
             int recipeNumber = lstHmiRecipes.SelectedIndex + 1;
-
-            // FTP dosya adını bu numaraya göre oluşturuyoruz.
             string remoteFileName = $"XPR{recipeNumber:D5}.csv";
 
             tabControlMain.SelectedTab = tabPagePreview;
@@ -343,10 +327,6 @@ namespace TekstilScada.UI
                 lblPreviewStatus.Text = $"Preview failed to load: {ex.Message}";
             }
         }
-        // ...
-
-        // ... Diğer metotlarınız ...
-        // ...
 
         private void ClearPreview()
         {
@@ -357,52 +337,12 @@ namespace TekstilScada.UI
             _previewRecipe = null;
         }
 
-        private string GeneratePreviewRecipeName(Machine machine, string fileName, ScadaRecipe recipe)
-        {
-            string machineName = machine.MachineName;
-            string recipeNumberPart = "0";
-            try
-            {
-                string fName = Path.GetFileNameWithoutExtension(fileName);
-                Match match = Regex.Match(fName, @"\d+$");
-                if (match.Success)
-                {
-                    recipeNumberPart = int.Parse(match.Value).ToString();
-                }
-            }
-            catch { recipeNumberPart = "NO ERROR"; }
-
-            string asciiPart = "EMPTY";
-            try
-            {
-                var step99 = recipe.Steps.FirstOrDefault(s => s.StepNumber == 99);
-                if (step99 != null && step99.StepDataWords.Length >= 5)
-                {
-                    byte[] asciiBytes = new byte[10];
-                    for (int i = 0; i < 5; i++)
-                    {
-                        short word = step99.StepDataWords[i];
-                        byte[] wordBytes = BitConverter.GetBytes(word);
-                        asciiBytes[i * 2] = wordBytes[0];
-                        asciiBytes[i * 2 + 1] = wordBytes[1];
-                    }
-                    asciiPart = Encoding.ASCII.GetString(asciiBytes).Replace("\0", "").Trim();
-                    if (string.IsNullOrEmpty(asciiPart)) asciiPart = "EMPTY";
-                }
-                else { asciiPart = "STEP99 NOT AVAILABLE"; }
-            }
-            catch { asciiPart = "HATA"; }
-
-            return $"{machineName}-{recipeNumberPart}-{asciiPart}";
-        }
-
         private void InitializeBYMakinesiEditor(string recipeName)
         {
             _byMakinesiEditor = new SplitContainer();
             dgvRecipeSteps = new DataGridView();
             pnlStepDetails = new Panel();
 
-            // Üst başlık çubuğunu oluşturun ve reçete adını atayın
             var pnlTopBar = new Panel { Dock = DockStyle.Top, Height = 30, BackColor = Color.LightSteelBlue };
             var lblRecipeName = new Label { Dock = DockStyle.Fill, Text = recipeName, Font = new Font("Segoe UI", 10F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleCenter };
             pnlTopBar.Controls.Add(lblRecipeName);
@@ -410,11 +350,7 @@ namespace TekstilScada.UI
             _byMakinesiEditor.Dock = DockStyle.Fill;
             _byMakinesiEditor.SplitterDistance = 450;
             _byMakinesiEditor.Panel1.Controls.Add(dgvRecipeSteps);
-
-            // Panel2'ye ilk olarak başlık panelini ekle
             _byMakinesiEditor.Panel2.Controls.Add(pnlTopBar);
-
-            // Ardından, adım detayları panelini (Fill) olarak ekle
             _byMakinesiEditor.Panel2.Controls.Add(pnlStepDetails);
 
             dgvRecipeSteps.Dock = DockStyle.Fill;
@@ -431,7 +367,6 @@ namespace TekstilScada.UI
 
             SetupStepsGridView();
         }
-
 
         private void SetupStepsGridView()
         {
@@ -495,7 +430,6 @@ namespace TekstilScada.UI
         }
 
         #endregion
-        // BU KODU FtpSync_Form.cs DOSYASININ SONUNA EKLEYİN
 
         // DataGridView için özel ProgressBar kolonu
         public class DataGridViewProgressBarColumn : DataGridViewTextBoxColumn
@@ -517,13 +451,11 @@ namespace TekstilScada.UI
 
                 if (percentage > 0.0)
                 {
-                    // İlerleme çubuğunun rengini belirle
                     Brush progressBarBrush = new SolidBrush(Color.FromArgb(180, 220, 180));
                     g.FillRectangle(progressBarBrush, cellBounds.X + 2, cellBounds.Y + 2, Convert.ToInt32((percentage * cellBounds.Width - 4)), cellBounds.Height - 4);
                     progressBarBrush.Dispose();
                 }
 
-                // Yüzde metnini yazdır
                 string text = progressVal.ToString() + "%";
                 SizeF textSize = g.MeasureString(text, cellStyle.Font);
                 float textX = cellBounds.X + (cellBounds.Width - textSize.Width) / 2;
