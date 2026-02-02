@@ -1,6 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
-using TekstilScada.Core.Models; // Modellerin namespace'i
+using TekstilScada.Core.Models;
 using TekstilScada.Models;
 using TekstilScada.WebApp.Services;
 
@@ -9,14 +10,20 @@ namespace TekstilScada.WebApp.Services
     public class FactoryStateService : IHostedService, IDisposable
     {
         public ConcurrentDictionary<int, List<FullMachineStatus>> FactoryDataCache { get; private set; } = new();
+
+        // Arayüzün dinlediği olay
         public event Action? OnChange;
 
-        private Timer? _timer;
         private readonly IServiceScopeFactory _scopeFactory;
-
-        // Bağlantıyı sürekli açık tutmak için servisi sınıf seviyesinde tutacağız
         private ScadaDataService? _scadaService;
-        private IServiceScope? _scope; // Scope'u da açık tutmalıyız
+        private IServiceScope? _scope;
+
+        // Timerlar
+        private Timer? _syncTimer;      // Veri eksikse tamamlamak için (30 sn)
+        private Timer? _uiRefreshTimer; // Arayüzü kasmadan yenilemek için (1 sn)
+
+        // Performans Bayrağı: Eğer veri değişmediyse arayüzü boşuna yenilemeyelim
+        private volatile bool _hasPendingChanges = false;
 
         public FactoryStateService(IServiceScopeFactory scopeFactory)
         {
@@ -25,81 +32,140 @@ namespace TekstilScada.WebApp.Services
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            // 1. Servisi ve Bağlantıyı BAŞLANGIÇTA bir kere kur
             _scope = _scopeFactory.CreateScope();
             _scadaService = _scope.ServiceProvider.GetRequiredService<ScadaDataService>();
 
             try
             {
-                // Bir kere login ol ve bağlan
+                // 1. ÖNCE BAĞLANTIYI KUR
+                Console.WriteLine("[FactoryStateService] Servis başlatılıyor...");
                 await _scadaService.InitializeForBackgroundServiceAsync();
+
+                // 2. SONRA ABONE OL
+                if (_scadaService.HubConnection != null)
+                {
+                    _scadaService.SubscribeToLiveUpdates(OnMachineUpdateReceived);
+                    Console.WriteLine("[FactoryStateService] ✅ Canlı veri akışına abone olundu.");
+                }
+
+                // 3. İLK VERİLERİ ÇEK
+                await RefreshAllData();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[FactoryStateService] Başlangıç bağlantı hatası: {ex.Message}");
+                Console.WriteLine($"[FactoryStateService] Başlangıç Hatası: {ex.Message}");
             }
 
-            // 2. Timer'ı başlat (Sadece veri çekmek için)
-            _timer = new Timer(FetchAllFactoryData, null, 0, 2000);
+            // --- ZAMANLAYICILAR ---
+
+            // A. UI Timer: Saniyede 1 kere çalışır, arayüzü rahatlatır (Takılmayı çözen kısım burası)
+            _uiRefreshTimer = new Timer(UiRefreshTick, null, 1000, 1000);
+
+            // B. Sync Timer: 30 saniyede bir toplu kontrol yapar
+            _syncTimer = new Timer(SyncTimerCallback, null, 30000, 30000);
         }
 
-        private async void FetchAllFactoryData(object? state)
+        // --- CANLI VERİ BURAYA GELİR (Saniyede yüzlerce kez tetiklenebilir) ---
+        private void OnMachineUpdateReceived(FullMachineStatus status)
         {
-            if (_scadaService == null) return;
+            if (status == null) return;
+
+            // 1. Veriyi RAM'e (Cache) İşle (Bu işlem çok hızlıdır, arayüzü yormaz)
+            bool found = false;
+            foreach (var factoryId in FactoryDataCache.Keys)
+            {
+                if (FactoryDataCache.TryGetValue(factoryId, out var machines))
+                {
+                    var existingMachine = machines.FirstOrDefault(m => m.MachineId == status.MachineId);
+
+                    if (existingMachine != null)
+                    {
+                        // Varsa güncelle
+                        int index = machines.IndexOf(existingMachine);
+                        machines[index] = status;
+                        found = true;
+                    }
+                    else
+                    {
+                        // Yoksa ekle
+                        machines.Add(status);
+                        found = true;
+                    }
+
+                    if (found) break;
+                }
+            }
+
+            // 2. DİKKAT: Burada OnChange?.Invoke() ÇAĞIRMIYORUZ!
+            // Sadece "Veri değişti, haberin olsun" bayrağını kaldırıyoruz.
+            // Arayüzü _uiRefreshTimer güncelleyecek.
+            if (found)
+            {
+                _hasPendingChanges = true;
+            }
+        }
+
+        // --- ARAYÜZ YENİLEME TİMER'I (Saniyede 1 Kere) ---
+        private void UiRefreshTick(object? state)
+        {
+            // Eğer yeni veri geldiyse arayüzü tetikle
+            if (_hasPendingChanges)
+            {
+                _hasPendingChanges = false; // Bayrağı indir
+                OnChange?.Invoke(); // Şimdi arayüzü yenile (Saniyede max 1 kez)
+            }
+        }
+
+        private async void SyncTimerCallback(object? state)
+        {
+            await RefreshAllData();
+        }
+
+        private async Task RefreshAllData()
+        {
+            if (_scadaService == null || _scadaService.HubConnection?.State != Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Connected)
+                return;
 
             try
             {
-                // Bağlantı kopmuşsa tekrar bağlanmayı dene
-                if (_scadaService.HubConnection == null ||
-                    _scadaService.HubConnection.State == Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Disconnected)
-                {
-                    await _scadaService.InitializeForBackgroundServiceAsync();
-                }
-
-                // 1. Fabrikaları çek
                 var factories = await _scadaService.GetAllFactoriesAsync();
 
-                // 2. Her fabrika için veriyi çek
+                if (factories == null || factories.Count == 0) return;
+
+                var factoryIds = factories.Select(f => f.Id).ToList();
+                await _scadaService.HubConnection.InvokeAsync("SubscribeToFactories", factoryIds);
+
                 await Parallel.ForEachAsync(factories, async (factory, token) =>
                 {
-                    try
-                    {
-                        var machines = await _scadaService.GetLiveMachineStatusByFactoryId(factory.Id);
+                    var machines = await _scadaService.GetLiveMachineStatusByFactoryId(factory.Id);
+                    var safeList = machines ?? new List<FullMachineStatus>();
 
-                        // ÖNEMLİ DÜZELTME: Sadece veri varsa güncelle!
-                        // Bağlantı hatasında boş liste gelirse eski veriyi silme.
-                        if (machines != null && machines.Count > 0)
-                        {
-                            FactoryDataCache.AddOrUpdate(factory.Id, machines, (key, oldValue) => machines);
-                        }
-                    }
-                    catch (Exception ex)
+                    FactoryDataCache.AddOrUpdate(factory.Id, safeList, (key, old) =>
                     {
-                        Console.WriteLine($"Fabrika {factory.Id} veri hatası: {ex.Message}");
-                    }
+                        if (safeList.Count == 0 && old.Count > 0) return old;
+                        return safeList;
+                    });
                 });
 
-                // Arayüzü güncelle
+                // Toplu güncellemede hemen yansısın (Zaten 30 saniyede bir oluyor)
+                _hasPendingChanges = false;
                 OnChange?.Invoke();
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"FactoryStateService Döngü Hatası: {ex.Message}");
-            }
+            catch { }
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            _timer?.Change(Timeout.Infinite, 0);
-
-            // Temizlik
+            _uiRefreshTimer?.Change(Timeout.Infinite, 0);
+            _syncTimer?.Change(Timeout.Infinite, 0);
             if (_scadaService != null) await _scadaService.DisposeAsync();
             _scope?.Dispose();
         }
 
         public void Dispose()
         {
-            _timer?.Dispose();
+            _uiRefreshTimer?.Dispose();
+            _syncTimer?.Dispose();
             _scope?.Dispose();
         }
     }

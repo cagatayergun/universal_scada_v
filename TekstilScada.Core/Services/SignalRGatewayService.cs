@@ -429,6 +429,10 @@ namespace TekstilScada.Services
 
             switch (method)
             {
+                case "GetAllMachineStatuses":
+                    var allMachines1 = _plcService.MachineDataCache.Values.ToList();
+                    Console.WriteLine($"[GATEWAY] GetAllMachineStatuses isteği geldi. Cache'teki Makine Sayısı: {allMachines1.Count}");
+                    return allMachines1;
                 // -- MAKİNE --
                 case "GetAllMachines": return _machineRepo.GetAllMachines();
                 case "GetMachineStatus":

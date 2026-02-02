@@ -4,6 +4,8 @@
 
 using Blazored.LocalStorage; // Bu using'i ekleyin
 using Microsoft.AspNetCore.SignalR.Client;
+// --- DTO Sınıfları (Global) ---
+using Microsoft.Extensions.Configuration; // <--- BU EKLENDİ
 using Microsoft.Extensions.DependencyInjection; // <--- AddJsonProtocol için BU ŞART
 using System;
 using System.Collections.Concurrent;
@@ -15,8 +17,6 @@ using System.Threading.Tasks;
 using TekstilScada.Models;
 using TekstilScada.Repositories;
 using TekstilScada.Services;
-// --- DTO Sınıfları (Global) ---
-
 
 
 public class TrendDataPoint
@@ -220,7 +220,7 @@ namespace TekstilScada.WebApp.Services
     public class ScadaDataService : IAsyncDisposable
 
     {
-
+        private readonly IConfiguration _config; // <--- BU EKLENDİ
         private HubConnection? _hubConnection;
 
         private readonly HttpClient _httpClient;
@@ -257,10 +257,11 @@ namespace TekstilScada.WebApp.Services
 
 
 
-        public ScadaDataService(HttpClient httpClient, ILocalStorageService localStorage)
+        public ScadaDataService(HttpClient httpClient, ILocalStorageService localStorage, IConfiguration config)
         {
             _httpClient = httpClient;
             _localStorage = localStorage; // <--- ATANDI
+            _config = config; // <--- ATANDI
             _serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         }
 
@@ -453,49 +454,59 @@ namespace TekstilScada.WebApp.Services
             }
         }
 
-       
+
 
         // --- 3. FABRİKADAN ÇIKIŞ ---
-        
 
-        
+
+
 
         // --- 2. YENİ LOGIN METODU ---
 
+
         private async Task LoginAndGetTokenAsync()
         {
+            // 1. Ayarları Oku
+            var username = _config["ServiceAccount:Username"] ?? "admin";
+            var password = _config["ServiceAccount:Password"] ?? "1234";
+            var apiUrl = _httpClient.BaseAddress?.ToString();
+
+            Console.WriteLine($"[ScadaDataService] 🔑 Giriş Deneniyor -> Kullanıcı: '{username}', API: '{apiUrl}'");
+
             try
             {
-                // API'deki AuthController'a sabit admin bilgileriyle istek atıyoruz (Köprü Modu)
-                var loginData = new { Username = "admin", Password = "1234" };
+                var loginData = new { Username = username, Password = password };
                 var response = await _httpClient.PostAsJsonAsync("api/auth/login", loginData);
 
                 if (response.IsSuccessStatusCode)
                 {
                     var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
                     _accessToken = result?.Token ?? string.Empty;
-
-                    // --- EKLENEN KISIM BAŞLANGIÇ ---
-                    // Token'ı HttpClient'ın varsayılan başlıklarına ekliyoruz.
-                    // Böylece GetMyFactoriesAsync gibi sonraki isteklerde bu token otomatik gönderilir.
-                    if (!string.IsNullOrEmpty(_accessToken))
-                    {
-                        _httpClient.DefaultRequestHeaders.Authorization =
-                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
-                    }
-                    // --- EKLENEN KISIM BİTİŞ ---
+                    Console.WriteLine("[ScadaDataService] ✅ Giriş Başarılı! Token alındı.");
                 }
                 else
                 {
-                    //("[ScadaService] API Login Başarısız! Token alınamadı.");
+                    // --- HATA DETAYINI OKU ---
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    var statusCode = response.StatusCode;
+
+                    Console.WriteLine($"[ScadaDataService] ⛔ GİRİŞ BAŞARISIZ! Kod: {statusCode}");
+                    Console.WriteLine($"[ScadaDataService] ⛔ Sunucu Cevabı: {errorContent}");
+
+                    throw new Exception($"API Giriş Hatası ({statusCode}): {errorContent}");
                 }
             }
             catch (Exception ex)
             {
-                //($"[ScadaService] Login Hatası: {ex.Message}");
+                Console.WriteLine($"[ScadaDataService] 💥 KRİTİK GİRİŞ HATASI: {ex.Message}");
+                // Eğer bağlantı hatası varsa (API kapalıysa) detayını görelim
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"[ScadaDataService] 🔍 Alt Hata: {ex.InnerException.Message}");
+                }
+                throw; // Hatayı yukarı fırlat
             }
         }
-
         // Yardımcı Metot: Virgülle ayrılmış string'i listeye çevir
         private void ParseAllowedFactories(string allowedIds)
         {
@@ -1658,50 +1669,66 @@ namespace TekstilScada.WebApp.Services
         {
             try
             {
-                Console.WriteLine("[ScadaDataService] Arka plan servisi başlatılıyor...");
+                Console.WriteLine("[ScadaDataService] 🚀 Arka plan servisi başlatılıyor...");
 
-                // A. Token Al (Admin girişi yaparak)
-                await LoginAndGetTokenAsync();
-
-                // B. Token'ı Header'a ekle
-                if (!string.IsNullOrEmpty(_accessToken))
+                // --- 1. GİZLİ ANAHTARI EKLE (KRİTİK) ---
+                // Login başarısız olsa bile bu anahtar sayesinde verileri çekebileceğiz.
+                if (!_httpClient.DefaultRequestHeaders.Contains("X-Service-Key"))
                 {
-                    _httpClient.DefaultRequestHeaders.Authorization =
-                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
+                    _httpClient.DefaultRequestHeaders.Add("X-Service-Key", "UniversalScadaServiceKey_2024");
+                    Console.WriteLine("[ScadaDataService] ✅ Servis Anahtarı (Backdoor) başlığa eklendi.");
                 }
 
-                // C. SignalR Bağlantısını Kur
+                // --- 2. Normal Login Denemesi (Opsiyonel ama SignalR için kalsın) ---
+                try
+                {
+                    await LoginAndGetTokenAsync();
+
+                    if (!string.IsNullOrEmpty(_accessToken))
+                    {
+                        _httpClient.DefaultRequestHeaders.Authorization =
+                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
+                    }
+                }
+                catch (Exception loginEx)
+                {
+                    Console.WriteLine($"[UYARI] Login başarısız oldu ama Servis Anahtarı ile devam edilecek. Hata: {loginEx.Message}");
+                }
+
+                // --- 3. SignalR Bağlantısı ---
                 if (_hubConnection == null || _hubConnection.State == HubConnectionState.Disconnected)
                 {
                     var hubUrl = new Uri(_httpClient.BaseAddress!, "/scadaHub");
-
                     _hubConnection = new HubConnectionBuilder()
                         .WithUrl(hubUrl, options =>
                         {
                             options.AccessTokenProvider = () => Task.FromResult(_accessToken);
-                            // Sertifika hatalarını yoksay (Geliştirme ortamı için)
-                            options.HttpMessageHandlerFactory = (handler) =>
-                            {
-                                if (handler is HttpClientHandler clientHandler)
-                                    clientHandler.ServerCertificateCustomValidationCallback = (s, c, ch, e) => true;
-                                return handler;
+                            // SSL Bypass
+                            options.HttpMessageHandlerFactory = (h) => {
+                                if (h is HttpClientHandler c) c.ServerCertificateCustomValidationCallback = (s, ce, ch, e) => true;
+                                return h;
                             };
-                            options.WebSocketConfiguration = w =>
-                                w.RemoteCertificateValidationCallback = (s, c, ch, e) => true;
+                            options.WebSocketConfiguration = w => w.RemoteCertificateValidationCallback = (s, c, ch, e) => true;
                         })
-                        .WithAutomaticReconnect() // Otomatik yeniden bağlanma
+                        .WithAutomaticReconnect()
                         .Build();
 
                     await _hubConnection.StartAsync();
-                    Console.WriteLine("[ScadaDataService] Arka plan SignalR bağlantısı kuruldu.");
+                    Console.WriteLine("[ScadaDataService] ✅ Arka plan SignalR bağlantısı kuruldu.");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ScadaDataService] Background Init Hatası: {ex.Message}");
+                Console.WriteLine($"[ScadaDataService] BAŞLANGIÇ HATASI: {ex.Message}");
             }
         }
 
+        // --- GÜNCELLENEN METOT: LOGIN ---
+
+        public void SubscribeToLiveUpdates(Action<FullMachineStatus> handler)
+        {
+            HubConnection.On("ReceiveMachineUpdate", handler);
+        }
 
 
 

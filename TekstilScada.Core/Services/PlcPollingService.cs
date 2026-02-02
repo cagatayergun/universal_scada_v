@@ -1,5 +1,4 @@
-﻿// File: TekstilScada.Core/Services/PlcPollingService.cs
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -130,12 +129,17 @@ namespace TekstilScada.Services
                     _plcManagers.TryAdd(machine.Id, plcManager);
 
                     _connectionStates.TryAdd(machine.Id, ConnectionStatus.Disconnected);
+
+                    // --- GÜNCELLENEN KISIM BAŞLANGIÇ ---
                     MachineDataCache.TryAdd(machine.Id, new FullMachineStatus
                     {
                         MachineId = machine.Id,
                         MachineName = machine.MachineName,
+                        MakineTipi = machine.MachineSubType, // <--- DÜZELTME BURADA
                         ConnectionState = ConnectionStatus.Disconnected
                     });
+                    // --- GÜNCELLENEN KISIM BİTİŞ ---
+
                     _activeAlarmsTracker.TryAdd(machine.Id, new ConcurrentDictionary<int, DateTime>());
                     _currentBatches.TryAdd(machine.Id, null);
                 }
@@ -272,6 +276,7 @@ namespace TekstilScada.Services
                         var newStatus = readResult.Content;
                         newStatus.MachineId = machine.Id;
                         newStatus.MachineName = status.MachineName;
+                        newStatus.MakineTipi = status.MakineTipi; // <--- TİPİ KORU
                         newStatus.ConnectionState = ConnectionStatus.Connected;
                         newStatus.AktifAdimAdi = GetStepTypeName(newStatus.AktifAdimTipiWordu);
 

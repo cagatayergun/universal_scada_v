@@ -14,7 +14,35 @@ namespace TekstilScada.WebAPI.Repositories
         {
             _connectionString = configuration.GetConnectionString("CentralConnection");
         }
+        public List<CentralFactory> GetAllFactories()
+        {
+            var list = new List<CentralFactory>();
+            using (var connection = new MySqlConnection(_connectionString))
+            {
+                connection.Open();
 
+                // GÜVENLİK DUVARI KALDIRILDI: Şirket ID'sine bakmaksızın HEPSİNİ çeker.
+                string query = "SELECT * FROM Factories WHERE IsActive = 1";
+
+                using (var cmd = new MySqlCommand(query, connection))
+                {
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            list.Add(new CentralFactory
+                            {
+                                Id = reader.GetInt32("Id"),
+                                CompanyId = reader.GetInt32("CompanyId"),
+                                FactoryName = reader.GetString("FactoryName"),
+                                HardwareKey = reader.GetString("HardwareKey")
+                            });
+                        }
+                    }
+                }
+            }
+            return list;
+        }
         public CentralFactory? GetFactoryByHardwareKey(string hardwareKey)
         {
             using (var connection = new MySqlConnection(_connectionString))

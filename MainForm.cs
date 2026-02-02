@@ -31,7 +31,7 @@ namespace TekstilScada
         private readonly DashboardRepository _dashboardRepository;
         private readonly CostRepository _costRepository;
         private readonly UserRepository _userRepository;
-
+        private AutoBackupService _backupService;
         // SignalR Gateway için gerekli ek Repository'ler
         private readonly RecipeConfigurationRepository _recipeConfigRepository;
         private readonly PlcOperatorRepository _plcOperatorRepository;
@@ -217,6 +217,9 @@ namespace TekstilScada
               
             }
             catch { }
+            // Yedekleme servisini baþlat
+            _backupService = new AutoBackupService();
+            _backupService.Start();
         }
 
         private void ApplyPermissions()
@@ -494,6 +497,7 @@ namespace TekstilScada
 
 
             _vncServer?.StopStream();
+            _backupService?.Stop();
         }
 
         private void CloudSyncService_OnRemoteCommandReceived(int machineId, string command, string parameters)

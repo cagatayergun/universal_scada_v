@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Localization;
 using System.Globalization;
 using TekstilScada.WebApp.Components;
 using TekstilScada.WebApp.Services;
+
 // Core namespace'inizin doðru olduðundan emin olun
 using TekstilScada.Core.Models;
 
@@ -94,7 +95,12 @@ builder.Services.AddScoped<ScadaDataService>(sp =>
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
     var httpClient = httpClientFactory.CreateClient("WebApiClient");
     var localStorage = sp.GetRequiredService<ILocalStorageService>();
-    return new ScadaDataService(httpClient, localStorage);
+
+    // YENÝ: Configuration servisini çaðýrýyoruz
+    var config = sp.GetRequiredService<IConfiguration>();
+
+    // YENÝ: Constructor'a config parametresini de ekliyoruz
+    return new ScadaDataService(httpClient, localStorage, config);
 });
 
 // DEÐÝÞÝKLÝK 2: Interface Eþleþtirmesi (Arka plan servisi IScadaDataService arýyor olabilir)

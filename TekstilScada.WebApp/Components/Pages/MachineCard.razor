@@ -1,6 +1,4 @@
-﻿@* Dosya: TekstilScada.WebApp/Components/Pages/MachineCard.razor *@
-
-@using TekstilScada.Models
+﻿@using TekstilScada.Models
 @using Microsoft.AspNetCore.Components.Web
 @using MudBlazor
 @using TekstilScada.Core.Localization
@@ -8,6 +6,7 @@
 @inject NavigationManager NavigationManager
 @inject IStringLocalizer<SharedResource> Loc
 @inject IDialogService DialogService
+
 <MudCard Elevation="4" Class="ma-2 machine-card-hover" Style="@GetCardBorderStyle()">
     <MudCardHeader>
         <CardHeaderAvatar>
@@ -17,7 +16,7 @@
         </CardHeaderAvatar>
         <CardHeaderContent>
             <MudText Typo="Typo.h6" Color="Color.Primary"><b>@MachineStatus.MachineName</b></MudText>
-            <MudText Typo="Typo.caption">@MachineStatus.MachineId</MudText> @* <-- DÜZELTME: MachineId değil UserDefinedId *@
+            <MudText Typo="Typo.caption">@MachineStatus.MachineName</MudText>
         </CardHeaderContent>
         <CardHeaderActions>
             <MudTooltip Text="@Loc["Detaylar"]">
@@ -55,17 +54,20 @@
 
         @if (MachineStatus.IsInRecipeMode)
         {
-            <div class="mb-4">
-                <div class="d-flex justify-space-between">
-                    <MudText Typo="Typo.caption">@Loc["Ilerleme"]</MudText>
-                    <MudText Typo="Typo.caption"><b>%@MachineStatus.ProsesYuzdesi</b></MudText>
+            @if (!IsDryerMachine())
+            {
+                <div class="mb-4">
+                    <div class="d-flex justify-space-between">
+                        <MudText Typo="Typo.caption">@Loc["Ilerleme"]</MudText>
+                        <MudText Typo="Typo.caption"><b>%@MachineStatus.ProsesYuzdesi</b></MudText>
+                    </div>
+                    <MudProgressLinear Color="Color.Success"
+                                       Value="@Convert.ToDouble(MachineStatus.ProsesYuzdesi)"
+                                       Striped="true"
+                                       Size="Size.Large"
+                                       Class="rounded-lg" />
                 </div>
-                <MudProgressLinear Color="Color.Success"
-                                   Value="@Convert.ToDouble(MachineStatus.ProsesYuzdesi)"
-                                   Striped="true"
-                                   Size="Size.Large"
-                                   Class="rounded-lg" />
-            </div>
+            }
         }
 
         <MudGrid Spacing="1">
@@ -139,6 +141,18 @@
     [Parameter] public FullMachineStatus MachineStatus { get; set; } = new();
     [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
     [Parameter] public EventCallback<int> OnInfoClick { get; set; }
+
+    // --- YENİ METOT: KURUTMA KONTROLÜ ---
+    private bool IsDryerMachine()
+    {
+        if (string.IsNullOrEmpty(MachineStatus.MakineTipi)) return false;
+
+        // Veritabanında "Kurutma" veya "Kurutma Makinesi" olarak kayıtlı olabilir.
+        // Büyük/küçük harf duyarlılığını kaldırarak kontrol ediyoruz.
+        var type = MachineStatus.MakineTipi.Trim().ToLower();
+        return type.Contains("kurutma");
+    }
+    // ------------------------------------
 
     private Color GetConnectionColor()
     {
@@ -226,13 +240,10 @@
             };
 
             var dialog = await DialogService.ShowAsync<VncMonitorDialog>("", parameters, options);
-            // Sonucu beklemek zorunda değilseniz bu satırı kaldırabilirsiniz, bazen kilitlenmeye sebep olabilir.
-            // var result = await dialog.Result;
         }
         catch (Exception ex)
         {
-            //($"Dialog Hatası: {ex.Message}");
-            // Gerekirse kullanıcıya Snackbar ile hata gösterilebilir.
+            // Hata yönetimi
         }
     }
 }

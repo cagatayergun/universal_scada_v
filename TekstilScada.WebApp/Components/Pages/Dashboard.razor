@@ -209,15 +209,18 @@
             .ThenBy(m => m.MachineName);
 
         GroupedMachines = sortedMachines
-             .GroupBy(m =>
-             {
-                 if (string.IsNullOrEmpty(m.MakineTipi) || m.MakineTipi == "Standart")
-                     return "Genel";
-                 return m.MakineTipi;
-             })
-             .OrderByDescending(g => g.Any(m => m.IsInRecipeMode))
-             .ThenBy(g => g.Key)
-             .ToList();
+     .GroupBy(m =>
+     {
+         // DÜZELTME: Veritabanındaki gerçek 'Makine Tipi' neyse onu kullanıyoruz.
+         // Sadece eğer veritabanında tamamen boş bırakılmışsa "Tanımsız" yazsın.
+         if (string.IsNullOrEmpty(m.MakineTipi))
+             return "Tanımsız";
+
+         return m.MakineTipi;
+     })
+     .OrderByDescending(g => g.Any(m => m.IsInRecipeMode))
+     .ThenBy(g => g.Key)
+     .ToList();
 
         // --- 4. Renk Atama ---
         if (GroupColors.Count != GroupedMachines.Count)

@@ -160,7 +160,7 @@ namespace TekstilScada.UI.Views
             // 1. Hedef makine seçili mi kontrol et
             if (cmbTargetMachine.SelectedItem is not Machine selectedMachine)
             {
-                MessageBox.Show("Lütfen önce listeden hedef makineyi seçiniz.", "Uyarı");
+                MessageBox.Show("Please select the target machine from the list first.", "Warning");
                 return;
             }
 
@@ -307,14 +307,14 @@ namespace TekstilScada.UI.Views
 
             if (_userRepository == null)
             {
-                lstRecipeHistory.Items.Add("Log servisi devre dışı.");
+                lstRecipeHistory.Items.Add("Log service is disabled.");
                 return;
             }
 
             // Eğer yeni bir reçete ise (henüz kaydedilmemişse ID 0'dır) log aramaya gerek yok.
             if (recipeId <= 0)
             {
-                lstRecipeHistory.Items.Add("Yeni reçete, geçmiş kaydı yok.");
+                lstRecipeHistory.Items.Add("The new prescription has no prior record.");
                 return;
             }
 
@@ -345,12 +345,12 @@ namespace TekstilScada.UI.Views
                 }
                 else
                 {
-                    lstRecipeHistory.Items.Add("Bu reçeteye ait işlem bulunamadı.");
+                    lstRecipeHistory.Items.Add("No transaction was found for this prescription.");
                 }
             }
             catch (Exception ex)
             {
-                lstRecipeHistory.Items.Add("Loglar yüklenemedi.");
+                lstRecipeHistory.Items.Add("The logs could not be loaded.");
                 System.Diagnostics.Debug.WriteLine("Log Load Error: " + ex.Message);
             }
         }
@@ -360,12 +360,12 @@ namespace TekstilScada.UI.Views
         {
             return actionType switch
             {
-                "RECIPE_CREATE" => "Oluşturuldu",
-                "RECIPE_UPDATE" => "Düzenlendi",
-                "RECIPE_DELETE" => "Silindi",
-                "RECIPE_SEND_FTP" => "Makineye Gönderildi (FTP)",
-                "RECIPE_SEND_PLC" => "Makineye Yazıldı (PLC)",
-                "RECIPE_READ_PLC" => "Makineden Okundu",
+                "RECIPE_CREATE" => "Created",
+                "RECIPE_UPDATE" => "Edited",
+                "RECIPE_DELETE" => "deleted",
+                "RECIPE_SEND_FTP" => "Sent to the machine (FTP)",
+                "RECIPE_SEND_PLC" => "Written to the Machine (PLC)",
+                "RECIPE_READ_PLC" => "Read from the machine.",
                 _ => actionType // Bilinmeyen tipler olduğu gibi kalsın
             };
         }

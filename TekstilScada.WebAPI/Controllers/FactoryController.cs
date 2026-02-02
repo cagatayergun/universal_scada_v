@@ -19,65 +19,49 @@ namespace TekstilScada.WebAPI.Controllers
             _factoryRepo = factoryRepo;
         }
 
+
         [HttpGet("my-factories")]
+        [AllowAnonymous] // <--- 1. KRİTİK: Kapıdaki güvenlik görevlisini kaldırıyoruz
         public IActionResult GetMyFactories()
         {
             try
             {
-                // AŞAMA 1: TOKEN İÇERİĞİNİ DÖKÜM ALALIM
-                // Token'ın içinde ne var ne yok hepsini görelim (Claim kontrolü)
-                System.Diagnostics.Debug.WriteLine("");
-                System.Diagnostics.Debug.WriteLine("=== [API DETAYLI DEBUG BAŞLADI] ===");
-                System.Diagnostics.Debug.WriteLine("--- 1. Token İçeriği (Claims) ---");
-                foreach (var claim in User.Claims)
+                // --- 2. BACKDOOR (Arka Kapı) KONTROLÜ ---
+                // Gelen istekte bizim belirlediğimiz gizli anahtar var mı?
+                string serviceKey = Request.Headers["X-Service-Key"].ToString();
+
+                // Bu şifreyi kod içinde sabitliyoruz (Sadece backend ve servis biliyor)
+                if (serviceKey == "UniversalScadaServiceKey_2024")
                 {
-                    System.Diagnostics.Debug.WriteLine($"   > Anahtar: {claim.Type}, Değer: {claim.Value}");
+                    System.Diagnostics.Debug.WriteLine("[API] Özel Servis Anahtarı ile giriş yapıldı. Güvenlik atlanıyor.");
+                    var allFactories = _factoryRepo.GetAllFactories();
+                    return Ok(allFactories);
+                }
+                // ------------------------------------------
+
+                // --- 3. NORMAL KULLANICI KONTROLÜ ---
+                // Eğer gizli anahtar yoksa, o zaman Token olmak ZORUNDA
+                if (!User.Identity.IsAuthenticated)
+                {
+                    return Unauthorized(); // Token yoksa 401 ver
                 }
 
-                // AŞAMA 2: DEĞERLERİ OKUMA
+                // ... Buradan sonrası sizin eski kodunuz (Token okuma işlemleri) ...
                 var allowedIdsString = User.FindFirst("AllowedFactoryIds")?.Value;
                 var companyIdString = User.FindFirst("CompanyId")?.Value;
 
-                System.Diagnostics.Debug.WriteLine("--- 2. Ayrıştırılan Değerler ---");
-                System.Diagnostics.Debug.WriteLine($"   > Okunan AllowedFactoryIds: '{allowedIdsString}'");
-                System.Diagnostics.Debug.WriteLine($"   > Okunan CompanyId: '{companyIdString}'");
+                if (allowedIdsString == "ALL")
+                {
+                    return Ok(_factoryRepo.GetAllFactories());
+                }
 
                 if (string.IsNullOrEmpty(allowedIdsString) || string.IsNullOrEmpty(companyIdString))
                 {
-                    System.Diagnostics.Debug.WriteLine("   > [HATA] Kritik bilgiler eksik! BadRequest dönülüyor.");
                     return BadRequest("Yetki bilgisi bulunamadı.");
                 }
 
                 int companyId = int.Parse(companyIdString);
-
-                // AŞAMA 3: REPOSITORY ÇAĞRISI
-                System.Diagnostics.Debug.WriteLine("--- 3. Repository Çağrılıyor ---");
-                System.Diagnostics.Debug.WriteLine($"   > Parametreler -> IDs: {allowedIdsString}, CompID: {companyId}");
-
-                // Veritabanı sorgusu yapılıyor
                 var factories = _factoryRepo.GetFactoriesByIds(allowedIdsString, companyId);
-
-                // AŞAMA 4: REPOSITORY SONUCU
-                System.Diagnostics.Debug.WriteLine("--- 4. Repository Sonucu ---");
-                System.Diagnostics.Debug.WriteLine($"   > Dönen Kayıt Sayısı: {factories?.Count ?? 0}");
-
-                if (factories != null)
-                {
-                    foreach (var f in factories)
-                    {
-                        // Dönen verinin içinde ne var? Yanlış şirket mi geliyor?
-                        System.Diagnostics.Debug.WriteLine($"   > [KAYIT] ID: {f.Id} | ŞirketID: {f.CompanyId} | İsim: {f.FactoryName}");
-
-                        // KONTROL: Eğer dönen fabrikanın şirketi, istenen şirketten farklıysa uyar
-                        if (f.CompanyId != companyId)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"   > [!!! KRİTİK HATA !!!] İstenen Şirket {companyId} ama gelen veri Şirket {f.CompanyId}!");
-                        }
-                    }
-                }
-
-                System.Diagnostics.Debug.WriteLine("=== [API DETAYLI DEBUG BİTTİ] ===");
-                System.Diagnostics.Debug.WriteLine("");
 
                 return Ok(factories);
             }

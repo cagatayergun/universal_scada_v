@@ -303,7 +303,13 @@
                     var finalY = Math.floor(relativeY * (naturalH / renderH));
 
                     return { x: finalX, y: finalY };
-                }
+                },
+                setupUnloadHandler: function (dotNetHelper) {
+            window.addEventListener("beforeunload", function (e) {
+                // DotNet tarafındaki Dispose metodunu çağırmayı dene
+                dotNetHelper.invokeMethodAsync("OnPageUnload");
+            });
+        }
             };
     </script>
 </body>

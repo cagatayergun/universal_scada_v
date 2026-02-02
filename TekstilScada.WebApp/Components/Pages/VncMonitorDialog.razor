@@ -10,7 +10,7 @@
 @inject IStringLocalizer<SharedResource> Loc
 @inject NavigationManager NavManager
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
-@inject IJSRuntime JS  // <-- 1. YENİ: JS Runtime Eklendi
+@inject IJSRuntime JS
 @implements IAsyncDisposable
 
 <MudDialog>
@@ -19,52 +19,51 @@
             <MudIcon Icon="@Icons.Material.Filled.DesktopWindows" Class="mr-3 mb-n1" />
             @if (machine != null)
             {
-                    @($"{Loc["UzaktanErisim"]} - {machine.MachineName}")
+                @($"{Loc["UzaktanErisim"]} - {machine.MachineName}")
             }
             else
             {
-                    @Loc["UzaktanErisim"]
+                @Loc["UzaktanErisim"]
             }
         </MudText>
     </TitleContent>
     <DialogContent>
         @if (isAccessDenied)
         {
-                 <MudAlert Severity="Severity.Warning">
-                    Erişim Reddedildi!
-                    Şu an başka bir operatör (@currentViewerName) bu makineyi izliyor.
-                </MudAlert>
+            <MudAlert Severity="Severity.Warning">
+                Erişim Reddedildi!
+                Şu an başka bir operatör (@currentViewerName) bu makineyi izliyor.
+            </MudAlert>
         }
         else if (machine == null)
         {
-                 <div class="d-flex flex-column justify-center align-center py-8" style="height: 300px;">
-                    <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
-                    <MudText Class="mt-4">Makine bilgileri yükleniyor...</MudText>
-                </div>
+            <div class="d-flex flex-column justify-center align-center py-8" style="height: 300px;">
+                <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+                <MudText Class="mt-4">Makine bilgileri yükleniyor...</MudText>
+            </div>
         }
         else
         {
-                @* --- YENİ SİSTEM: SIGNALR GÖRÜNTÜ PANELİ --- *@
-                <div style="width: 100%; min-height: 400px; display: flex; justify-content: center; align-items: center; background-color: #000; border: 1px solid #333;">
-                    @if (!string.IsNullOrEmpty(imageData))
-                    {
-                            @* 2. YENİ: ID eklendi, onmousedown eklendi, cursor pointer yapıldı *@
-                            <img id="vncStreamImage"
-                                 src="data:image/jpeg;base64,@imageData"
-                                 style="max-width: 100%; max-height: 600px; object-fit: contain; cursor: pointer;"
-                                 @onmousedown="HandleImageClick"
-                                 @ontouchstart="HandleTouchClick" />
-                                 @* Mobil ve PC için ayrı eventler gerekebilir, şimdilik mouse yeterli olabilir ama touch eklemek garanti olur *@
-                    }
-                    else
-                    {
-                            <div class="d-flex flex-column align-center">
-                                <MudProgressCircular Color="Color.Secondary" Indeterminate="true" />
-                                <MudText Class="mt-2" Typo="Typo.caption" Color="Color.Surface">Görüntü Bekleniyor...</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Surface" Style="opacity:0.5; font-size:10px;">(Gateway bağlantısı kontrol ediliyor)</MudText>
-                            </div>
-                    }
-                </div>
+            @* --- GÖRÜNTÜ PANELİ --- *@
+            <div style="width: 100%; min-height: 400px; display: flex; justify-content: center; align-items: center; background-color: #000; border: 1px solid #333; overflow: hidden;">
+                @if (!string.IsNullOrEmpty(imageData))
+                {
+                    <img id="vncStreamImage"
+                         src="data:image/jpeg;base64,@imageData"
+                         style="max-width: 100%; max-height: 600px; object-fit: contain; cursor: crosshair;"
+                         @onmousedown="HandleImageClick"
+                         @ontouchstart="HandleTouchClick"
+                         draggable="false" />
+                }
+                else
+                {
+                    <div class="d-flex flex-column align-center">
+                        <MudProgressCircular Color="Color.Secondary" Indeterminate="true" />
+                        <MudText Class="mt-2" Typo="Typo.caption" Color="Color.Surface">Görüntü Bekleniyor...</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Surface" Style="opacity:0.5; font-size:10px;">(Gateway bağlantısı kontrol ediliyor)</MudText>
+                    </div>
+                }
+            </div>
         }
     </DialogContent>
     <DialogActions>
@@ -73,25 +72,30 @@
 </MudDialog>
 
 @code {
-    // ... (Önceki değişkenler aynı) ...
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
     [Parameter] public int MachineId { get; set; }
 
+    // State Değişkenleri
     private Machine? machine;
     private bool isAccessDenied = false;
     private string? currentViewerName;
-    private string myUserName = "Operator";
+    private string myUserName = "Operator"; // Giriş yapan kullanıcının gerçek adını AuthState'den alabilirsiniz
     private HubConnection? hubConnection;
     private string? imageData;
 
-    // ... (OnInitializedAsync Metodu Aynı) ...
+    // Bağlantı Yönetimi
+    private System.Threading.Timer? _heartbeatTimer;
+    private DotNetObjectReference<VncMonitorDialog>? _objRef;
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            // 1. Makine Bilgisini Çek
             var machines = await ScadaService.GetMachinesAsync();
             if (machines != null) machine = machines.FirstOrDefault(m => m.Id == MachineId);
 
+            // 2. Oturum Kontrolü (Biri izliyor mu?)
             var result = VncSessionService.TryEnterSession(MachineId, myUserName);
             if (!result.Success)
             {
@@ -99,24 +103,45 @@
                 currentViewerName = result.CurrentUser;
                 return;
             }
+
+            // 3. SignalR Bağlantısı
             await StartSignalRConnection();
+
+            // 4. JS Hook (Tarayıcı Kapanmasını Yakala)
+            _objRef = DotNetObjectReference.Create(this);
+            try
+            {
+                // index.html'e eklediğimiz fonksiyonu çağırıyoruz
+                await JS.InvokeVoidAsync("vncUtils.setupUnloadHandler", _objRef);
+            }
+            catch { /* JS hatası olursa akışı bozma */ }
+
+            // 5. Heartbeat Başlat (Her 5 saniyede bir sunucuya "Ben Buradayım" der)
+            _heartbeatTimer = new System.Threading.Timer(async _ => await SendHeartbeat(), null, 5000, 5000);
         }
-        catch (Exception ex) { Console.WriteLine($"Init Error: {ex.Message}"); }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[VNC Init Error] {ex.Message}");
+        }
     }
 
-    // ... (StartSignalRConnection Metodu Aynı - BAŞLAT komutuyla birlikte) ...
     private async Task StartSignalRConnection()
     {
         try
         {
             var token = await LocalStorage.GetItemAsync<string>("authToken");
+            // Production ortamında BaseUrl'i appsettings'den veya ScadaService'den almak daha iyidir
             var hubUrl = "https://api.malkanteknolojionline.com.tr/scadaHub";
 
             hubConnection = new HubConnectionBuilder()
-                .WithUrl(hubUrl, options => { options.AccessTokenProvider = () => Task.FromResult(token); })
+                .WithUrl(hubUrl, options =>
+                {
+                    options.AccessTokenProvider = () => Task.FromResult(token);
+                })
                 .WithAutomaticReconnect()
                 .Build();
 
+            // Görüntü Geldiğinde
             hubConnection.On<int, string>("ReceiveScreenImage", (mId, base64) =>
             {
                 if (mId == MachineId)
@@ -128,69 +153,80 @@
 
             await hubConnection.StartAsync();
 
+            // VNC Başlat Komutu Gönder
             if (machine != null)
             {
                 string vncParams = $"{machine.VncAddress};{machine.VncPassword}";
                 await hubConnection.InvokeAsync("SendCommandToLocal", MachineId, "START_VNC", vncParams);
             }
         }
-        catch (Exception ex) { Console.WriteLine($"SignalR Error: {ex.Message}"); }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SignalR Error] {ex.Message}");
+        }
     }
 
-    // --- 3. YENİ: TIKLAMA HESAPLAMA VE GÖNDERME METODU ---
+    // --- TIKLAMA OLAYLARI ---
+
     private async Task HandleImageClick(MouseEventArgs e)
     {
         if (hubConnection is not null && hubConnection.State == HubConnectionState.Connected)
         {
             try
             {
-                // JS Fonksiyonunu çağırıp düzeltilmiş koordinatları alıyoruz
-                // MouseEventArgs.ClientX ve ClientY ekran koordinatlarını verir
+                // JS: Koordinatları hesapla (Resim ölçeklendiği için gereklidir)
                 var coords = await JS.InvokeAsync<Coordinates>("vncUtils.calculateCoordinates", "vncStreamImage", e.ClientX, e.ClientY);
 
                 if (coords != null)
                 {
-                    // Koordinatları Gateway'e gönder (Format: "X;Y")
                     await hubConnection.InvokeAsync("SendCommandToLocal", MachineId, "CLICK", $"{coords.X};{coords.Y}");
-                    Console.WriteLine($"Click Sent: {coords.X}, {coords.Y}");
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Click Error: {ex.Message}");
-            }
+            catch (Exception ex) { Console.WriteLine($"[Click Error] {ex.Message}"); }
         }
     }
 
-    // Dokunmatik ekranlar için (Opsiyonel ama önerilir)
     private async Task HandleTouchClick(TouchEventArgs e)
     {
-        if (e.Touches.Length > 0)
+        if (e.Touches.Length > 0 && hubConnection is not null && hubConnection.State == HubConnectionState.Connected)
         {
-            var touch = e.Touches[0];
-            // Touch olayını mouse olayına benzer şekilde işleyebiliriz
-            if (hubConnection is not null && hubConnection.State == HubConnectionState.Connected)
+            try
             {
-                try
+                var touch = e.Touches[0];
+                var coords = await JS.InvokeAsync<Coordinates>("vncUtils.calculateCoordinates", "vncStreamImage", touch.ClientX, touch.ClientY);
+
+                if (coords != null)
                 {
-                    var coords = await JS.InvokeAsync<Coordinates>("vncUtils.calculateCoordinates", "vncStreamImage", touch.ClientX, touch.ClientY);
-                    if (coords != null)
-                    {
-                        await hubConnection.InvokeAsync("SendCommandToLocal", MachineId, "CLICK", $"{coords.X};{coords.Y}");
-                    }
+                    await hubConnection.InvokeAsync("SendCommandToLocal", MachineId, "CLICK", $"{coords.X};{coords.Y}");
                 }
-                catch { }
             }
+            catch { }
         }
     }
 
-    // JS'den dönen veri için yardımcı sınıf
-    public class Coordinates
+    // --- HEARTBEAT / KEEP-ALIVE ---
+    private async Task SendHeartbeat()
     {
-        public int X { get; set; }
-        public int Y { get; set; }
+        if (hubConnection is not null && hubConnection.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                // Sunucuya boş bir komut veya özel bir Heartbeat mesajı atıyoruz.
+                // Bu, Gateway tarafındaki zaman aşımı sayacını sıfırlamak içindir.
+                await hubConnection.InvokeAsync("SendCommandToLocal", MachineId, "HEARTBEAT", "");
+            }
+            catch { }
+        }
     }
-    // -----------------------------------------------------
+
+    // --- KAPANMA YÖNETİMİ ---
+
+    // JS Tarafından çağrılır (Tarayıcı kapanırken)
+    [JSInvokable]
+    public async Task OnPageUnload()
+    {
+        await DisposeAsync();
+    }
 
     private void CloseConnection()
     {
@@ -199,11 +235,33 @@
 
     public async ValueTask DisposeAsync()
     {
+        // 1. Timer'ı Durdur
+        if (_heartbeatTimer != null) await _heartbeatTimer.DisposeAsync();
+
+        // 2. VNC Durdurma Komutu Gönder (Bağlantı hala varsa)
         if (hubConnection is not null && hubConnection.State == HubConnectionState.Connected)
         {
-            try { await hubConnection.InvokeAsync("SendCommandToLocal", MachineId, "STOP_VNC", ""); } catch { }
+            try
+            {
+                await hubConnection.InvokeAsync("SendCommandToLocal", MachineId, "STOP_VNC", "");
+            }
+            catch { /* Kapanırken hata olabilir, yut */ }
         }
+
+        // 3. SignalR Bağlantısını Kes
         if (hubConnection is not null) await hubConnection.DisposeAsync();
+
+        // 4. Oturumu Boşa Çıkar
         if (!isAccessDenied) VncSessionService.ExitSession(MachineId, myUserName);
+
+        // 5. JS Referansını Temizle
+        _objRef?.Dispose();
+    }
+
+    // JS dönüş tipi için yardımcı sınıf
+    public class Coordinates
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
     }
 }

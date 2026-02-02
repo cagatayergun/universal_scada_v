@@ -1353,6 +1353,9 @@
   <data name="DisaAktarmaHatasi" xml:space="preserve">
     <value>Export error</value>
   </data>
+  <data name="AktifCalisma" xml:space="preserve">
+    <value>Active Working</value>
+  </data>
   <data name="MakineAlarm" xml:space="preserve">
     <value>Machine Alarm</value>
   </data>
