@@ -152,6 +152,11 @@
 
     private void CheckAlarms()
     {
+        if (ScadaService.MachineData.IsEmpty)
+        {
+            _machinesWithAlarm.Clear();
+            return;
+        }
         foreach (var machine in ScadaService.MachineData.Values)
         {
             if (machine.HasActiveAlarm && !_machinesWithAlarm.Contains(machine.MachineId))

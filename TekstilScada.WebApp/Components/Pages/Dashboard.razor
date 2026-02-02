@@ -7,8 +7,9 @@
 @using TekstilScada.Core.Localization
 @using Microsoft.Extensions.Localization
 @using System.Globalization
+@using System.Collections.Concurrent
+@using Microsoft.AspNetCore.SignalR.Client
 @inject ScadaDataService ScadaService
-@inject FactoryStateService StateService
 @inject NavigationManager NavManager
 @inject IStringLocalizer<SharedResource> Loc
 @implements IDisposable
@@ -38,8 +39,9 @@
                 @if (TotalMachines == 0)
                 {
                     <div class="empty-state-message">
+                        <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Class="mb-3" />
                         <p>@Loc["MakineTanimlanmamis"]</p>
-                        <small>Veri bekleniyor...</small>
+                        <small>Bu fabrikaya ait makine verisi bekleniyor...</small>
                     </div>
                 }
                 else
@@ -116,20 +118,28 @@
         {
             _userCulture = CultureInfo.CurrentUICulture;
 
-            // 1. RAM Cache Servisine Abone Ol (Timer yerine Event)
-            StateService.OnChange += HandleDataUpdate;
+            // 1. DOĞRU SERVİSE ABONE OL (StateService yerine ScadaService)
+            ScadaService.OnDataUpdated += HandleDataUpdate;
 
-            // 2. İlk Verileri Yükle (Eğer RAM'de veri varsa hemen gösterir)
+            // 2. Eğer veri boşsa ve bağlantı varsa, ilk veriyi çekmeyi dene
+            if (ScadaService.MachineData.IsEmpty && ScadaService.HubConnection?.State == HubConnectionState.Connected)
+            {
+                // Opsiyonel: İlk yüklemede makineleri bir kez çek
+                // (Normalde Gateway kendisi gönderir ama gecikme olmaması için)
+                // await ScadaService.GetLiveMachineStatusByFactoryId(0); // 0 = Seçili Fabrika
+            }
+
+            // 3. Mevcut veriyi ekrana bas
             HandleDataUpdate();
 
-            // 3. Grafik Verilerini Yükle
+            // 4. Grafik Verilerini Yükle
             await LoadSidebarDataAsync();
 
             _isLoading = false;
         }
         catch (Exception ex)
         {
-            // Hata yönetimi
+            Console.WriteLine($"Dashboard Init Hatası: {ex.Message}");
             _isLoading = false;
         }
     }
@@ -144,25 +154,25 @@
                 await JSRuntime.InvokeVoidAsync("plotDashboardCharts",
                     HourlyOeeData, HourlyConsumptionData, TopAlarms);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // Grafik JS hatası
+                // JS hatalarını yut (Navigasyon sırasında oluşabilir)
             }
         }
     }
 
     private async Task LoadSidebarDataAsync()
     {
+        // ScadaService içindeki bu metotlar zaten seçili fabrika ID'sini (ResolveId) kullandığı için güvenlidir.
         HourlyConsumptionData = await ScadaService.GetHourlyConsumptionAsync() ?? new();
         HourlyOeeData = await ScadaService.GetHourlyOeeAsync() ?? new();
         TopAlarms = await ScadaService.GetTopAlarmsAsync() ?? new();
         _shouldRenderCharts = true;
     }
 
-    // FactoryStateService tarafından tetiklenen metod
+    // ScadaService tarafından tetiklenen metod
     private void HandleDataUpdate()
     {
-        // Arka plan servisinden geldiği için UI thread'inde çalıştırıyoruz
         InvokeAsync(() =>
         {
             UpdateDashboardData();
@@ -172,28 +182,16 @@
 
     private void UpdateDashboardData()
     {
-        // --- 1. RAM'den (FactoryStateService) Verileri Çek ---
-        var allStatuses = new List<FullMachineStatus>();
+        // --- DEĞİŞİKLİK: Veriyi ScadaService.MachineData'dan alıyoruz ---
+        // Bu dictionary sadece seçili fabrikanın verilerini içerir.
+        var allStatuses = ScadaService.MachineData.Values.ToList();
 
-        // RAM'deki (Cache) tüm fabrika paketlerini açıp tek listeye indiriyoruz.
-        // Yetkilendirme filtrelemesi zaten sizin tarafınızda yapıldığı için
-        // buraya cache'teki her şeyi getiriyoruz.
-        foreach (var machineList in StateService.FactoryDataCache.Values)
-        {
-            allStatuses.AddRange(machineList);
-        }
-
-        // --- 2. İstatistikler ---
+        // --- 2. İstatistikler (Aynen korundu) ---
         TotalMachines = allStatuses.Count;
-
         RunningMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.IsInRecipeMode && !s.HasActiveAlarm);
-
         AlarmMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.HasActiveAlarm);
-
         IdleMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && !s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
-
         offlineMachines = allStatuses.Count(s => s.ConnectionState != ConnectionStatus.Connected);
-
         manualMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
 
         if (TotalMachines == 0)
@@ -209,18 +207,14 @@
             .ThenBy(m => m.MachineName);
 
         GroupedMachines = sortedMachines
-     .GroupBy(m =>
-     {
-         // DÜZELTME: Veritabanındaki gerçek 'Makine Tipi' neyse onu kullanıyoruz.
-         // Sadece eğer veritabanında tamamen boş bırakılmışsa "Tanımsız" yazsın.
-         if (string.IsNullOrEmpty(m.MakineTipi))
-             return "Tanımsız";
-
-         return m.MakineTipi;
-     })
-     .OrderByDescending(g => g.Any(m => m.IsInRecipeMode))
-     .ThenBy(g => g.Key)
-     .ToList();
+            .GroupBy(m =>
+            {
+                if (string.IsNullOrEmpty(m.MakineTipi)) return "Tanımsız";
+                return m.MakineTipi;
+            })
+            .OrderByDescending(g => g.Any(m => m.IsInRecipeMode))
+            .ThenBy(g => g.Key)
+            .ToList();
 
         // --- 4. Renk Atama ---
         if (GroupColors.Count != GroupedMachines.Count)
@@ -247,7 +241,7 @@
 
     public void Dispose()
     {
-        // Sayfadan çıkınca aboneliği iptal et (Hafıza sızıntısını önler)
-        StateService.OnChange -= HandleDataUpdate;
+        // ScadaService aboneliğini bırak
+        ScadaService.OnDataUpdated -= HandleDataUpdate;
     }
 }

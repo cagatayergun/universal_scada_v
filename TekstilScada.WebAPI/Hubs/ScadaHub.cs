@@ -132,6 +132,7 @@ namespace TekstilScada.WebAPI.Hubs
         // Bekleyen istekler: <RequestId, TaskCompletionSource>
         private static readonly ConcurrentDictionary<string, TaskCompletionSource<object?>> _pendingRequests = new();
         private static readonly ConcurrentDictionary<int, string> _factoryIps = new();
+
         // --- TEK VE GEÇERLİ CONSTRUCTOR ---
         public ScadaHub(CentralFactoryRepository factoryRepo)
         {
@@ -145,18 +146,13 @@ namespace TekstilScada.WebAPI.Hubs
             // A. Veritabanından bu anahtarı doğrula
             var factory = _factoryRepo.GetFactoryByHardwareKey(hardwareKey);
 
-            // --- DÜZELTME BAŞLANGIÇ ---
-            // Önce fabrikanın var olup olmadığını kontrol etmeliyiz.
-            // Eğer factory null ise, factory.Id'ye erişmeye çalışmak hataya sebep olur.
             if (factory == null)
             {
                 Console.WriteLine($"[Hub] Yetkisiz Giriş Denemesi! Tanımsız Key: {hardwareKey}");
                 Context.Abort(); // Bağlantıyı reddet
                 return;
             }
-            // --- DÜZELTME BİTİŞ ---
 
-            // Fabrikanın var olduğundan emin olduktan sonra ID'sini kullanabiliriz.
             // IP adresini hafızaya kaydet (Web tarafında "Bağlantı Var/Yok" kontrolü için)
             _factoryIps[factory.Id] = gatewayIp;
 
@@ -169,6 +165,7 @@ namespace TekstilScada.WebAPI.Hubs
 
             Console.WriteLine($"[Hub] Gateway Onaylandı: {factory.FactoryName} (ID: {factory.Id})");
         }
+
         // --- 2. YENİ EKLENEN METOT (Arka Plan Servisi İçin) ---
         public async Task<List<FullMachineStatus>> GetLiveMachineStatusByFactoryId(int factoryId)
         {
@@ -182,19 +179,18 @@ namespace TekstilScada.WebAPI.Hubs
             }
 
             // Gateway'e istek at ve cevabı bekle
-            // NOT: Gateway uygulamanızda "GetAllMachineStatuses" metodunun tanımlı olması gerekir.
             var result = await SendRequestToGateway<List<FullMachineStatus>>(targetConnectionId, "GetAllMachineStatuses");
 
             return result ?? new List<FullMachineStatus>();
         }
 
-        // --- 3. MERKEZİ İSTEK GÖNDERME YARDIMCISI ---
+        // --- 3. MERKEZİ İSTEK GÖNDERME YARDIMCISI (Gateway'e direkt gönderim) ---
         private async Task<T?> SendRequestToGateway<T>(string targetConnectionId, string targetMethod, params object[] args)
         {
             var requestId = Guid.NewGuid().ToString();
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)); // 10sn Timeout
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // Timeout artırıldı
             cts.Token.Register(() => {
                 if (_pendingRequests.TryRemove(requestId, out var pendingTcs))
                     pendingTcs.TrySetException(new TimeoutException("Gateway cevap vermedi."));
@@ -211,15 +207,7 @@ namespace TekstilScada.WebAPI.Hubs
                 var result = await tcs.Task;
                 if (result == null) return default;
 
-                // JSON Parse İşlemleri (Sizin mevcut kodunuzdaki gibi)
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, ReferenceHandler = ReferenceHandler.IgnoreCycles, NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals };
-
-                string jsonString = "";
-                if (result is string s) jsonString = s;
-                else if (result is JsonElement e) jsonString = e.GetRawText();
-                else return (T)result;
-
-                return JsonSerializer.Deserialize<T>(jsonString, options);
+                return DeserializeResult<T>(result);
             }
             catch
             {
@@ -228,69 +216,90 @@ namespace TekstilScada.WebAPI.Hubs
             finally
             {
                 _pendingRequests.TryRemove(requestId, out _);
+                _chunkBuffers.TryRemove(requestId, out _);
             }
         }
-        // --- 2. WEB KULLANICI ABONELİĞİ (BLAZOR) ---
-        public string GetGatewayIpForMachine(int machineId)
-        {
-            // Basitlik adına: Kullanıcının yetkili olduğu ilk fabrikanın IP'sini dönüyoruz.
-            // Daha gelişmiş sistemde MachineId -> FactoryId sorgusu yapılır.
 
-            var targetConnectionId = GetTargetGatewayForCurrentUser();
-            if (targetConnectionId != null && _gatewayConnections.TryGetValue(targetConnectionId, out int factoryId))
+        // --- 4. WEB KULLANICI ABONELİĞİ (BLAZOR) ---
+        public string GetGatewayIpForMachine(int factoryId, int machineId)
+        {
+            // Kullanıcı bu factoryId'ye erişebilir mi?
+            var targetConnectionId = GetTargetGateway(factoryId);
+
+            if (targetConnectionId != null)
             {
                 if (_factoryIps.TryGetValue(factoryId, out string ip))
                 {
                     return ip;
                 }
             }
-            return "localhost:5901"; // Bulunamazsa varsayılan
+            return "localhost:5901";
         }
+
         public async Task SendScreenImage(int machineId, string base64Image)
         {
-            // API görüntüyü aldı, şimdi bunu dinleyen herkese (WebApp'e) gönderiyor
+            // NOT: Burada hangi fabrikadan geldiği bilgisi eksik olabilir.
+            // Ancak genellikle sadece izleyenlere gönderildiği için All yerine Group kullanılabilir.
+            // Şimdilik eski yapı korunuyor ancak geliştirilebilir.
             await Clients.All.SendAsync("ReceiveScreenImage", machineId, base64Image);
         }
+
         public async Task SubscribeToFactories(List<int> factoryIds)
         {
-            foreach (var fid in factoryIds)
-            {
-                await Groups.AddToGroupAsync(Context.ConnectionId, $"Factory_{fid}");
-                //($"[Hub] Web Kullanıcısı Fabrika {fid} kanalına abone oldu.");
-            }
-        }
+            // Güvenlik: Kullanıcının token'ındaki yetkileri kontrol et
+            var user = Context.User;
+            var allowedIdsStr = user?.FindFirst("AllowedFactoryIds")?.Value;
 
-        // --- 3. CANLI VERİ YAYINI (GATEWAY -> WEB) ---
-        public async Task BroadcastFromLocal(FullMachineStatus status)
-        {
-            // Gateway'in hangi ConnectionId ile bağlı olduğuna bakıyoruz
-            if (_gatewayConnections.TryGetValue(Context.ConnectionId, out int factoryId))
-            {
-                // --- BU LOGU EKLEYİN ---
-                Console.WriteLine($"[CANLI AKIŞ] Fabrika ID: {factoryId} | Makine: {status.MachineName} ({status.MachineId}) -> Gruba Dağıtılıyor...");
-                // ------------------------
+            if (string.IsNullOrEmpty(allowedIdsStr)) return;
 
-                // Sadece o fabrikanın grubuna yayın yap
-                await Clients.Group($"Factory_{factoryId}").SendAsync("ReceiveMachineUpdate", status);
+            List<int> authorizedIds = new List<int>();
+
+            if (allowedIdsStr == "ALL")
+            {
+                authorizedIds = factoryIds;
             }
             else
             {
-                // --- BU LOGU DA EKLEYİN ---
+                var allowedList = allowedIdsStr.Split(',').Select(int.Parse).ToList();
+                // Talep edilenlerle izin verilenlerin kesişimi
+                authorizedIds = factoryIds.Intersect(allowedList).ToList();
+            }
+
+            foreach (var fid in authorizedIds)
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"Factory_{fid}");
+            }
+        }
+
+        // --- 5. CANLI VERİ YAYINI (GATEWAY -> WEB) ---
+        // DÜZELTME: Veriyi gönderirken yanına FactoryId ekliyoruz.
+        public async Task BroadcastFromLocal(FullMachineStatus status)
+        {
+            if (_gatewayConnections.TryGetValue(Context.ConnectionId, out int factoryId))
+            {
+                // Konsola Log
+                // Console.WriteLine($"[CANLI AKIŞ] Fabrika ID: {factoryId} | Makine: {status.MachineName} ({status.MachineId}) -> Gruba Dağıtılıyor...");
+
+                // İstemci tarafında imza: (int factoryId, FullMachineStatus status)
+                await Clients.Group($"Factory_{factoryId}").SendAsync("ReceiveMachineUpdate", factoryId, status);
+            }
+            else
+            {
                 Console.WriteLine($"[HATA] Veri geldi ama gönderen Gateway Tanımsız! ConnectionId: {Context.ConnectionId}");
             }
         }
 
-        // --- 4. KOMUT GÖNDERİMİ (WEB -> GATEWAY) ---
-        public async Task SendCommandToLocal(int machineId, string command, string parameters)
+        // --- 6. KOMUT GÖNDERİMİ (WEB -> GATEWAY) ---
+        public async Task SendCommandToLocal(int factoryId, int machineId, string command, string parameters)
         {
-            string? targetId = GetTargetGatewayForCurrentUser();
+            string? targetId = GetTargetGateway(factoryId);
             if (targetId != null)
             {
                 await Clients.Client(targetId).SendAsync("ReceiveCommand", machineId, command, parameters);
             }
             else
             {
-                //("[Hub] Hata: Komut gönderilecek aktif Gateway bulunamadı.");
+                // Gateway bulunamadı veya yetki yok
             }
         }
 
@@ -299,112 +308,30 @@ namespace TekstilScada.WebAPI.Hubs
         {
             if (_gatewayConnections.TryRemove(Context.ConnectionId, out int factoryId))
             {
-                //($"[Hub] Fabrika {factoryId} Gateway bağlantısı koptu.");
+                // Gateway koptu
             }
             return base.OnDisconnectedAsync(exception);
         }
 
-        // --- İSTEK YÖNLENDİRME MOTORU (CORE) ---
-        // --- GÜNCELLENMİŞ İSTEK YÖNLENDİRME MOTORU ---
-        // --- İSTEK YÖNLENDİRME (DEBUG MODU) ---
-        // --- İSTEK YÖNLENDİRME (JSON RAW LOG MODU) ---
-        // --- İSTEK YÖNLENDİRME (AKILLI ÇÖZÜMLEYİCİ) ---
-        // --- KUTU AÇICI (UNWRAPPER) MODLU YÖNLENDİRME ---
-        // --- İSTEK YÖNLENDİRME (NİHAİ ÇÖZÜM) ---
-        private async Task<T?> InvokeOnGateway<T>(string targetMethod, params object[] args)
+        // --- 7. İSTEK YÖNLENDİRME MOTORU (REVİZE EDİLDİ) ---
+        // factoryId parametresi zorunlu hale getirildi.
+        private async Task<T?> InvokeOnGateway<T>(int factoryId, string targetMethod, params object[] args)
         {
-            string? targetConnectionId = GetTargetGatewayForCurrentUser();
+            string? targetConnectionId = GetTargetGateway(factoryId);
             if (string.IsNullOrEmpty(targetConnectionId)) return default;
 
-            var requestId = Guid.NewGuid().ToString();
-            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            cts.Token.Register(() => {
-                if (_pendingRequests.TryRemove(requestId, out var pendingTcs))
-                    pendingTcs.TrySetException(new TimeoutException("Gateway zaman aşımı."));
-            }, useSynchronizationContext: false);
-
-            _pendingRequests[requestId] = tcs;
-
-            try
-            {
-                await Clients.Client(targetConnectionId).SendAsync("HandleRequest", requestId, targetMethod, args);
-
-                var result = await tcs.Task;
-                if (result == null) return default;
-
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true,
-                    ReferenceHandler = ReferenceHandler.IgnoreCycles,
-                    NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
-                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-                    WriteIndented = false
-                };
-
-                string jsonString = "";
-                if (result is string s) jsonString = s;
-                else if (result is JsonElement e) jsonString = e.GetRawText();
-                else return (T)result;
-
-                // --- LOG: Veriyi görelim ---
-                // //($"[HUB] Veri Geldi: {jsonString.Substring(0, Math.Min(jsonString.Length, 100))}");
-
-                using (JsonDocument doc = JsonDocument.Parse(jsonString))
-                {
-                    // DURUM 1: Veri doğrudan bir LİSTE [...] ise (İdeal Durum)
-                    if (doc.RootElement.ValueKind == JsonValueKind.Array)
-                    {
-                        return JsonSerializer.Deserialize<T>(jsonString, options);
-                    }
-                    // DURUM 2: Veri bir NESNE {...} ise (Kutu içinde olabilir)
-                    else if (doc.RootElement.ValueKind == JsonValueKind.Object)
-                    {
-                        if (doc.RootElement.TryGetProperty("$values", out JsonElement valuesElement))
-                            return JsonSerializer.Deserialize<T>(valuesElement.GetRawText(), options);
-
-                        if (doc.RootElement.TryGetProperty("Result", out JsonElement resultElement))
-                            return JsonSerializer.Deserialize<T>(resultElement.GetRawText(), options);
-
-                        // Kutu değilse normal nesne olarak dene
-                        return JsonSerializer.Deserialize<T>(jsonString, options);
-                    }
-                    // DURUM 3: Veri bir STRING "..." ise (ÇİFT PAKETLEME SORUNU BURADA ÇÖZÜLÜYOR)
-                    else if (doc.RootElement.ValueKind == JsonValueKind.String)
-                    {
-                        // String'in içindeki asıl JSON'ı al (Unescape yap)
-                        string innerJson = doc.RootElement.GetString();
-
-                        // İçindeki veriyi tekrar parse etmeye çalış (Recursive gibi düşünmeyelim, direkt çevirelim)
-                        if (!string.IsNullOrEmpty(innerJson))
-                        {
-                            return JsonSerializer.Deserialize<T>(innerJson, options);
-                        }
-                    }
-                }
-
-                return default;
-            }
-            catch (Exception ex)
-            {
-                //($"[HUB KRİTİK HATA] {ex.Message}");
-                return default;
-            }
-            finally
-            {
-                _pendingRequests.TryRemove(requestId, out _);
-                _chunkBuffers.TryRemove(requestId, out _);
-            }
+            // SendRequestToGateway metodunu yeniden kullanıyoruz (Kod tekrarını önlemek için)
+            return await SendRequestToGateway<T>(targetConnectionId, targetMethod, args);
         }
+
         public Task<List<int>> GetOnlineFactoryIds()
         {
-            // Bağlı olan tüm gateway'lerin Fabrika ID'lerini benzersiz olarak listele
             var onlineIds = _gatewayConnections.Values.Distinct().ToList();
             return Task.FromResult(onlineIds);
         }
-        // Yardımcı: Şu anki kullanıcının yetkisine uygun bir Gateway bul
-        private string? GetTargetGatewayForCurrentUser()
+
+        // --- YENİ HELPER: ID'ye göre Gateway Bulucu ---
+        private string? GetTargetGateway(int targetFactoryId)
         {
             var user = Context.User;
             if (user == null) return null;
@@ -412,17 +339,16 @@ namespace TekstilScada.WebAPI.Hubs
             var allowedIdsStr = user.FindFirst("AllowedFactoryIds")?.Value;
             if (string.IsNullOrEmpty(allowedIdsStr)) return null;
 
-            // Bağlı gateway'leri tara
-            foreach (var kvp in _gatewayConnections)
-            {
-                int factoryId = kvp.Value;
-                // "ALL" yetkisi varsa veya ID listesinde varsa
-                if (allowedIdsStr == "ALL" || allowedIdsStr.Split(',').Contains(factoryId.ToString()))
-                {
-                    return kvp.Key; // ConnectionId döner
-                }
-            }
-            return null;
+            // 1. Yetki Kontrolü
+            bool isAuthorized = allowedIdsStr == "ALL" ||
+                                allowedIdsStr.Split(',').Select(int.Parse).Contains(targetFactoryId);
+
+            if (!isAuthorized) return null;
+
+            // 2. Bağlantı Kontrolü
+            var gatewayEntry = _gatewayConnections.FirstOrDefault(x => x.Value == targetFactoryId);
+
+            return string.IsNullOrEmpty(gatewayEntry.Key) ? null : gatewayEntry.Key;
         }
 
         // --- VERİ PARÇA ALICI (CHUNKING) ---
@@ -449,104 +375,252 @@ namespace TekstilScada.WebAPI.Hubs
             }
         }
 
-        // --- LOGLAMA ---
-        public async Task LogAction(ActionLogEntry entry)
+        // --- JSON DESERIALIZER HELPER ---
+        private T? DeserializeResult<T>(object result)
         {
-            string? targetId = GetTargetGatewayForCurrentUser();
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                ReferenceHandler = ReferenceHandler.IgnoreCycles,
+                NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                WriteIndented = false
+            };
+
+            string jsonString = "";
+            if (result is string s) jsonString = s;
+            else if (result is JsonElement e) jsonString = e.GetRawText();
+            else return (T)result;
+
+            try
+            {
+                using (JsonDocument doc = JsonDocument.Parse(jsonString))
+                {
+                    if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                    {
+                        return JsonSerializer.Deserialize<T>(jsonString, options);
+                    }
+                    else if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                    {
+                        if (doc.RootElement.TryGetProperty("$values", out JsonElement valuesElement))
+                            return JsonSerializer.Deserialize<T>(valuesElement.GetRawText(), options);
+
+                        if (doc.RootElement.TryGetProperty("Result", out JsonElement resultElement))
+                            return JsonSerializer.Deserialize<T>(resultElement.GetRawText(), options);
+
+                        return JsonSerializer.Deserialize<T>(jsonString, options);
+                    }
+                    else if (doc.RootElement.ValueKind == JsonValueKind.String)
+                    {
+                        string innerJson = doc.RootElement.GetString();
+                        if (!string.IsNullOrEmpty(innerJson))
+                        {
+                            return JsonSerializer.Deserialize<T>(innerJson, options);
+                        }
+                    }
+                }
+            }
+            catch { return default; }
+
+            return default;
+        }
+
+        // --- LOGLAMA ---
+        public async Task LogAction(int factoryId, ActionLogEntry entry)
+        {
+            string? targetId = GetTargetGateway(factoryId);
             if (targetId != null)
             {
                 await Clients.Client(targetId).SendAsync("HandleLogAction", entry);
             }
         }
 
-        // --- PUBLIC METOTLAR (WEB CLIENT İÇİN) ---
-        public async Task<List<Machine>> GetAllMachines() => await InvokeOnGateway<List<Machine>>("GetAllMachines") ?? new List<Machine>();
-        public async Task<FullMachineStatus?> GetMachineStatus(int id) => await InvokeOnGateway<FullMachineStatus>("GetMachineStatus", id);
-        public async Task AddMachine(Machine machine)
+        // --- PUBLIC METOTLAR (WEB CLIENT İÇİN - GÜNCELLENMİŞ) ---
+        // Tüm metotlara "int factoryId" eklendi.
+
+        public async Task<List<Machine>> GetAllMachines(int factoryId)
+            => await InvokeOnGateway<List<Machine>>(factoryId, "GetAllMachines") ?? new List<Machine>();
+
+        public async Task<FullMachineStatus?> GetMachineStatus(int factoryId, int id)
+            => await InvokeOnGateway<FullMachineStatus>(factoryId, "GetMachineStatus", id);
+
+        public async Task AddMachine(int factoryId, Machine machine)
         {
-            await InvokeOnGateway<bool>("AddMachine", machine);
-            await Clients.All.SendAsync("MachineListUpdated");
-        }
-        public async Task UpdateMachine(Machine machine)
-        {
-            await InvokeOnGateway<bool>("UpdateMachine", machine);
-            await Clients.All.SendAsync("MachineListUpdated");
-        }
-        public async Task DeleteMachine(int id)
-        {
-            await InvokeOnGateway<bool>("DeleteMachine", id);
-            await Clients.All.SendAsync("MachineListUpdated");
+            await InvokeOnGateway<bool>(factoryId, "AddMachine", machine);
+            // Sadece o fabrikanın grubuna haber ver
+            await Clients.Group($"Factory_{factoryId}").SendAsync("MachineListUpdated");
         }
 
-        public async Task<List<User>> GetUsers() => await InvokeOnGateway<List<User>>("GetAllUsers") ?? new List<User>();
-        public async Task<List<Role>> GetRoles() => await InvokeOnGateway<List<Role>>("GetAllRoles") ?? new List<Role>();
-        public async Task AddUser(UserViewModel model) => await InvokeOnGateway<bool>("AddUser", model);
-        public async Task UpdateUser(UserViewModel model) => await InvokeOnGateway<bool>("UpdateUser", model);
-        public async Task DeleteUser(int id) => await InvokeOnGateway<bool>("DeleteUser", id);
-
-        public async Task<List<CostParameter>> GetCosts() => await InvokeOnGateway<List<CostParameter>>("GetCosts") ?? new List<CostParameter>();
-        public async Task UpdateCosts(List<CostParameter> costs) => await InvokeOnGateway<bool>("UpdateParameters", costs);
-
-        public async Task<List<AlarmDefinition>> GetAlarms() => await InvokeOnGateway<List<AlarmDefinition>>("GetAllAlarmDefinitions") ?? new List<AlarmDefinition>();
-        public async Task AddAlarm(AlarmDefinition alarm) => await InvokeOnGateway<bool>("AddAlarmDefinition", alarm);
-        public async Task UpdateAlarm(AlarmDefinition alarm) => await InvokeOnGateway<bool>("UpdateAlarmDefinition", alarm);
-        public async Task DeleteAlarm(int id) => await InvokeOnGateway<bool>("DeleteAlarmDefinition", id);
-
-        public async Task<List<ScadaRecipe>> GetRecipes() => await InvokeOnGateway<List<ScadaRecipe>>("GetAllRecipes") ?? new List<ScadaRecipe>();
-        public async Task<ScadaRecipe?> GetRecipeDetails(int id) => await InvokeOnGateway<ScadaRecipe>("GetRecipeById", id);
-        public async Task SaveRecipe(ScadaRecipe recipe) => await InvokeOnGateway<bool>("SaveRecipe", recipe);
-        public async Task DeleteRecipe(int id) => await InvokeOnGateway<bool>("DeleteRecipe", id);
-        public async Task<List<ProductionReportItem>> GetRecipeConsumptionHistory(int recipeId) => await InvokeOnGateway<List<ProductionReportItem>>("GetRecipeUsageHistory", recipeId) ?? new List<ProductionReportItem>();
-
-        public async Task<bool> SendRecipeToPlc(int recipeId, int machineId) => await InvokeOnGateway<bool>("SendRecipeToPlc", recipeId, machineId);
-        public async Task<ScadaRecipe?> ReadRecipeFromPlc(int machineId) => await InvokeOnGateway<ScadaRecipe>("ReadRecipeFromPlc", machineId);
-
-        public async Task<List<string>> GetMachineSubTypesDesign() => await InvokeOnGateway<List<string>>("GetMachineSubTypes");
-        public async Task<List<StepTypeDtoDesign>> GetStepTypesDesign() => await InvokeOnGateway<List<StepTypeDtoDesign>>("GetStepTypes");
-        public async Task<List<ControlMetadata>> GetLayoutDesign(string subType, int stepTypeId) => await InvokeOnGateway<List<ControlMetadata>>("GetLayoutJson", subType, stepTypeId) ?? new List<ControlMetadata>();
-        public async Task<bool> SaveLayoutDesign(string subType, int stepTypeId, List<ControlMetadata> layout) => await InvokeOnGateway<bool>("SaveLayout", subType, stepTypeId, layout);
-        public async Task<string> GetStepLayout(string subType, int stepTypeId)
+        public async Task UpdateMachine(int factoryId, Machine machine)
         {
-            var list = await InvokeOnGateway<List<ControlMetadata>>("GetLayoutJson", subType, stepTypeId);
+            await InvokeOnGateway<bool>(factoryId, "UpdateMachine", machine);
+            await Clients.Group($"Factory_{factoryId}").SendAsync("MachineListUpdated");
+        }
+
+        public async Task DeleteMachine(int factoryId, int id)
+        {
+            await InvokeOnGateway<bool>(factoryId, "DeleteMachine", id);
+            await Clients.Group($"Factory_{factoryId}").SendAsync("MachineListUpdated");
+        }
+
+        public async Task<List<User>> GetUsers(int factoryId)
+            => await InvokeOnGateway<List<User>>(factoryId, "GetAllUsers") ?? new List<User>();
+
+        public async Task<List<Role>> GetRoles(int factoryId)
+            => await InvokeOnGateway<List<Role>>(factoryId, "GetAllRoles") ?? new List<Role>();
+
+        public async Task AddUser(int factoryId, UserViewModel model)
+            => await InvokeOnGateway<bool>(factoryId, "AddUser", model);
+
+        public async Task UpdateUser(int factoryId, UserViewModel model)
+            => await InvokeOnGateway<bool>(factoryId, "UpdateUser", model);
+
+        public async Task DeleteUser(int factoryId, int id)
+            => await InvokeOnGateway<bool>(factoryId, "DeleteUser", id);
+
+        public async Task<List<CostParameter>> GetCosts(int factoryId)
+            => await InvokeOnGateway<List<CostParameter>>(factoryId, "GetCosts") ?? new List<CostParameter>();
+
+        public async Task UpdateCosts(int factoryId, List<CostParameter> costs)
+            => await InvokeOnGateway<bool>(factoryId, "UpdateParameters", costs);
+
+        public async Task<List<AlarmDefinition>> GetAlarms(int factoryId)
+            => await InvokeOnGateway<List<AlarmDefinition>>(factoryId, "GetAllAlarmDefinitions") ?? new List<AlarmDefinition>();
+
+        public async Task AddAlarm(int factoryId, AlarmDefinition alarm)
+            => await InvokeOnGateway<bool>(factoryId, "AddAlarmDefinition", alarm);
+
+        public async Task UpdateAlarm(int factoryId, AlarmDefinition alarm)
+            => await InvokeOnGateway<bool>(factoryId, "UpdateAlarmDefinition", alarm);
+
+        public async Task DeleteAlarm(int factoryId, int id)
+            => await InvokeOnGateway<bool>(factoryId, "DeleteAlarmDefinition", id);
+
+        public async Task<List<ScadaRecipe>> GetRecipes(int factoryId)
+            => await InvokeOnGateway<List<ScadaRecipe>>(factoryId, "GetAllRecipes") ?? new List<ScadaRecipe>();
+
+        public async Task<ScadaRecipe?> GetRecipeDetails(int factoryId, int id)
+            => await InvokeOnGateway<ScadaRecipe>(factoryId, "GetRecipeById", id);
+
+        public async Task SaveRecipe(int factoryId, ScadaRecipe recipe)
+            => await InvokeOnGateway<bool>(factoryId, "SaveRecipe", recipe);
+
+        public async Task DeleteRecipe(int factoryId, int id)
+            => await InvokeOnGateway<bool>(factoryId, "DeleteRecipe", id);
+
+        public async Task<List<ProductionReportItem>> GetRecipeConsumptionHistory(int factoryId, int recipeId)
+            => await InvokeOnGateway<List<ProductionReportItem>>(factoryId, "GetRecipeUsageHistory", recipeId) ?? new List<ProductionReportItem>();
+
+        public async Task<bool> SendRecipeToPlc(int factoryId, int recipeId, int machineId)
+            => await InvokeOnGateway<bool>(factoryId, "SendRecipeToPlc", recipeId, machineId);
+
+        public async Task<ScadaRecipe?> ReadRecipeFromPlc(int factoryId, int machineId)
+            => await InvokeOnGateway<ScadaRecipe>(factoryId, "ReadRecipeFromPlc", machineId);
+
+        public async Task<List<string>> GetMachineSubTypesDesign(int factoryId)
+            => await InvokeOnGateway<List<string>>(factoryId, "GetMachineSubTypes");
+
+        public async Task<List<StepTypeDtoDesign>> GetStepTypesDesign(int factoryId)
+            => await InvokeOnGateway<List<StepTypeDtoDesign>>(factoryId, "GetStepTypes");
+
+        public async Task<List<ControlMetadata>> GetLayoutDesign(int factoryId, string subType, int stepTypeId)
+            => await InvokeOnGateway<List<ControlMetadata>>(factoryId, "GetLayoutJson", subType, stepTypeId) ?? new List<ControlMetadata>();
+
+        public async Task<bool> SaveLayoutDesign(int factoryId, string subType, int stepTypeId, List<ControlMetadata> layout)
+            => await InvokeOnGateway<bool>(factoryId, "SaveLayout", subType, stepTypeId, layout);
+
+        public async Task<string> GetStepLayout(int factoryId, string subType, int stepTypeId)
+        {
+            var list = await InvokeOnGateway<List<ControlMetadata>>(factoryId, "GetLayoutJson", subType, stepTypeId);
             if (list == null) return string.Empty;
             return JsonSerializer.Serialize(list);
         }
 
-        public async Task<List<PlcOperator>> GetPlcOperators() => await InvokeOnGateway<List<PlcOperator>>("GetPlcOperators") ?? new List<PlcOperator>();
-        public async Task SavePlcOperator(PlcOperator op) => await InvokeOnGateway<bool>("SaveOrUpdateOperator", op);
-        public async Task AddDefaultPlcOperator() => await InvokeOnGateway<bool>("AddDefaultOperator");
-        public async Task DeletePlcOperator(int id) => await InvokeOnGateway<bool>("DeleteOperator", id);
+        public async Task<List<PlcOperator>> GetPlcOperators(int factoryId)
+            => await InvokeOnGateway<List<PlcOperator>>(factoryId, "GetPlcOperators") ?? new List<PlcOperator>();
 
-        public async Task<Dictionary<int, string>> GetHmiRecipeNames(int machineId) => await InvokeOnGateway<Dictionary<int, string>>("GetHmiRecipeNames", machineId) ?? new Dictionary<int, string>();
-        public async Task<ScadaRecipe?> GetHmiRecipePreview(int machineId, string fileName) => await InvokeOnGateway<ScadaRecipe>("GetHmiRecipePreview", machineId, fileName);
-        public async Task<bool> QueueSequentiallyNamedSendJobs(List<int> recipeIds, List<int> machineIds, int startNumber) => await InvokeOnGateway<bool>("QueueSequentiallyNamedSendJobs", recipeIds, machineIds, startNumber);
-        public async Task<bool> QueueReceiveJobs(List<string> fileNames, int machineId) => await InvokeOnGateway<bool>("QueueReceiveJobs", fileNames, machineId);
-        public async Task<List<TransferJob>> GetActiveJobs() => await InvokeOnGateway<List<TransferJob>>("GetActiveFtpJobs") ?? new List<TransferJob>();
+        public async Task SavePlcOperator(int factoryId, PlcOperator op)
+            => await InvokeOnGateway<bool>(factoryId, "SaveOrUpdateOperator", op);
 
-        public async Task<List<OeeData>> GetOeeReport(ReportFilters filters) => await InvokeOnGateway<List<OeeData>>("GetOeeReport", filters) ?? new List<OeeData>();
-        public async Task<List<HourlyConsumptionData>> GetHourlyConsumption() => await InvokeOnGateway<List<HourlyConsumptionData>>("GetHourlyFactoryConsumption") ?? new List<HourlyConsumptionData>();
-        public async Task<List<HourlyOeeData>> GetHourlyOee() => await InvokeOnGateway<List<HourlyOeeData>>("GetHourlyAverageOee") ?? new List<HourlyOeeData>();
-        public async Task<List<TopAlarmData>> GetTopAlarms() => await InvokeOnGateway<List<TopAlarmData>>("GetTopAlarmsByFrequency") ?? new List<TopAlarmData>();
+        public async Task AddDefaultPlcOperator(int factoryId)
+            => await InvokeOnGateway<bool>(factoryId, "AddDefaultOperator");
 
-        public async Task<List<ProductionReportItem>> GetProductionReport(ReportFilters filters)
+        public async Task DeletePlcOperator(int factoryId, int id)
+            => await InvokeOnGateway<bool>(factoryId, "DeleteOperator", id);
+
+        public async Task<Dictionary<int, string>> GetHmiRecipeNames(int factoryId, int machineId)
+            => await InvokeOnGateway<Dictionary<int, string>>(factoryId, "GetHmiRecipeNames", machineId) ?? new Dictionary<int, string>();
+
+        public async Task<ScadaRecipe?> GetHmiRecipePreview(int factoryId, int machineId, string fileName)
+            => await InvokeOnGateway<ScadaRecipe>(factoryId, "GetHmiRecipePreview", machineId, fileName);
+
+        public async Task<bool> QueueSequentiallyNamedSendJobs(int factoryId, List<int> recipeIds, List<int> machineIds, int startNumber)
+            => await InvokeOnGateway<bool>(factoryId, "QueueSequentiallyNamedSendJobs", recipeIds, machineIds, startNumber);
+
+        public async Task<bool> QueueReceiveJobs(int factoryId, List<string> fileNames, int machineId)
+            => await InvokeOnGateway<bool>(factoryId, "QueueReceiveJobs", fileNames, machineId);
+
+        public async Task<List<TransferJob>> GetActiveJobs(int factoryId)
+            => await InvokeOnGateway<List<TransferJob>>(factoryId, "GetActiveFtpJobs") ?? new List<TransferJob>();
+
+        public async Task<List<OeeData>> GetOeeReport(int factoryId, ReportFilters filters)
+            => await InvokeOnGateway<List<OeeData>>(factoryId, "GetOeeReport", filters) ?? new List<OeeData>();
+
+        public async Task<List<HourlyConsumptionData>> GetHourlyConsumption(int factoryId)
+            => await InvokeOnGateway<List<HourlyConsumptionData>>(factoryId, "GetHourlyFactoryConsumption") ?? new List<HourlyConsumptionData>();
+
+        public async Task<List<HourlyOeeData>> GetHourlyOee(int factoryId)
+            => await InvokeOnGateway<List<HourlyOeeData>>(factoryId, "GetHourlyAverageOee") ?? new List<HourlyOeeData>();
+
+        public async Task<List<TopAlarmData>> GetTopAlarms(int factoryId)
+            => await InvokeOnGateway<List<TopAlarmData>>(factoryId, "GetTopAlarmsByFrequency") ?? new List<TopAlarmData>();
+
+        // KRİTİK: Raporlar karışıyordu, şimdi factoryId ile filtreleniyor.
+        public async Task<List<ProductionReportItem>> GetProductionReport(int factoryId, ReportFilters filters)
         {
-            //("[Hub] HALKA AÇIK METOT TETİKLENDİ: GetProductionReport");
-            return await InvokeOnGateway<List<ProductionReportItem>>("GetProductionReport", filters) ?? new List<ProductionReportItem>();
+            return await InvokeOnGateway<List<ProductionReportItem>>(factoryId, "GetProductionReport", filters) ?? new List<ProductionReportItem>();
         }
-        public async Task<List<AlarmReportItem>> GetAlarmReport(ReportFilters filters) => await InvokeOnGateway<List<AlarmReportItem>>("GetAlarmReport", filters) ?? new List<AlarmReportItem>();
-        public async Task<object> GetTrendData(ReportFilters filters) => await InvokeOnGateway<object>("GetTrendData", filters) ?? new List<object>();
-        public async Task<ManualConsumptionSummary?> GetManualConsumptionReport(ReportFilters filters) => await InvokeOnGateway<ManualConsumptionSummary>("GetManualConsumptionReport", filters);
-        public async Task<ConsumptionTotals?> GetConsumptionTotals(ReportFilters filters) => await InvokeOnGateway<ConsumptionTotals>("GetConsumptionTotalsForPeriod", filters);
-        public async Task<List<ProductionReportItem>> GetGeneralDetailedConsumptionReport(GeneralDetailedConsumptionFilters filters) => await InvokeOnGateway<List<ProductionReportItem>>("GetGeneralDetailedConsumptionReport", filters) ?? new List<ProductionReportItem>();
-        public async Task<List<ActionLogEntry>> GetActionLogs(ActionLogFilters filters) => await InvokeOnGateway<List<ActionLogEntry>>("GetActionLogs", filters) ?? new List<ActionLogEntry>();
-        public async Task<ProductionDetailDto?> GetProductionDetail(int machineId, string batchId) => await InvokeOnGateway<ProductionDetailDto>("GetProductionDetail", machineId, batchId);
 
-        public async Task<byte[]> ExportProductionReport(List<ProductionReportItem> items) => await InvokeOnGateway<byte[]>("ExportProductionReport", items) ?? Array.Empty<byte>();
-        public async Task<byte[]> ExportAlarmReport(List<AlarmReportItem> items) => await InvokeOnGateway<byte[]>("ExportAlarmReport", items) ?? Array.Empty<byte>();
-        public async Task<byte[]> ExportOeeReport(List<OeeData> items) => await InvokeOnGateway<byte[]>("ExportOeeReport", items) ?? Array.Empty<byte>();
-        public async Task<byte[]> ExportManualConsumptionReport(ManualConsumptionSummary summary) => await InvokeOnGateway<byte[]>("ExportManualConsumptionReport", summary) ?? Array.Empty<byte>();
-        public async Task<byte[]> ExportGeneralDetailedConsumptionReport(GeneralConsumptionExportDto data) => await InvokeOnGateway<byte[]>("ExportGeneralDetailedConsumptionReport", data) ?? Array.Empty<byte>();
-        public async Task<byte[]> ExportActionLogsReport(List<ActionLogEntry> logs) => await InvokeOnGateway<byte[]>("ExportActionLogsReport", logs) ?? Array.Empty<byte>();
-        public async Task<byte[]> ExportProductionDetailFile(int machineId, string batchId) => await InvokeOnGateway<byte[]>("ExportProductionDetailFile", machineId, batchId) ?? Array.Empty<byte>();
+        public async Task<List<AlarmReportItem>> GetAlarmReport(int factoryId, ReportFilters filters)
+            => await InvokeOnGateway<List<AlarmReportItem>>(factoryId, "GetAlarmReport", filters) ?? new List<AlarmReportItem>();
+
+        public async Task<object> GetTrendData(int factoryId, ReportFilters filters)
+            => await InvokeOnGateway<object>(factoryId, "GetTrendData", filters) ?? new List<object>();
+
+        public async Task<ManualConsumptionSummary?> GetManualConsumptionReport(int factoryId, ReportFilters filters)
+            => await InvokeOnGateway<ManualConsumptionSummary>(factoryId, "GetManualConsumptionReport", filters);
+
+        public async Task<ConsumptionTotals?> GetConsumptionTotals(int factoryId, ReportFilters filters)
+            => await InvokeOnGateway<ConsumptionTotals>(factoryId, "GetConsumptionTotalsForPeriod", filters);
+
+        public async Task<List<ProductionReportItem>> GetGeneralDetailedConsumptionReport(int factoryId, GeneralDetailedConsumptionFilters filters)
+            => await InvokeOnGateway<List<ProductionReportItem>>(factoryId, "GetGeneralDetailedConsumptionReport", filters) ?? new List<ProductionReportItem>();
+
+        public async Task<List<ActionLogEntry>> GetActionLogs(int factoryId, ActionLogFilters filters)
+            => await InvokeOnGateway<List<ActionLogEntry>>(factoryId, "GetActionLogs", filters) ?? new List<ActionLogEntry>();
+
+        public async Task<ProductionDetailDto?> GetProductionDetail(int factoryId, int machineId, string batchId)
+            => await InvokeOnGateway<ProductionDetailDto>(factoryId, "GetProductionDetail", machineId, batchId);
+
+        public async Task<byte[]> ExportProductionReport(int factoryId, List<ProductionReportItem> items)
+            => await InvokeOnGateway<byte[]>(factoryId, "ExportProductionReport", items) ?? Array.Empty<byte>();
+
+        public async Task<byte[]> ExportAlarmReport(int factoryId, List<AlarmReportItem> items)
+            => await InvokeOnGateway<byte[]>(factoryId, "ExportAlarmReport", items) ?? Array.Empty<byte>();
+
+        public async Task<byte[]> ExportOeeReport(int factoryId, List<OeeData> items)
+            => await InvokeOnGateway<byte[]>(factoryId, "ExportOeeReport", items) ?? Array.Empty<byte>();
+
+        public async Task<byte[]> ExportManualConsumptionReport(int factoryId, ManualConsumptionSummary summary)
+            => await InvokeOnGateway<byte[]>(factoryId, "ExportManualConsumptionReport", summary) ?? Array.Empty<byte>();
+
+        public async Task<byte[]> ExportGeneralDetailedConsumptionReport(int factoryId, GeneralConsumptionExportDto data)
+            => await InvokeOnGateway<byte[]>(factoryId, "ExportGeneralDetailedConsumptionReport", data) ?? Array.Empty<byte>();
+
+        public async Task<byte[]> ExportActionLogsReport(int factoryId, List<ActionLogEntry> logs)
+            => await InvokeOnGateway<byte[]>(factoryId, "ExportActionLogsReport", logs) ?? Array.Empty<byte>();
+
+        public async Task<byte[]> ExportProductionDetailFile(int factoryId, int machineId, string batchId)
+            => await InvokeOnGateway<byte[]>(factoryId, "ExportProductionDetailFile", machineId, batchId) ?? Array.Empty<byte>();
     }
 }

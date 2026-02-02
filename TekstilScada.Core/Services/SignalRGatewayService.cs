@@ -231,23 +231,23 @@ namespace TekstilScada.Services
             {
                 try
                 {
-                   // //("[Gateway] Bağlantı deneniyor...");
+                    // //("[Gateway] Bağlantı deneniyor...");
 
                     await _connection.StartAsync();
                     // ARTIK KENDİMİZİ TANITIYORUZ: "Ben bu anahtara sahip fabrikayım"
                     string localIp = GetLocalIpAddress();
                     await _connection.InvokeAsync("RegisterGateway", _myApiKey, localIp + ":5901");
-                    
+
                     _plcService.OnMachineDataRefreshed -= OnLocalDataRefreshed;
-                   _plcService.OnMachineDataRefreshed += OnLocalDataRefreshed;
+                    _plcService.OnMachineDataRefreshed += OnLocalDataRefreshed;
 
                     // Döngüden çık
                     return;
                 }
                 catch (Exception ex)
                 {
-                   // //($"[Gateway] ❌ Bağlantı Hatası: {ex.Message}");
-                  //  //("[Gateway] 5 saniye sonra tekrar denenecek...");
+                    // //($"[Gateway] ❌ Bağlantı Hatası: {ex.Message}");
+                    //  //("[Gateway] 5 saniye sonra tekrar denenecek...");
 
                     // API kapalıysa 5 saniye bekle ve tekrar dene (Sonsuza kadar)
                     await Task.Delay(5000);
@@ -360,12 +360,12 @@ namespace TekstilScada.Services
                     //($"[Gateway] ❌ JSON HATASI: {ex.Message}");
                     if (ex.InnerException != null) //($"[Gateway] ALT HATA: {ex.InnerException.Message}");
 
-                    await _connection.InvokeAsync("SendResponseToHub", reqId, null, $"Serialization Error: {ex.Message}");
+                        await _connection.InvokeAsync("SendResponseToHub", reqId, null, $"Serialization Error: {ex.Message}");
                     return;
                 }
 
                 // 3. Parçalayıp Gönder (Chunking)
-                const int chunkSize = 20 * 1024; // 20KB Güvenli Boyut
+                const int chunkSize = 256 * 1024;
 
                 if (json.Length <= chunkSize)
                 {

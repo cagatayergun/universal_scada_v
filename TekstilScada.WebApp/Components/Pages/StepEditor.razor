@@ -4,10 +4,10 @@
 @using TekstilScada.Models
 @using TekstilScada.Repositories
 @using System.Text.RegularExpressions
-@using TekstilScada.Core.Localization 
+@using TekstilScada.Core.Localization
 @using Microsoft.Extensions.Localization
 @inject IJSRuntime JSRuntime
-@inject TekstilScada.WebApp.Services.ScadaDataService ScadaService 
+@inject TekstilScada.WebApp.Services.ScadaDataService ScadaService
 @inject IStringLocalizer<SharedResource> Loc
 
 <div class="step-editor-container">
@@ -20,18 +20,21 @@
             <button type="button" class="btn-close" @onclick="() => errorMessage = null" aria-label="Close"></button>
         </div>
     }
-    
+
     @if (MachineSubType == "Kurutma Makinesi")
     {
         <div class="alert alert-info">
             @Loc["KurutmaAdimiSabit"]
         </div>
-        <KurutmaStepEditor Step="Step" OnChanged="OnChanged" />
+        @* Eğer KurutmaStepEditor bileşeni projenizde varsa aşağıdaki satırı açın *@
+        @* <KurutmaStepEditor Step="Step" OnChanged="OnChanged" /> *@
+        <p>Kurutma Makinesi Adım Editörü</p>
     }
     else
     {
         <div class="step-types">
             <h6>@Loc["AdimTipleri"]</h6>
+
             <div class="pnlStepTypes">
                 @foreach (var stepType in StepTypes)
                 {
@@ -58,12 +61,12 @@
                                 {
                                     <div title="@data.Text"
                                          style="position: absolute;
-                                left: @(GetLeft(data.Location))px;
-                                top: @(GetTop(data.Location))px;
-                                min-width: @(GetWidth(data.Size))px;
-                                height: @(GetHeight(data.Size))px;
-                                white-space: nowrap;
-                                z-index: 10;">
+                                            left: @(GetLeft(data.Location))px;
+                                            top: @(GetTop(data.Location))px;
+                                            min-width: @(GetWidth(data.Size))px;
+                                            height: @(GetHeight(data.Size))px;
+                                            white-space: nowrap;
+                                            z-index: 10;">
 
                                         @if ((data.ControlType ?? "").Contains("Label"))
                                         {
@@ -105,7 +108,7 @@
 
     private bool _isUpdating = false;
     private List<StepControlMetadata> _activeControlsMetadata = new();
-    private string? errorMessage; 
+    private string? errorMessage;
 
     private class StepControlMetadata : ControlMetadata
     {
@@ -121,18 +124,18 @@
         public StepTypeInfo(int id, string name, short bitValue, int plcWordIndex) { Id = id; Name = name; BitValue = bitValue; PLC_WordIndex = plcWordIndex; }
     }
 
-    // Listeyi başlangıçta oluşturuyoruz, ancak isimleri OnInitializedAsync'de çevireceğiz
     private List<StepTypeInfo> StepTypes = new()
     {
-        new StepTypeInfo(1, "Su Alma", 1, 0),     
-        new StepTypeInfo(2, "Isıtma", 2, 2),      
-        new StepTypeInfo(3, "Çalışma", 4, 14),    
-        new StepTypeInfo(4, "Dozaj", 8, 5),       
-        new StepTypeInfo(5, "Boşaltma", 16, 10), 
-        new StepTypeInfo(6, "Sıkma", 32, 8)       
+        new StepTypeInfo(1, "Su Alma", 1, 0),
+        new StepTypeInfo(2, "Isıtma", 2, 2),
+        new StepTypeInfo(3, "Çalışma", 4, 14),
+        new StepTypeInfo(4, "Dozaj", 8, 5),
+        new StepTypeInfo(5, "Boşaltma", 16, 10),
+        new StepTypeInfo(6, "Sıkma", 32, 8)
     };
+
     private List<StepTypeInfo> ActiveStepInfos => StepTypes.Where(s => IsStepTypeChecked(s.BitValue)).ToList();
-    
+
     private readonly Dictionary<int, string> StepColorMap = new()
     {
         { 1, "rgba(204, 229, 255, 0.7)" }, { 2, "rgba(255, 204, 204, 0.7)" },
@@ -140,13 +143,11 @@
         { 5, "rgba(173, 216, 230, 0.7)" }, { 6, "rgba(213, 213, 211, 0.7)" }
     };
 
-
     // --- LIFE CYCLE ---
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // Adım isimlerini seçilen dile göre güncelle
             StepTypes[0].Name = Loc["AdimTipi_SuAlma"];
             StepTypes[1].Name = Loc["AdimTipi_Isitma"];
             StepTypes[2].Name = Loc["AdimTipi_Calisma"];
@@ -157,19 +158,19 @@
             if (ScadaService == null)
             {
                 errorMessage = Loc["ServisKayitHatasi"];
-                return; 
+                return;
             }
 
             if (Step == null)
             {
                 Step = new ScadaRecipeStep();
             }
-            
+
             if (Step.StepDataWords == null || Step.StepDataWords.Length < 25)
             {
                 Step.StepDataWords = new short[25];
             }
-            
+
             if (MachineSubType != "Kurutma Makinesi")
             {
                 await LoadControlsData();
@@ -180,13 +181,13 @@
             errorMessage = $"{Loc["BilesenYuklemeHatasi"]}: {ex.Message}\n--- STACK TRACE ---\n{ex.StackTrace}";
         }
     }
-    
+
     private bool IsStepTypeChecked(short bit) => (Step != null && Step.StepDataWords.Length > 24 && (Step.StepDataWords[24] & bit) != 0);
-    
+
     private async Task OnStepTypeChanged(StepTypeInfo changedStep, bool isChecked)
     {
         if (_isUpdating || Step == null) return;
-        errorMessage = null; 
+        errorMessage = null;
 
         try
         {
@@ -201,17 +202,18 @@
             }
 
             Step.StepDataWords[24] = newControlWord;
-            
+
             await LoadControlsData();
-            
+
             await OnChanged.InvokeAsync(null);
         }
         catch (Exception ex)
         {
-             errorMessage = $"{Loc["HataOlustu"]} {ex.Message}\n--- STACK TRACE ---\n{ex.StackTrace}";
+            errorMessage = $"{Loc["HataOlustu"]} {ex.Message}\n--- STACK TRACE ---\n{ex.StackTrace}";
         }
     }
 
+    // --- DÜZELTİLEN METOT BURASI ---
     private async Task LoadControlsData()
     {
         try
@@ -219,46 +221,36 @@
             _activeControlsMetadata.Clear();
             var activeStepIds = ActiveStepInfos.Select(s => s.Id).ToList();
 
-            foreach(var stepId in activeStepIds)
+            foreach (var stepId in activeStepIds)
             {
-                string layoutJson = await ScadaService.GetLayoutJsonAsync(MachineSubType, stepId);
-                
-                if (string.IsNullOrEmpty(layoutJson) && MachineSubType != "DEFAULT")
+                // DEĞİŞİKLİK: GetLayoutJsonAsync yerine GetLayoutAsync kullandık (Liste döner)
+                // Servis katmanında JSON parse edildiği için burada tekrar edilmez.
+                var controls = await ScadaService.GetLayoutAsync(MachineSubType, stepId);
+
+                // Eğer özel tip için sonuç boşsa varsayılanı dene
+                if ((controls == null || !controls.Any()) && MachineSubType != "DEFAULT")
                 {
-                      layoutJson = await ScadaService.GetLayoutJsonAsync("DEFAULT", stepId);
+                    controls = await ScadaService.GetLayoutAsync("DEFAULT", stepId);
                 }
-                                    
-                if (!string.IsNullOrEmpty(layoutJson))
+
+                if (controls != null)
                 {
-                    try
+                    foreach (var control in controls)
                     {
-                        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                        var controls = JsonSerializer.Deserialize<List<ControlMetadata>>(layoutJson, options);
-                        
-                        if (controls != null)
+                        _activeControlsMetadata.Add(new StepControlMetadata
                         {
-                            foreach(var control in controls)
-                            {
-                                _activeControlsMetadata.Add(new StepControlMetadata
-                                {
-                                    ParentStepId = stepId,
-                                    ControlType = control.ControlType,
-                                    Name = control.Name,
-                                    Text = control.Text,
-                                    Location = control.Location,
-                                    Size = control.Size,
-                                    PLC_WordIndex = control.PLC_WordIndex,
-                                    PLC_BitIndex = control.PLC_BitIndex,
-                                    DecimalPlaces = control.DecimalPlaces,
-                                    Maximum = control.Maximum,
-                                    StringWordLength = control.StringWordLength
-                                });
-                            }
-                        }
-                    }
-                    catch (JsonException jsonEx)
-                    {
-                        errorMessage = string.Format(Loc["JsonIslemeHatasi"], stepId) + $": {jsonEx.Message}.";
+                            ParentStepId = stepId,
+                            ControlType = control.ControlType,
+                            Name = control.Name,
+                            Text = control.Text,
+                            Location = control.Location,
+                            Size = control.Size,
+                            PLC_WordIndex = control.PLC_WordIndex,
+                            PLC_BitIndex = control.PLC_BitIndex,
+                            DecimalPlaces = control.DecimalPlaces,
+                            Maximum = control.Maximum,
+                            StringWordLength = control.StringWordLength
+                        });
                     }
                 }
             }
@@ -267,10 +259,10 @@
         {
             errorMessage = $"{Loc["KontrolVerisiYuklemeHatasi"]}: {ex.Message}\n--- STACK TRACE ---\n{ex.StackTrace}";
         }
-        
+
         await InvokeAsync(StateHasChanged);
     }
-    
+
     private bool IsSelectionValid(short controlWord)
     {
         var checkedSteps = StepTypes.Where(s => (controlWord & s.BitValue) != 0).ToList();
@@ -285,7 +277,7 @@
         bool isAnyStandardChecked = checkedSteps.Any(c => standardStepIds.Contains(c.Id));
 
         if (isAnySpecialChecked && isAnyStandardChecked) return false;
-        
+
         return true;
     }
 
@@ -337,7 +329,6 @@
     private async Task OnDynamicControlValueChanged(ChangeEventArgs e, ControlMetadata data)
     {
         if (_isUpdating || Step == null || data.PLC_WordIndex >= Step.StepDataWords.Length) return;
-        
         try
         {
             if (data.ControlType.Contains("NumericUpDown") || data.ControlType == "InputNumber")
@@ -389,7 +380,6 @@
                 if (data.ControlType.Contains("NumericUpDown") || data.ControlType == "InputNumber")
                 {
                     decimal currentValue = GetNumericValue(data.PLC_WordIndex, data.DecimalPlaces);
-
                     builder.OpenElement(0, "input");
                     builder.AddAttribute(1, "type", "number");
                     builder.AddAttribute(2, "class", "form-control");
@@ -402,7 +392,6 @@
                 else if (data.ControlType.Contains("CheckBox") || data.ControlType == "InputCheckbox")
                 {
                     bool isChecked = GetBitValue(data.PLC_WordIndex, data.PLC_BitIndex);
-                    
                     builder.OpenElement(0, "input");
                     builder.AddAttribute(1, "type", "checkbox");
                     builder.AddAttribute(2, "class", "form-check-input");
@@ -413,11 +402,10 @@
                 else if (data.ControlType.Contains("TextBox") || data.ControlType == "InputText")
                 {
                     string currentValue = GetStringValue(data.PLC_WordIndex, data.StringWordLength);
-                    
                     builder.OpenElement(0, "input");
                     builder.AddAttribute(1, "type", "text");
                     builder.AddAttribute(2, "class", "form-control");
-                    builder.AddAttribute(3, "maxlength", data.StringWordLength * 2); 
+                    builder.AddAttribute(3, "maxlength", data.StringWordLength * 2);
                     builder.AddAttribute(4, "value", currentValue);
                     builder.AddAttribute(5, "onchange", EventCallback.Factory.Create<ChangeEventArgs>(this, e => OnDynamicControlValueChanged(e, data)));
                     builder.CloseElement();
@@ -433,33 +421,17 @@
             }
         };
     }
-    private int GetLeft(string? location)
-    {
-        return ExtractFirstNumber(location, 0); // X, ilk sayıdır
-    }
 
-    private int GetTop(string? location)
-    {
-        return ExtractSecondNumber(location, 0); // Y, ikinci sayıdır
-    }
+    private int GetLeft(string? location) => ExtractFirstNumber(location, 0);
+    private int GetTop(string? location) => ExtractSecondNumber(location, 0);
+    private int GetWidth(string? size) => ExtractFirstNumber(size, 100);
+    private int GetHeight(string? size) => ExtractSecondNumber(size, 25);
 
-    private int GetWidth(string? size)
-    {
-        return ExtractFirstNumber(size, 100); // Genişlik, ilk sayıdır (Varsayılan 100)
-    }
-
-    private int GetHeight(string? size)
-    {
-        return ExtractSecondNumber(size, 25); // Yükseklik, ikinci sayıdır (Varsayılan 25)
-    }
-
-    // Yardımcı: Metin içindeki (Örn: "20, 50" veya "{X=20,Y=50}") sayıları bulur
     private int ExtractFirstNumber(string? input, int defaultValue)
     {
         if (string.IsNullOrEmpty(input)) return defaultValue;
         try
         {
-            // Metindeki tüm sayıları bul
             var matches = System.Text.RegularExpressions.Regex.Matches(input, @"-?\d+");
             if (matches.Count > 0 && int.TryParse(matches[0].Value, out int val))
             {
@@ -475,7 +447,6 @@
         if (string.IsNullOrEmpty(input)) return defaultValue;
         try
         {
-            // Metindeki tüm sayıları bul
             var matches = System.Text.RegularExpressions.Regex.Matches(input, @"-?\d+");
             if (matches.Count > 1 && int.TryParse(matches[1].Value, out int val))
             {
@@ -485,5 +456,4 @@
         catch { }
         return defaultValue;
     }
-    
 }

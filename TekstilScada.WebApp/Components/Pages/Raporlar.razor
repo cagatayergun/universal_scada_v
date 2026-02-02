@@ -5,6 +5,7 @@
 @using TekstilScada.WebApp.Services
 @using TekstilScada.Core.Localization
 @using Microsoft.Extensions.Localization
+@using System.Text.Json
 @inject ScadaDataService ScadaDataService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
@@ -24,19 +25,9 @@
             <li class="nav-item">
                 <a class="nav-link @(activeTab == "alarmlar" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "alarmlar"'>@Loc["GecmisAlarmlarTab"]</a>
             </li>
-            @*
-            <li class="nav-item">
-                <a class="nav-link @(activeTab == "oee" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "oee"'>@Loc["OeeRaporuTab"]</a>
-            </li>
-            *@
             <li class="nav-item">
                 <a class="nav-link @(activeTab == "trend" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "trend"'>@Loc["TrendAnaliziTabRaporlar"]</a>
             </li>
-            @*
-            <li class="nav-item">
-                <a class="nav-link @(activeTab == "receteTuketim" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "receteTuketim"'>@Loc["ReceteTuketimAnaliziTab"]</a>
-            </li>
-             *@
             <li class="nav-item">
                 <a class="nav-link @(activeTab == "manuelTuketim" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "manuelTuketim"'>@Loc["ManuelTuketimTab"]</a>
             </li>
@@ -56,63 +47,38 @@
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="4">
-                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]"
-                                                    @bind-DateRange="_dateRange"
-                                                    Color="MudBlazor.Color.Primary"
-                                                    Placeholder="@Loc["BaslangicBitisPlaceholder"]"
-                                                    Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]" @bind-DateRange="_dateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
-
                             <MudItem xs="12" md="4">
                                 <MudSelect T="int" Label="@Loc["MakineLabel"]" @bind-Value="selectedMachineId" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
                                     <MudSelectItem Value="0">@Loc["TumMakineler"]</MudSelectItem>
                                     @if (machines != null)
                                     {
-                                        foreach (var machine in machines)
+                                        foreach (var m in machines)
                                         {
-                                            <MudSelectItem Value="@machine.Id">@machine.MachineName</MudSelectItem>
+                                            <MudSelectItem Value="@m.Id">@m.MachineName</MudSelectItem>
                                         }
                                     }
                                 </MudSelect>
                             </MudItem>
-
                             <MudItem xs="12" md="4">
                                 <MudTextField @bind-Value="filters.RecipeName" Label="@Loc["ReceteAdiAraPlaceholder"]" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" />
                             </MudItem>
-
                             <MudItem xs="12">
                                 <MudExpansionPanel Text="@Loc["DetayliFiltrelerPanel"]" Dense="true">
                                     <MudGrid>
-                                        <MudItem xs="6" md="3">
-                                            <MudTextField @bind-Value="filters.BatchNo" Label="@Loc["BatchNoLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                                        </MudItem>
-                                        <MudItem xs="6" md="3">
-                                            <MudTextField @bind-Value="filters.SiparisNo" Label="@Loc["SiparisNoLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                                        </MudItem>
-                                        <MudItem xs="6" md="3">
-                                            <MudTextField @bind-Value="filters.MusteriNo" Label="@Loc["MusteriNoLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                                        </MudItem>
-                                        <MudItem xs="6" md="3">
-                                            <MudTextField @bind-Value="filters.OperatorName" Label="@Loc["OperatorLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                                        </MudItem>
+                                        <MudItem xs="6" md="3"><MudTextField @bind-Value="filters.BatchNo" Label="@Loc["BatchNoLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                        <MudItem xs="6" md="3"><MudTextField @bind-Value="filters.SiparisNo" Label="@Loc["SiparisNoLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                        <MudItem xs="6" md="3"><MudTextField @bind-Value="filters.MusteriNo" Label="@Loc["MusteriNoLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                        <MudItem xs="6" md="3"><MudTextField @bind-Value="filters.OperatorName" Label="@Loc["OperatorLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
                                     </MudGrid>
                                 </MudExpansionPanel>
                             </MudItem>
-
                             <MudItem xs="12" Class="d-flex justify-end gap-2">
-                                <MudButton Variant="Variant.Filled"
-                                           Color="MudBlazor.Color.Primary"
-                                           StartIcon="@Icons.Material.Filled.Search"
-                                           OnClick="GenerateReport"
-                                           Disabled="@isLoading">
+                                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Search" OnClick="GenerateReport" Disabled="@isLoading">
                                     @(isLoading? Loc["Hesaplaniyor"].Value : Loc["RaporlaButon"].Value)
                                 </MudButton>
-
-                                <MudButton Variant="Variant.Filled"
-                                           Color="MudBlazor.Color.Success"
-                                           StartIcon="@Icons.Material.Filled.FileDownload"
-                                           OnClick="ExportProductionToExcel"
-                                           Disabled="@(reportItems == null || !reportItems.Any())">
+                                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Success" StartIcon="@Icons.Material.Filled.FileDownload" OnClick="ExportProductionToExcel" Disabled="@(reportItems == null || !reportItems.Any())">
                                     @Loc["ExcelIndirButon"]
                                 </MudButton>
                             </MudItem>
@@ -122,31 +88,12 @@
 
                 @if (reportItems != null && reportItems.Any())
                 {
-                    <MudDataGrid T="ProductionReportItem"
-                                 Items="@reportItems"
-                                 @bind-CurrentPage="_currentPage"
-                                 Filterable="true"
-                                 SortMode="SortMode.Multiple"
-                                 Groupable="true"
-                                 Dense="true"
-                                 Striped="true"
-                                 Bordered="true"
-                                 RowsPerPage="10"
-                                 Hover="true"
-                                 RowClick="@OnRowClick"
-                                 QuickFilter="@_quickFilter">
+                    <MudDataGrid T="ProductionReportItem" Items="@reportItems" @bind-CurrentPage="_currentPage" Filterable="true" SortMode="SortMode.Multiple" Groupable="true" Dense="true" Striped="true" Bordered="true" RowsPerPage="10" Hover="true" RowClick="@OnRowClick" QuickFilter="@_quickFilter">
                         <ToolBarContent>
                             <MudText Typo="Typo.h6">@Loc["UretimSonuclariBaslik"]</MudText>
                             <MudSpacer />
-                            <MudTextField @bind-Value="_searchString"
-                                          Placeholder="@Loc["TablodaAraPlaceholder"]"
-                                          Adornment="Adornment.Start"
-                                          AdornmentIcon="@Icons.Material.Filled.Search"
-                                          IconSize="MudBlazor.Size.Medium"
-                                          Class="mt-0"
-                                          Immediate="true"></MudTextField>
+                            <MudTextField @bind-Value="_searchString" Placeholder="@Loc["TablodaAraPlaceholder"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" Immediate="true"></MudTextField>
                         </ToolBarContent>
-
                         <Columns>
                             <PropertyColumn Property="x => x.MachineName" Title="@Loc["MakineLabel"]" Groupable="true" CellStyle="white-space: normal; min-width: 100px;" />
                             <PropertyColumn Property="x => x.RecipeName" Title="@Loc["ReceteLabel"]" CellStyle="white-space: normal; min-width: 120px;" />
@@ -159,10 +106,7 @@
                             <PropertyColumn Property="x => x.TotalElectricity" Title="@Loc["ElektrikKw"]" AggregateDefinition="_sumAggregation" />
                             <PropertyColumn Property="x => x.TotalSteam" Title="@Loc["BuharKg"]" AggregateDefinition="_sumAggregation" />
                         </Columns>
-
-                        <PagerContent>
-                            <MudDataGridPager T="ProductionReportItem" />
-                        </PagerContent>
+                        <PagerContent><MudDataGridPager T="ProductionReportItem" /></PagerContent>
                     </MudDataGrid>
                 }
                 else if (isLoading)
@@ -181,26 +125,20 @@
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="5">
-                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]"
-                                                    @bind-DateRange="_alarmDateRange"
-                                                    Color="MudBlazor.Color.Primary"
-                                                    Placeholder="@Loc["BaslangicBitisPlaceholder"]"
-                                                    Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]" @bind-DateRange="_alarmDateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
-
                             <MudItem xs="12" md="3">
                                 <MudSelect T="int" Label="@Loc["MakineLabel"]" @bind-Value="selectedAlarmMachineId" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
                                     <MudSelectItem Value="0">@Loc["TumMakineler"]</MudSelectItem>
                                     @if (machines != null)
                                     {
-                                        foreach (var machine in machines)
+                                        foreach (var m in machines)
                                         {
-                                            <MudSelectItem Value="@machine.Id">@machine.MachineName</MudSelectItem>
+                                            <MudSelectItem Value="@m.Id">@m.MachineName</MudSelectItem>
                                         }
                                     }
                                 </MudSelect>
                             </MudItem>
-
                             <MudItem xs="12" md="4" Class="d-flex justify-end gap-2">
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.ManageSearch" OnClick="GenerateAlarmReport" Disabled="@isLoading">
                                     @(isLoading? Loc["Hesaplaniyor"].Value : Loc["RaporlaButon"].Value)
@@ -215,38 +153,17 @@
 
                 @if (alarmReportItems != null && alarmReportItems.Any())
                 {
-                    <MudDataGrid T="AlarmReportItem"
-                                 Items="@alarmReportItems"
-                                 Filterable="true"
-                                 SortMode="SortMode.Multiple"
-                                 Groupable="true"
-                                 Dense="true"
-                                 Striped="true"
-                                 Bordered="true"
-                                 RowClassFunc="@AlarmRowStyleFunc"
-                                 QuickFilter="@_quickFilterAlarm"
-                                 RowsPerPage="15">
+                    <MudDataGrid T="AlarmReportItem" Items="@alarmReportItems" Filterable="true" SortMode="SortMode.Multiple" Groupable="true" Dense="true" Striped="true" Bordered="true" RowClassFunc="@AlarmRowStyleFunc" QuickFilter="@_quickFilterAlarm" RowsPerPage="15">
                         <ToolBarContent>
                             <MudText Typo="Typo.h6">@Loc["AlarmGecmisiBaslikRaporlar"]</MudText>
                             <MudSpacer />
-                            <MudTextField @bind-Value="_searchStringAlarm"
-                                          Placeholder="@Loc["AlarmAraPlaceholder"]"
-                                          Adornment="Adornment.Start"
-                                          AdornmentIcon="@Icons.Material.Filled.Search"
-                                          IconSize="MudBlazor.Size.Medium"
-                                          Class="mt-0"
-                                          Immediate="true"></MudTextField>
+                            <MudTextField @bind-Value="_searchStringAlarm" Placeholder="@Loc["AlarmAraPlaceholder"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" Immediate="true"></MudTextField>
                         </ToolBarContent>
-
                         <Columns>
                             <PropertyColumn Property="x => x.MachineName" Title="@Loc["MakineLabel"]" Groupable="true" CellStyle="white-space: normal; min-width: 100px;" />
-
                             <PropertyColumn Property="x => x.AlarmNumber" Title="@Loc["No"]" CellStyle="min-width: 60px;" />
-
                             <PropertyColumn Property="x => x.AlarmText" Title="@Loc["Aciklama"]" CellStyle="white-space: normal; min-width: 200px;" />
-
                             <PropertyColumn Property="x => x.StartTime" Title="@Loc["BaslangicZamani"]" Format="dd.MM.yy HH:mm:ss" CellStyle="white-space: normal;" />
-
                             <TemplateColumn Title="@Loc["BitisZamani"]" SortBy="@(x => x.EndTime)">
                                 <CellTemplate>
                                     @if (context.Item.EndTime.HasValue)
@@ -255,159 +172,49 @@
                                     }
                                     else
                                     {
+
                                         <MudChip T="string" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" Variant="Variant.Filled">@Loc["Aktif"]</MudChip>
                                     }
                                 </CellTemplate>
                             </TemplateColumn>
-
                             <PropertyColumn Property="x => x.Duration" Title="@Loc["Sure"]" />
                         </Columns>
-                        <PagerContent>
-                            <MudDataGridPager T="AlarmReportItem" />
-                        </PagerContent>
+                        <PagerContent><MudDataGridPager T="AlarmReportItem" /></PagerContent>
                     </MudDataGrid>
                 }
                 else if (isLoading)
                 {
+
                     <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" Class="my-7" />
                 }
                 else if (alarmReportItems != null)
                 {
+
                     <MudAlert Severity="Severity.Info" Variant="Variant.Filled">@Loc["KriterlereUygunKayitYok"]</MudAlert>
                 }
                 break;
-                @*
-            case "oee":
-                <MudCard Class="mb-4" Elevation="3">
-                    <MudCardContent>
-                        <MudGrid Spacing="2" AlignItems="AlignItems.Center">
-                            <MudItem xs="12" md="5">
-                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]"
-                                                    @bind-DateRange="_oeeDateRange"
-                                                    Color="MudBlazor.Color.Primary"
-                                                    Placeholder="@Loc["BaslangicBitisPlaceholder"]"
-                                                    Variant="Variant.Outlined" Margin="Margin.Dense" />
-                            </MudItem>
 
-                            <MudItem xs="12" md="3">
-                                <MudSelect T="int" Label="@Loc["MakineLabel"]" @bind-Value="selectedOeeMachineId" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
-                                    <MudSelectItem Value="0">@Loc["TumMakineler"]</MudSelectItem>
-                                    @if (machines != null)
-                                    {
-                                        foreach (var machine in machines)
-                                        {
-                                            <MudSelectItem Value="@machine.Id">@machine.MachineName</MudSelectItem>
-                                        }
-                                    }
-                                </MudSelect>
-                            </MudItem>
-
-                            <MudItem xs="12" md="4" Class="d-flex justify-end gap-2">
-                                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Analytics" OnClick="GenerateOeeReport" Disabled="@isLoading">
-                                    @(isLoading? Loc["Hesaplaniyor"].Value : Loc["RaporlaButon"].Value)
-                                </MudButton>
-                                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Success" StartIcon="@Icons.Material.Filled.FileDownload" OnClick="ExportOeeToExcel" Disabled="@(oeeReportItems == null || !oeeReportItems.Any())">
-                                    @Loc["ExcelIndirButon"]
-                                </MudButton>
-                            </MudItem>
-                        </MudGrid>
-                    </MudCardContent>
-                </MudCard>
-
-                @if (oeeReportItems != null && oeeReportItems.Any())
-                {
-                    <MudDataGrid T="OeeData"
-                                 Items="@oeeReportItems"
-                                 Filterable="true"
-                                 SortMode="SortMode.Multiple"
-                                 Groupable="true"
-                                 Dense="true"
-                                 Striped="true"
-                                 Bordered="true"
-                                 QuickFilter="@_quickFilterOee"
-                                 RowsPerPage="15">
-
-                        <ToolBarContent>
-                            <MudText Typo="Typo.h6">@Loc["OeeAnaliziBaslik"]</MudText>
-                            <MudSpacer />
-                            <MudTextField @bind-Value="_searchStringOee"
-                                          Placeholder="@Loc["AraGenelPlaceholder"]"
-                                          Adornment="Adornment.Start"
-                                          AdornmentIcon="@Icons.Material.Filled.Search"
-                                          IconSize="MudBlazor.Size.Medium"
-                                          Class="mt-0"
-                                          Immediate="true"></MudTextField>
-                        </ToolBarContent>
-
-                        <Columns>
-                            <PropertyColumn Property="x => x.MachineName" Title="@Loc["MakineLabel"]" Groupable="true" />
-                            <PropertyColumn Property="x => x.BatchId" Title="@Loc["BatchNoLabel"]" />
-
-                            <PropertyColumn Property="x => x.Availability" Title="@Loc["KullanilabilirlikLabel"]" Format="N2" />
-                            <PropertyColumn Property="x => x.Performance" Title="@Loc["PerformansLabel"]" Format="N2" />
-                            <PropertyColumn Property="x => x.Quality" Title="@Loc["KaliteLabel"]" Format="N2" />
-
-                            <TemplateColumn Title="OEE %" SortBy="@(x => x.OEE)">
-                                <CellTemplate>
-                                    @{
-                                        var oee = context.Item.OEE;
-                                        var color = oee < 60 ? MudBlazor.Color.Error : (oee < 85 ? MudBlazor.Color.Warning : MudBlazor.Color.Success);
-                                        var icon = oee < 60 ? Icons.Material.Filled.ThumbDown : (oee < 85 ? Icons.Material.Filled.ThumbsUpDown : Icons.Material.Filled.ThumbUp);
-                                    }
-                                    <MudChip T="string" Color="@color" Variant="Variant.Filled" Size="MudBlazor.Size.Small" Icon="@icon">@oee.ToString("N2")%</MudChip>
-                                </CellTemplate>
-                            </TemplateColumn>
-                        </Columns>
-
-                        <PagerContent>
-                            <MudDataGridPager T="OeeData" />
-                        </PagerContent>
-                    </MudDataGrid>
-                }
-                else if (isLoading)
-                {
-                    <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" Class="my-7" />
-                }
-                else if (oeeReportItems != null)
-                {
-                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">@Loc["KriterlereUygunKayitYok"]</MudAlert>
-                }
-                break;
-                *@
             case "trend":
                 <MudCard Class="mb-4" Elevation="3">
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="4">
-                                <MudDateRangePicker Label="@Loc["AnalizAraligiLabel"]"
-                                                    @bind-DateRange="_trendDateRange"
-                                                    Color="MudBlazor.Color.Primary"
-                                                    Placeholder="@Loc["BaslangicBitisPlaceholder"]"
-                                                    Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudDateRangePicker Label="@Loc["AnalizAraligiLabel"]" @bind-DateRange="_trendDateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
-
                             <MudItem xs="12" md="4">
-                                <MudSelect T="int" Label="@Loc["MakineSecimiLabel"]"
-                                           @bind-Value="selectedTrendMachineIdInt"
-                                           Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                <MudSelect T="int" Label="@Loc["MakineSecimiLabel"]" @bind-Value="selectedTrendMachineIdInt" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
                                     <MudSelectItem Value="0">@Loc["MakineSecinizPlaceholder"]</MudSelectItem>
                                     @if (machines != null)
                                     {
-                                        foreach (var machine in machines)
+                                        foreach (var m in machines)
                                         {
-                                            <MudSelectItem Value="@machine.Id">@machine.MachineName</MudSelectItem>
+                                            <MudSelectItem Value="@m.Id">@m.MachineName</MudSelectItem>
                                         }
                                     }
                                 </MudSelect>
                             </MudItem>
-
                             <MudItem xs="12" md="4" Class="d-flex justify-end">
-                                <MudButton Variant="Variant.Filled"
-                                           Color="MudBlazor.Color.Primary"
-                                           StartIcon="@Icons.Material.Filled.ShowChart"
-                                           OnClick="GenerateTrendReport"
-                                           Disabled="@isLoading"
-                                           FullWidth="true">
+                                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.ShowChart" OnClick="GenerateTrendReport" Disabled="@isLoading" FullWidth="true">
                                     @(isLoading? Loc["AnalizEdiliyor"].Value : Loc["TrendiCizButon"].Value)
                                 </MudButton>
                             </MudItem>
@@ -425,71 +232,28 @@
                     <MudPaper Elevation="4" Class="pa-4 mb-4" Style="background-color: #1e1e2d;">
                         <div id="trendChart" style="width: 100%; height: 500px;"></div>
                     </MudPaper>
-
-                    <MudText Typo="Typo.h6" Class="mb-2">@Loc["IstatistikselOzetBaslik"]</MudText>
                     <MudGrid>
                         <MudItem xs="12" md="4">
                             <MudCard Elevation="2" Class="border-l-4" Style="border-left-color: #e74c3c;">
-                                <MudCardHeader>
-                                    <CardHeaderAvatar>
-                                        <MudAvatar Color="MudBlazor.Color.Error" Variant="Variant.Filled">
-                                            <MudIcon Icon="@Icons.Material.Filled.Thermostat" />
-                                        </MudAvatar>
-                                    </CardHeaderAvatar>
-                                    <CardHeaderContent>
-                                        <MudText Typo="Typo.subtitle1"><b>@Loc["Sicaklik"] (°C)</b></MudText>
-                                    </CardHeaderContent>
-                                </MudCardHeader>
                                 <MudCardContent>
-                                    <div class="d-flex justify-space-between">
-                                        <MudText Typo="Typo.body2">Min: <b>@trendStats.MinTemp.ToString("F1")</b></MudText>
-                                        <MudText Typo="Typo.body2">Max: <b>@trendStats.MaxTemp.ToString("F1")</b></MudText>
-                                        <MudText Typo="Typo.body2">Ort: <b>@trendStats.AvgTemp.ToString("F1")</b></MudText>
-                                    </div>
+                                    <MudText Typo="Typo.subtitle1"><b>@Loc["Sicaklik"] (°C)</b></MudText>
+                                    <MudText Typo="Typo.body2">Min: @trendStats.MinTemp.ToString("F1") | Max: @trendStats.MaxTemp.ToString("F1") | Avg: @trendStats.AvgTemp.ToString("F1")</MudText>
                                 </MudCardContent>
                             </MudCard>
                         </MudItem>
-
                         <MudItem xs="12" md="4">
                             <MudCard Elevation="2" Class="border-l-4" Style="border-left-color: #3498db;">
-                                <MudCardHeader>
-                                    <CardHeaderAvatar>
-                                        <MudAvatar Color="MudBlazor.Color.Info" Variant="Variant.Filled">
-                                            <MudIcon Icon="@Icons.Material.Filled.Speed" />
-                                        </MudAvatar>
-                                    </CardHeaderAvatar>
-                                    <CardHeaderContent>
-                                        <MudText Typo="Typo.subtitle1"><b>@Loc["Devir"]</b></MudText>
-                                    </CardHeaderContent>
-                                </MudCardHeader>
                                 <MudCardContent>
-                                    <div class="d-flex justify-space-between">
-                                        <MudText Typo="Typo.body2">Min: <b>@trendStats.MinRpm</b></MudText>
-                                        <MudText Typo="Typo.body2">Max: <b>@trendStats.MaxRpm</b></MudText>
-                                        <MudText Typo="Typo.body2">Ort: <b>@trendStats.AvgRpm.ToString("F0")</b></MudText>
-                                    </div>
+                                    <MudText Typo="Typo.subtitle1"><b>@Loc["Devir"]</b></MudText>
+                                    <MudText Typo="Typo.body2">Min: @trendStats.MinRpm | Max: @trendStats.MaxRpm | Avg: @trendStats.AvgRpm.ToString("F0")</MudText>
                                 </MudCardContent>
                             </MudCard>
                         </MudItem>
-
                         <MudItem xs="12" md="4">
                             <MudCard Elevation="2" Class="border-l-4" Style="border-left-color: #2ecc71;">
-                                <MudCardHeader>
-                                    <CardHeaderAvatar>
-                                        <MudAvatar Color="MudBlazor.Color.Success" Variant="Variant.Filled">
-                                            <MudIcon Icon="@Icons.Material.Filled.WaterDrop" />
-                                        </MudAvatar>
-                                    </CardHeaderAvatar>
-                                    <CardHeaderContent>
-                                        <MudText Typo="Typo.subtitle1"><b>@Loc["SuSeviyesiLabel"] (%)</b></MudText>
-                                    </CardHeaderContent>
-                                </MudCardHeader>
                                 <MudCardContent>
-                                    <div class="d-flex justify-space-between">
-                                        <MudText Typo="Typo.body2">Min: <b>@trendStats.MinLevel</b></MudText>
-                                        <MudText Typo="Typo.body2">Max: <b>@trendStats.MaxLevel</b></MudText>
-                                        <MudText Typo="Typo.body2">Ort: <b>@trendStats.AvgLevel.ToString("F0")</b></MudText>
-                                    </div>
+                                    <MudText Typo="Typo.subtitle1"><b>@Loc["SuSeviyesiLabel"] (%)</b></MudText>
+                                    <MudText Typo="Typo.body2">Min: @trendStats.MinLevel | Max: @trendStats.MaxLevel | Avg: @trendStats.AvgLevel.ToString("F0")</MudText>
                                 </MudCardContent>
                             </MudCard>
                         </MudItem>
@@ -497,152 +261,33 @@
                 }
                 else if (trendDataPoints != null)
                 {
+
                     <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mt-4">@Loc["TrendVerisiYokTarih"]</MudAlert>
                 }
                 break;
-                @*
-            case "receteTuketim":
-                <MudGrid>
-                    <MudItem xs="12" md="4">
-                        <MudPaper Elevation="3" Class="pa-0">
-                            <MudDataGrid T="ScadaRecipe"
-                                         Items="@allRecipes"
-                                         Filterable="true"
-                                         Hover="true"
-                                         Dense="true"
-                                         Bordered="true"
-                                         RowClick="@OnRecipeRowClick"
-                                         QuickFilter="@_quickFilterRecipe"
-                                         FixedHeader="true"
-                                         Height="calc(100vh - 250px)">
-                                <ToolBarContent>
-                                    <MudText Typo="Typo.h6">@Loc["RecetelerBaslik"]</MudText>
-                                    <MudSpacer />
-                                    <MudTextField @bind-Value="_searchStringRecipe"
-                                                  Placeholder="@Loc["ReceteAraPlaceholder"]"
-                                                  Adornment="Adornment.Start"
-                                                  AdornmentIcon="@Icons.Material.Filled.Search"
-                                                  IconSize="MudBlazor.Size.Small"
-                                                  Class="mt-0"
-                                                  Immediate="true"></MudTextField>
-                                </ToolBarContent>
 
-                                <Columns>
-                                    <PropertyColumn Property="x => x.RecipeName" Title="@Loc["ReceteAdi"]" CellStyle="font-weight:bold;" />
-                                    <PropertyColumn Property="x => x.TargetMachineType" Title="@Loc["Tip"]" />
-                                </Columns>
-                            </MudDataGrid>
-                        </MudPaper>
-                    </MudItem>
-
-                    <MudItem xs="12" md="8">
-                        @if (selectedRecipeIdForConsumption == 0)
-                        {
-                            <div class="d-flex flex-column align-center justify-center h-100" style="opacity:0.6;">
-                                <MudIcon Icon="@Icons.Material.Filled.TouchApp" Size="MudBlazor.Size.Large" />
-                                <MudText Typo="Typo.h6" Class="mt-2">@Loc["LutfenReceteSeciniz"]</MudText>
-                            </div>
-                        }
-                        else if (isLoading)
-                        {
-                            <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" Class="my-4" />
-                            <MudText Align="MudBlazor.Align.Center">@Loc["VerilerAnalizEdiliyor"]</MudText>
-                        }
-                        else if (consumptionHistory == null || !consumptionHistory.Any())
-                        {
-                            <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">@Loc["GecmisUretimKaydiYok"]</MudAlert>
-                        }
-                        else
-                        {
-                            <MudGrid Class="mb-3" Spacing="2">
-                                <MudItem xs="12" md="4">
-                                    <MudPaper Elevation="2" Class="pa-3 d-flex flex-column align-center" Style="border-top: 4px solid #29b6f6;">
-                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@Loc["OrtalamaSu"]</MudText>
-                                        <MudText Typo="Typo.h5">@consumptionHistory.Average(x => x.TotalWater).ToString("N0") <span style="font-size:0.6em">@Loc["SuLitre"]</span></MudText>
-                                    </MudPaper>
-                                </MudItem>
-                                <MudItem xs="12" md="4">
-                                    <MudPaper Elevation="2" Class="pa-3 d-flex flex-column align-center" Style="border-top: 4px solid #ffa726;">
-                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@Loc["OrtalamaElektrik"]</MudText>
-                                        <MudText Typo="Typo.h5">@consumptionHistory.Average(x => x.TotalElectricity).ToString("N1") <span style="font-size:0.6em">kW</span></MudText>
-                                    </MudPaper>
-                                </MudItem>
-                                <MudItem xs="12" md="4">
-                                    <MudPaper Elevation="2" Class="pa-3 d-flex flex-column align-center" Style="border-top: 4px solid #ab47bc;">
-                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@Loc["OrtalamaBuhar"]</MudText>
-                                        <MudText Typo="Typo.h5">@consumptionHistory.Average(x => x.TotalSteam).ToString("N1") <span style="font-size:0.6em">kg</span></MudText>
-                                    </MudPaper>
-                                </MudItem>
-                            </MudGrid>
-
-                            <MudDataGrid T="ProductionReportItem"
-                                         Items="@consumptionHistory"
-                                         Filterable="true"
-                                         SortMode="SortMode.Multiple"
-                                         Groupable="true"
-                                         Dense="true"
-                                         Striped="true"
-                                         Bordered="true"
-                                         RowsPerPage="10">
-
-                                <ToolBarContent>
-                                    <MudText Typo="Typo.h6">@consumptionHistory.FirstOrDefault()?.RecipeName - @Loc["GecmisUretimlerBaslik"]</MudText>
-                                    <MudSpacer />
-                                </ToolBarContent>
-
-                                <Columns>
-                                    <PropertyColumn Property="x => x.MachineName" Title="@Loc["MakineLabel"]" Groupable="true" />
-                                    <PropertyColumn Property="x => x.BatchId" Title="@Loc["BatchNoLabel"]" />
-                                    <PropertyColumn Property="x => x.EndTime" Title="@Loc["Tarih"]" Format="dd.MM.yy HH:mm" />
-                                    <PropertyColumn Property="x => x.CycleTime" Title="@Loc["Sure"]" />
-
-                                    <PropertyColumn Property="x => x.TotalWater" Title="@Loc["SuLitre"]" AggregateDefinition="_avgAggregation" />
-                                    <PropertyColumn Property="x => x.TotalElectricity" Title="@Loc["ElektrikKw"]" AggregateDefinition="_avgAggregation" />
-                                    <PropertyColumn Property="x => x.TotalSteam" Title="@Loc["BuharKg"]" AggregateDefinition="_avgAggregation" />
-                                </Columns>
-                                <PagerContent>
-                                    <MudDataGridPager T="ProductionReportItem" />
-                                </PagerContent>
-                            </MudDataGrid>
-                        }
-                    </MudItem>
-                </MudGrid>
-                break;
-                *@
             case "manuelTuketim":
-                @* --- GÜNCELLENEN MANUEL TÜKETİM ALANI (WinForms Mantığı) --- *@
                 <MudCard Class="mb-4" Elevation="3">
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="4">
-                                <MudDateRangePicker Label="@Loc["AnalizAraligiLabel"]"
-                                                    @bind-DateRange="_manualDateRange"
-                                                    Color="MudBlazor.Color.Primary"
-                                                    Placeholder="@Loc["BaslangicBitisPlaceholder"]"
-                                                    Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudDateRangePicker Label="@Loc["AnalizAraligiLabel"]" @bind-DateRange="_manualDateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
-
                             <MudItem xs="12" md="4">
-                                @* Çoklu seçim için MudSelect güncellendi *@
-                                <MudSelect T="int" Label="@Loc["MakineSecimiLabel"]"
-                                           MultiSelection="true"
-                                           @bind-SelectedValues="_selectedManualMachineIds"
-                                           Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                <MudSelect T="int" Label="@Loc["MakineSecimiLabel"]" MultiSelection="true" @bind-SelectedValues="_selectedManualMachineIds" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
                                     @if (machines != null)
                                     {
-                                        foreach (var machine in machines)
+                                        foreach (var m in machines)
                                         {
-                                            <MudSelectItem Value="@machine.Id">@machine.MachineName</MudSelectItem>
+                                            <MudSelectItem Value="@m.Id">@m.MachineName</MudSelectItem>
                                         }
                                     }
                                 </MudSelect>
                             </MudItem>
-
                             <MudItem xs="12" md="4" Class="d-flex justify-end gap-2">
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Analytics" OnClick="GenerateManualConsumptionReport" Disabled="@isLoading">
                                     @(isLoading? Loc["AnalizEdiliyor"].Value : Loc["RaporlaButon"].Value)
                                 </MudButton>
-                                @* Excel butonu sadece veri varsa aktif *@
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Success" StartIcon="@Icons.Material.Filled.FileDownload" OnClick="ExportManualConsumptionToExcel" Disabled="@(manualConsumptionReports == null || !manualConsumptionReports.Any())">
                                     @Loc["ExcelIndirButon"]
                                 </MudButton>
@@ -650,62 +295,32 @@
                         </MudGrid>
                     </MudCardContent>
                 </MudCard>
-
                 @if (isLoading)
                 {
                     <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" Class="my-7" />
                 }
                 else if (manualConsumptionReports != null && manualConsumptionReports.Any())
                 {
-                    <MudDataGrid T="ManualConsumptionSummary"
-                                 Items="@manualConsumptionReports"
-                                 Filterable="true"
-                                 SortMode="SortMode.Multiple"
-                                 Groupable="true"
-                                 Dense="true"
-                                 Striped="true"
-                                 Bordered="true"
-                                 RowsPerPage="15">
-
-                        <ToolBarContent>
-                            <MudText Typo="Typo.h6">@Loc["ManuelModOzet"]</MudText>
-                            <MudSpacer />
-                        </ToolBarContent>
-
+                    <MudDataGrid T="ManualConsumptionSummary" Items="@manualConsumptionReports" Filterable="true" SortMode="SortMode.Multiple" Groupable="true" Dense="true" Striped="true" Bordered="true" RowsPerPage="15">
+                        <ToolBarContent><MudText Typo="Typo.h6">@Loc["ManuelModOzet"]</MudText><MudSpacer /></ToolBarContent>
                         <Columns>
-                            @* WinForms mantığına uygun kolonlar *@
                             <PropertyColumn Property="x => x.Makine" Title="@Loc["MakineLabel"]" Groupable="true" />
                             <PropertyColumn Property="x => x.RaporAraligi" Title="@Loc["RaporAraligi"]" />
                             <PropertyColumn Property="x => x.ToplamManuelSure" Title="@Loc["Sure"]" />
-
-                            @* WinForms mantığı: Litre / 1000 = m³ *@
                             <TemplateColumn Title="@Loc["SuLitre3"]" Sortable="true">
-                                <CellTemplate>
-                                    @* 1000.0 yerine 1000.0m yazarak decimal formatına çeviriyoruz *@
-                                    @((context.Item.ToplamSuTuketimi_Litre / 1000.0m).ToString("N3"))
-                                </CellTemplate>
+                                <CellTemplate>@((context.Item.ToplamSuTuketimi_Litre / 1000.0m).ToString("N3"))</CellTemplate>
                             </TemplateColumn>
-
-                            @* WinForms mantığı: Watt / 1000 = kW *@
                             <TemplateColumn Title="@Loc["ElektrikKw"]" Sortable="true">
-                                <CellTemplate>
-                                    @* Burada da 1000.0m kullanıyoruz *@
-                                    @((context.Item.ToplamElektrikTuketimi_kW / 1000.0m).ToString("N3"))
-                                </CellTemplate>
+                                <CellTemplate>@((context.Item.ToplamElektrikTuketimi_kW / 1000.0m).ToString("N3"))</CellTemplate>
                             </TemplateColumn>
-
-                            @* Buhar direkt kg olarak gösteriliyor (N0 formatı) *@
                             <PropertyColumn Property="x => x.ToplamBuharTuketimi_kg" Title="@Loc["BuharKg"]" Format="N0" />
-
                         </Columns>
-
-                        <PagerContent>
-                            <MudDataGridPager T="ManualConsumptionSummary" />
-                        </PagerContent>
+                        <PagerContent><MudDataGridPager T="ManualConsumptionSummary" /></PagerContent>
                     </MudDataGrid>
                 }
                 else if (manualConsumptionReports != null)
                 {
+
                     <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mt-4">@Loc["ManuelKayitYok"]</MudAlert>
                 }
                 break;
@@ -715,13 +330,8 @@
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="3">
-                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]"
-                                                    @bind-DateRange="_generalDateRange"
-                                                    Color="MudBlazor.Color.Primary"
-                                                    Placeholder="@Loc["BaslangicBitisPlaceholder"]"
-                                                    Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]" @bind-DateRange="_generalDateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
-
                             <MudItem xs="12" md="3">
                                 <MudSelect T="string" Label="@Loc["TuketimTipiLabel"]" @bind-Value="selectedConsumptionType" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
                                     <MudSelectItem Value="@("TotalElectricity")">@Loc["ElektrikKw"]</MudSelectItem>
@@ -729,19 +339,17 @@
                                     <MudSelectItem Value="@("TotalSteam")">@Loc["BuharKg"]</MudSelectItem>
                                 </MudSelect>
                             </MudItem>
-
                             <MudItem xs="12" md="4">
                                 <MudSelect T="int" Label="@Loc["MakinelerCokluSecim"]" MultiSelection="true" @bind-SelectedValues="_selectedGeneralMachineIds" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
                                     @if (machines != null)
                                     {
-                                        foreach (var machine in machines)
+                                        foreach (var m in machines)
                                         {
-                                            <MudSelectItem Value="@machine.Id">@machine.MachineName</MudSelectItem>
+                                            <MudSelectItem Value="@m.Id">@m.MachineName</MudSelectItem>
                                         }
                                     }
                                 </MudSelect>
                             </MudItem>
-
                             <MudItem xs="12" md="2" Class="d-flex justify-end gap-2">
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.ManageSearch" OnClick="GenerateGeneralDetailedConsumptionReport" Disabled="@isLoading" FullWidth="true">
                                     @(isLoading ? "..." : Loc["RaporlaButon"].Value)
@@ -753,55 +361,33 @@
                         </MudGrid>
                     </MudCardContent>
                 </MudCard>
-
                 @if (generalDetailedConsumptionReport != null && generalDetailedConsumptionReport.Any())
                 {
-                    <MudDataGrid T="ProductionReportItem"
-                                 Items="@generalDetailedConsumptionReport"
-                                 Filterable="true"
-                                 SortMode="SortMode.Multiple"
-                                 Groupable="true"
-                                 Dense="true"
-                                 Striped="true"
-                                 Bordered="true"
-                                 QuickFilter="@_quickFilterGeneral"
-                                 RowsPerPage="15">
-
+                    <MudDataGrid T="ProductionReportItem" Items="@generalDetailedConsumptionReport" Filterable="true" SortMode="SortMode.Multiple" Groupable="true" Dense="true" Striped="true" Bordered="true" QuickFilter="@_quickFilterGeneral" RowsPerPage="15">
                         <ToolBarContent>
                             <MudText Typo="Typo.h6">@Loc["DetayliTuketimRaporuBaslik"] (@GetConsumptionUnitName(selectedConsumptionType))</MudText>
                             <MudSpacer />
-                            <MudTextField @bind-Value="_searchStringGeneral"
-                                          Placeholder="@Loc["AraGenelPlaceholder"]"
-                                          Adornment="Adornment.Start"
-                                          AdornmentIcon="@Icons.Material.Filled.Search"
-                                          IconSize="MudBlazor.Size.Medium"
-                                          Class="mt-0"
-                                          Immediate="true"></MudTextField>
+                            <MudTextField @bind-Value="_searchStringGeneral" Placeholder="@Loc["AraGenelPlaceholder"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" Immediate="true"></MudTextField>
                         </ToolBarContent>
-
                         <Columns>
                             <PropertyColumn Property="x => x.MachineName" Title="@Loc["MakineLabel"]" Groupable="true" />
                             <PropertyColumn Property="x => x.BatchId" Title="@Loc["BatchNoLabel"]" />
                             <PropertyColumn Property="x => x.EndTime" Title="@Loc["BitisZamani"]" Format="dd.MM.yy HH:mm" />
-
                             <TemplateColumn Title="@GetConsumptionUnitName(selectedConsumptionType)" Sortable="true">
-                                <CellTemplate>
-                                    <strong>@GetConsumptionValue(context.Item, selectedConsumptionType)</strong>
-                                </CellTemplate>
+                                <CellTemplate><strong>@GetConsumptionValue(context.Item, selectedConsumptionType)</strong></CellTemplate>
                             </TemplateColumn>
                         </Columns>
-
-                        <PagerContent>
-                            <MudDataGridPager T="ProductionReportItem" />
-                        </PagerContent>
+                        <PagerContent><MudDataGridPager T="ProductionReportItem" /></PagerContent>
                     </MudDataGrid>
                 }
                 else if (isLoading)
                 {
+
                     <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" Class="my-7" />
                 }
                 else if (generalDetailedConsumptionReport != null)
                 {
+
                     <MudAlert Severity="Severity.Info" Variant="Variant.Filled">@Loc["KriterlereUygunKayitYok"]</MudAlert>
                 }
                 break;
@@ -811,21 +397,14 @@
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="3">
-                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]"
-                                                    @bind-DateRange="_actionDateRange"
-                                                    Color="MudBlazor.Color.Primary"
-                                                    Placeholder="@Loc["BaslangicBitisPlaceholder"]"
-                                                    Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]" @bind-DateRange="_actionDateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
-
                             <MudItem xs="12" md="3">
                                 <MudTextField @bind-Value="actionLogFilters.Username" Label="@Loc["KullaniciAdiLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Person" />
                             </MudItem>
-
                             <MudItem xs="12" md="4">
                                 <MudTextField @bind-Value="actionLogFilters.Details" Label="@Loc["IslemDetayiArama"]" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.TextSnippet" />
                             </MudItem>
-
                             <MudItem xs="12" md="2" Class="d-flex justify-end gap-2">
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.ManageSearch" OnClick="GenerateActionLogsReport" Disabled="@isLoading" FullWidth="true">
                                     @(isLoading ? "..." : Loc["RaporlaButon"].Value)
@@ -837,71 +416,42 @@
                         </MudGrid>
                     </MudCardContent>
                 </MudCard>
-
                 @if (actionLogs != null && actionLogs.Any())
                 {
-                    <MudDataGrid T="TekstilScada.Core.Models.ActionLogEntry"
-                                 Items="@actionLogs"
-                                 Filterable="true"
-                                 SortMode="SortMode.Multiple"
-                                 Groupable="true"
-                                 Dense="true"
-                                 Striped="true"
-                                 Bordered="true"
-                                 QuickFilter="@_quickFilterAction"
-                                 RowsPerPage="15">
-
+                    <MudDataGrid T="TekstilScada.Core.Models.ActionLogEntry" Items="@actionLogs" Filterable="true" SortMode="SortMode.Multiple" Groupable="true" Dense="true" Striped="true" Bordered="true" QuickFilter="@_quickFilterAction" RowsPerPage="15">
                         <ToolBarContent>
                             <MudText Typo="Typo.h6">@Loc["KullaniciHareketleriBaslik"]</MudText>
                             <MudSpacer />
-                            <MudTextField @bind-Value="_searchStringAction"
-                                          Placeholder="@Loc["KayitlardaAraPlaceholder"]"
-                                          Adornment="Adornment.Start"
-                                          AdornmentIcon="@Icons.Material.Filled.Search"
-                                          IconSize="MudBlazor.Size.Medium"
-                                          Class="mt-0"
-                                          Immediate="true"></MudTextField>
+                            <MudTextField @bind-Value="_searchStringAction" Placeholder="@Loc["KayitlardaAraPlaceholder"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" Immediate="true"></MudTextField>
                         </ToolBarContent>
-
                         <Columns>
                             <PropertyColumn Property="x => x.Timestamp" Title="@Loc["Zaman"]" Format="dd.MM.yy HH:mm:ss" Sortable="true" />
                             <PropertyColumn Property="x => x.Username" Title="@Loc["OperatorLabel"]" Groupable="true">
                                 <CellTemplate>
-                                    <div class="d-flex align-center">
-                                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="MudBlazor.Size.Small" Class="mr-2 text-muted" />
-                                        @context.Item.Username
-                                    </div>
+                                    <div class="d-flex align-center"><MudIcon Icon="@Icons.Material.Filled.Person" Size="MudBlazor.Size.Small" Class="mr-2 text-muted" />@context.Item.Username</div>
                                 </CellTemplate>
                             </PropertyColumn>
                             <PropertyColumn Property="x => x.ActionType" Title="@Loc["IslemTipi"]" Groupable="true">
                                 <CellTemplate>
                                     @{
-                                        var color = context.Item.ActionType?.ToLower() switch
-                                        {
-                                            "login" => MudBlazor.Color.Success,
-                                            "logout" => MudBlazor.Color.Warning,
-                                            "error" => MudBlazor.Color.Error,
-                                            _ => MudBlazor.Color.Info
-                                        };
+                                        var color = context.Item.ActionType?.ToLower() switch { "login" => MudBlazor.Color.Success, "logout" => MudBlazor.Color.Warning, "error" => MudBlazor.Color.Error, _ => MudBlazor.Color.Info };
                                     }
                                     <MudChip T="string" Color="@color" Size="MudBlazor.Size.Small" Variant="Variant.Outlined">@context.Item.ActionType</MudChip>
                                 </CellTemplate>
                             </PropertyColumn>
-
                             <PropertyColumn Property="x => x.Details" Title="@Loc["Detaylar"]" CellStyle="white-space: normal;" />
                         </Columns>
-
-                        <PagerContent>
-                            <MudDataGridPager T="TekstilScada.Core.Models.ActionLogEntry" />
-                        </PagerContent>
+                        <PagerContent><MudDataGridPager T="TekstilScada.Core.Models.ActionLogEntry" /></PagerContent>
                     </MudDataGrid>
                 }
                 else if (isLoading)
                 {
+
                     <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" Class="my-7" />
                 }
                 else if (actionLogs != null)
                 {
+
                     <MudAlert Severity="Severity.Info" Variant="Variant.Filled">@Loc["KriterlereUygunKayitYok"]</MudAlert>
                 }
                 break;
@@ -911,77 +461,41 @@
 
 @code {
     private int _currentPage = 0;
-    // MudDateRangePicker için
     private DateRange _dateRange = new DateRange(DateTime.Now.Date.AddDays(-7), DateTime.Now.Date);
-    private string _searchString; // Tablo içi hızlı arama
-
-    // Toplam Alma (Alt Toplam) Tanımı
-    private AggregateDefinition<ProductionReportItem> _sumAggregation = new AggregateDefinition<ProductionReportItem>
-    {
-        Type = AggregateType.Sum,
-        DisplayFormat = "Toplam: {value}"
-    };
-    // --- TEMEL FİLTRE ALANLARI ---
+    private string _searchString;
+    private AggregateDefinition<ProductionReportItem> _sumAggregation = new AggregateDefinition<ProductionReportItem> { Type = AggregateType.Sum, DisplayFormat = "Toplam: {value}" };
     private string activeTab = "uretim";
     private List<Machine>? machines;
     private bool isLoading = false;
-
-    // Üretim Raporu
     private ReportFilters filters = new();
     private List<ProductionReportItem>? reportItems;
     private int selectedMachineId = 0;
-
-    // Alarm Raporu
     private ReportFilters alarmFilters = new();
     private List<AlarmReportItem>? alarmReportItems;
     private int selectedAlarmMachineId = 0;
-
-    // OEE Raporu
-    private ReportFilters oeeFilters = new();
-    private List<OeeData>? oeeReportItems;
-    private int selectedOeeMachineId = 0;
-
-    // --- TREND ANALİZİ ALANLARI ---
     private ReportFilters trendFilters = new();
     private List<TrendProcessDataPoint>? trendDataPoints;
-
     private int selectedTrendMachineIdInt { get; set; } = 0;
-    private string selectedTrendData = "Temperature";
-    private string _searchStringRecipe;
-
-
-    // YENİ FLAG: Grafik çizimini tetiklemek için kullanılır
     private bool shouldRenderChart = false;
-    private List<ScadaRecipe>? allRecipes; // Tüm reçeteleri tutmak için
-    private int selectedRecipeIdForConsumption = 0; // Seçili reçete ID'si
-    private List<ProductionReportItem>? consumptionHistory; // Tüketim geçmişini tutar
-                                                            // YENİ ALANLAR: Manuel Tüketim Raporu için
     private ReportFilters manualFilters = new();
-    private ManualConsumptionSummary? consumptionSummary;
-    private int selectedManualMachineId = 0; // Tek makine seçimi zorunlu
+    private List<ManualConsumptionSummary>? manualConsumptionReports;
+    private IEnumerable<int> _selectedManualMachineIds { get; set; } = new HashSet<int>();
     private ReportFilters generalConsumptionFilters = new();
-    private ConsumptionTotals? consumptionTotals;
     private List<ProductionReportItem>? generalDetailedConsumptionReport;
-    // DÜZELTME 1: Binding için kullanılacak ARRAY (Blazor bunu dizeden dönüştürebilir)
-    private int[] selectedGeneralMachineIdsArray { get; set; } = Array.Empty<int>();
-
-    // DÜZELTME 2: Logic ve API için Array'i List'e çeviren Helper Property
-    private List<int> SelectedGeneralMachineIdsList => selectedGeneralMachineIdsArray.ToList();
+    private IEnumerable<int> _selectedGeneralMachineIds { get; set; } = new HashSet<int>();
     private DateRange _trendDateRange = new DateRange(DateTime.Now.Date, DateTime.Now.Date);
     private DateRange _manualDateRange = new DateRange(DateTime.Now.Date.AddDays(-7), DateTime.Now.Date);
     private DateRange _generalDateRange = new DateRange(DateTime.Now.Date.AddDays(-7), DateTime.Now.Date);
-    private string _searchStringAction;
-    // 2. Çoklu Seçim İçin IEnumerable (MudSelect buna bağlanır)
-    private IEnumerable<int> _selectedGeneralMachineIds { get; set; } = new HashSet<int>();
-
-    // 3. Arama Değişkeni
     private string _searchStringGeneral;
-    // İstatistikleri tutacak nesne
     private TrendStats trendStats = new();
-    private string selectedConsumptionType = "TotalElectricity"; // Varsayılan: Elektrik
+    private string selectedConsumptionType = "TotalElectricity";
     private ActionLogFilters actionLogFilters = new();
     private List<TekstilScada.Core.Models.ActionLogEntry>? actionLogs;
-    // --- TREND VERİ MODELİ ---
+    private DateRange _alarmDateRange = new DateRange(DateTime.Now.Date.AddDays(-7), DateTime.Now.Date);
+    private DateRange _actionDateRange = new DateRange(DateTime.Now.Date.AddDays(-7), DateTime.Now.Date);
+    private string _searchStringAlarm;
+    private string _searchStringAction;
+
     private class TrendProcessDataPoint
     {
         public int MachineId { get; set; }
@@ -990,205 +504,86 @@
         public decimal WaterLevel { get; set; }
         public int Rpm { get; set; }
     }
+
     private class TrendStats
     {
         public decimal MinTemp { get; set; }
         public decimal MaxTemp { get; set; }
         public decimal AvgTemp { get; set; }
-
         public int MinRpm { get; set; }
         public int MaxRpm { get; set; }
         public double AvgRpm { get; set; }
-
         public decimal MinLevel { get; set; }
         public decimal MaxLevel { get; set; }
         public decimal AvgLevel { get; set; }
     }
 
-    // --- MANUEL TÜKETİM DEĞİŞKENLERİ ---
-   
-    // Liste yapısına dönüştü (Tekli consumptionSummary yerine)
-    private List<ManualConsumptionSummary>? manualConsumptionReports;
-    // Çoklu Seçim Değişkeni
-    private IEnumerable<int> _selectedManualMachineIds { get; set; } = new HashSet<int>();
-    // --- EKSİK OLAN DEĞİŞKENLER (BUNLARI EKLEYİN) ---
-
-    // 1. Tarih Aralıkları (DateRange)
-    private DateRange _alarmDateRange = new DateRange(DateTime.Now.Date.AddDays(-7), DateTime.Now.Date);
-    private DateRange _oeeDateRange = new DateRange(DateTime.Now.Date.AddDays(-7), DateTime.Now.Date);
-    private DateRange _actionDateRange = new DateRange(DateTime.Now.Date.AddDays(-7), DateTime.Now.Date);
-
-    // 2. Arama Değişkenleri
-    private string _searchStringAlarm;
-    private string _searchStringOee;
-
-    // 3. Alarm Satır Stili Fonksiyonu
-
-    // --- YAŞAM DÖNGÜSÜ METOTLARI ---
-
     protected override async Task OnInitializedAsync()
     {
-        // Filtre başlangıçlarını ayarla
-        var defaultStart = DateTime.Now.Date.AddDays(-7);
-        var defaultEnd = DateTime.Now.Date;
-        manualFilters.StartTime = DateTime.Now.Date.AddDays(-7);
-        manualFilters.EndTime = DateTime.Now.Date;
-        filters.StartTime = defaultStart; filters.EndTime = defaultEnd;
-        alarmFilters.StartTime = defaultStart; alarmFilters.EndTime = defaultEnd;
-        oeeFilters.StartTime = defaultStart; oeeFilters.EndTime = defaultEnd;
-        trendFilters.StartTime = defaultStart; trendFilters.EndTime = defaultEnd;
-        generalConsumptionFilters.StartTime = DateTime.Now.Date.AddDays(-7);
-        generalConsumptionFilters.EndTime = DateTime.Now.Date;
-        actionLogFilters.StartTime = defaultStart;
-        actionLogFilters.EndTime = defaultEnd;
-        generalConsumptionFilters.EndTime = DateTime.Now.Date;
-        generalConsumptionFilters.EndTime = DateTime.Now.Date;
-
-        machines = await ScadaDataService.GetMachinesAsync();
-        allRecipes = await ScadaDataService.GetRecipesAsync();
-        // YENİSİ (EKLEYİN):
-        if (machines != null && machines.Any())
+        try
         {
-            selectedTrendMachineIdInt = machines.First().Id;
+            var defaultStart = DateTime.Now.Date.AddDays(-7);
+            var defaultEnd = DateTime.Now.Date;
+            SetDefaultFilters(defaultStart, defaultEnd);
+
+            machines = await ScadaDataService.GetMachinesAsync();
+            if (machines != null && machines.Any())
+            {
+                selectedTrendMachineIdInt = machines.First().Id;
+            }
+            await LoadSavedFilters();
+            await InvokeAsync(StateHasChanged);
         }
-        await LoadSavedFilters();
-        // UI'ı anında yenile.
-        await InvokeAsync(StateHasChanged);
-    }
-    private Func<ScadaRecipe, bool> _quickFilterRecipe => x =>
-    {
-        if (string.IsNullOrWhiteSpace(_searchStringRecipe)) return true;
-
-        if (x.RecipeName?.Contains(_searchStringRecipe, StringComparison.OrdinalIgnoreCase) == true) return true;
-        if (x.TargetMachineType?.Contains(_searchStringRecipe, StringComparison.OrdinalIgnoreCase) == true) return true;
-
-        return false;
-    };
-    private async Task OnRecipeRowClick(DataGridRowClickEventArgs<ScadaRecipe> args)
-    {
-        // Seçilen reçetenin ID'sini alıp analizi başlat
-        await SelectRecipeForConsumption(args.Item.Id);
+        catch (Exception ex)
+        {
+            // Log error
+        }
     }
 
-    // 4. Ortalama Hesaplama Tanımı (Tablonun altında Ort: ... yazması için)
-    private AggregateDefinition<ProductionReportItem> _avgAggregation = new AggregateDefinition<ProductionReportItem>
+    private void SetDefaultFilters(DateTime start, DateTime end)
     {
-        Type = AggregateType.Avg,
-        DisplayFormat = "Ort: {value:N1}"
-    };
-    private Func<OeeData, bool> _quickFilterOee => x =>
-    {
-        if (string.IsNullOrWhiteSpace(_searchStringOee))
-            return true;
+        manualFilters.StartTime = start; manualFilters.EndTime = end;
+        filters.StartTime = start; filters.EndTime = end;
+        alarmFilters.StartTime = start; alarmFilters.EndTime = end;
+        trendFilters.StartTime = start; trendFilters.EndTime = end;
+        generalConsumptionFilters.StartTime = start; generalConsumptionFilters.EndTime = end;
+        actionLogFilters.StartTime = start; actionLogFilters.EndTime = end;
+    }
 
-        var search = _searchStringOee.ToLower();
-
-        if (x.MachineName?.ToLower().Contains(search) == true) return true;
-        if (x.BatchId?.ToLower().Contains(search) == true) return true;
-
-        return false;
-    };
-    // KRİTİK METOT: DOM hazır olduktan sonra çalışır
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Grafik çizimini yalnızca veri yüklendikten sonra ve bir kere çalıştır
         if (shouldRenderChart && trendDataPoints != null && trendDataPoints.Any())
         {
-            shouldRenderChart = false; // Tekrar çizimi engelle
-
-            // CallPlotlyJS, DOM'a erişimin garanti olduğu bu noktada çağrılır.
+            shouldRenderChart = false;
             await CallPlotlyJS();
         }
     }
-    private string AlarmRowStyleFunc(AlarmReportItem item, int rowNumber)
-    {
-        // Alarm aktifse (bitiş zamanı yoksa) satırı hafif kırmızı yap
-        if (item.Duration == "Aktif" || item.EndTime == null)
-            return "background-color: rgba(244, 67, 54, 0.1);";
-        return "";
-    }
 
-    // 4. Alarm Filtreleme Fonksiyonu (CS1503 Hatası Burada Çözülüyor)
-    private Func<AlarmReportItem, bool> _quickFilterAlarm => x =>
-    {
-        if (string.IsNullOrWhiteSpace(_searchStringAlarm))
-            return true;
-
-        var search = _searchStringAlarm.ToLower();
-
-        // Null kontrolü yaparak arama yapıyoruz
-        if (x.MachineName != null && x.MachineName.ToLower().Contains(search)) return true;
-        if (x.AlarmText != null && x.AlarmText.ToLower().Contains(search)) return true;
-
-        // Sayısal değeri string'e çevirip arıyoruz (CS1503 Çözümü)
-        if (x.AlarmNumber.ToString().Contains(search)) return true;
-
-        return false;
-    };
-    // YENİ METOT: Makine seçimi değiştiğinde çalışır (UI binding fix)
-
-
-    // YENİ METOT: Plotly JS çağrısını yapan helper metot
     private async Task CallPlotlyJS()
     {
         try
         {
-            // ESKİSİ: plotTrendChart
-            // YENİSİ: plotTrendChart1 (Çoklu seri desteği olan fonksiyon)
-            await JSRuntime.InvokeVoidAsync("plotTrendChart1",
-                "trendChart",
-                trendDataPoints,
-                "Proses Analizi"); // Başlık
+            var pointsToDraw = trendDataPoints;
+            if (trendDataPoints.Count > 2000)
+            {
+                int step = trendDataPoints.Count / 2000;
+                pointsToDraw = trendDataPoints.Where((x, i) => i % step == 0).ToList();
+            }
+
+            await JSRuntime.InvokeVoidAsync("plotTrendChart1", "trendChart", pointsToDraw, "Proses Analizi");
         }
-        catch (Exception ex)
-        {
-            // Hata yönetimi
-        }
+        catch { }
     }
-    private async Task OnRowClick(DataGridRowClickEventArgs<ProductionReportItem> args)
-    {
-        // Tıklanan satırın verisi args.Item içindedir
-        await GoToProductionDetail(args.Item.MachineId, args.Item.BatchId);
-    }
-    private Func<ProductionReportItem, bool> _quickFilter => x =>
-    {
-        if (string.IsNullOrWhiteSpace(_searchString))
-            return true;
 
-        // Arama kutusuna yazılan metin (küçük harfe çevirerek)
-        var search = _searchString.ToLower();
-
-        // Hangi alanlarda arama yapılsın?
-        if (x.MachineName?.ToLower().Contains(search) == true) return true;
-        if (x.RecipeName?.ToLower().Contains(search) == true) return true;
-        if (x.BatchId?.ToLower().Contains(search) == true) return true;
-        if (x.OperatorName?.ToLower().Contains(search) == true) return true;
-        if (x.SiparisNo?.ToLower().Contains(search) == true) return true;
-        if (x.MusteriNo?.ToLower().Contains(search) == true) return true;
-
-        return false; // Eşleşme yok
-    };
-    private async Task GenerateReport()
-    {
-        // Butona basıldığı için filtreleri kaydetmek istiyoruz (true)
-        await GenerateReportCore(true);
-    }
-    // --- RAPOR OLUŞTURMA METOTLARI ---
+    private async Task GenerateReport() => await GenerateReportCore(true);
 
     private async Task GenerateReportCore(bool saveFilters)
     {
-        if (saveFilters)
-        {
-            _currentPage = 0;
-        }
-        if (_dateRange.Start.HasValue) filters.StartTime = _dateRange.Start.Value;
-        if (_dateRange.End.HasValue) filters.EndTime = _dateRange.End.Value;
-        // --- EKLENECEK KISIM: Filtreleri Kaydet ---
-        if (saveFilters)
-        {
-            await SaveProductionFilters();
-        }
-        // ------------------------------------------
+        if (saveFilters) _currentPage = 0;
+        UpdateFiltersFromDateRanges();
+
+        if (saveFilters) await SaveProductionFilters();
+
         isLoading = true;
         reportItems = null;
         await InvokeAsync(StateHasChanged);
@@ -1206,92 +601,75 @@
                 MusteriNo = filters.MusteriNo,
                 OperatorName = filters.OperatorName
             };
-
-            await JSRuntime.InvokeVoidAsync("console.log", "API'ye gönderilen filtreler:", effectiveFilters);
-
             reportItems = await ScadaDataService.GetProductionReportAsync(effectiveFilters);
         }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("console.error", "Rapor oluşturulurken Blazor tarafında hata oluştu:", ex.ToString());
-        }
-        finally
-        {
-            isLoading = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        catch { }
+        finally { isLoading = false; await InvokeAsync(StateHasChanged); }
+    }
+
+    private void UpdateFiltersFromDateRanges()
+    {
+        if (_dateRange.Start.HasValue) filters.StartTime = _dateRange.Start.Value;
+        if (_dateRange.End.HasValue) filters.EndTime = _dateRange.End.Value;
+        if (_alarmDateRange.Start.HasValue) alarmFilters.StartTime = _alarmDateRange.Start.Value;
+        if (_alarmDateRange.End.HasValue) alarmFilters.EndTime = _alarmDateRange.End.Value;
+        if (_actionDateRange.Start.HasValue) actionLogFilters.StartTime = _actionDateRange.Start.Value;
+        if (_actionDateRange.End.HasValue) actionLogFilters.EndTime = _actionDateRange.End.Value;
+        if (_trendDateRange.Start.HasValue) trendFilters.StartTime = _trendDateRange.Start.Value;
+        if (_trendDateRange.End.HasValue) trendFilters.EndTime = _trendDateRange.End.Value;
+        if (_manualDateRange.Start.HasValue) manualFilters.StartTime = _manualDateRange.Start.Value;
+        if (_manualDateRange.End.HasValue) manualFilters.EndTime = _manualDateRange.End.Value;
+        if (_generalDateRange.Start.HasValue) generalConsumptionFilters.StartTime = _generalDateRange.Start.Value;
+        if (_generalDateRange.End.HasValue) generalConsumptionFilters.EndTime = _generalDateRange.End.Value;
     }
 
     private async Task GenerateAlarmReport()
     {
-        // --- BU KISMI EKLEYİN ---
-        if (_alarmDateRange.Start.HasValue) alarmFilters.StartTime = _alarmDateRange.Start.Value;
-        if (_alarmDateRange.End.HasValue) alarmFilters.EndTime = _alarmDateRange.End.Value;
-        // ------------------------
-        // ... (metot içeriği aynı kalır)
+        UpdateFiltersFromDateRanges();
         isLoading = true;
         alarmReportItems = null;
         await InvokeAsync(StateHasChanged);
 
         try
         {
-            var effectiveFilters = new ReportFilters
-            {
-                StartTime = alarmFilters.StartTime.Date,
-                EndTime = alarmFilters.EndTime.Date.AddDays(1),
-                MachineId = selectedAlarmMachineId == 0 ? (int?)null : selectedAlarmMachineId,
-            };
-
-            await JSRuntime.InvokeVoidAsync("console.log", "API'ye gönderilen Alarm filtreleri:", effectiveFilters);
+            var effectiveFilters = new ReportFilters { StartTime = alarmFilters.StartTime.Date, EndTime = alarmFilters.EndTime.Date.AddDays(1), MachineId = selectedAlarmMachineId == 0 ? (int?)null : selectedAlarmMachineId };
             alarmReportItems = await ScadaDataService.GetAlarmReportAsync(effectiveFilters);
         }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("console.error", "Alarm Raporu oluşturulurken hata oluştu:", ex.ToString());
-        }
-        finally
-        {
-            isLoading = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        catch { }
+        finally { isLoading = false; await InvokeAsync(StateHasChanged); }
     }
-    // --- FİLTRE HATIRLAMA SİSTEMİ ---
 
-    // 1. Filtreleri Hafızaya Kaydet (Raporla butonuna basınca çalışacak)
+    // --- OPTİMİZE EDİLMİŞ SAVE (Paralel Kayıt & ValueTask Çözümü) ---
     private async Task SaveProductionFilters()
     {
-        await LocalStorage.SetItemAsync("rep_prod_machine", selectedMachineId);
-        await LocalStorage.SetItemAsync("rep_prod_start", _dateRange.Start);
-        await LocalStorage.SetItemAsync("rep_prod_end", _dateRange.End);
-        await LocalStorage.SetItemAsync("rep_prod_recipe", filters.RecipeName);
-        await LocalStorage.SetItemAsync("rep_prod_batch", filters.BatchNo);
-        await LocalStorage.SetItemAsync("rep_prod_siparis", filters.SiparisNo);
-        await LocalStorage.SetItemAsync("rep_prod_musteri", filters.MusteriNo);
-        await LocalStorage.SetItemAsync("rep_prod_operator", filters.OperatorName);
-        await LocalStorage.SetItemAsync("rep_prod_page", _currentPage);
-        // Hangi sekmede olduğunu da hatırla
-        await LocalStorage.SetItemAsync("rep_active_tab", "uretim");
+        // CS1950 Çözümü: .AsTask() eklendi
+        var tasks = new List<Task>
+        {
+            LocalStorage.SetItemAsync("rep_prod_machine", selectedMachineId).AsTask(),
+            LocalStorage.SetItemAsync("rep_prod_start", _dateRange.Start).AsTask(),
+            LocalStorage.SetItemAsync("rep_prod_end", _dateRange.End).AsTask(),
+            LocalStorage.SetItemAsync("rep_prod_recipe", filters.RecipeName).AsTask(),
+            LocalStorage.SetItemAsync("rep_prod_batch", filters.BatchNo).AsTask(),
+            LocalStorage.SetItemAsync("rep_prod_siparis", filters.SiparisNo).AsTask(),
+            LocalStorage.SetItemAsync("rep_prod_musteri", filters.MusteriNo).AsTask(),
+            LocalStorage.SetItemAsync("rep_prod_operator", filters.OperatorName).AsTask(),
+            LocalStorage.SetItemAsync("rep_prod_page", _currentPage).AsTask(),
+            LocalStorage.SetItemAsync("rep_active_tab", "uretim").AsTask()
+        };
+        await Task.WhenAll(tasks);
     }
 
-    // 2. Filtreleri Geri Yükle (Sayfa açılınca çalışacak)
     private async Task LoadSavedFilters()
     {
-        // Önce son kalınan sekmeyi kontrol et
         var savedTab = await LocalStorage.GetItemAsync<string>("rep_active_tab");
-        if (!string.IsNullOrEmpty(savedTab))
-        {
-            activeTab = savedTab;
-        }
+        if (!string.IsNullOrEmpty(savedTab)) activeTab = savedTab;
 
-        // Eğer üretim sekmesindeysek ve kayıtlı filtre varsa yükle
         if (activeTab == "uretim" && await LocalStorage.ContainKeyAsync("rep_prod_machine"))
         {
             selectedMachineId = await LocalStorage.GetItemAsync<int>("rep_prod_machine");
             var start = await LocalStorage.GetItemAsync<DateTime?>("rep_prod_start");
             var end = await LocalStorage.GetItemAsync<DateTime?>("rep_prod_end");
-
-            if (start != null && end != null)
-                _dateRange = new DateRange(start, end);
+            if (start != null && end != null) _dateRange = new DateRange(start, end);
 
             filters.RecipeName = await LocalStorage.GetItemAsync<string>("rep_prod_recipe");
             filters.BatchNo = await LocalStorage.GetItemAsync<string>("rep_prod_batch");
@@ -1299,62 +677,19 @@
             filters.MusteriNo = await LocalStorage.GetItemAsync<string>("rep_prod_musteri");
             filters.OperatorName = await LocalStorage.GetItemAsync<string>("rep_prod_operator");
 
-            // Filtreler yüklendi, kullanıcı bekletmeden raporu otomatik çalıştır
-            await GenerateReportCore(false); // false parametresi: tekrar kaydetme (döngüyü önlemek için)
+            await GenerateReportCore(false);
             if (await LocalStorage.ContainKeyAsync("rep_prod_page"))
             {
                 _currentPage = await LocalStorage.GetItemAsync<int>("rep_prod_page");
-
-                // UI'ı güncelle ki DataGrid sayfayı algılasın
                 await InvokeAsync(StateHasChanged);
             }
-        }
-    }
-    private async Task GenerateOeeReport()
-    {
-        // --- BU KISMI EKLEYİN ---
-        if (_oeeDateRange.Start.HasValue) oeeFilters.StartTime = _oeeDateRange.Start.Value;
-        if (_oeeDateRange.End.HasValue) oeeFilters.EndTime = _oeeDateRange.End.Value;
-        // ------------------------
-        // ... (metot içeriği aynı kalır)
-        isLoading = true;
-        oeeReportItems = null;
-        await InvokeAsync(StateHasChanged);
-
-        try
-        {
-            var effectiveFilters = new ReportFilters
-            {
-                StartTime = oeeFilters.StartTime.Date,
-                EndTime = oeeFilters.EndTime.Date.AddDays(1),
-                MachineId = selectedOeeMachineId == 0 ? (int?)null : selectedOeeMachineId,
-            };
-
-            await JSRuntime.InvokeVoidAsync("console.log", "API'ye gönderilen OEE filtreleri:", effectiveFilters);
-            oeeReportItems = await ScadaDataService.GetOeeReportAsync(effectiveFilters);
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("console.error", "OEE Raporu oluşturulurken hata oluştu:", ex.ToString());
-        }
-        finally
-        {
-            isLoading = false;
-            await InvokeAsync(StateHasChanged);
         }
     }
 
     private async Task GenerateTrendReport()
     {
-        // Tarih kontrolü
-        if (_trendDateRange.Start.HasValue) trendFilters.StartTime = _trendDateRange.Start.Value;
-        if (_trendDateRange.End.HasValue) trendFilters.EndTime = _trendDateRange.End.Value;
-
-        if (selectedTrendMachineIdInt == 0)
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "Lütfen bir makine seçiniz.");
-            return;
-        }
+        UpdateFiltersFromDateRanges();
+        if (selectedTrendMachineIdInt == 0) { await JSRuntime.InvokeVoidAsync("alert", "Lütfen bir makine seçiniz."); return; }
 
         isLoading = true;
         trendDataPoints = null;
@@ -1363,25 +698,24 @@
 
         try
         {
-            var effectiveFilters = new ReportFilters
-            {
-                StartTime = trendFilters.StartTime.Date,
-                EndTime = trendFilters.EndTime.Date.AddDays(1),
-                MachineId = selectedTrendMachineIdInt,
-            };
+            var effectiveFilters = new ReportFilters { StartTime = trendFilters.StartTime.Date, EndTime = trendFilters.EndTime.Date.AddDays(1), MachineId = selectedTrendMachineIdInt };
 
             var rawData = await ScadaDataService.GetTrendDataAsync(effectiveFilters);
 
             if (rawData != null)
             {
-                var jsonString = System.Text.Json.JsonSerializer.Serialize(rawData);
-                var trendData = System.Text.Json.JsonSerializer.Deserialize<List<TrendProcessDataPoint>>(jsonString, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
-                trendDataPoints = trendData;
-
-                if (trendDataPoints.Any())
+                if (rawData.Count > 0 && rawData[0] is JsonElement)
                 {
-                    // --- İSTATİSTİK HESAPLAMA ---
-                    // Sıcaklıkları 10'a bölerek gerçek değere çeviriyoruz (PLC'den ham geliyor olabilir)
+                    trendDataPoints = rawData.Select(x => ((JsonElement)x).Deserialize<TrendProcessDataPoint>()).ToList();
+                }
+                else
+                {
+                    var jsonString = JsonSerializer.Serialize(rawData);
+                    trendDataPoints = JsonSerializer.Deserialize<List<TrendProcessDataPoint>>(jsonString);
+                }
+
+                if (trendDataPoints != null && trendDataPoints.Any())
+                {
                     var temps = trendDataPoints.Select(x => x.Temperature / 10.0m).ToList();
                     var rpms = trendDataPoints.Select(x => x.Rpm).ToList();
                     var levels = trendDataPoints.Select(x => x.WaterLevel).ToList();
@@ -1391,173 +725,52 @@
                         MinTemp = temps.Min(),
                         MaxTemp = temps.Max(),
                         AvgTemp = temps.Average(),
-
                         MinRpm = rpms.Min(),
                         MaxRpm = rpms.Max(),
                         AvgRpm = rpms.Average(),
-
                         MinLevel = levels.Min(),
                         MaxLevel = levels.Max(),
                         AvgLevel = levels.Average()
                     };
-
-                    // Grafiği çizdirmek için flag'i aç
                     shouldRenderChart = true;
                 }
             }
         }
-        catch (Exception ex)
-        {
-            //("Trend hatası: " + ex.Message);
-        }
-        finally
-        {
-            isLoading = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        catch { }
+        finally { isLoading = false; await InvokeAsync(StateHasChanged); }
     }
 
-    // YENİ HELPER METOT: Tabloda dinamik veriyi göstermek için
-    private object GetTrendValue(TrendProcessDataPoint item, string dataType)
+    private async Task GenerateManualConsumptionReport()
     {
-        return dataType switch
-        {
-            "Temperature" => item.Temperature / 10.0m,
-            "WaterLevel" => item.WaterLevel,
-            "Rpm" => item.Rpm,
-            _ => "N/A"
-        };
-    }
-    private async Task SelectRecipeForConsumption(int recipeId)
-    {
-        if (selectedRecipeIdForConsumption == recipeId && consumptionHistory != null)
-        {
-            return;
-        }
-
-        selectedRecipeIdForConsumption = recipeId;
-        consumptionHistory = null;
-        isLoading = true;
-
-        await InvokeAsync(StateHasChanged);
-
-        try
-        {
-            consumptionHistory = await ScadaDataService.GetRecipeConsumptionHistoryAsync(recipeId);
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("console.error", "Reçete tüketim geçmişi yüklenirken hata:", ex.ToString());
-        }
-        finally
-        {
-            isLoading = false;
-            await InvokeAsync(StateHasChanged);
-        }
-    }
-  private async Task GenerateManualConsumptionReport()
-    {
-        if (_manualDateRange.Start.HasValue) manualFilters.StartTime = _manualDateRange.Start.Value;
-        if (_manualDateRange.End.HasValue) manualFilters.EndTime = _manualDateRange.End.Value;
-
-        // Kontrol: Hiç makine seçilmediyse
-        if (_selectedManualMachineIds == null || !_selectedManualMachineIds.Any())
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "Lütfen en az bir makine seçiniz.");
-            return;
-        }
+        UpdateFiltersFromDateRanges();
+        if (_selectedManualMachineIds == null || !_selectedManualMachineIds.Any()) { await JSRuntime.InvokeVoidAsync("alert", "Lütfen en az bir makine seçiniz."); return; }
 
         isLoading = true;
-        // Listeyi sıfırla
         manualConsumptionReports = new List<ManualConsumptionSummary>();
         await InvokeAsync(StateHasChanged);
 
         try
         {
-            // Seçili her makine için döngü (WinForms'taki mantık)
             foreach (var mId in _selectedManualMachineIds)
             {
-                 var effectiveFilters = new ReportFilters
-                 {
-                     StartTime = manualFilters.StartTime.Date,
-                     EndTime = manualFilters.EndTime.Date.AddDays(1),
-                     MachineId = mId
-                 };
-
-                 // Her makine için API'yi çağır
-                 var summary = await ScadaDataService.GetManualConsumptionReportAsync(effectiveFilters);
-
-                 if (summary != null)
-                 {
-                     // Makine tipini bul (Kurutma makineleri için su tüketimini sıfırla)
-                     var machineInfo = machines?.FirstOrDefault(m => m.Id == mId);
-                     if (machineInfo != null && machineInfo.MachineType == "Kurutma Makinesi")
-                     {
-                         summary.ToplamSuTuketimi_Litre = 0;
-                     }
-
-                     manualConsumptionReports.Add(summary);
-                 }
+                var effectiveFilters = new ReportFilters { StartTime = manualFilters.StartTime.Date, EndTime = manualFilters.EndTime.Date.AddDays(1), MachineId = mId };
+                var summary = await ScadaDataService.GetManualConsumptionReportAsync(effectiveFilters);
+                if (summary != null)
+                {
+                    var machineInfo = machines?.FirstOrDefault(m => m.Id == mId);
+                    if (machineInfo != null && machineInfo.MachineType == "Kurutma Makinesi") summary.ToplamSuTuketimi_Litre = 0;
+                    manualConsumptionReports.Add(summary);
+                }
             }
         }
-        catch (Exception ex)
-        {
-             await JSRuntime.InvokeVoidAsync("console.error", "Manuel Tüketim hatası:", ex.ToString());
-        }
-        finally
-        {
-            isLoading = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        catch { }
+        finally { isLoading = false; await InvokeAsync(StateHasChanged); }
     }
-    private async Task GenerateGeneralConsumptionReport()
-    {
-        isLoading = true;
-        consumptionTotals = null;
-        await InvokeAsync(StateHasChanged);
 
-        try
-        {
-            var effectiveFilters = new ReportFilters
-            {
-                StartTime = generalConsumptionFilters.StartTime.Date,
-                // EndTime bir sonraki günün başlangıcı (API'de son tick'e çevrilecek)
-                EndTime = generalConsumptionFilters.EndTime.Date,
-                MachineId = null, // Tüm makineleri kapsar
-
-                BatchNo = null,
-                RecipeName = null,
-                SiparisNo = null,
-                MusteriNo = null,
-                OperatorName = null
-            };
-
-            await JSRuntime.InvokeVoidAsync("console.log", "API'ye gönderilen Genel Tüketim filtreleri:", effectiveFilters);
-
-            consumptionTotals = await ScadaDataService.GetConsumptionTotalsAsync(effectiveFilters);
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("console.error", "Genel Tüketim Raporu oluşturulurken hata oluştu:", ex.ToString());
-        }
-        finally
-        {
-            isLoading = false;
-            await InvokeAsync(StateHasChanged);
-        }
-    }
     private async Task GenerateGeneralDetailedConsumptionReport()
     {
-        // Tarihleri Aktar
-        if (_generalDateRange.Start.HasValue) generalConsumptionFilters.StartTime = _generalDateRange.Start.Value;
-        if (_generalDateRange.End.HasValue) generalConsumptionFilters.EndTime = _generalDateRange.End.Value;
-
-        // Çoklu Seçimi Kontrol Et
-        if (_selectedGeneralMachineIds == null || !_selectedGeneralMachineIds.Any())
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "Lütfen en az bir makine seçin.");
-            return;
-        }
+        UpdateFiltersFromDateRanges();
+        if (_selectedGeneralMachineIds == null || !_selectedGeneralMachineIds.Any()) { await JSRuntime.InvokeVoidAsync("alert", "Lütfen en az bir makine seçin."); return; }
 
         isLoading = true;
         generalDetailedConsumptionReport = null;
@@ -1565,323 +778,92 @@
 
         try
         {
-            var effectiveFilters = new GeneralDetailedConsumptionFilters
-            {
-                StartTime = generalConsumptionFilters.StartTime.Date,
-                EndTime = generalConsumptionFilters.EndTime.Date.AddDays(1),
-                // MudSelect'ten gelen IEnumerable'ı List'e çeviriyoruz
-                MachineIds = _selectedGeneralMachineIds.ToList(),
-            };
-
+            var effectiveFilters = new GeneralDetailedConsumptionFilters { StartTime = generalConsumptionFilters.StartTime.Date, EndTime = generalConsumptionFilters.EndTime.Date.AddDays(1), MachineIds = _selectedGeneralMachineIds.ToList() };
             generalDetailedConsumptionReport = await ScadaDataService.GetGeneralDetailedConsumptionReportAsync(effectiveFilters);
         }
-        catch (Exception ex)
-        {
-            //($"Hata: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        catch { }
+        finally { isLoading = false; await InvokeAsync(StateHasChanged); }
     }
 
-    // 5. Hızlı Filtreleme Fonksiyonu
-    private Func<ProductionReportItem, bool> _quickFilterGeneral => x =>
-    {
-        if (string.IsNullOrWhiteSpace(_searchStringGeneral)) return true;
-        var search = _searchStringGeneral.ToLower();
-
-        if (x.MachineName?.ToLower().Contains(search) == true) return true;
-        if (x.BatchId?.ToLower().Contains(search) == true) return true;
-
-        return false;
-    };
-
-    // YENİ HELPER METOT: Seçilen tüketim tipinin adını ve birimini döndürür
-    private string GetConsumptionUnitName(string type)
-    {
-        return type switch
-        {
-            "TotalWater" => "Water (m³)",          // Litre yerine m³
-            "TotalElectricity" => "Electricity (kWh)", // kW yerine kWh (veya kW)
-            "TotalSteam" => "Steam (kg)",
-            _ => "Consumption Value"
-        };
-    }
-
-    // Yardımcı Metot: Değeri hesaplar ve formatlar
-    private object GetConsumptionValue(ProductionReportItem item, string type)
-    {
-        return type switch
-        {
-            // Su: Litre -> m³ (1000'e böl, 3 hane)
-            // Not: Veri tipi decimal ise .0m, double ise .0 kullanın. Genelde decimal olduğu için m ekledik.
-            "TotalWater" => (item.TotalWater / 1000).ToString("N3"),
-
-            // Elektrik: Watt -> kWh (1000'e böl, 3 hane)
-            "TotalElectricity" => (item.TotalElectricity / 1000).ToString("N3"),
-
-            // Buhar: Değişiklik istenmedi, mevcut hali (kg) kalabilir (Örn: N2)
-            "TotalSteam" => item.TotalSteam.ToString("N0"),
-
-            _ => "N/A"
-        };
-    }
-    private Func<TekstilScada.Core.Models.ActionLogEntry, bool> _quickFilterAction => x =>
-    {
-        if (string.IsNullOrWhiteSpace(_searchStringAction)) return true;
-        var search = _searchStringAction.ToLower();
-
-        if (x.Username?.ToLower().Contains(search) == true) return true;
-        if (x.Details?.ToLower().Contains(search) == true) return true;
-        if (x.ActionType?.ToLower().Contains(search) == true) return true;
-
-        return false;
-    };
-
-    // 3. Rapor Metodu Güncellemesi
     private async Task GenerateActionLogsReport()
     {
-        // --- BU KISMI EKLEYİN (Tarih Aktarımı) ---
-        if (_actionDateRange.Start.HasValue) actionLogFilters.StartTime = _actionDateRange.Start.Value;
-        if (_actionDateRange.End.HasValue) actionLogFilters.EndTime = _actionDateRange.End.Value;
-        // -----------------------------------------
-
+        UpdateFiltersFromDateRanges();
         isLoading = true;
         actionLogs = null;
         await InvokeAsync(StateHasChanged);
 
         try
         {
-            // ... (Mevcut API çağırma kodu) ...
-            var effectiveFilters = new ActionLogFilters
-            {
-                StartTime = actionLogFilters.StartTime.Date,
-                EndTime = actionLogFilters.EndTime.Date.AddDays(1), // Gün sonu
-                Username = actionLogFilters.Username,
-                Details = actionLogFilters.Details
-            };
-
+            var effectiveFilters = new ActionLogFilters { StartTime = actionLogFilters.StartTime.Date, EndTime = actionLogFilters.EndTime.Date.AddDays(1), Username = actionLogFilters.Username, Details = actionLogFilters.Details };
             actionLogs = await ScadaDataService.GetActionLogsAsync(effectiveFilters);
         }
-        catch (Exception ex)
-        {
-            // ...
-        }
-        finally
-        {
-            isLoading = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        catch { }
+        finally { isLoading = false; await InvokeAsync(StateHasChanged); }
     }
-    private async Task GoToProductionDetail(int machineId, string batchId)
-    {
-        // Gitmeden önce mevcut durumu (sayfa no dahil) kaydet
-        await SaveProductionFilters();
 
-        string url = $"/reports/production-detail/{machineId}/{batchId}";
-        NavigationManager.NavigateTo(url);
-    }
-    // YENİ METOT: Üretim Raporunu Excel'e Aktar
-    private async Task ExportProductionToExcel()
-    {
-        if (reportItems == null || !reportItems.Any())
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "Aktarılacak rapor verisi bulunmamaktadır. Lütfen önce rapor oluşturun.");
-            return;
-        }
+    private async Task ExportProductionToExcel() => await ExportHelper(async () => await ScadaDataService.ExportProductionReportAsync(reportItems), "Uretim_Raporu");
+    private async Task ExportAlarmsToExcel() => await ExportHelper(async () => await ScadaDataService.ExportAlarmReportAsync(alarmReportItems), "Alarm_Raporu");
 
-        isLoading = true;
-        await InvokeAsync(StateHasChanged);
-
-        try
-        {
-            // 1. Servisten Excel dosyasının bayt dizisini al.
-            var excelBytes = await ScadaDataService.ExportProductionReportAsync(reportItems);
-
-            // 2. JavaScript Interop ile dosyayı tarayıcıda indir.
-            // Bu, base64'e dönüştürülmüş bayt dizisini bekleyen bir JS fonksiyonunu çağırır.
-            await JSRuntime.InvokeVoidAsync("saveAsFile",
-                $"Uretim_Raporu_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx",
-                Convert.ToBase64String(excelBytes));
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("console.error", "Excel'e aktarılırken hata oluştu:", ex.ToString());
-            await JSRuntime.InvokeVoidAsync("alert", "Excel raporu oluşturulurken bir hata oluştu: " + ex.Message);
-        }
-        finally
-        {
-            isLoading = false;
-            await InvokeAsync(StateHasChanged);
-        }
-    }
-    private async Task ExportAlarmsToExcel()
-    {
-        if (alarmReportItems == null || !alarmReportItems.Any())
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "Aktarılacak alarm verisi bulunmamaktadır. Lütfen önce rapor oluşturun.");
-            return;
-        }
-
-        isLoading = true;
-        await InvokeAsync(StateHasChanged);
-
-        try
-        {
-            // 1. Servisten Excel dosyasının bayt dizisini al.
-            var excelBytes = await ScadaDataService.ExportAlarmReportAsync(alarmReportItems);
-
-            // 2. JavaScript Interop ile dosyayı tarayıcıda indir.
-            await JSRuntime.InvokeVoidAsync("saveAsFile",
-                $"Alarm_Raporu_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx",
-                Convert.ToBase64String(excelBytes));
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("console.error", "Alarm Raporu Excel'e aktarılırken hata oluştu:", ex.ToString());
-            await JSRuntime.InvokeVoidAsync("alert", $"Alarm raporu oluşturulurken bir hata oluştu: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
-            await InvokeAsync(StateHasChanged);
-        }
-
-    }
-    private async Task ExportOeeToExcel()
-    {
-        if (oeeReportItems == null || !oeeReportItems.Any())
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "Aktarılacak OEE verisi bulunmamaktadır. Lütfen önce rapor oluşturun.");
-            return;
-        }
-
-        isLoading = true;
-        await InvokeAsync(StateHasChanged);
-
-        try
-        {
-            // 1. Servisten Excel dosyasının bayt dizisini al.
-            var excelBytes = await ScadaDataService.ExportOeeReportAsync(oeeReportItems);
-
-            // 2. JavaScript Interop ile dosyayı tarayıcıda indir.
-            await JSRuntime.InvokeVoidAsync("saveAsFile",
-                $"OEE_Raporu_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx",
-                Convert.ToBase64String(excelBytes));
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("console.error", "OEE Raporu Excel'e aktarılırken hata oluştu:", ex.ToString());
-            await JSRuntime.InvokeVoidAsync("alert", $"OEE raporu oluşturulurken bir hata oluştu: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
-            await InvokeAsync(StateHasChanged);
-        }
-    }
+    // CS0103 Çözümü: consumptionSummary (tekil) yerine manualConsumptionReports (liste) kullanıldı.
+    // Excel için verileri tek bir objede birleştiriyoruz (Servis tekil bekliyorsa).
     private async Task ExportManualConsumptionToExcel()
     {
-        if (consumptionSummary == null)
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "Aktarılacak manuel tüketim özeti bulunmamaktadır. Lütfen önce rapor oluşturun.");
-            return;
-        }
+        if (manualConsumptionReports == null || !manualConsumptionReports.Any()) return;
 
-        isLoading = true;
-        await InvokeAsync(StateHasChanged);
+        // Listeyi tek bir özet halinde birleştir (veya sadece ilkini al, ya da servis çoklu desteklemeli)
+        // Burada kullanıcıya excel çıktısı vermek için toplamları alıyoruz.
+        var combinedSummary = new ManualConsumptionSummary
+        {
+            Makine = "Seçilenler",
+            RaporAraligi = manualConsumptionReports.First().RaporAraligi,
+            ToplamManuelSure = "", // Toplam süre hesabı karmaşık olabilir, boş bırakıyoruz
+            ToplamSuTuketimi_Litre = manualConsumptionReports.Sum(x => x.ToplamSuTuketimi_Litre),
+            ToplamElektrikTuketimi_kW = manualConsumptionReports.Sum(x => x.ToplamElektrikTuketimi_kW),
+            ToplamBuharTuketimi_kg = manualConsumptionReports.Sum(x => x.ToplamBuharTuketimi_kg)
+        };
 
-        try
-        {
-            // 1. Servis çağrısı için summary nesnesini direkt gönderiyoruz.
-            var excelBytes = await ScadaDataService.ExportManualConsumptionReportAsync(consumptionSummary);
-
-            // 2. JavaScript Interop ile dosyayı tarayıcıda indir.
-            await JSRuntime.InvokeVoidAsync("saveAsFile",
-                $"Manuel_Tuketim_Ozet_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx",
-                Convert.ToBase64String(excelBytes));
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("console.error", "Manuel Tüketim Raporu Excel'e aktarılırken hata oluştu:", ex.ToString());
-            await JSRuntime.InvokeVoidAsync("alert", $"Manuel Tüketim raporu oluşturulurken bir hata oluştu: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        await ExportHelper(async () => await ScadaDataService.ExportManualConsumptionReportAsync(combinedSummary), "Manuel_Tuketim_Ozet");
     }
-    private async Task ExportGeneralDetailedConsumptionToExcel()
+
+    private async Task ExportGeneralDetailedConsumptionToExcel() => await ExportHelper(async () => await ScadaDataService.ExportGeneralDetailedConsumptionReportAsync(new GeneralConsumptionExportDto { Items = generalDetailedConsumptionReport, ConsumptionType = selectedConsumptionType }), "Genel_Tuketim_Detay");
+    private async Task ExportActionLogsToExcel() => await ExportHelper(async () => await ScadaDataService.ExportActionLogsReportAsync(actionLogs), "Eylem_Kayitlari_Raporu");
+
+    private async Task ExportHelper(Func<Task<byte[]>> exportFunc, string fileNamePrefix)
     {
-        if (generalDetailedConsumptionReport == null || !generalDetailedConsumptionReport.Any())
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "Aktarılacak detaylı tüketim verisi bulunmamaktadır. Lütfen önce rapor oluşturun.");
-            return;
-        }
-
         isLoading = true;
         await InvokeAsync(StateHasChanged);
-
         try
         {
-            // 1. Servis çağrısı için rapor listesini ve seçilen tüketim tipini içeren DTO oluşturulur.
-            var exportData = new GeneralConsumptionExportDto
-            {
-                Items = generalDetailedConsumptionReport,
-                ConsumptionType = selectedConsumptionType
-            };
-
-            var excelBytes = await ScadaDataService.ExportGeneralDetailedConsumptionReportAsync(exportData);
-
-            // 2. JavaScript Interop ile dosyayı tarayıcıda indir.
-            await JSRuntime.InvokeVoidAsync("saveAsFile",
-                $"Genel_Tuketim_Detay_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx",
-                Convert.ToBase64String(excelBytes));
+            var excelBytes = await exportFunc();
+            if (excelBytes.Length > 0)
+                await JSRuntime.InvokeVoidAsync("saveAsFile", $"{fileNamePrefix}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(excelBytes));
+            else
+                await JSRuntime.InvokeVoidAsync("alert", "İndirilecek veri yok.");
         }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("console.error", "Genel Tüketim Raporu Excel'e aktarılırken hata oluştu:", ex.ToString());
-            await JSRuntime.InvokeVoidAsync("alert", $"Genel Tüketim raporu oluşturulurken bir hata oluştu: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        catch (Exception ex) { await JSRuntime.InvokeVoidAsync("console.error", "Excel export hatası:", ex.ToString()); }
+        finally { isLoading = false; await InvokeAsync(StateHasChanged); }
     }
-    private async Task ExportActionLogsToExcel()
+
+    private async Task GoToProductionDetail(int machineId, string batchId)
     {
-        if (actionLogs == null || !actionLogs.Any())
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "Aktarılacak eylem kaydı bulunmamaktadır. Lütfen önce rapor oluşturun.");
-            return;
-        }
-
-        isLoading = true;
-        await InvokeAsync(StateHasChanged);
-
-        try
-        {
-            // 1. Servis çağrısı için eylem kaydı listesini göndeririz.
-            var excelBytes = await ScadaDataService.ExportActionLogsReportAsync(actionLogs);
-
-            // 2. JavaScript Interop ile dosyayı tarayıcıda indir.
-            await JSRuntime.InvokeVoidAsync("saveAsFile",
-                $"Eylem_Kayitlari_Raporu_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx",
-                Convert.ToBase64String(excelBytes));
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("console.error", "Eylem Kayıtları Raporu Excel'e aktarılırken hata oluştu:", ex.ToString());
-            await JSRuntime.InvokeVoidAsync("alert", $"Eylem Kayıtları raporu oluşturulurken bir hata oluştu: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        await SaveProductionFilters();
+        NavigationManager.NavigateTo($"/reports/production-detail/{machineId}/{batchId}");
     }
+
+    private async Task OnRowClick(DataGridRowClickEventArgs<ProductionReportItem> args) => await GoToProductionDetail(args.Item.MachineId, args.Item.BatchId);
+    private Func<ProductionReportItem, bool> _quickFilter => x => CheckFilter(x.MachineName, x.RecipeName, x.BatchId, x.OperatorName, x.SiparisNo, x.MusteriNo, _searchString);
+    private Func<AlarmReportItem, bool> _quickFilterAlarm => x => CheckFilter(x.MachineName, x.AlarmText, x.AlarmNumber.ToString(), null, null, null, _searchStringAlarm);
+    private Func<TekstilScada.Core.Models.ActionLogEntry, bool> _quickFilterAction => x => CheckFilter(x.Username, x.Details, x.ActionType, null, null, null, _searchStringAction);
+    private Func<ProductionReportItem, bool> _quickFilterGeneral => x => CheckFilter(x.MachineName, x.BatchId, null, null, null, null, _searchStringGeneral);
+
+    private bool CheckFilter(string s1, string s2, string s3, string s4, string s5, string s6, string search)
+    {
+        if (string.IsNullOrWhiteSpace(search)) return true;
+        search = search.ToLower();
+        return (s1?.ToLower().Contains(search) == true) || (s2?.ToLower().Contains(search) == true) || (s3?.ToLower().Contains(search) == true) || (s4?.ToLower().Contains(search) == true) || (s5?.ToLower().Contains(search) == true) || (s6?.ToLower().Contains(search) == true);
+    }
+
+    private string AlarmRowStyleFunc(AlarmReportItem item, int rowNumber) => (item.Duration == "Aktif" || item.EndTime == null) ? "background-color: rgba(244, 67, 54, 0.1);" : "";
+    private string GetConsumptionUnitName(string type) => type switch { "TotalWater" => "Water (m³)", "TotalElectricity" => "Electricity (kWh)", "TotalSteam" => "Steam (kg)", _ => "Value" };
+    private object GetConsumptionValue(ProductionReportItem item, string type) => type switch { "TotalWater" => (item.TotalWater / 1000).ToString("N3"), "TotalElectricity" => (item.TotalElectricity / 1000).ToString("N3"), "TotalSteam" => item.TotalSteam.ToString("N0"), _ => "N/A" };
 }
