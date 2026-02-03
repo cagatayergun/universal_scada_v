@@ -18,6 +18,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
         {
             pnlStepTypes = new Panel();
             chkSikma = new CheckBox();
+            chknumune = new CheckBox();
             chkBosaltma = new CheckBox();
             chkDozaj = new CheckBox();
             chkCalisma = new CheckBox();
@@ -32,6 +33,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             pnlStepTypes.AutoScroll = true;
             pnlStepTypes.BorderStyle = BorderStyle.FixedSingle;
             pnlStepTypes.Controls.Add(chkSikma);
+            pnlStepTypes.Controls.Add(chknumune);
             pnlStepTypes.Controls.Add(chkBosaltma);
             pnlStepTypes.Controls.Add(chkDozaj);
             pnlStepTypes.Controls.Add(chkCalisma);
@@ -48,19 +50,31 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             // 
             chkSikma.AutoSize = true;
             chkSikma.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            chkSikma.Location = new Point(9, 120);
+            chkSikma.Location = new Point(9, 118);
             chkSikma.Margin = new Padding(3, 2, 3, 2);
             chkSikma.Name = "chkSikma";
-            chkSikma.Size = new Size(92, 19);
+            chkSikma.Size = new Size(99, 19);
             chkSikma.TabIndex = 5;
-            chkSikma.Text = "SQUEEZING";
+            chkSikma.Text = "EXTRACTION";
             chkSikma.UseVisualStyleBackColor = true;
+            // 
+            // chknumune
+            // 
+            chknumune.AutoSize = true;
+            chknumune.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            chknumune.Location = new Point(9, 140);
+            chknumune.Margin = new Padding(3, 2, 3, 2);
+            chknumune.Name = "chknumune";
+            chknumune.Size = new Size(109, 19);
+            chknumune.TabIndex = 5;
+            chknumune.Text = "SAMPLE DOOR";
+            chknumune.UseVisualStyleBackColor = true;
             // 
             // chkBosaltma
             // 
             chkBosaltma.AutoSize = true;
             chkBosaltma.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            chkBosaltma.Location = new Point(9, 98);
+            chkBosaltma.Location = new Point(9, 96);
             chkBosaltma.Margin = new Padding(3, 2, 3, 2);
             chkBosaltma.Name = "chkBosaltma";
             chkBosaltma.Size = new Size(98, 19);
@@ -72,7 +86,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             // 
             chkDozaj.AutoSize = true;
             chkDozaj.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            chkDozaj.Location = new Point(9, 75);
+            chkDozaj.Location = new Point(9, 74);
             chkDozaj.Margin = new Padding(3, 2, 3, 2);
             chkDozaj.Name = "chkDozaj";
             chkDozaj.Size = new Size(74, 19);
@@ -149,6 +163,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
         private System.Windows.Forms.CheckBox chkDozaj;
         private System.Windows.Forms.CheckBox chkBosaltma;
         private System.Windows.Forms.CheckBox chkSikma;
+        private System.Windows.Forms.CheckBox chknumune;
         private System.Windows.Forms.FlowLayoutPanel flpParameters;
     }
 }

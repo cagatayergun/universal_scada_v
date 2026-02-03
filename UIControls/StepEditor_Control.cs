@@ -28,7 +28,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             chkDozaj.CheckedChanged += OnStepTypeChanged;
             chkBosaltma.CheckedChanged += OnStepTypeChanged;
             chkSikma.CheckedChanged += OnStepTypeChanged;
-
+            chknumune.CheckedChanged += OnStepTypeChanged;
             flpParameters.Resize += new EventHandler(flpParameters_Resize);
         }
 
@@ -85,6 +85,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             chkDozaj.Checked = (controlWord & 8) != 0;
             chkBosaltma.Checked = (controlWord & 16) != 0;
             chkSikma.Checked = (controlWord & 32) != 0;
+            chknumune.Checked = (controlWord & 1024) != 0;
         }
 
         private void OnStepTypeChanged(object sender, EventArgs e)
@@ -112,33 +113,46 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
         // --- HATA DÜZELTMESİ: KURAL KONTROLÜ ARTIK DOĞRU YERDE ÇALIŞIYOR ---
         private bool IsSelectionValid(CheckBox justChanged)
         {
-            // Kontrol içindeki tüm CheckBox'ları, ait oldukları panelden (`pnlStepTypes`) alıyoruz.
-            // Eğer panelin adı farklıysa, bu satırdaki "pnlStepTypes" ismini doğru olanla değiştirin.
+            // 1. Get all currently checked checkboxes from the panel
             var checkedBoxes = pnlStepTypes.Controls.OfType<CheckBox>().Where(c => c.Checked).ToList();
 
-            // Kural 1: Toplamda 2'den fazla seçim yapılamaz.
+            // --- NEW RULE: Sample Door (chkNumuneKapisi) Must Be Alone ---
+            // If "Sample Door" is in the list AND the total count is greater than 1, it's a violation.
+            // It cannot be combined with Standard steps OR Special steps.
+            if (checkedBoxes.Contains(chknumune) && checkedBoxes.Count > 1)
+            {
+                MessageBox.Show("The 'Sample Door' step cannot be selected together with any other step. Please select it alone.",
+                                "Rule Violation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                // Return false to indicate the selection is invalid (undo the click)
+                return false;
+            }
+
+            // Rule 1: You cannot select more than 2 steps in total.
             if (checkedBoxes.Count > 2)
             {
                 MessageBox.Show("You can select up to 2 different transaction types in one step.", "Rule Violation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
 
-            // Adım gruplarını tanımla
+            // Define step groups
+            // Note: We don't necessarily need to add chkNumuneKapisi here because the first rule handles it,
+            // but we leave the logic for the others.
             var specialSteps = new List<CheckBox> { chkSikma, chkBosaltma };
             var standardSteps = new List<CheckBox> { chkSuAlma, chkIsitma, chkDozaj, chkCalisma };
 
-            // Seçili olanlar arasında özel veya standart adım var mı?
+            // Check if any special or standard steps are currently selected
             bool isAnySpecialChecked = checkedBoxes.Any(c => specialSteps.Contains(c));
             bool isAnyStandardChecked = checkedBoxes.Any(c => standardSteps.Contains(c));
 
-            // Kural 2: Özel Grup ve Standart Grup bir arada seçilemez.
+            // Rule 2: Special Group and Standard Group cannot be mixed.
             if (isAnySpecialChecked && isAnyStandardChecked)
             {
                 MessageBox.Show("Spinning or Draining steps cannot be selected together with other steps such as Water Intake, Heating.", "Rule Violation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
 
-            // Eğer buraya kadar geldiyse, seçim geçerlidir.
+            // If we reached this point, the selection is valid.
             return true;
         }
 
@@ -152,6 +166,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             if (chkDozaj.Checked) controlWord |= 8;
             if (chkBosaltma.Checked) controlWord |= 16;
             if (chkSikma.Checked) controlWord |= 32;
+            if (chknumune.Checked) controlWord |= 1024;
             _step.StepDataWords[24] = controlWord;
         }
 
@@ -172,12 +187,12 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
                 {
                     { 1, Color.FromArgb(204, 229, 255) }, { 2, Color.FromArgb(255, 204, 204) },
                     { 3, Color.FromArgb(204, 255, 204) }, { 4, Color.FromArgb(255, 211, 106) },
-                    { 5, Color.FromArgb(173, 216, 230) }, { 6, Color.FromArgb(213, 213, 211) }
+                    { 5, Color.FromArgb(173, 216, 230) }, { 6, Color.FromArgb(213, 213, 211) },{ 7, Color.FromArgb(189, 195, 199) }
                 };
                 var stepIdMap = new Dictionary<CheckBox, int>
                 {
                     { chkSuAlma, 1 }, { chkIsitma, 2 }, { chkCalisma, 3 },
-                    { chkDozaj, 4 }, { chkBosaltma, 5 }, { chkSikma, 6 }
+                    { chkDozaj, 4 }, { chkBosaltma, 5 }, { chkSikma, 6 },{ chknumune, 7 }
                 };
 
                 foreach (var kvp in stepIdMap)

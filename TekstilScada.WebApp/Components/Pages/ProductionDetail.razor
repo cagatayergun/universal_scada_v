@@ -1,11 +1,13 @@
 ﻿@page "/reports/production-detail/{MachineId:int}/{BatchId}"
 @rendermode InteractiveServer
+@using System.Text.Json
 @using TekstilScada.Repositories
 @using TekstilScada.Core.Models
 @using TekstilScada.Models
 @using TekstilScada.WebApp.Services
 @using TekstilScada.Core.Localization
 @using Microsoft.Extensions.Localization
+@using System.Text.Json.Serialization
 @inject ScadaDataService ScadaDataService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
@@ -15,69 +17,126 @@
 
 @if (isLoading)
 {
-    <div class="alert alert-info text-center">
-        <div class="spinner-border text-primary" role="status">
+    <div class="d-flex flex-column justify-center align-center" style="height: 300px;">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
             <span class="visually-hidden">@Loc["Yukleniyor"]</span>
         </div>
-        @statusMessage
+        <p class="mt-3 text-muted">@statusMessage</p>
     </div>
 }
 else if (detailData == null)
 {
-    <div class="alert alert-danger text-center">@Loc["UretimDetayiBulunamadi"]</div>
+    <div class="alert alert-danger text-center shadow-sm">
+        <i class="oi oi-warning me-2"></i> @Loc["UretimDetayiBulunamadi"]
+    </div>
 }
 else
 {
-    <div class="production-detail-container">
-        <h1 class="mb-4">@Loc["UretimDetayRaporuBaslik"] - @detailData.Header.BatchId</h1>
+    <div class="production-detail-container container-fluid pb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 text-dark">@Loc["UretimDetayRaporuBaslik"] <span class="text-primary">#@detailData.Header.BatchId</span></h1>
+            <button class="btn btn-success shadow-sm" @onclick="ExportToExcel" disabled="@isExporting">
+                @if (isExporting)
+                {
+                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    @Loc["Hazirlaniyor"]
+                }
+                else
+                {
+                    <i class="oi oi-data-transfer-download me-1"></i> 
+                    @Loc["ExceleAktar"]
+                }
+            </button>
+        </div>
 
-        <div class="card mb-4">
-            <div class="card-header bg-light fw-bold">@Loc["GenelBilgiler"]</div>
+        @* --- 1. GENEL BİLGİLER KARTI --- *@
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-light fw-bold text-uppercase text-secondary">
+                <i class="oi oi-info me-1"></i> @Loc["GenelBilgiler"]
+            </div>
             <div class="card-body">
-                <div class="row">
-                    @* Makine Adı, Reçete Adı vb. için önceki resource'ları veya yeni eklediklerimizi kullanıyoruz *@
-                    <DetailItem Label="@Loc["MakineAdi"]" Value="@detailData.Header.MachineName" />
-                    <DetailItem Label="@Loc["ReceteAdiLabel"]" Value="@detailData.Header.RecipeName" />
-                    <DetailItem Label="@Loc["OperatorLabel"]" Value="@detailData.Header.OperatorName" />
-                    <DetailItem Label="@Loc["MusteriNoLabel"]" Value="@detailData.Header.MusteriNo" />
-                    <DetailItem Label="@Loc["SiparisNoLabel"]" Value="@detailData.Header.SiparisNo" />
+                <div class="row g-3">
+                    <div class="col-md-2 col-sm-4">
+                        <small class="text-muted d-block">@Loc["MakineAdi"]</small>
+                        <span class="fw-bold">@detailData.Header.MachineName</span>
+                    </div>
+                    <div class="col-md-3 col-sm-4">
+                        <small class="text-muted d-block">@Loc["ReceteAdiLabel"]</small>
+                        <span class="fw-bold">@detailData.Header.RecipeName</span>
+                    </div>
+                    <div class="col-md-2 col-sm-4">
+                        <small class="text-muted d-block">@Loc["OperatorLabel"]</small>
+                        <span>@detailData.Header.OperatorName</span>
+                    </div>
+                    <div class="col-md-2 col-sm-4">
+                        <small class="text-muted d-block">@Loc["MusteriNoLabel"]</small>
+                        <span>@detailData.Header.MusteriNo</span>
+                    </div>
+                    <div class="col-md-3 col-sm-4">
+                        <small class="text-muted d-block">@Loc["SiparisNoLabel"]</small>
+                        <span>@detailData.Header.SiparisNo</span>
+                    </div>
                 </div>
-                <div class="row mt-3">
-                    <DetailItem Label="@Loc["BaslangicZamani"]" Value="@detailData.Header.StartTime.ToString("dd.MM.yyyy HH:mm:ss")" />
-                    <DetailItem Label="@Loc["BitisZamani"]" Value="@detailData.Header.EndTime.ToString("dd.MM.yyyy HH:mm:ss")" />
-                    <DetailItem Label="@Loc["ToplamSure"]" Value="@detailData.Header.CycleTime" />
+                <hr class="my-3" />
+                <div class="row g-3">
+                    <div class="col-md-2 col-sm-4">
+                        <small class="text-muted d-block">@Loc["BaslangicZamani"]</small>
+                        <span class="text-success fw-bold">@detailData.Header.StartTime.ToString("dd.MM.yyyy HH:mm")</span>
+                    </div>
+                    <div class="col-md-2 col-sm-4">
+                        <small class="text-muted d-block">@Loc["BitisZamani"]</small>
+                        <span class="text-danger fw-bold">@detailData.Header.EndTime.ToString("dd.MM.yyyy HH:mm")</span>
+                    </div>
+                    <div class="col-md-2 col-sm-4">
+                        <small class="text-muted d-block">@Loc["ToplamSure"]</small>
+                        <span class="badge bg-secondary fs-6">@detailData.Header.CycleTime</span>
+                    </div>
                 </div>
-                <button class="btn btn-primary mt-3" @onclick="ExportToExcel">
-                    <i class="oi oi-data-transfer-download"></i> @Loc["ExceleAktar"]
-                </button>
             </div>
         </div>
 
+        @* --- 2. GRAFİKLER BÖLÜMÜ --- *@
         <div class="row mb-4">
-            <div class="col-md-8">
-                <div class="card h-100">
-                    <div class="card-header fw-bold">@Loc["ProsesZamanCizgisiBaslik"]</div>
-                    <div class="card-body">
-                        <div id="trendChart" style="height: 400px;">
-                            <p class="text-center text-muted">@Loc["ZamanCizgisiPlaceholder"]</p>
-                        </div>
+            @* SOL: PROSES GRAFİKLERİ (Alt Alta 3 Tane) *@
+            <div class="col-lg-9 col-md-12 mb-3 mb-lg-0">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header fw-bold bg-white">
+                        <i class="oi oi-graph me-1"></i> @Loc["ProsesZamanCizgisiBaslik"]
+                    </div>
+                    <div class="card-body p-2">
+                        @if (trendDataPoints != null && trendDataPoints.Any())
+                        {
+                            @* Grafik Konteynerleri *@
+                            <div id="tempChart" style="height: 250px; width: 100%;"></div>
+                            <div id="levelChart" style="height: 180px; width: 100%; margin-top: 10px;"></div>
+                            <div id="rpmChart" style="height: 180px; width: 100%; margin-top: 10px;"></div>
+                        }
+                        else
+                        {
+                            <div class="d-flex justify-content-center align-items-center h-100 text-muted p-5 bg-light rounded">
+                                <i class="oi oi-bar-chart me-2"></i> @Loc["ZamanCizgisiPlaceholder"]
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-header fw-bold">@Loc["SureDagilimiBaslik"]</div>
-                    <div class="card-body d-flex flex-column justify-content-center">
-                        <div id="pie-chart" style="height: 250px;">
-                            <p class="text-center text-muted">@Loc["PastaGrafikPlaceholder"]</p>
-                        </div>
-                        <div class="mt-3">
+            @* SAĞ: SÜRE DAĞILIMI (PASTA) *@
+            <div class="col-lg-3 col-md-12">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header fw-bold bg-white">
+                        <i class="oi oi-pie-chart me-1"></i> @Loc["SureDagilimiBaslik"]
+                    </div>
+                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                        <div id="pie-chart" style="height: 220px; width: 100%;"></div>
+
+                        <div class="w-100 mt-3 px-2">
                             @foreach (var segment in pieChartSegments)
                             {
-                                <div class="d-flex justify-content-between mb-1" style="border-left: 5px solid @segment.Color">
-                                    <span class="fw-bold">@segment.Label</span>
-                                    <span>@segment.Duration</span>
+                                <div class="d-flex justify-content-between align-items-center mb-2 p-2 rounded border-start border-4 bg-light"
+                                     style="border-color: @segment.Color !important;">
+                                    <span class="fw-bold small">@segment.Label</span>
+                                    <span class="badge bg-white text-dark border">@segment.Duration</span>
                                 </div>
                             }
                         </div>
@@ -86,30 +145,34 @@ else
             </div>
         </div>
 
+        @* --- 3. DETAY TABLOLARI --- *@
         <div class="row">
-            <div class="col-md-6">
-                <div class="card mb-4">
-                    <div class="card-header fw-bold">@Loc["AdimDetaylariBaslik"]</div>
-                    <div class="card-body table-responsive">
-                        <table class="table table-striped table-sm">
-                            <thead>
+            @* ADIMLAR TABLOSU *@
+            <div class="col-lg-6 col-md-12 mb-3">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header fw-bold bg-white">
+                        <i class="oi oi-list me-1"></i> @Loc["AdimDetaylariBaslik"]
+                    </div>
+                    <div class="card-body p-0" style="max-height: 450px; overflow-y: auto;">
+                        <table class="table table-hover table-striped mb-0 table-sm">
+                            <thead class="sticky-top bg-light text-secondary">
                                 <tr>
-                                    <th>@Loc["AdimNo"]</th>
+                                    <th class="ps-3">@Loc["AdimNo"]</th>
                                     <th>@Loc["AciklamaSutun"]</th>
                                     <th>@Loc["TeorikSure"]</th>
                                     <th>@Loc["GerceklesenSure"]</th>
-                                    <th>@Loc["Sicaklik"]</th>
+                                    <th class="text-end pe-3">@Loc["Sicaklik"]</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var step in detailData.Steps)
                                 {
                                     <tr style="@GetStepDurationStyle(step)">
-                                        <td>@step.StepNumber</td>
+                                        <td class="ps-3 fw-bold">@step.StepNumber</td>
                                         <td>@step.StepDescription</td>
                                         <td>@TimeSpan.FromSeconds(step.TheoreticalDurationSeconds).ToString(@"hh\:mm\:ss")</td>
                                         <td>@step.WorkingTime</td>
-                                        <td>@step.Temperature.ToString("F1") °C</td>
+                                        <td class="text-end pe-3">@step.Temperature.ToString("F1") °C</td>
                                     </tr>
                                 }
                             </tbody>
@@ -117,31 +180,45 @@ else
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card mb-4">
-                    <div class="card-header fw-bold">@Loc["AlarmGecmisiBaslik"]</div>
-                    <div class="card-body table-responsive">
-                        <table class="table table-striped table-sm">
-                            <thead>
-                                <tr>
-                                    <th>@Loc["Tarih"]</th>
-                                    <th>@Loc["Tip"]</th>
-                                    <th>@Loc["AciklamaSutun"]</th>
-                                    <th>@Loc["Sure"]</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var alarm in detailData.Alarms)
-                                {
+
+            @* ALARMLAR TABLOSU *@
+            <div class="col-lg-6 col-md-12 mb-3">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header fw-bold bg-white text-danger">
+                        <i class="oi oi-bell me-1"></i> @Loc["AlarmGecmisiBaslik"]
+                    </div>
+                    <div class="card-body p-0" style="max-height: 450px; overflow-y: auto;">
+                        @if (detailData.Alarms.Any())
+                        {
+                            <table class="table table-hover mb-0 table-sm">
+                                <thead class="sticky-top bg-light text-secondary">
                                     <tr>
-                                        <td>@alarm.AlarmTime.ToString("HH:mm:ss")</td>
-                                        <td>@alarm.AlarmType</td>
-                                        <td>@alarm.AlarmDescription</td>
-                                        <td>@alarm.Duration.ToString(@"hh\:mm\:ss")</td>
+                                        <th class="ps-3">@Loc["Tarih"]</th>
+                                        <th>@Loc["Tip"]</th>
+                                        <th>@Loc["AciklamaSutun"]</th>
+                                        <th class="text-end pe-3">@Loc["Sure"]</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @foreach (var alarm in detailData.Alarms)
+                                    {
+                                        <tr>
+                                            <td class="ps-3">@alarm.AlarmTime.ToString("HH:mm:ss")</td>
+                                            <td><span class="badge bg-danger">@alarm.AlarmType</span></td>
+                                            <td>@alarm.AlarmDescription</td>
+                                            <td class="text-end pe-3">@alarm.Duration.ToString(@"hh\:mm\:ss")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else
+                        {
+                            <div class="text-center p-4 text-muted">
+                                <i class="oi oi-circle-check fs-2 text-success"></i>
+                                <p class="mt-2">@Loc["AlarmYokMesaj"]</p>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -153,24 +230,31 @@ else
     [Parameter] public int MachineId { get; set; }
     [Parameter] public string BatchId { get; set; } = string.Empty;
 
+    // Durum Değişkenleri
     private ProductionDetailDto? detailData;
     private bool isLoading = true;
-    private string statusMessage = ""; // Initialize in OnInitialized based on Localization
-    private List<PieChartSegment> pieChartSegments = new();
-    private List<TrendDataPoint>? actualDataPoints;
-    private bool _chartsDrawn = false;
-    private List<TrendProcessDataPoint>? trendDataPoints;
-    private bool shouldRenderChart = false;
-    private bool shouldRenderChart2 = false;
+    private bool isExporting = false;
+    private string statusMessage = "";
 
+    // Grafik Verileri ve Kontrolü
+    private List<PieChartSegment> pieChartSegments = new();
+    private List<TrendProcessDataPoint>? trendDataPoints;
+
+    // JS Render Kontrol Bayrakları
+    private bool shouldRenderTrendChart = false;
+    private bool shouldRenderPieChart = false;
+    private bool _chartsDrawn = false; // Grafikler çizildi mi?
+
+    // --- DTO ---
     private class PieChartSegment
     {
-        public string Label { get; set; } = string.Empty;
-        public string Color { get; set; } = string.Empty;
+        public string Label { get; set; } = "";
+        public string Color { get; set; } = "";
         public TimeSpan DurationTimeSpan { get; set; }
         public string Duration => DurationTimeSpan.ToString(@"hh\:mm\:ss");
         public double Value { get; set; }
     }
+
     private class TrendProcessDataPoint
     {
         public int MachineId { get; set; }
@@ -180,9 +264,9 @@ else
         public int Rpm { get; set; }
     }
 
+    // --- BAŞLANGIÇ ---
     protected override async Task OnInitializedAsync()
     {
-        // İlk mesajı burada set ediyoruz
         statusMessage = Loc["UretimDetaylariYukleniyor"];
 
         if (MachineId == 0 || string.IsNullOrEmpty(BatchId))
@@ -194,10 +278,15 @@ else
 
         try
         {
+            // 1. Detay Verisini Çek
             detailData = await ScadaDataService.GetProductionDetailAsync(MachineId, BatchId);
+
+            // 2. Trend Verisini Çek
             await GenerateTrendReport();
+
             if (detailData != null)
             {
+                // 3. Pasta Grafiği Hesapla
                 CalculatePieChart(detailData.Header);
             }
             else
@@ -214,21 +303,115 @@ else
             isLoading = false;
         }
     }
+
+    // --- RENDERING (GRAFİK ÇİZİMİ) ---
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (shouldRenderChart2 && detailData != null && !_chartsDrawn)
+        // 1. Pasta Grafiği Çiz
+        if (shouldRenderPieChart && detailData != null && !_chartsDrawn)
         {
             await DrawPieChartAsync();
-
-            _chartsDrawn = true;
-            shouldRenderChart2 = false;
+            _chartsDrawn = true; // Tekrar çizmemesi için
+            shouldRenderPieChart = false;
         }
-        if (shouldRenderChart && trendDataPoints != null && trendDataPoints.Any())
+
+        // 2. Trend Grafiği Çiz (Veri geldiyse)
+        // shouldRenderTrendChart bayrağı GenerateTrendReport içinde true yapılıyor
+        if (shouldRenderTrendChart && trendDataPoints != null && trendDataPoints.Any())
         {
-            shouldRenderChart = false;
+            shouldRenderTrendChart = false; // Sonsuz döngü engellemek için kapat
             await CallPlotlyJS();
         }
     }
+
+    // --- OPTİMİZE EDİLMİŞ TREND ÇİZİM METODU ---
+    private async Task CallPlotlyJS()
+    {
+        try
+        {
+            if (trendDataPoints == null || !trendDataPoints.Any()) return;
+
+            // --- OPTİMİZASYON: DOWNSAMPLING ---
+            // Hedef: Ekranda maksimum 1000 nokta olsun (Tarayıcı performansını korumak için)
+            const int TARGET_POINTS = 100;
+            List<TrendProcessDataPoint> pointsToDraw;
+
+            if (trendDataPoints.Count <= TARGET_POINTS)
+            {
+                // Veri azsa olduğu gibi gönder
+                pointsToDraw = trendDataPoints;
+            }
+            else
+            {
+                // Veri çoksa gruplara böl ve ortalamasını al
+                int groupSize = (int)Math.Ceiling((double)trendDataPoints.Count / TARGET_POINTS);
+
+                pointsToDraw = trendDataPoints
+                    .Select((x, i) => new { Index = i, Value = x })
+                    .GroupBy(x => x.Index / groupSize)
+                    .Select(g => new TrendProcessDataPoint
+                    {
+                        // Grubun ilk zaman damgasını al
+                        Timestamp = g.First().Value.Timestamp,
+
+                        // Değerlerin ortalamasını al (Smooth görüntü için)
+                        // Sıcaklık ve Seviye için Average uygun.
+                        // RPM için de Average veya Max kullanılabilir (burada Average seçildi).
+                        Temperature = g.Average(p => p.Value.Temperature),
+                        Rpm = (int)g.Average(p => p.Value.Rpm),
+                        WaterLevel = g.Average(p => p.Value.WaterLevel)
+                    })
+                    .ToList();
+            }
+
+            // JS fonksiyonunu çağır (Bu fonksiyon 3 grafiği alt alta çizer ve senkronize eder)
+            // plotSyncedCharts fonksiyonu wwwroot/js/scadaCharts.js (veya site.js) içinde olmalı.
+            await JSRuntime.InvokeVoidAsync("plotSyncedCharts", pointsToDraw);
+        }
+        catch (Exception ex)
+        {
+            // JS tarafında hata olursa konsola bas, uygulamayı kırma
+            await JSRuntime.InvokeVoidAsync("console.error", "Plotly JS çizim hatası:", ex.Message);
+        }
+    }
+
+    private async Task GenerateTrendReport()
+    {
+        try
+        {
+            var effectiveFilters = new ReportFilters
+            {
+                StartTime = detailData.Header.StartTime,
+                EndTime = detailData.Header.EndTime,
+                MachineId = MachineId
+            };
+
+            // Gateway'den veriyi "object" listesi olarak alıyoruz (Hub yapısı gereği)
+            var rawData = await ScadaDataService.GetTrendDataAsync(effectiveFilters);
+
+            if (rawData != null && rawData.Any())
+            {
+                // Gelen veriyi (JsonElement) TrendProcessDataPoint listesine çevir
+                var jsonString = System.Text.Json.JsonSerializer.Serialize(rawData);
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals
+                };
+
+                trendDataPoints = System.Text.Json.JsonSerializer.Deserialize<List<TrendProcessDataPoint>>(jsonString, options);
+
+                // Veri varsa grafiği çizdirelim
+                shouldRenderTrendChart = trendDataPoints?.Any() ?? false;
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", "Trend verisi alma hatası:", ex.ToString());
+        }
+    }
+
     private async Task DrawPieChartAsync()
     {
         if (pieChartSegments.Any())
@@ -244,67 +427,6 @@ else
         }
     }
 
-    private async Task CallPlotlyJS()
-    {
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("plotTrendChart",
-                "trendChart",
-                trendDataPoints,
-                "Temperature");
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("console.error", "Plotly JS çağrısı başarısız oldu:", ex.Message);
-        }
-    }
-    private async Task GenerateTrendReport()
-    {
-        isLoading = true;
-        actualDataPoints = null;
-        await InvokeAsync(StateHasChanged);
-
-        try
-        {
-            var effectiveFilters = new ReportFilters
-            {
-                StartTime = detailData.Header.StartTime,
-                EndTime = detailData.Header.EndTime,
-                MachineId = MachineId,
-            };
-
-            await JSRuntime.InvokeVoidAsync("console.log", "API'ye gönderilen Trend filtreleri:", effectiveFilters);
-
-            var rawData = await ScadaDataService.GetTrendDataAsync(effectiveFilters);
-
-            if (rawData != null)
-            {
-                var jsonString = System.Text.Json.JsonSerializer.Serialize(rawData);
-                var trendData = System.Text.Json.JsonSerializer.Deserialize<List<TrendProcessDataPoint>>(jsonString, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
-                trendDataPoints = trendData;
-
-                if (trendDataPoints.Any())
-                {
-                    shouldRenderChart = true;
-                }
-                else
-                {
-                    shouldRenderChart = false;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            shouldRenderChart = false;
-            await JSRuntime.InvokeVoidAsync("console.error", "Trend Raporu oluşturulurken hata oluştu:", ex.ToString());
-        }
-        finally
-        {
-            isLoading = false;
-            await InvokeAsync(StateHasChanged);
-        }
-    }
-
     private void CalculatePieChart(ProductionReportItem reportItem)
     {
         pieChartSegments.Clear();
@@ -313,81 +435,55 @@ else
         double totalOperatorPauseSeconds = reportItem.OperatorPauseDurationSeconds;
         double totalBatchSeconds = (reportItem.EndTime - reportItem.StartTime).TotalSeconds;
 
+        // Aktif çalışmayı diğerlerinden çıkararak buluyoruz
         double activeWorkingSeconds = totalBatchSeconds - totalMachineAlarmSeconds - totalOperatorPauseSeconds;
         if (activeWorkingSeconds < 0) activeWorkingSeconds = 0;
 
         if (activeWorkingSeconds > 0)
-        {
-            pieChartSegments.Add(new PieChartSegment
-            {
-                Label = Loc["AktifCalisma"],
-                Color = "DodgerBlue",
-                DurationTimeSpan = TimeSpan.FromSeconds(activeWorkingSeconds),
-                Value = activeWorkingSeconds
-            });
-        }
-        if (totalMachineAlarmSeconds > 0)
-        {
-            pieChartSegments.Add(new PieChartSegment
-            {
-                Label = Loc["MakineAlarm"],
-                Color = "Crimson",
-                DurationTimeSpan = TimeSpan.FromSeconds(totalMachineAlarmSeconds),
-                Value = totalMachineAlarmSeconds
-            });
-        }
-        if (totalOperatorPauseSeconds > 0)
-        {
-            pieChartSegments.Add(new PieChartSegment
-            {
-                Label = Loc["OperatorDuraklama"],
-                Color = "Orange",
-                DurationTimeSpan = TimeSpan.FromSeconds(totalOperatorPauseSeconds),
-                Value = totalOperatorPauseSeconds
-            });
-        }
+            pieChartSegments.Add(new PieChartSegment { Label = Loc["AktifCalisma"], Color = "#3498db", DurationTimeSpan = TimeSpan.FromSeconds(activeWorkingSeconds), Value = activeWorkingSeconds });
 
+        if (totalMachineAlarmSeconds > 0)
+            pieChartSegments.Add(new PieChartSegment { Label = Loc["MakineAlarm"], Color = "#e74c3c", DurationTimeSpan = TimeSpan.FromSeconds(totalMachineAlarmSeconds), Value = totalMachineAlarmSeconds });
+
+        if (totalOperatorPauseSeconds > 0)
+            pieChartSegments.Add(new PieChartSegment { Label = Loc["OperatorDuraklama"], Color = "#f39c12", DurationTimeSpan = TimeSpan.FromSeconds(totalOperatorPauseSeconds), Value = totalOperatorPauseSeconds });
+
+        // Hiç veri yoksa boş göster
         if (!pieChartSegments.Any())
-        {
-            pieChartSegments.Add(new PieChartSegment { Label = Loc["VeriYok"], Color = "Gray", DurationTimeSpan = TimeSpan.Zero });
-        }
-        if (pieChartSegments.Any())
-        {
-            shouldRenderChart2 = true;
-        }
-        else
-        {
-            shouldRenderChart2 = false;
-        }
+            pieChartSegments.Add(new PieChartSegment { Label = Loc["VeriYok"], Color = "#bdc3c7", DurationTimeSpan = TimeSpan.Zero });
+
+        shouldRenderPieChart = true;
     }
 
     private string GetStepDurationStyle(ProductionStepDetailDto step)
     {
+        // Gerçekleşen süre ile teorik süreyi kıyaslayıp renklendirme (KPI)
         if (TimeSpan.TryParse(step.WorkingTime, out TimeSpan workingTime) && step.TheoreticalDurationSeconds > 0)
         {
             TimeSpan theoreticalTime = TimeSpan.FromSeconds(step.TheoreticalDurationSeconds);
 
-            int theoreticalMinutes = (int)theoreticalTime.TotalMinutes;
-            int workingMinutes = (int)workingTime.TotalMinutes;
+            // %10 tolerans payı
+            double tolerance = step.TheoreticalDurationSeconds * 0.1;
 
-            if (workingMinutes > theoreticalMinutes)
+            if (workingTime.TotalSeconds > (step.TheoreticalDurationSeconds + tolerance))
             {
-                return "background-color: #f8d7da; color: #721c24; border-left: 5px solid red;";
+                // Gecikme (Kırmızımsı)
+                return "background-color: rgba(231, 76, 60, 0.1); border-left: 4px solid #e74c3c;";
             }
-            else if (workingMinutes < theoreticalMinutes)
+            else if (workingTime.TotalSeconds < (step.TheoreticalDurationSeconds - tolerance))
             {
-                return "background-color: #d4edda; color: #155724; border-left: 5px solid green;";
+                // Erken bitiş (Yeşilimsi)
+                return "background-color: rgba(46, 204, 113, 0.1); border-left: 4px solid #2ecc71;";
             }
         }
-        return string.Empty;
+        return "";
     }
 
     private async Task ExportToExcel()
     {
         if (detailData == null) return;
 
-        statusMessage = Loc["ExcelHazirlaniyor"];
-        isLoading = true;
+        isExporting = true;
         StateHasChanged();
 
         try
@@ -396,11 +492,8 @@ else
 
             if (excelBytes.Any())
             {
-                await JSRuntime.InvokeVoidAsync("saveAsFile",
-                    $"Uretim_Detayi_{BatchId}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx",
-                    Convert.ToBase64String(excelBytes));
-
-                await JSRuntime.InvokeVoidAsync("alert", Loc["ExcelBasarili"].Value);
+                await JSRuntime.InvokeVoidAsync("saveAsFile", $"Uretim_Detayi_{BatchId}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(excelBytes));
+                // Opsiyonel: Başarılı mesajı (Toast vs.)
             }
             else
             {
@@ -413,7 +506,7 @@ else
         }
         finally
         {
-            isLoading = false;
+            isExporting = false;
             StateHasChanged();
         }
     }

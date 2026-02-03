@@ -561,18 +561,51 @@
 
     private async Task CallPlotlyJS()
     {
+        if (trendDataPoints == null || !trendDataPoints.Any()) return;
+
         try
         {
-            var pointsToDraw = trendDataPoints;
-            if (trendDataPoints.Count > 2000)
+            // 1. Ekranda kaç nokta görmek istiyoruz? (500-1000 arası idealdir)
+            const int TARGET_POINT_COUNT = 500;
+
+            List<TrendProcessDataPoint> pointsToDraw;
+
+            // Eğer veri sayısı hedeften azsa, olduğu gibi gönder (İşleme gerek yok)
+            if (trendDataPoints.Count <= TARGET_POINT_COUNT)
             {
-                int step = trendDataPoints.Count / 2000;
-                pointsToDraw = trendDataPoints.Where((x, i) => i % step == 0).ToList();
+                pointsToDraw = trendDataPoints;
+            }
+            else
+            {
+                // 2. Adım (Step) büyüklüğünü dinamik hesapla
+                // Örnek: 10.000 veri varsa, 10.000 / 500 = 20.
+                // Yani her 20 veriyi 1 nokta yapacağız.
+                int groupSize = (int)Math.Ceiling((double)trendDataPoints.Count / TARGET_POINT_COUNT);
+
+                // 3. Gruplama ve Ortalama Alma (LINQ ile çok hızlıdır)
+                pointsToDraw = trendDataPoints
+                    .Select((x, i) => new { Index = i, Value = x })
+                    .GroupBy(x => x.Index / groupSize)
+                    .Select(g => new TrendProcessDataPoint
+                    {
+                        // Zaman damgası olarak grubun ilk kaydının zamanını alıyoruz
+                        Timestamp = g.First().Value.Timestamp,
+
+                        // Değerlerin ortalamasını alıyoruz (Pürüzsüz çizgi sağlar)
+                        Temperature = g.Average(p => p.Value.Temperature),
+                        Rpm = (int)g.Average(p => p.Value.Rpm),
+                        WaterLevel = g.Average(p => p.Value.WaterLevel)
+                    })
+                    .ToList();
             }
 
+            // 4. Optimize edilmiş veriyi gönder
             await JSRuntime.InvokeVoidAsync("plotTrendChart1", "trendChart", pointsToDraw, "Proses Analizi");
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Grafik çizim hatası: {ex.Message}");
+        }
     }
 
     private async Task GenerateReport() => await GenerateReportCore(true);

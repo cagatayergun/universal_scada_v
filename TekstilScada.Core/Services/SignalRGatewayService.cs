@@ -390,7 +390,7 @@ namespace TekstilScada.Services
                         partCount++;
 
                         // Çok hızlı gönderip ağı tıkamamak için mini bekleme
-                        await Task.Delay(2);
+                       // await Task.Delay(2);
                     }
                     //($"[Gateway] {partCount} parça halinde gönderildi.");
                 }

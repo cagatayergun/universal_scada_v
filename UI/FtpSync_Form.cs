@@ -403,6 +403,7 @@ namespace TekstilScada.UI
                 if ((controlWord & 8) != 0) stepTypes.Add("Dosing");
                 if ((controlWord & 16) != 0) stepTypes.Add("Drain");
                 if ((controlWord & 32) != 0) stepTypes.Add("Extraction");
+                if ((controlWord & 1024) != 0) stepTypes.Add("Sample Door");
             }
             return stepTypes.Any() ? string.Join(" + ", stepTypes) : "-";
         }

@@ -312,5 +312,84 @@
         }
             };
     </script>
+    <script>
+    window.plotSyncedCharts = (data) => {
+    if (!data || data.length === 0) return;
+
+    // Verileri Ayrıştır
+    const timestamps = data.map(d => d.timestamp);
+    const temps = data.map(d => d.temperature / 10.0); // PLC verisi 10'a bölünüyor
+    const levels = data.map(d => d.waterLevel);
+    const rpms = data.map(d => d.rpm);
+
+    // Ortak Eksen Ayarı (Shared Axis)
+    const commonLayout = {
+    xaxis: { type: 'date', showgrid: true },
+    margin: { l: 50, r: 20, t: 30, b: 30 },
+    showlegend: false
+    };
+
+    // 1. Sıcaklık Grafiği
+    const traceTemp = {
+    x: timestamps,
+    y: temps,
+    mode: 'lines',
+    name: 'Sıcaklık',
+    line: { color: '#e74c3c', width: 2 },
+    fill: 'tozeroy'
+    };
+    const layoutTemp = { ...commonLayout, title: 'Sıcaklık (°C)', yaxis: { title: '°C' } };
+    Plotly.newPlot('tempChart', [traceTemp], layoutTemp, { responsive: true, displayModeBar: false });
+
+    // 2. Su Seviyesi Grafiği
+    const traceLevel = {
+    x: timestamps,
+    y: levels,
+    mode: 'lines',
+    name: 'Su Seviyesi',
+    line: { color: '#3498db', width: 2 },
+    fill: 'tozeroy'
+    };
+    const layoutLevel = { ...commonLayout, title: 'Su Seviyesi (%)', yaxis: { title: '%' } };
+    Plotly.newPlot('levelChart', [traceLevel], layoutLevel, { responsive: true, displayModeBar: false });
+
+    // 3. RPM Grafiği
+    const traceRpm = {
+    x: timestamps,
+    y: rpms,
+    mode: 'lines',
+    name: 'Devir',
+    line: { color: '#2ecc71', width: 2 }
+    };
+    const layoutRpm = { ...commonLayout, title: 'Devir (RPM)', yaxis: { title: 'rpm' } };
+    Plotly.newPlot('rpmChart', [traceRpm], layoutRpm, { responsive: true, displayModeBar: false });
+
+    // --- SENKRONİZASYON (Zoom Sync) ---
+    // Bir grafikte zoom yapılınca diğerleri de değişsin
+    const charts = [
+    document.getElementById('tempChart'),
+    document.getElementById('levelChart'),
+    document.getElementById('rpmChart')
+    ];
+
+    charts.forEach(chart => {
+    chart.on('plotly_relayout', (eventdata) => {
+    // Sonsuz döngüyü engellemek için kontrol
+    if (eventdata._source === 'sync') return;
+
+    // Diğer grafiklere aynı zoom'u uygula
+    charts.forEach(otherChart => {
+    if (otherChart !== chart) {
+    Plotly.relayout(otherChart, {
+    'xaxis.range[0]': eventdata['xaxis.range[0]'],
+    'xaxis.range[1]': eventdata['xaxis.range[1]'],
+    _source: 'sync' // Kaynağı işaretle
+    });
+    }
+    });
+    });
+    });
+    };
+    </script>
 </body>
 </html>
