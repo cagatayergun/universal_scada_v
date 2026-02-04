@@ -35,7 +35,9 @@ namespace TekstilScada
         // SignalR Gateway için gerekli ek Repository'ler
         private readonly RecipeConfigurationRepository _recipeConfigRepository;
         private readonly PlcOperatorRepository _plcOperatorRepository;
-
+        // --- YENÝ EKLENDÝ: UTILITY (SENSÖR) REPOSITORY & SERVICE ---
+        private readonly UtilityRepository _utilityRepository;
+        private readonly UtilityPollingService _utilityPollingService;
         // --- GATEWAY SERVÝSÝ (YENÝ) ---
         private SignalRGatewayService _gatewayService;
 
@@ -71,7 +73,25 @@ namespace TekstilScada
             _plcOperatorRepository = new PlcOperatorRepository();
 
             _dashboardRepository = new DashboardRepository(_recipeRepository);
+            // --- YENÝ EKLENDÝ: UTILITY NESNELERÝNÝ OLUÞTURMA ---
+            try
+            {
+                // 1. Repository oluþtur
+                _utilityRepository = new UtilityRepository();
 
+                // 2. Servisi oluþtur (Logger olmadýðý için NullLogger kullanýyoruz)
+                _utilityPollingService = new UtilityPollingService(
+                    _utilityRepository,
+                    new NullLogger<UtilityPollingService>()
+                );
+
+                // 3. Servisi Baþlat (Arka planda okumaya baþlar)
+                _utilityPollingService.Start();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Sensör servisi baþlatýlamadý: {ex.Message}");
+            }
             // PLC Servisi
             _pollingService = new PlcPollingService(
                 _alarmRepository,
@@ -480,7 +500,12 @@ namespace TekstilScada
         {
             LanguageManager.LanguageChanged -= LanguageManager_LanguageChanged;
             _pollingService.Stop();
-
+            // --- YENÝ EKLENDÝ: UTILITY SERVÝSÝNÝ DURDUR ---
+            if (_utilityPollingService != null)
+            {
+                _utilityPollingService.Stop();
+            }
+            // ----------------------------------------------
             if (_activeVncViewerForm != null && !_activeVncViewerForm.IsDisposed)
             {
                 try { _activeVncViewerForm.Close(); } catch { }

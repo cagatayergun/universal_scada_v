@@ -1,10 +1,10 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
-using HslCommunication;
-//using HslCommunication.Modbus; // Add HslCommunication.Modbus using for Modbus
-using HslCommunication.ModBus;
+using Microsoft.Extensions.Logging;
 using TekstilScada.Models;
 using TekstilScada.Repositories;
 
@@ -13,76 +13,128 @@ namespace TekstilScada.Services
     public class UtilityPollingService
     {
         private readonly UtilityRepository _repo;
-        private readonly System.Timers.Timer _timer;
-        private bool _isBusy = false;
+        private readonly ILogger<UtilityPollingService> _logger;
 
-        public UtilityPollingService(UtilityRepository repo)
+        // Yönetici nesneleri önbelleği
+        private ConcurrentDictionary<int, IUtilityManager> _managers;
+
+        // Döngü kontrolü için Token
+        private CancellationTokenSource _cancellationTokenSource;
+        private Task _pollingTask;
+
+        public UtilityPollingService(UtilityRepository repo, ILogger<UtilityPollingService> logger)
         {
             _repo = repo;
-            _timer = new System.Timers.Timer(10000); // 10 Saniye
-            _timer.Elapsed += async (s, e) => await PollLines();
+            _logger = logger;
+            _managers = new ConcurrentDictionary<int, IUtilityManager>();
         }
 
-        public void Start() => _timer.Start();
-        public void Stop() => _timer.Stop();
-
-        private async Task PollLines()
+        // Dışarıdan çağrılacak Başlat metodu
+        public void Start()
         {
-            if (_isBusy) return;
-            _isBusy = true;
+            Stop(); // Zaten çalışıyorsa durdur
 
-            try
+            _cancellationTokenSource = new CancellationTokenSource();
+            _logger.LogInformation("Utility Polling Servisi Başlatılıyor...");
+
+            // Ana döngüyü arka planda başlat
+            _pollingTask = Task.Run(() => PollLoop(_cancellationTokenSource.Token));
+        }
+
+        // Dışarıdan çağrılacak Durdur metodu
+        public void Stop()
+        {
+            if (_cancellationTokenSource != null)
             {
-                var lines = _repo.GetUtilityLines();
-                var logsToSave = new List<UtilityLog>();
-
-                foreach (var line in lines)
+                _cancellationTokenSource.Cancel();
+                try
                 {
-                    try
-                    {
-                        // Modbus Okuma Mantığı (Pseudo-code, kütüphanenize göre uyarlayın)
-                        // DWORD okumak için 2 register okuyup birleştiriyoruz.
-                        using (var client = new ModbusClient(line.IpAddress, line.Port))
-                        {
-                            client.Connect();
+                    // Görevin bitmesini bekle (maksimum 3 saniye)
+                    _pollingTask?.Wait(3000);
+                }
+                catch { /* Task iptal hatasını yut */ }
 
-                            // Örnek: Modbus Int32 okuma
-                            // Note: Register adresleri ve tipleri PLC'ye göre değişir.
-                            int water = ModbusClient.ConvertRegistersToInt(client.ReadHoldingRegisters(line.WaterAddress, 2));
-                            int elec = ModbusClient.ConvertRegistersToInt(client.ReadHoldingRegisters(line.ElecAddress, 2));
-                            int steam = ModbusClient.ConvertRegistersToInt(client.ReadHoldingRegisters(line.SteamAddress, 2));
-                            int air = ModbusClient.ConvertRegistersToInt(client.ReadHoldingRegisters(line.AirAddress, 2));
+                _cancellationTokenSource.Dispose();
+                _cancellationTokenSource = null;
+            }
 
-                            logsToSave.Add(new UtilityLog
-                            {
-                                LineId = line.Id,
-                                LogTime = DateTime.Now,
-                                WaterCounter = water,
-                                ElecCounter = elec,
-                                SteamCounter = steam,
-                                AirCounter = air
-                            });
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Hat Okuma Hatası ({line.LineName}): {ex.Message}");
-                    }
+            // Açık bağlantıları temizle
+            foreach (var manager in _managers.Values)
+            {
+                manager.Disconnect();
+            }
+            _managers.Clear();
+
+            _logger.LogInformation("Utility Polling Servisi Durduruldu.");
+        }
+
+        private async Task PollLoop(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    await PollAllLinesAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Utility döngüsünde genel hata.");
                 }
 
-                // Toplu Kaydet
-                if (logsToSave.Count > 0)
+                // 10 Saniye bekle (Token iptal edilirse beklemeden çıkar)
+                try
                 {
-                    _repo.LogData(logsToSave);
+                    await Task.Delay(10000, token);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
                 }
             }
-            catch (Exception ex)
+        }
+
+        private async Task PollAllLinesAsync()
+        {
+            // Veritabanından hatları çek
+            var lines = _repo.GetUtilityLines();
+            var logsToSave = new List<UtilityLog>();
+
+            foreach (var line in lines)
             {
-                Console.WriteLine($"Polling Genel Hata: {ex.Message}");
+                // Manager'ı al veya oluştur (Factory mantığı)
+                var manager = _managers.GetOrAdd(line.Id, id => new UtilityModbusManager(line));
+
+                try
+                {
+                    // Bağlantı kontrolü ve veri okuma
+                    // NOT: HslCommunication ConnectServer çağrısı, zaten bağlıysa hızlı döner.
+                    // Ancak yine de her döngüde kontrol etmek yerine bağlantı koptuğunda bağlanmak daha performanslı olabilir.
+                    // Basitlik adına burada her okuma öncesi bağlantıyı garantiye alıyoruz.
+                    await manager.ConnectAsync();
+
+                    var readResult = await manager.ReadUtilityDataAsync();
+
+                    if (readResult.IsSuccess)
+                    {
+                        logsToSave.Add(readResult.Content);
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"Hat {line.LineName} okuma hatası: {readResult.Message}");
+                        // Hata varsa bağlantıyı sıfırla
+                        manager.Disconnect();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Hat işleme hatası: {line.LineName}");
+                }
             }
-            finally
+
+            // Verileri toplu kaydet
+            if (logsToSave.Count > 0)
             {
-                _isBusy = false;
+                _repo.LogData(logsToSave);
             }
         }
     }
