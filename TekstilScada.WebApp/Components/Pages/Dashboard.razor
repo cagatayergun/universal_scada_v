@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @using TekstilScada.WebApp.Services
 @using TekstilScada.Models
+@using TekstilScada.Core.Models
 @using TekstilScada.WebApp.Components.Shared
 @using TekstilScada.Core.Localization
 @using Microsoft.Extensions.Localization
@@ -118,29 +119,55 @@
         {
             _userCulture = CultureInfo.CurrentUICulture;
 
-            // 1. DOĞRU SERVİSE ABONE OL (StateService yerine ScadaService)
+            // 1. Canlı Veri Akışına Abone Ol
             ScadaService.OnDataUpdated += HandleDataUpdate;
 
-            // 2. Eğer veri boşsa ve bağlantı varsa, ilk veriyi çekmeyi dene
-            if (ScadaService.MachineData.IsEmpty && ScadaService.HubConnection?.State == HubConnectionState.Connected)
-            {
-                // Opsiyonel: İlk yüklemede makineleri bir kez çek
-                // (Normalde Gateway kendisi gönderir ama gecikme olmaması için)
-                // await ScadaService.GetLiveMachineStatusByFactoryId(0); // 0 = Seçili Fabrika
-            }
-
-            // 3. Mevcut veriyi ekrana bas
-            HandleDataUpdate();
-
-            // 4. Grafik Verilerini Yükle
-            await LoadSidebarDataAsync();
-
-            _isLoading = false;
+            // 2. İlk Verileri Hemen Yükle (Beklemeden)
+            await LoadInitialData();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Dashboard Init Hatası: {ex.Message}");
             _isLoading = false;
+        }
+    }
+
+    private async Task LoadInitialData()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            // A. Makine Tanımlarını Çek (Eksik makine görünmemesi için temel)
+            await ScadaService.GetMachinesAsync();
+
+            // B. Canlı Verileri Çek (Snapshot)
+            var liveStatuses = await ScadaService.GetLiveMachineStatusByFactoryId(0);
+
+            if (liveStatuses != null && liveStatuses.Any())
+            {
+                // Cache'i güncelle
+                foreach (var status in liveStatuses)
+                {
+                    ScadaService.MachineData[status.MachineId] = status;
+                }
+            }
+
+            // C. Dashboard Verilerini Hesapla
+            UpdateDashboardData();
+
+            // D. Grafik Verilerini Yükle
+            await LoadSidebarDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Dashboard Veri Yükleme Hatası: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
         }
     }
 
@@ -170,7 +197,7 @@
         _shouldRenderCharts = true;
     }
 
-    // ScadaService tarafından tetiklenen metod
+    // ScadaService tarafından tetiklenen metod (Push)
     private void HandleDataUpdate()
     {
         InvokeAsync(() =>
@@ -183,8 +210,31 @@
     private void UpdateDashboardData()
     {
         // --- DEĞİŞİKLİK: Veriyi ScadaService.MachineData'dan alıyoruz ---
-        // Bu dictionary sadece seçili fabrikanın verilerini içerir.
-        var allStatuses = ScadaService.MachineData.Values.ToList();
+        List<FullMachineStatus> allStatuses;
+
+        if (ScadaService.MachineData.Any())
+        {
+            allStatuses = ScadaService.MachineData.Values.ToList();
+        }
+        else
+        {
+            // EĞER CANLI VERİ YOKSA: Makine tanımlarından boş durum oluştur.
+            // Bu sayede "20 makine varken 0 görünüyor" sorunu çözülür.
+            if (ScadaService.MachineDetailsCache.Any())
+            {
+                allStatuses = ScadaService.MachineDetailsCache.Values.Select(m => new FullMachineStatus
+                {
+                    MachineId = m.Id,
+                    MachineName = m.MachineName,
+                    MakineTipi = m.MachineSubType,
+                    ConnectionState = ConnectionStatus.Disconnected // Hepsi offline başlar
+                }).ToList();
+            }
+            else
+            {
+                allStatuses = new List<FullMachineStatus>();
+            }
+        }
 
         // --- 2. İstatistikler (Aynen korundu) ---
         TotalMachines = allStatuses.Count;
@@ -242,6 +292,9 @@
     public void Dispose()
     {
         // ScadaService aboneliğini bırak
-        ScadaService.OnDataUpdated -= HandleDataUpdate;
+        if (ScadaService != null)
+        {
+            ScadaService.OnDataUpdated -= HandleDataUpdate;
+        }
     }
 }

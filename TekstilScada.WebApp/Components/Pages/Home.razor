@@ -1,6 +1,7 @@
 ﻿@page "/proses-izleme"
 
 @using TekstilScada.Models
+@using TekstilScada.Core.Models
 @using TekstilScada.WebApp.Services
 @using TekstilScada.WebApp.Components.Shared
 @using TekstilScada.Core.Localization
@@ -8,34 +9,42 @@
 @using System.Threading
 @using System.Globalization
 @using Microsoft.AspNetCore.SignalR.Client
-@* DOĞRU SERVİSLERİ KULLANIYORUZ *@
+
 @inject ScadaDataService ScadaService
 @inject NavigationManager NavManager
 @inject IStringLocalizer<SharedResource> Loc
 @implements IDisposable
 
-@* 1. Detay Modalı *@
+@* Detay Modalı *@
 <MachineQuickDetailModal @bind-Show="showDetailModal"
                          MachineId="selectedMachineId"
                          OnClose="HandleModalClose" />
 
 <PageTitle>@Loc["GenelBakis"]</PageTitle>
 
-<h1>@Loc["GenelMakineDurumu"]</h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>@Loc["GenelMakineDurumu"]</h1>
 
-@if (AllMachines.Count == 0)
+    @* Manuel Yenileme Butonu (Acil durumlar için) *@
+    <button class="btn btn-outline-primary btn-sm" @onclick="ForceRefresh">
+        <i class="bi bi-arrow-clockwise"></i> @Loc["Yenile"]
+    </button>
+</div>
+
+@if (isLoading)
 {
-    <div class="d-flex justify-center align-center" style="height:200px; flex-direction:column;">
-        @if (ScadaService.HubConnection?.State == Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Connected)
-        {
-            <MudProgressCircular Indeterminate="true" Color="MudBlazor.Color.Primary" />
-            <p class="ml-3 mt-2">@Loc["VerilerYukleniyor"]</p>
-        }
-        else
-        {
-            <MudIcon Icon="@Icons.Material.Filled.WifiOff" Size="Size.Large" Color="Color.Error" />
-            <p class="ml-3 mt-2">Bağlantı bekleniyor...</p>
-        }
+    <div class="d-flex justify-content-center align-items-center" style="height:300px; flex-direction:column;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 text-muted">@Loc["VerilerYukleniyor"]</p>
+    </div>
+}
+else if (AllMachines.Count == 0)
+{
+    <div class="alert alert-warning text-center">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        @Loc["MakineBulunamadi"]
     </div>
 }
 else
@@ -54,37 +63,67 @@ else
 @code {
     private bool showDetailModal = false;
     private int selectedMachineId = 0;
+    private bool isLoading = true;
 
     // Veri Listesi
     private List<FullMachineStatus> AllMachines = new();
-    private CultureInfo _userCulture;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            _userCulture = CultureInfo.CurrentUICulture;
-
-            // 1. DOĞRU SERVİSE ABONE OL (StateService DEĞİL, ScadaService)
+            // 1. Event'e Abone Ol
             ScadaService.OnDataUpdated += HandleDataUpdate;
 
-            // 2. İlk Verileri Çek
-            // Eğer veri boşsa ve bağlantı varsa, veri gelmesini bekle veya manuel tetikle
-            if (ScadaService.MachineData.IsEmpty && ScadaService.HubConnection?.State == Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Connected)
-            {
-                // Gerekirse: await ScadaService.GetMachinesAsync(0);
-            }
-
-            HandleDataUpdate();
+            // 2. İlk Verileri Hemen Çek (Beklemeden)
+            await LoadInitialData();
         }
         catch (Exception ex)
         {
-            // Hata loglama
-            Console.WriteLine($"Prosesİzleme Hatası: {ex.Message}");
+            Console.WriteLine($"Prosesİzleme Init Hatası: {ex.Message}");
         }
     }
 
-    // ScadaService tetiklediğinde çalışır
+    private async Task LoadInitialData()
+    {
+        isLoading = true;
+        StateHasChanged(); // Yükleniyor spinner'ını göster
+
+        try
+        {
+            // A. Önce Makine Tanımlarını (İsim, Tip vb.) al
+            // Bu, 'MachineDetailsCache'i doldurur.
+            await ScadaService.GetMachinesAsync();
+
+            // B. Sonra Canlı Verileri (Snapshot) al
+            // Bu metodu Hub'a eklemiştik, veritabanından değil Gateway cache'inden hızlıca gelir.
+            // Eğer fabrika ID 0 ise (seçili değilse) işlem yapma.
+            var liveStatuses = await ScadaService.GetLiveMachineStatusByFactoryId(0); // 0 = Current Selected Factory
+
+            if (liveStatuses != null && liveStatuses.Any())
+            {
+                // Cache'i güncelle
+                foreach (var status in liveStatuses)
+                {
+                    ScadaService.MachineData[status.MachineId] = status;
+                }
+            }
+
+            // Listeyi güncelle
+            UpdateMachineData();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Veri Yükleme Hatası: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // ScadaService tetiklediğinde çalışır (Canlı Veri Geldiğinde)
     private void HandleDataUpdate()
     {
         InvokeAsync(() =>
@@ -96,25 +135,43 @@ else
 
     private void UpdateMachineData()
     {
-        // --- DEĞİŞİKLİK: ScadaService.MachineData KULLANILIYOR ---
-        // Bu liste sadece giriş yapılan (seçilen) fabrikanın verilerini içerir.
-        // Fabrika A kullanıcısı Fabrika B verisini ASLA göremez.
+        // Service üzerindeki Dictionary'den listeye çevir
+        if (ScadaService.MachineData.Any())
+        {
+            AllMachines = ScadaService.MachineData.Values.ToList();
+        }
+        else
+        {
+            // Eğer canlı veri henüz yoksa ama makine tanımları varsa,
+            // boş kartlar oluştur ki ekranda "Makine Yok" yazmasın.
+            if (ScadaService.MachineDetailsCache.Any())
+            {
+                AllMachines = ScadaService.MachineDetailsCache.Values.Select(m => new FullMachineStatus
+                {
+                    MachineId = m.Id,
+                    MachineName = m.MachineName,
+                    MakineTipi = m.MachineSubType,
+                    // Diğer değerler varsayılan (0 veya boş)
+                }).ToList();
+            }
+        }
+    }
 
-        AllMachines = ScadaService.MachineData.Values.ToList();
+    private async Task ForceRefresh()
+    {
+        await LoadInitialData();
     }
 
     private void HandleInfoClickAction(int machineId)
     {
         selectedMachineId = machineId;
         showDetailModal = true;
-        StateHasChanged();
     }
 
-    private Task HandleModalClose()
+    private void HandleModalClose()
     {
         showDetailModal = false;
         selectedMachineId = 0;
-        return Task.CompletedTask;
     }
 
     private void NavigateToDetail(int machineId)
@@ -124,7 +181,6 @@ else
 
     public void Dispose()
     {
-        // Sayfadan çıkıldığında aboneliği iptal et
         if (ScadaService != null)
         {
             ScadaService.OnDataUpdated -= HandleDataUpdate;

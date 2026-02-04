@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.ResponseCompression; // YENÝ: Sýkýþtýrma için gerekli
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -14,10 +15,21 @@ if (!string.IsNullOrEmpty(connectionString))
 }
 builder.Services.AddScoped<TekstilScada.WebAPI.Repositories.CentralFactoryRepository>();
 builder.Services.AddScoped<TekstilScada.WebAPI.Repositories.CentralAuthRepository>();
+
 // --- 2. TEMEL SERVÝSLER ---
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// ============================================================
+// PERFORMANS: Sýkýþtýrma Servisini Ekle (YENÝ)
+// ============================================================
+builder.Services.AddResponseCompression(opts =>
+{
+    // "application/octet-stream" MIME tipi SignalR binary verileri için gereklidir.
+    opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        new[] { "application/octet-stream" });
+});
 
 // ============================================================
 // DÜZELTME BURADA: SignalR Limit Ayarlarý
@@ -93,6 +105,11 @@ app.UseWebSockets();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// ============================================================
+// PERFORMANS: Sýkýþtýrma Middleware'ini Kullan (YENÝ)
+// ============================================================
+app.UseResponseCompression();
 
 app.MapControllers();
 app.MapHub<ScadaHub>("/scadaHub");

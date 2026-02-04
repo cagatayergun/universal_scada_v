@@ -182,8 +182,9 @@ namespace TekstilScada.UI.Views
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            Controls.Add(groupBox1);
-            Controls.Add(dgvAlarms);
+            // ✅ DÜZELTİLMİŞ SIRA (Bunu uygulayın)
+            Controls.Add(dgvAlarms); // Önce tabloyu ekle (Alta gitsin)
+            Controls.Add(groupBox1); // Sonra paneli ekle (Üste gelsin ve yerini kapasın)
             Margin = new Padding(3, 2, 3, 2);
             Name = "AlarmSettings_Control";
             Size = new Size(700, 450);

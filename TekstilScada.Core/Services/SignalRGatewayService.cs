@@ -11,8 +11,10 @@ using TekstilScada.Core.Core; // ExcelExportHelper için
 using TekstilScada.Core.Models;
 using TekstilScada.Models;
 using TekstilScada.Repositories;
-using System.Text.Encodings.Web;
+using TekstilScada.Services; // Namespace düzeltmesi
 using static TekstilScada.Core.Core.ExcelExportHelper;
+
+// --- DTO SINIFLARI (Kaybolmaması için aynen korundu) ---
 public class HourlyConsumptionData
 {
     public double Saat { get; set; }
@@ -34,13 +36,9 @@ public class SaveLayoutRequest
     public string LayoutJson { get; set; }
 }
 public class StepTypeDto
-
 {
-
     public int Id { get; set; }
-
     public string Name { get; set; }
-
 }
 public class TrendDataPoint
 {
@@ -87,17 +85,11 @@ public class GeneralConsumptionExportDto
     public string? ConsumptionType { get; set; }
 }
 public class ActionLogFilters
-
 {
-
     public DateTime StartTime { get; set; }
-
     public DateTime EndTime { get; set; }
-
     public string? Username { get; set; }
-
     public string? Details { get; set; }
-
 }
 
 namespace TekstilScada.Services
@@ -122,10 +114,15 @@ namespace TekstilScada.Services
         private readonly PlcPollingService _plcService;
         private readonly FtpTransferService _ftpService;
         private string _myApiKey;
+
         // --- EVENT & STATE ---
         public event Action<int, string, string> OnRemoteCommandReceived;
         private DateTime _lastSentTime = DateTime.MinValue;
         private readonly int _sendIntervalMs = 500; // Canlı yayın için hız limiti
+
+        // --- DISPATCHER (YENİ: Command Pattern için Sözlük) ---
+        // Metot isminden çalıştırılacak fonksiyona haritalama yapar.
+        private readonly Dictionary<string, Func<object[], Task<object>>> _requestHandlers;
 
         // JSON ayarlarını statik yapıp performansı artırıyoruz
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
@@ -166,6 +163,11 @@ namespace TekstilScada.Services
             _plcService = plcService;
             _ftpService = ftpService;
             _myApiKey = apiKey;
+
+            // --- HANDLER KAYITLARI (Switch Case Yerine) ---
+            _requestHandlers = new Dictionary<string, Func<object[], Task<object>>>(StringComparer.OrdinalIgnoreCase);
+            RegisterHandlers(); // Tüm metotları sözlüğe ekle
+
             // SignalR Bağlantı Ayarları
             _connection = new HubConnectionBuilder()
                 .WithUrl(hubUrl, options =>
@@ -173,7 +175,7 @@ namespace TekstilScada.Services
                     if (!string.IsNullOrEmpty(jwtToken))
                         options.AccessTokenProvider = () => Task.FromResult(jwtToken);
 
-                    // SSL Bypass (Sadece Geliştirme/Local Test İçin)
+                    // SSL Bypass
                     options.HttpMessageHandlerFactory = (handler) =>
                     {
                         if (handler is System.Net.Http.HttpClientHandler clientHandler)
@@ -184,103 +186,39 @@ namespace TekstilScada.Services
                         return handler;
                     };
 
-                    // Büyük veri transfer limitlerini artırıyoruz (Gateway tarafı)
+                    // Büyük veri transfer limitleri
                     options.ApplicationMaxBufferSize = 100 * 1024 * 1024;
                     options.TransportMaxBufferSize = 100 * 1024 * 1024;
                 })
-                .WithAutomaticReconnect() // Bağlantı koparsa otomatik dene
+                .WithAutomaticReconnect()
                 .Build();
 
-            RegisterHandlers();
+            RegisterSignalRListeners();
         }
 
-        private string GetLocalIpAddress()
+        private void RegisterSignalRListeners()
         {
-            try
-            {
-                var host = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName());
-                foreach (var ip in host.AddressList)
-                {
-                    // Sadece IPv4 adreslerini al (192.168.x.x gibi)
-                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                    {
-                        return ip.ToString();
-                    }
-                }
-            }
-            catch { }
-            return "localhost"; // Bulamazsa localhost dönsün
-        }
-
-        // 1. StartAsync Metodunu Güncelleyin
-        public async Task StartAsync()
-        {
-            // İlk açılışta bağlantıyı başlatmayı dener
-            // Await kullanmıyoruz ki (Task.Run), UI kilitlenmesin ve arka planda denemeye devam etsin
-            _ = ConnectWithRetryAsync();
-            await Task.CompletedTask;
-        }
-
-        // 2. YENİ METOT: Sonsuz Yeniden Bağlanma Döngüsü
-        private async Task ConnectWithRetryAsync()
-        {
-            // Eğer zaten bağlıysak işlem yapma
-            if (_connection.State == HubConnectionState.Connected) return;
-
-            while (true)
-            {
-                try
-                {
-                    // //("[Gateway] Bağlantı deneniyor...");
-
-                    await _connection.StartAsync();
-                    // ARTIK KENDİMİZİ TANITIYORUZ: "Ben bu anahtara sahip fabrikayım"
-                    string localIp = GetLocalIpAddress();
-                    await _connection.InvokeAsync("RegisterGateway", _myApiKey, localIp + ":5901");
-
-                    _plcService.OnMachineDataRefreshed -= OnLocalDataRefreshed;
-                    _plcService.OnMachineDataRefreshed += OnLocalDataRefreshed;
-
-                    // Döngüden çık
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    // //($"[Gateway] ❌ Bağlantı Hatası: {ex.Message}");
-                    //  //("[Gateway] 5 saniye sonra tekrar denenecek...");
-
-                    // API kapalıysa 5 saniye bekle ve tekrar dene (Sonsuza kadar)
-                    await Task.Delay(5000);
-                }
-            }
-        }
-        public async Task SendScreenImageAsync(int machineId, string base64Image)
-        {
-            // _hubConnection değişkeni sınıfınızda tanımlı olmalı. 
-            // Eğer adı farklıysa (örn: connection) lütfen düzeltin.
-            if (_connection != null && _connection.State == Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Connected)
-            {
-                await _connection.InvokeAsync("SendScreenImage", machineId, base64Image);
-            }
-        }
-        // 3. RegisterHandlers Metodunu Güncelleyin
-        private void RegisterHandlers()
-        {
-            // --- GELEN İSTEKLERİ İŞLEME (REQUEST HANDLER) ---
+            // --- GELEN İSTEKLERİ İŞLEME ---
             _connection.On<string, string, object[]>("HandleRequest", async (reqId, method, args) =>
             {
-                //($"[Gateway] SİNYAL ALINDI! ID: {reqId}, Metot: '{method}'");
                 object result = null;
                 string errorMessage = null;
 
                 try
                 {
-                    result = await ProcessRequest(method, args);
+                    // Sözlükten metodu bul ve çalıştır (Performanslı Yöntem)
+                    if (_requestHandlers.TryGetValue(method, out var handler))
+                    {
+                        result = await handler(args);
+                    }
+                    else
+                    {
+                        errorMessage = $"Gateway: Bilinmeyen Metot -> {method}";
+                    }
                 }
                 catch (Exception ex)
                 {
                     errorMessage = ex.Message;
-                    //($"[Gateway] Hata ({method}): {ex.Message}");
                 }
 
                 await SendLargeDataAsync(reqId, result, errorMessage);
@@ -298,45 +236,320 @@ namespace TekstilScada.Services
             // --- KOMUT ALMA ---
             _connection.On<int, string, string>("ReceiveCommand", (machineId, command, parameters) =>
             {
-                //($"[Gateway] Komut Geldi -> Makine:{machineId}, Komut:{command}");
                 OnRemoteCommandReceived?.Invoke(machineId, command, parameters);
             });
 
-            // --- BAĞLANTI KOPMA OLAYI (KRİTİK) ---
-            _connection.Closed += async (error) =>
-            {
-                //($"[Gateway] ⚠️ Bağlantı Koptu! Hata: {error?.Message}");
-
-                // AutomaticReconnect pes ettiğinde burası tetiklenir.
-                // Manuel döngüyü başlatarak tekrar bağlanana kadar deneriz.
-                await ConnectWithRetryAsync();
-            };
-
-            // --- OTOMATİK YENİDEN BAĞLANMA BAŞARISI ---
+            // --- BAĞLANTI YÖNETİMİ ---
+            _connection.Closed += async (error) => await ConnectWithRetryAsync();
             _connection.Reconnected += async (connectionId) =>
             {
-                // İnternet anlık gidip gelirse (AutomaticReconnect başarılı olursa)
-                //("[Gateway] ♻️ Tekrar Bağlandı (Auto-Reconnect). Yeniden Register olunuyor...");
-
                 try
                 {
                     string localIp = GetLocalIpAddress();
                     await _connection.InvokeAsync("RegisterGateway", _myApiKey, localIp + ":5901");
                 }
-                catch (Exception ex)
-                {
-                    //($"[Gateway] Reconnected Register Hatası: {ex.Message}");
-                    // Eğer burada hata alırsak muhtemelen bağlantı tekrar kopmuştur, Closed event'i devreye girer.
-                }
+                catch { }
             };
         }
 
-        // --- KRİTİK BÖLÜM: BÜYÜK VERİ GÖNDERİMİ (CHUNKING) ---
+        // --- HANDLER KAYIT MERKEZİ (BURASI PROJENİN KALP ATIŞIDIR) ---
+        private void RegisterHandlers()
+        {
+            // Yardımcı: DB işlemlerini Thread Pool'a atarak SignalR'ın bloklanmasını önler
+            Task<T> RunDb<T>(Func<T> action) => Task.Run(action);
+
+            // -- MAKİNE İŞLEMLERİ --
+            _requestHandlers["GetAllMachineStatuses"] = async _ => await RunDb(() => _plcService.MachineDataCache.Values.ToList());
+            _requestHandlers["GetAllMachines"] = async _ => await RunDb(() => _machineRepo.GetAllMachines());
+            _requestHandlers["GetMachineStatus"] = async args =>
+            {
+                int mId = GetArg<int>(args, 0);
+                return await RunDb(() => {
+                    var m = _machineRepo.GetAllMachines().Find(x => x.Id == mId);
+                    return m != null ? new FullMachineStatus { MachineId = m.Id, MachineName = m.MachineName, MakineTipi = m.MachineSubType } : null;
+                });
+            };
+            _requestHandlers["AddMachine"] = async args => await RunDb(() => { _machineRepo.AddMachine(GetArg<Machine>(args, 0)); return true; });
+            _requestHandlers["UpdateMachine"] = async args => await RunDb(() => { _machineRepo.UpdateMachine(GetArg<Machine>(args, 0)); return true; });
+            _requestHandlers["DeleteMachine"] = async args => await RunDb(() => { _machineRepo.DeleteMachine(GetArg<int>(args, 0)); return true; });
+
+            // -- MALİYET --
+            _requestHandlers["GetCosts"] = async _ => await RunDb(() => _costRepo.GetAllParameters());
+            _requestHandlers["UpdateParameters"] = async args => await RunDb(() => { _costRepo.UpdateParameters(GetArg<List<CostParameter>>(args, 0)); return true; });
+
+            // -- KULLANICI --
+            _requestHandlers["GetAllUsers"] = async _ => await RunDb(() => _userRepo.GetAllUsers());
+            _requestHandlers["GetAllRoles"] = async _ => await RunDb(() => _userRepo.GetAllRoles());
+            _requestHandlers["AddUser"] = async args => await RunDb(() =>
+            {
+                var u = GetArg<UserViewModel>(args, 0);
+                var userNew = new User { Username = u.Username, FullName = u.FullName, IsActive = u.IsActive };
+                _userRepo.AddUser(userNew, u.Password, u.SelectedRoleIds);
+                return true;
+            });
+            _requestHandlers["UpdateUser"] = async args => await RunDb(() =>
+            {
+                var u = GetArg<UserViewModel>(args, 0);
+                var userUpd = new User { Id = u.Id, Username = u.Username, FullName = u.FullName, IsActive = u.IsActive };
+                _userRepo.UpdateUser(userUpd, u.SelectedRoleIds, u.Password);
+                return true;
+            });
+            _requestHandlers["DeleteUser"] = async args => await RunDb(() => { _userRepo.DeleteUser(GetArg<int>(args, 0)); return true; });
+
+            // -- REÇETE --
+            _requestHandlers["GetAllRecipes"] = async _ => await RunDb(() => _recipeRepo.GetAllRecipes());
+            _requestHandlers["GetRecipeById"] = async args => await RunDb(() => _recipeRepo.GetRecipeById(GetArg<int>(args, 0)));
+            _requestHandlers["SaveRecipe"] = async args => await RunDb(() => { _recipeRepo.SaveRecipe(GetArg<ScadaRecipe>(args, 0)); return true; });
+            _requestHandlers["DeleteRecipe"] = async args => await RunDb(() => { _recipeRepo.DeleteRecipe(GetArg<int>(args, 0)); return true; });
+            _requestHandlers["GetRecipeUsageHistory"] = async args => await RunDb(() => _recipeRepo.GetRecipeUsageHistory(GetArg<int>(args, 0)));
+
+            // -- DESIGNER & LAYOUT --
+            _requestHandlers["GetMachineSubTypes"] = async _ => await RunDb(() => _configRepo.GetMachineSubTypes());
+            _requestHandlers["GetStepTypes"] = async _ => await RunDb(() =>
+            {
+                var dt = _configRepo.GetStepTypes();
+                var list = new List<StepTypeDtoDesign>();
+                foreach (System.Data.DataRow r in dt.Rows)
+                    list.Add(new StepTypeDtoDesign { Id = Convert.ToInt32(r["Id"]), StepName = r["StepName"].ToString() });
+                return list;
+            });
+            _requestHandlers["GetLayoutJson"] = async args => await RunDb(() =>
+            {
+                string rawJson = _configRepo.GetLayoutJson(GetArg<string>(args, 0), GetArg<int>(args, 1));
+                if (string.IsNullOrEmpty(rawJson)) return new List<ControlMetadata>();
+                return JsonSerializer.Deserialize<List<ControlMetadata>>(rawJson, _jsonOptions);
+            });
+            _requestHandlers["SaveLayout"] = async args => await RunDb(() =>
+            {
+                var layoutList = GetArg<List<ControlMetadata>>(args, 2);
+                var jsonLayout = JsonSerializer.Serialize(layoutList, _jsonOptions);
+                string subType = GetArg<string>(args, 0);
+                int stepId = GetArg<int>(args, 1);
+                _configRepo.SaveLayout($"{subType} - StepID:{stepId}", subType, stepId, jsonLayout);
+                return true;
+            });
+
+            // -- PLC OPERATIONS --
+            _requestHandlers["SendRecipeToPlc"] = async args =>
+            {
+                int rId = GetArg<int>(args, 0);
+                int mId = GetArg<int>(args, 1);
+                // PLC yazma işlemleri zaten async olduğu için RunDb içinde await ediyoruz
+                return await RunDb(async () =>
+                {
+                    var recipe = _recipeRepo.GetRecipeById(rId);
+                    if (recipe == null) return false;
+                    if (_plcService.GetPlcManagers().TryGetValue(mId, out var mgr))
+                    {
+                        var res = await mgr.WriteRecipeToPlcAsync(recipe);
+                        return res.IsSuccess;
+                    }
+                    return false;
+                });
+            };
+            _requestHandlers["ReadRecipeFromPlc"] = async args =>
+            {
+                int mId = GetArg<int>(args, 0);
+                // PLC okuma async
+                if (_plcService.GetPlcManagers().TryGetValue(mId, out var mgr))
+                {
+                    var res = await mgr.ReadRecipeFromPlcAsync();
+                    if (res.IsSuccess && res.Content != null)
+                    {
+                        var newR = new ScadaRecipe { RecipeName = $"PLC_{DateTime.Now:HHmm}", Steps = new List<ScadaRecipeStep>() };
+                        int stepSize = 25;
+                        int stepCount = res.Content.Length / stepSize;
+                        for (int i = 0; i < stepCount; i++)
+                        {
+                            var step = new ScadaRecipeStep { StepNumber = i + 1 };
+                            Array.Copy(res.Content, i * stepSize, step.StepDataWords, 0, stepSize);
+                            newR.Steps.Add(step);
+                        }
+                        return newR;
+                    }
+                }
+                return null;
+            };
+
+            // -- FTP & HMI --
+            _requestHandlers["GetHmiRecipeNames"] = async args =>
+            {
+                int mId = GetArg<int>(args, 0);
+                if (_plcService.GetPlcManagers().TryGetValue(mId, out var mgr))
+                {
+                    var res = await mgr.ReadRecipeNamesFromPlcAsync();
+                    return res.Content ?? new Dictionary<int, string>();
+                }
+                return new Dictionary<int, string>();
+            };
+            _requestHandlers["GetHmiRecipePreview"] = async args =>
+            {
+                int mId = GetArg<int>(args, 0);
+                string fName = GetArg<string>(args, 1);
+                return await RunDb(async () => {
+                    var mHmi = _machineRepo.GetAllMachines().Find(x => x.Id == mId);
+                    if (mHmi != null)
+                    {
+                        var ftp = new TekstilScada.Services.FtpService(mHmi.IpAddress, mHmi.FtpUsername, mHmi.FtpPassword);
+                        string csv = await ftp.DownloadFileAsync("/" + fName);
+                        return RecipeCsvConverter.ToRecipe(csv, fName);
+                    }
+                    return null;
+                });
+            };
+            _requestHandlers["QueueSequentiallyNamedSendJobs"] = async args => await RunDb(() =>
+            {
+                var qRecipeIds = GetArg<List<int>>(args, 0);
+                var qMachineIds = GetArg<List<int>>(args, 1);
+                int startNum = GetArg<int>(args, 2);
+                var recipesToSend = new List<ScadaRecipe>();
+                foreach (var id in qRecipeIds) { var r = _recipeRepo.GetRecipeById(id); if (r != null) recipesToSend.Add(r); }
+                var allMachines = _machineRepo.GetAllMachines();
+                var machinesToSend = allMachines.FindAll(m => qMachineIds.Contains(m.Id));
+                _ftpService.QueueSequentiallyNamedSendJobs(recipesToSend, machinesToSend, startNum);
+                return true;
+            });
+            _requestHandlers["QueueReceiveJobs"] = async args => await RunDb(() =>
+            {
+                var qFileNames = GetArg<List<string>>(args, 0);
+                int qRecMachineId = GetArg<int>(args, 1);
+                var recMachine = _machineRepo.GetAllMachines().Find(m => m.Id == qRecMachineId);
+                if (recMachine != null) _ftpService.QueueReceiveJobs(qFileNames, recMachine);
+                return true;
+            });
+            _requestHandlers["GetActiveFtpJobs"] = async _ => await Task.FromResult(_ftpService.Jobs.ToList());
+
+            // -- RAPORLAR VE DASHBOARD --
+            _requestHandlers["GetProductionReport"] = async args => await RunDb(() => _productionRepo.GetProductionReport(GetArg<ReportFilters>(args, 0) ?? new ReportFilters()));
+            _requestHandlers["GetAlarmReport"] = async args => await RunDb(() =>
+            {
+                var rf = GetArg<ReportFilters>(args, 0);
+                return _alarmRepo.GetAlarmReport(rf.StartTime.Date, rf.EndTime.Date.AddDays(1), rf.MachineId);
+            });
+            _requestHandlers["GetTrendData"] = async args => await RunDb(() =>
+            {
+                var rf = GetArg<ReportFilters>(args, 0);
+                if (rf.MachineId == null) return new List<ProcessLogRepository.ProcessDataPoint>();
+                return _processLogRepo.GetLogsForDateRange(rf.MachineId.Value, rf.StartTime.Date, rf.EndTime.Date.AddDays(1));
+            });
+            _requestHandlers["GetManualConsumptionReport"] = async args => await RunDb(() =>
+            {
+                var rf = GetArg<ReportFilters>(args, 0);
+                if (rf.MachineId == null) return null;
+                var s = DateTime.SpecifyKind(rf.StartTime.Date, DateTimeKind.Unspecified);
+                var e = DateTime.SpecifyKind(rf.EndTime.Date.AddDays(1).AddTicks(-1), DateTimeKind.Unspecified);
+                var m = _machineRepo.GetAllMachines().Find(x => x.Id == rf.MachineId);
+                return _processLogRepo.GetManualConsumptionSummary(rf.MachineId.Value, m?.MachineName ?? "Bilinmeyen", s, e);
+            });
+            _requestHandlers["GetConsumptionTotalsForPeriod"] = async args => await RunDb(() =>
+            {
+                var rf = GetArg<ReportFilters>(args, 0);
+                return _productionRepo.GetConsumptionTotalsForPeriod(rf.StartTime.Date, rf.EndTime.Date.AddDays(1).AddTicks(-1));
+            });
+            _requestHandlers["GetGeneralDetailedConsumptionReport"] = async args => await RunDb(() =>
+            {
+                var rf = GetArg<GeneralDetailedConsumptionFilters>(args, 0);
+                if (rf.MachineIds == null || rf.MachineIds.Count == 0) return new List<ProductionReportItem>();
+                List<ProductionReportItem> combined = new List<ProductionReportItem>();
+                foreach (var mid in rf.MachineIds)
+                {
+                    var f = new ReportFilters { StartTime = rf.StartTime, EndTime = rf.EndTime, MachineId = mid };
+                    var r = _productionRepo.GetProductionReport(f);
+                    combined.AddRange(r.FindAll(item => item.EndTime != DateTime.MinValue));
+                }
+                return combined;
+            });
+            _requestHandlers["GetActionLogs"] = async args => await RunDb(() =>
+            {
+                var rf = GetArg<ActionLogFilters>(args, 0);
+                return _userRepo.GetActionLogs(rf.StartTime, rf.EndTime, rf.Username, rf.Details);
+            });
+            _requestHandlers["GetProductionDetail"] = async args => await RunDb(() => GetProductionDetailInternal(GetArg<int>(args, 0), GetArg<string>(args, 1)));
+
+            // -- DASHBOARD METOTLARI --
+            _requestHandlers["GetOeeReport"] = async args => await RunDb(() =>
+            {
+                var rf = GetArg<ReportFilters>(args, 0);
+                return _dashboardRepo.GetOeeReport(rf.StartTime, rf.EndTime, rf.MachineId);
+            });
+            _requestHandlers["GetHourlyFactoryConsumption"] = async _ => await RunDb(() => new List<HourlyConsumptionData>()); // TODO: Repoya bağlanacak
+            _requestHandlers["GetHourlyAverageOee"] = async _ => await RunDb(() => new List<HourlyOeeData>()); // TODO: Repoya bağlanacak
+            _requestHandlers["GetTopAlarmsByFrequency"] = async _ => await RunDb(() => _alarmRepo.GetTopAlarmsByFrequency(DateTime.Now.AddDays(-1), DateTime.Now));
+
+            // -- EXCEL EXPORT (Ağır İşlemler) --
+            _requestHandlers["ExportProductionReport"] = async args => await RunDb(() => ExcelExportHelper.ExportProductionReportToExcel(GetArg<List<ProductionReportItem>>(args, 0)));
+            _requestHandlers["ExportAlarmReport"] = async args => await RunDb(() => ExcelExportHelper.ExportAlarmReportToExcel(GetArg<List<AlarmReportItem>>(args, 0)));
+            _requestHandlers["ExportOeeReport"] = async args => await RunDb(() => ExcelExportHelper.ExportOeeReportToExcel(GetArg<List<OeeData>>(args, 0)));
+            _requestHandlers["ExportManualConsumptionReport"] = async args => await RunDb(() => ExcelExportHelper.ExportManualConsumptionReportToExcel(GetArg<ManualConsumptionSummary>(args, 0)));
+            _requestHandlers["ExportActionLogsReport"] = async args => await RunDb(() => ExcelExportHelper.ExportActionLogsReportToExcel(GetArg<List<ActionLogEntry>>(args, 0)));
+            _requestHandlers["ExportGeneralDetailedConsumptionReport"] = async args => await RunDb(() =>
+            {
+                var d = GetArg<GeneralConsumptionExportDto>(args, 0);
+                return d != null ? ExcelExportHelper.ExportGeneralDetailedConsumptionReportToExcel(d.Items, d.ConsumptionType) : Array.Empty<byte>();
+            });
+            _requestHandlers["ExportProductionDetailFile"] = async args => await RunDb(() => ExportProductionDetailInternal(GetArg<int>(args, 0), GetArg<string>(args, 1)));
+
+            // -- ALARM TANIMLARI --
+            _requestHandlers["GetAllAlarmDefinitions"] = async _ => await RunDb(() => _alarmRepo.GetAllAlarmDefinitions());
+            _requestHandlers["AddAlarmDefinition"] = async args => await RunDb(() => { _alarmRepo.AddAlarmDefinition(GetArg<AlarmDefinition>(args, 0)); return true; });
+            _requestHandlers["UpdateAlarmDefinition"] = async args => await RunDb(() => { _alarmRepo.UpdateAlarmDefinition(GetArg<AlarmDefinition>(args, 0)); return true; });
+            _requestHandlers["DeleteAlarmDefinition"] = async args => await RunDb(() => { _alarmRepo.DeleteAlarmDefinition(GetArg<int>(args, 0)); return true; });
+
+            // -- PLC OPERATORLERİ --
+            _requestHandlers["GetPlcOperators"] = async _ => await RunDb(() => _plcOpRepo.GetAll());
+            _requestHandlers["SaveOrUpdateOperator"] = async args => await RunDb(() => { _plcOpRepo.SaveOrUpdate(GetArg<PlcOperator>(args, 0)); return true; });
+            _requestHandlers["AddDefaultOperator"] = async _ => await RunDb(() => { _plcOpRepo.AddDefaultOperator(); return true; });
+            _requestHandlers["DeleteOperator"] = async args => await RunDb(() => { _plcOpRepo.Delete(GetArg<int>(args, 0)); return true; });
+        }
+
+        private string GetLocalIpAddress()
+        {
+            try
+            {
+                var host = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName());
+                foreach (var ip in host.AddressList)
+                {
+                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                        return ip.ToString();
+                }
+            }
+            catch { }
+            return "localhost";
+        }
+
+        public async Task StartAsync()
+        {
+            _ = ConnectWithRetryAsync();
+            await Task.CompletedTask;
+        }
+
+        private async Task ConnectWithRetryAsync()
+        {
+            if (_connection.State == HubConnectionState.Connected) return;
+
+            while (true)
+            {
+                try
+                {
+                    await _connection.StartAsync();
+                    string localIp = GetLocalIpAddress();
+                    await _connection.InvokeAsync("RegisterGateway", _myApiKey, localIp + ":5901");
+
+                    _plcService.OnMachineDataRefreshed -= OnLocalDataRefreshed;
+                    _plcService.OnMachineDataRefreshed += OnLocalDataRefreshed;
+                    return;
+                }
+                catch (Exception)
+                {
+                    await Task.Delay(5000);
+                }
+            }
+        }
+
         private async Task SendLargeDataAsync(string reqId, object result, string errorMessage)
         {
             try
             {
-                // Hata varsa direkt gönder
                 if (!string.IsNullOrEmpty(errorMessage) || result == null)
                 {
                     await _connection.InvokeAsync("SendResponseToHub", reqId, result, errorMessage);
@@ -346,67 +559,39 @@ namespace TekstilScada.Services
                 string json;
                 try
                 {
-                    // 1. Serileştirmeyi Dene
                     json = JsonSerializer.Serialize(result, _jsonOptions);
-
-                    // --- BURAYA DÜŞÜYORSA SORUN ÇÖZÜLMÜŞTÜR ---
-                    //($"[Gateway] ✅ SERİLEŞTİRME BAŞARILI! (ID: {reqId})");
-                    //($"[Gateway] Veri Boyutu: {json.Length} bytes");
-                    // -------------------------------------------
                 }
                 catch (Exception ex)
                 {
-                    // 2. Hata Varsa Yakala
-                    //($"[Gateway] ❌ JSON HATASI: {ex.Message}");
-                    if (ex.InnerException != null) //($"[Gateway] ALT HATA: {ex.InnerException.Message}");
-
-                        await _connection.InvokeAsync("SendResponseToHub", reqId, null, $"Serialization Error: {ex.Message}");
+                    await _connection.InvokeAsync("SendResponseToHub", reqId, null, $"Serialization Error: {ex.Message}");
                     return;
                 }
 
-                // 3. Parçalayıp Gönder (Chunking)
                 const int chunkSize = 256 * 1024;
-
                 if (json.Length <= chunkSize)
                 {
                     await _connection.InvokeAsync("SendResponseToHub", reqId, json, null);
-                    //($"[Gateway] Tek parça gönderildi.");
                 }
                 else
                 {
                     int totalLength = json.Length;
                     int offset = 0;
-                    int partCount = 0;
-
                     while (offset < totalLength)
                     {
                         int remaining = totalLength - offset;
                         int currentChunkSize = Math.Min(remaining, chunkSize);
                         string chunk = json.Substring(offset, currentChunkSize);
                         offset += currentChunkSize;
-                        bool isLast = (offset >= totalLength);
-
-                        await _connection.InvokeAsync("ReceiveResponseChunk", reqId, chunk, isLast);
-                        partCount++;
-
-                        // Çok hızlı gönderip ağı tıkamamak için mini bekleme
-                       // await Task.Delay(2);
+                        await _connection.InvokeAsync("ReceiveResponseChunk", reqId, chunk, (offset >= totalLength));
                     }
-                    //($"[Gateway] {partCount} parça halinde gönderildi.");
                 }
             }
-            catch (Exception ex)
-            {
-                //($"[Gateway] ❌ GÖNDERİM HATASI (Ağ/Hub): {ex.Message}");
-            }
+            catch { }
         }
 
-        // --- CANLI YAYIN (BROADCAST) ---
         private async void OnLocalDataRefreshed(int machineId, FullMachineStatus status)
         {
             if (_connection.State != HubConnectionState.Connected || status == null) return;
-
-            // Çok sık veri gönderip ağı boğmamak için zaman kontrolü (Throttling)
             if ((DateTime.Now - _lastSentTime).TotalMilliseconds < _sendIntervalMs) return;
 
             try
@@ -414,307 +599,18 @@ namespace TekstilScada.Services
                 await _connection.InvokeAsync("BroadcastFromLocal", status);
                 _lastSentTime = DateTime.Now;
             }
-            catch
-            {
-                // Canlı veri hataları akışı kesmemeli, sessizce yutulabilir
-            }
+            catch { }
         }
 
-        // --- MERKEZİ İSTEK YÖNETİCİSİ ---
-        private async Task<object> ProcessRequest(string method, object[] args)
-        {
-            // NOT: Repository metotlarınızın çoğu senkron (List dönüyor). 
-            // Eğer Repository'ler async destekliyse (örn: ToListAsync), bunları await ile çağırmak daha iyidir.
-            // Ancak mevcut yapıyı bozmamak için Task.Run içinde veya doğrudan çağırıyoruz.
-
-            switch (method)
-            {
-                case "GetAllMachineStatuses":
-                    var allMachines1 = _plcService.MachineDataCache.Values.ToList();
-                    Console.WriteLine($"[GATEWAY] GetAllMachineStatuses isteği geldi. Cache'teki Makine Sayısı: {allMachines1.Count}");
-                    return allMachines1;
-                // -- MAKİNE --
-                case "GetAllMachines": return _machineRepo.GetAllMachines();
-                case "GetMachineStatus":
-                    int mId = GetArg<int>(args, 0);
-                    var m = _machineRepo.GetAllMachines().Find(x => x.Id == mId);
-                    return m != null ? new FullMachineStatus { MachineId = m.Id, MachineName = m.MachineName, MakineTipi = m.MachineSubType } : null;
-                case "AddMachine": _machineRepo.AddMachine(GetArg<Machine>(args, 0)); return true;
-                case "UpdateMachine": _machineRepo.UpdateMachine(GetArg<Machine>(args, 0)); return true;
-                case "DeleteMachine": _machineRepo.DeleteMachine(GetArg<int>(args, 0)); return true;
-
-                // -- MALİYET --
-                case "GetCosts": return _costRepo.GetAllParameters();
-                case "UpdateParameters": _costRepo.UpdateParameters(GetArg<List<CostParameter>>(args, 0)); return true;
-
-                // -- KULLANICI --
-                case "GetAllUsers": return _userRepo.GetAllUsers();
-                case "GetAllRoles": return _userRepo.GetAllRoles();
-                case "AddUser":
-                    var uAdd = GetArg<UserViewModel>(args, 0);
-                    var userNew = new User { Username = uAdd.Username, FullName = uAdd.FullName, IsActive = uAdd.IsActive };
-                    _userRepo.AddUser(userNew, uAdd.Password, uAdd.SelectedRoleIds);
-                    return true;
-                case "UpdateUser":
-                    var uUpd = GetArg<UserViewModel>(args, 0);
-                    var userUpd = new User { Id = uUpd.Id, Username = uUpd.Username, FullName = uUpd.FullName, IsActive = uUpd.IsActive };
-                    _userRepo.UpdateUser(userUpd, uUpd.SelectedRoleIds, uUpd.Password);
-                    return true;
-                case "DeleteUser": _userRepo.DeleteUser(GetArg<int>(args, 0)); return true;
-
-                // -- REÇETE --
-                case "GetAllRecipes": return _recipeRepo.GetAllRecipes();
-                case "GetRecipeById": return _recipeRepo.GetRecipeById(GetArg<int>(args, 0));
-                case "SaveRecipe": _recipeRepo.SaveRecipe(GetArg<ScadaRecipe>(args, 0)); return true;
-                case "DeleteRecipe": _recipeRepo.DeleteRecipe(GetArg<int>(args, 0)); return true;
-                case "GetRecipeUsageHistory": return _recipeRepo.GetRecipeUsageHistory(GetArg<int>(args, 0));
-
-                // -- DESIGNER --
-                case "GetMachineSubTypes": return _configRepo.GetMachineSubTypes();
-                case "GetStepTypes":
-                    var dt = _configRepo.GetStepTypes();
-                    var list = new List<StepTypeDtoDesign>();
-                    foreach (System.Data.DataRow r in dt.Rows)
-                        list.Add(new StepTypeDtoDesign { Id = Convert.ToInt32(r["Id"]), StepName = r["StepName"].ToString() });
-                    return list;
-                // Mevcut (Hatalı) Kod:
-                // case "GetLayoutJson": return _configRepo.GetLayoutJson(GetArg<string>(args, 0), GetArg<int>(args, 1));
-
-                // YENİ (Düzeltilmiş) Kod:
-                case "GetLayoutJson":
-                    // 1. Veritabanından ham JSON string'i al
-                    string rawJson = _configRepo.GetLayoutJson(GetArg<string>(args, 0), GetArg<int>(args, 1));
-
-                    // 2. Eğer veri yoksa boş liste dön
-                    if (string.IsNullOrEmpty(rawJson)) return new List<ControlMetadata>();
-
-                    // 3. String'i nesne listesine çevirip öyle gönder (Böylece Hub tarafı 'String' değil gerçek bir 'Array' alır)
-                    return JsonSerializer.Deserialize<List<ControlMetadata>>(rawJson, _jsonOptions);
-                case "SaveLayout":
-                    var layoutList = GetArg<List<ControlMetadata>>(args, 2);
-                    var jsonLayout = JsonSerializer.Serialize(layoutList, _jsonOptions);
-                    string subType = GetArg<string>(args, 0);
-                    int stepId = GetArg<int>(args, 1);
-                    _configRepo.SaveLayout($"{subType} - StepID:{stepId}", subType, stepId, jsonLayout);
-                    return true;
-
-                // -- PLC OPERATIONS --
-                case "SendRecipeToPlc":
-                    int rId = GetArg<int>(args, 0);
-                    int mIdPlc = GetArg<int>(args, 1);
-                    var recipeToSend = _recipeRepo.GetRecipeById(rId);
-                    if (recipeToSend == null) return false;
-                    if (_plcService.GetPlcManagers().TryGetValue(mIdPlc, out var mgrSend))
-                    {
-                        var resultPlc = await mgrSend.WriteRecipeToPlcAsync(recipeToSend);
-                        return resultPlc.IsSuccess;
-                    }
-                    return false;
-
-                case "ReadRecipeFromPlc":
-                    int mIdRead = GetArg<int>(args, 0);
-                    if (_plcService.GetPlcManagers().TryGetValue(mIdRead, out var mgrRead))
-                    {
-                        var res = await mgrRead.ReadRecipeFromPlcAsync();
-                        if (res.IsSuccess && res.Content != null)
-                        {
-                            // Basit bir DTO dönüşümü
-                            var newR = new ScadaRecipe { RecipeName = $"PLC_{DateTime.Now:HHmm}", Steps = new List<ScadaRecipeStep>() };
-                            int stepSize = 25;
-                            int stepCount = res.Content.Length / stepSize;
-                            for (int i = 0; i < stepCount; i++)
-                            {
-                                var step = new ScadaRecipeStep { StepNumber = i + 1 };
-                                Array.Copy(res.Content, i * stepSize, step.StepDataWords, 0, stepSize);
-                                newR.Steps.Add(step);
-                            }
-                            return newR;
-                        }
-                    }
-                    return null;
-
-                // -- FTP & HMI --
-                case "GetHmiRecipeNames":
-                    if (_plcService.GetPlcManagers().TryGetValue(GetArg<int>(args, 0), out var mgrNames))
-                    {
-                        var res = await mgrNames.ReadRecipeNamesFromPlcAsync();
-                        return res.Content ?? new Dictionary<int, string>();
-                    }
-                    return new Dictionary<int, string>();
-
-                case "GetHmiRecipePreview":
-                    int mIdHmi = GetArg<int>(args, 0);
-                    string fName = GetArg<string>(args, 1);
-                    var mHmi = _machineRepo.GetAllMachines().Find(x => x.Id == mIdHmi);
-                    if (mHmi != null)
-                    {
-                        var ftp = new TekstilScada.Services.FtpService(mHmi.IpAddress, mHmi.FtpUsername, mHmi.FtpPassword);
-                        string csv = await ftp.DownloadFileAsync("/" + fName);
-                        return RecipeCsvConverter.ToRecipe(csv, fName);
-                    }
-                    return null;
-
-                case "QueueSequentiallyNamedSendJobs":
-                    var qRecipeIds = GetArg<List<int>>(args, 0);
-                    var qMachineIds = GetArg<List<int>>(args, 1);
-                    int startNum = GetArg<int>(args, 2);
-                    var recipesToSend = new List<ScadaRecipe>();
-                    foreach (var id in qRecipeIds) { var r = _recipeRepo.GetRecipeById(id); if (r != null) recipesToSend.Add(r); }
-                    var allMachines = _machineRepo.GetAllMachines();
-                    var machinesToSend = allMachines.FindAll(m => qMachineIds.Contains(m.Id));
-                    _ftpService.QueueSequentiallyNamedSendJobs(recipesToSend, machinesToSend, startNum);
-                    return true;
-
-                case "QueueReceiveJobs":
-                    var qFileNames = GetArg<List<string>>(args, 0);
-                    int qRecMachineId = GetArg<int>(args, 1);
-                    var recMachine = _machineRepo.GetAllMachines().Find(m => m.Id == qRecMachineId);
-                    if (recMachine != null) _ftpService.QueueReceiveJobs(qFileNames, recMachine);
-                    return true;
-
-                case "GetActiveFtpJobs":
-                    return _ftpService.Jobs.ToList();
-
-                // -- RAPORLAR VE DASHBOARD --
-                case "GetProductionReport":
-                    //("[Gateway] GetProductionReport İsteği Geldi.");
-
-                    // 1. Filtreleri Çözümle
-                    var filters = GetArg<ReportFilters>(args, 0);
-
-                    if (filters == null)
-                    {
-                        //("[Gateway] HATA: Filtreler (ReportFilters) NULL geldi! Parametre okunamadı.");
-                        return new List<ProductionReportItem>();
-                    }
-
-                    //($"[Gateway] Filtreler -> Başlangıç: {filters.StartTime}, Bitiş: {filters.EndTime}, MakineId: {filters.MachineId}");
-
-                    // 2. Veritabanından Sorgula
-                    List<ProductionReportItem> data = null;
-                    try
-                    {
-                        data = _productionRepo.GetProductionReport(filters);
-                    }
-                    catch (Exception ex)
-                    {
-                        //($"[Gateway] REPO HATASI: Veritabanı sorgusunda hata oluştu: {ex.Message}");
-                        throw; // Hatayı Hub'a fırlat ki orada da görelim
-                    }
-
-                    // 3. Sonucu Kontrol Et
-                    if (data == null)
-                    {
-                        //("[Gateway] UYARI: Repo 'null' döndü.");
-                        return new List<ProductionReportItem>();
-                    }
-
-                    //($"[Gateway] BAŞARILI: Veritabanından {data.Count} adet kayıt çekildi.");
-
-                    // Veri varsa ilk kaydın dolu olup olmadığını kontrol et (Entity Framework Lazy Loading sorunu olabilir)
-                    if (data.Count > 0)
-                    {
-                        var first = data[0];
-                        //($"[Gateway] Örnek Veri -> Batch: {first.BatchId}, Ürün: {first.MusteriNo}, Miktar: {first.MachineId}");
-                    }
-
-                    return data;
-
-                case "GetAlarmReport":
-                    var rfAlarm = GetArg<ReportFilters>(args, 0);
-                    return _alarmRepo.GetAlarmReport(rfAlarm.StartTime.Date, rfAlarm.EndTime.Date.AddDays(1), rfAlarm.MachineId);
-
-                case "GetTrendData":
-                    var rfTrend = GetArg<ReportFilters>(args, 0);
-                    if (rfTrend.MachineId == null) return new List<ProcessLogRepository.ProcessDataPoint>();
-                    return _processLogRepo.GetLogsForDateRange(rfTrend.MachineId.Value, rfTrend.StartTime.Date, rfTrend.EndTime.Date.AddDays(1));
-
-                case "GetManualConsumptionReport":
-                    var rfMan = GetArg<ReportFilters>(args, 0);
-                    if (rfMan.MachineId == null) return null;
-                    // UTC/Local dönüşümü gerekebilir, burada güvenli tarih kullanıyoruz
-                    var manStartTime = DateTime.SpecifyKind(rfMan.StartTime.Date, DateTimeKind.Unspecified);
-                    var manEndTime = DateTime.SpecifyKind(rfMan.EndTime.Date.AddDays(1).AddTicks(-1), DateTimeKind.Unspecified);
-                    var machineForMan = _machineRepo.GetAllMachines().Find(m => m.Id == rfMan.MachineId);
-                    return _processLogRepo.GetManualConsumptionSummary(rfMan.MachineId.Value, machineForMan?.MachineName ?? "Bilinmeyen", manStartTime, manEndTime);
-
-                case "GetConsumptionTotalsForPeriod":
-                    var rfTot = GetArg<ReportFilters>(args, 0);
-                    return _productionRepo.GetConsumptionTotalsForPeriod(rfTot.StartTime.Date, rfTot.EndTime.Date.AddDays(1).AddTicks(-1));
-
-                case "GetGeneralDetailedConsumptionReport":
-                    var rfGen = GetArg<GeneralDetailedConsumptionFilters>(args, 0);
-                    if (rfGen.MachineIds == null || rfGen.MachineIds.Count == 0) return new List<ProductionReportItem>();
-
-                    // Paralel işleme gerek yok, basit döngü yeterli
-                    List<ProductionReportItem> combinedResults = new List<ProductionReportItem>();
-                    foreach (var currentMachineId in rfGen.MachineIds)
-                    {
-                        var singleFilter = new ReportFilters { StartTime = rfGen.StartTime, EndTime = rfGen.EndTime, MachineId = currentMachineId };
-                        var mReport = _productionRepo.GetProductionReport(singleFilter);
-                        combinedResults.AddRange(mReport.FindAll(item => item.EndTime != DateTime.MinValue));
-                    }
-                    return combinedResults;
-
-                case "GetActionLogs":
-                    var rfLog = GetArg<ActionLogFilters>(args, 0);
-                    return _userRepo.GetActionLogs(rfLog.StartTime, rfLog.EndTime, rfLog.Username, rfLog.Details);
-
-                case "GetProductionDetail":
-                    // Bu mantık karmaşık olduğu için aynen korundu
-                    return GetProductionDetailInternal(GetArg<int>(args, 0), GetArg<string>(args, 1));
-
-                // -- DASHBOARD --
-                case "GetOeeReport": var rfOee = GetArg<ReportFilters>(args, 0); return _dashboardRepo.GetOeeReport(rfOee.StartTime, rfOee.EndTime, rfOee.MachineId);
-                case "GetHourlyFactoryConsumption": return new List<HourlyConsumptionData>(); // TODO: Repo'dan doldur
-                case "GetHourlyAverageOee": return new List<HourlyOeeData>(); // TODO: Repo'dan doldur
-                case "GetTopAlarmsByFrequency": return _alarmRepo.GetTopAlarmsByFrequency(DateTime.Now.AddDays(-1), DateTime.Now);
-
-                // -- EXCEL EXPORT (DİKKAT: Byte[] döner, chunking çok önemlidir) --
-                case "ExportProductionReport": return ExcelExportHelper.ExportProductionReportToExcel(GetArg<List<ProductionReportItem>>(args, 0));
-                case "ExportAlarmReport": return ExcelExportHelper.ExportAlarmReportToExcel(GetArg<List<AlarmReportItem>>(args, 0));
-                case "ExportOeeReport": return ExcelExportHelper.ExportOeeReportToExcel(GetArg<List<OeeData>>(args, 0));
-                case "ExportManualConsumptionReport": return ExcelExportHelper.ExportManualConsumptionReportToExcel(GetArg<ManualConsumptionSummary>(args, 0));
-                case "ExportActionLogsReport": return ExcelExportHelper.ExportActionLogsReportToExcel(GetArg<List<ActionLogEntry>>(args, 0));
-                case "ExportGeneralDetailedConsumptionReport":
-                    var genDetailDto = GetArg<GeneralConsumptionExportDto>(args, 0);
-                    return genDetailDto != null ? ExcelExportHelper.ExportGeneralDetailedConsumptionReportToExcel(genDetailDto.Items, genDetailDto.ConsumptionType) : Array.Empty<byte>();
-
-                case "ExportProductionDetailFile":
-                    // Detay export işlemi
-                    return ExportProductionDetailInternal(GetArg<int>(args, 0), GetArg<string>(args, 1));
-
-                // -- ALARM TANIMLARI --
-                case "GetAllAlarmDefinitions": return _alarmRepo.GetAllAlarmDefinitions();
-                case "AddAlarmDefinition": _alarmRepo.AddAlarmDefinition(GetArg<AlarmDefinition>(args, 0)); return true;
-                case "UpdateAlarmDefinition": _alarmRepo.UpdateAlarmDefinition(GetArg<AlarmDefinition>(args, 0)); return true;
-                case "DeleteAlarmDefinition": _alarmRepo.DeleteAlarmDefinition(GetArg<int>(args, 0)); return true;
-
-                // -- PLC OPERATORLERİ --
-                case "GetPlcOperators": return _plcOpRepo.GetAll();
-                case "SaveOrUpdateOperator": _plcOpRepo.SaveOrUpdate(GetArg<PlcOperator>(args, 0)); return true;
-                case "AddDefaultOperator": _plcOpRepo.AddDefaultOperator(); return true;
-                case "DeleteOperator": _plcOpRepo.Delete(GetArg<int>(args, 0)); return true;
-
-                default: throw new Exception($"Gateway: Bilinmeyen Metot -> {method}");
-            }
-        }
-
-        // Yardımcı Metot: Argümanları Güvenli Çevirme
         private T GetArg<T>(object[] args, int index)
         {
             if (args == null || index >= args.Length) return default;
-
-            // SignalR genellikle object[] içindeki kompleks tipleri JsonElement olarak gönderir
             if (args[index] is JsonElement jsonElement)
-            {
-                // Statik options kullanarak performans kazanıyoruz
                 return jsonElement.Deserialize<T>(_jsonOptions);
-            }
             return (T)args[index];
         }
 
-        // Yardımcı: Kod tekrarını önlemek için Production Detail mantığını ayırdım
+        // Yardımcı Metotlar (Private)
         private ProductionDetailDto GetProductionDetailInternal(int machineId, string batchId)
         {
             var headerFilter = new ReportFilters { MachineId = machineId, BatchNo = batchId, StartTime = DateTime.MinValue, EndTime = DateTime.MaxValue };
@@ -723,7 +619,6 @@ namespace TekstilScada.Services
 
             if (reportItem == null) return null;
 
-            // Adımlar
             var rawSteps = _productionRepo.GetProductionStepDetails(batchId, machineId);
             var stepDtos = rawSteps.Select(s => new ProductionStepDetailDto
             {
@@ -734,20 +629,18 @@ namespace TekstilScada.Services
                 StopTime = s.StopTime,
                 DeflectionTime = s.DeflectionTime,
                 TheoreticalDurationSeconds = TimeSpan.TryParse(s.TheoreticalTime, out var tt) ? tt.TotalSeconds : 0,
-                Temperature = 90.5 // TODO: Gerçek veri ile değiştir
+                Temperature = 90.5
             }).ToList();
 
-            // Alarmlar
             var rawAlarms = _alarmRepo.GetAlarmDetailsForBatch(batchId, machineId);
             var alarmDtos = rawAlarms.Select((a, index) => new AlarmDetailDto
             {
-                AlarmTime = DateTime.Now.AddMinutes(-index * 5), // TODO: Gerçek zaman
+                AlarmTime = DateTime.Now.AddMinutes(-index * 5),
                 AlarmType = "Makine Alarmı",
                 AlarmDescription = a.AlarmDescription,
                 Duration = TimeSpan.FromMinutes(1)
             }).ToList();
 
-            // Loglar (Trend verisi)
             var rawLogs = _processLogRepo.GetLogsForBatch(machineId, batchId);
             var logDtos = rawLogs.Select(p => new TrendDataPoint
             {
@@ -760,13 +653,11 @@ namespace TekstilScada.Services
             return new ProductionDetailDto { Header = reportItem, Steps = stepDtos, Alarms = alarmDtos, LogData = logDtos };
         }
 
-        // Yardımcı: Excel Export Detay
         private byte[] ExportProductionDetailInternal(int machineId, string batchId)
         {
             var detail = GetProductionDetailInternal(machineId, batchId);
             if (detail == null) return Array.Empty<byte>();
 
-            // DTO dönüşümü (ExcelHelper'ın kendi DTO'su varsa ona maplenmeli)
             var excelDto = new ExcelExportHelper.ProductionDetailDto
             {
                 Header = detail.Header,
@@ -787,12 +678,16 @@ namespace TekstilScada.Services
                     AlarmDescription = a.AlarmDescription,
                     Duration = a.Duration
                 }).ToList(),
-                LogData = new List<ExcelExportHelper.TrendDataPoint>() // Genellikle detay exportta grafik verisi ham olarak istenmez
+                LogData = new List<ExcelExportHelper.TrendDataPoint>()
             };
 
             return ExcelExportHelper.ExportProductionDetailToExcel(excelDto);
         }
 
+        public async Task SendScreenImageAsync(int machineId, string base64Image)
+        {
+            if (_connection != null && _connection.State == HubConnectionState.Connected)
+                await _connection.InvokeAsync("SendScreenImage", machineId, base64Image);
+        }
     }
-
 }

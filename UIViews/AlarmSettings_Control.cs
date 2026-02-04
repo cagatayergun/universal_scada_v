@@ -20,13 +20,37 @@ namespace TekstilScada.UI.Views
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
             InitializeComponent();
 
-            // --- YENİ EKLENEN KISIM: SCROLL AYARI ---
-            // Tablonun hem dikey hem yatay kaydırma çubuklarını açıyoruz.
-            dgvAlarms.ScrollBars = ScrollBars.Both;
-            // ----------------------------------------
-
             _repository = new AlarmRepository();
             ApplyLocalization();
+
+            // --- KESİN ÇÖZÜM: GÜVENLİ YERLEŞİM (LAYOUT FIX) ---
+
+            // 1. Tasarımcıdan gelen kontrolleri geçici olarak formdan söküyoruz
+            this.Controls.Remove(dgvAlarms);
+            this.Controls.Remove(groupBox1);
+
+            // 2. Tablo için yeni, temiz bir taşıyıcı panel oluşturuyoruz
+            Panel pnlGridContainer = new Panel();
+            pnlGridContainer.Dock = DockStyle.Fill; // Boşluğu doldur
+            pnlGridContainer.Controls.Add(dgvAlarms); // Tabloyu içine al
+
+            // 3. Tablo Ayarlarını Garantiye Alıyoruz
+            dgvAlarms.Dock = DockStyle.Fill;
+            dgvAlarms.ScrollBars = ScrollBars.Both; // Scrollbarları aç
+
+            // 4. Kontrolleri DOĞRU SIRAYLA tekrar ekliyoruz
+            // WinForms Mantığı: En son eklenen kontrol (Add) EN ÜSTE gelir ve DOCK önceliğini alır.
+
+            // a. Önce Grid Panelini ekle (Bu altta kalacak, Index 1 olacak)
+            this.Controls.Add(pnlGridContainer);
+
+            // b. Sonra Alt Paneli (Butonları) ekle (Bu en üste gelecek, Index 0 olacak)
+            // Böylece önce alt panel yerleşecek, tablo KALAN boşluğu dolduracak.
+            this.Controls.Add(groupBox1);
+
+            // 5. UserControl'ün kendisini de ebeveynine tam oturtuyoruz
+            this.Dock = DockStyle.Fill;
+            // ----------------------------------------------------
         }
 
         private void AlarmSettings_Control_Load(object sender, EventArgs e)
