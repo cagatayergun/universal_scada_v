@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+// ILogger yoksa veya kullanmak istemezseniz aşağıdaki satırı silebilirsiniz.
 using Microsoft.Extensions.Logging;
 using TekstilScada.Models;
 using TekstilScada.Repositories;
@@ -13,6 +14,7 @@ namespace TekstilScada.Services
     public class UtilityPollingService
     {
         private readonly UtilityRepository _repo;
+        // Logger opsiyonel yapıldı, null gelebilir
         private readonly ILogger<UtilityPollingService> _logger;
 
         // Yönetici nesneleri önbelleği
@@ -22,26 +24,29 @@ namespace TekstilScada.Services
         private CancellationTokenSource _cancellationTokenSource;
         private Task _pollingTask;
 
-        public UtilityPollingService(UtilityRepository repo, ILogger<UtilityPollingService> logger)
+        // --- UI GÜNCELLEMEK İÇİN GEREKLİ EVENTLER (EKLENDİ) ---
+        public event Action<List<UtilityLog>> OnUtilityDataRefreshed;
+        public event Action<string> OnUtilityError;
+        // -----------------------------------------------------
+
+        public UtilityPollingService(UtilityRepository repo, ILogger<UtilityPollingService> logger = null)
         {
             _repo = repo;
             _logger = logger;
             _managers = new ConcurrentDictionary<int, IUtilityManager>();
         }
 
-        // Dışarıdan çağrılacak Başlat metodu
         public void Start()
         {
             Stop(); // Zaten çalışıyorsa durdur
 
             _cancellationTokenSource = new CancellationTokenSource();
-            _logger.LogInformation("Utility Polling Servisi Başlatılıyor...");
+            LogInfo("Utility Polling Servisi Başlatılıyor...");
 
             // Ana döngüyü arka planda başlat
             _pollingTask = Task.Run(() => PollLoop(_cancellationTokenSource.Token));
         }
 
-        // Dışarıdan çağrılacak Durdur metodu
         public void Stop()
         {
             if (_cancellationTokenSource != null)
@@ -49,7 +54,6 @@ namespace TekstilScada.Services
                 _cancellationTokenSource.Cancel();
                 try
                 {
-                    // Görevin bitmesini bekle (maksimum 3 saniye)
                     _pollingTask?.Wait(3000);
                 }
                 catch { /* Task iptal hatasını yut */ }
@@ -58,14 +62,13 @@ namespace TekstilScada.Services
                 _cancellationTokenSource = null;
             }
 
-            // Açık bağlantıları temizle
             foreach (var manager in _managers.Values)
             {
                 manager.Disconnect();
             }
             _managers.Clear();
 
-            _logger.LogInformation("Utility Polling Servisi Durduruldu.");
+            LogInfo("Utility Polling Servisi Durduruldu.");
         }
 
         private async Task PollLoop(CancellationToken token)
@@ -78,10 +81,11 @@ namespace TekstilScada.Services
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Utility döngüsünde genel hata.");
+                    LogError(ex, "Utility döngüsünde genel hata.");
+                    OnUtilityError?.Invoke($"Genel Döngü Hatası: {ex.Message}");
                 }
 
-                // 10 Saniye bekle (Token iptal edilirse beklemeden çıkar)
+                // 10 Saniye bekle
                 try
                 {
                     await Task.Delay(10000, token);
@@ -95,21 +99,41 @@ namespace TekstilScada.Services
 
         private async Task PollAllLinesAsync()
         {
-            // Veritabanından hatları çek
             var lines = _repo.GetUtilityLines();
+            if (lines == null || !lines.Any()) return;
+
             var logsToSave = new List<UtilityLog>();
 
             foreach (var line in lines)
             {
-                // Manager'ı al veya oluştur (Factory mantığı)
-                var manager = _managers.GetOrAdd(line.Id, id => new UtilityModbusManager(line));
+                // 1. Manager Kontrolü (IP Değişikliği Algılama EKLENDİ)
+                IUtilityManager manager;
 
+                if (_managers.TryGetValue(line.Id, out var existingManager))
+                {
+                    // Eğer veritabanındaki IP ile hafızadaki IP farklıysa, eskiyi sil yenisini oluştur
+                    if (existingManager.IpAddress != line.IpAddress)
+                    {
+                        existingManager.Disconnect();
+                        manager = new UtilityModbusManager(line);
+                        _managers[line.Id] = manager;
+                        LogInfo($"Hat {line.LineName} için IP değişikliği algılandı, servis güncellendi.");
+                    }
+                    else
+                    {
+                        manager = existingManager;
+                    }
+                }
+                else
+                {
+                    manager = new UtilityModbusManager(line);
+                    _managers.TryAdd(line.Id, manager);
+                }
+
+                // 2. Veri Okuma İşlemi
                 try
                 {
-                    // Bağlantı kontrolü ve veri okuma
-                    // NOT: HslCommunication ConnectServer çağrısı, zaten bağlıysa hızlı döner.
-                    // Ancak yine de her döngüde kontrol etmek yerine bağlantı koptuğunda bağlanmak daha performanslı olabilir.
-                    // Basitlik adına burada her okuma öncesi bağlantıyı garantiye alıyoruz.
+                    // Bağlantı zaten açıksa HslCommunication bunu hızlıca geçer, sorun yok.
                     await manager.ConnectAsync();
 
                     var readResult = await manager.ReadUtilityDataAsync();
@@ -120,22 +144,31 @@ namespace TekstilScada.Services
                     }
                     else
                     {
-                        _logger.LogWarning($"Hat {line.LineName} okuma hatası: {readResult.Message}");
-                        // Hata varsa bağlantıyı sıfırla
-                        manager.Disconnect();
+                        string errMsg = $"Hat {line.LineName} okuma hatası: {readResult.Message}";
+                        // Sadece loga yaz, kullanıcıyı her saniye hatayla boğma (veya istersen OnUtilityError çağır)
+                        LogWarning(errMsg);
+                        manager.Disconnect(); // Hata durumunda bağlantıyı tazelemek iyidir
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"Hat işleme hatası: {line.LineName}");
+                    LogError(ex, $"Hat işleme hatası: {line.LineName}");
                 }
             }
 
-            // Verileri toplu kaydet
+            // 3. Kayıt ve UI Bildirimi
             if (logsToSave.Count > 0)
             {
                 _repo.LogData(logsToSave);
+
+                // --- UI TARAFINA VERİYİ FIRLAT (EKLENDİ) ---
+                OnUtilityDataRefreshed?.Invoke(logsToSave);
             }
         }
+
+        // Helper methods for logging null check
+        private void LogInfo(string message) => _logger?.LogInformation(message);
+        private void LogWarning(string message) => _logger?.LogWarning(message);
+        private void LogError(Exception ex, string message) => _logger?.LogError(ex, message);
     }
 }

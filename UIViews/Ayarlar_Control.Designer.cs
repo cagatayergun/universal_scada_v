@@ -21,6 +21,7 @@ namespace TekstilScada.UI.Views
             tabPageAlarmSettings = new TabPage();
             tabPagePlcOperators = new TabPage();
             tabPageRecipeDesigner = new TabPage();
+            tabPageUtilitySettings = new TabPage();
             tabControlSettings.SuspendLayout();
             SuspendLayout();
             // 
@@ -30,6 +31,7 @@ namespace TekstilScada.UI.Views
             tabControlSettings.Controls.Add(tabPageUserSettings);
             tabControlSettings.Controls.Add(tabPageAlarmSettings);
             tabControlSettings.Controls.Add(tabPagePlcOperators);
+            tabControlSettings.Controls.Add(tabPageUtilitySettings);
             tabControlSettings.Controls.Add(tabPageRecipeDesigner);
             tabControlSettings.Dock = DockStyle.Fill;
             tabControlSettings.Location = new Point(0, 0);
@@ -81,6 +83,16 @@ namespace TekstilScada.UI.Views
             tabPagePlcOperators.Text = "PLC Operatör Yönetimi";
             tabPagePlcOperators.UseVisualStyleBackColor = true;
             // 
+            // tabPageUtilitySettings (YENİ SEKME AYARLARI)
+            // 
+            tabPageUtilitySettings.Location = new Point(4, 24);
+            tabPageUtilitySettings.Name = "tabPageUtilitySettings";
+            tabPageUtilitySettings.Padding = new Padding(3);
+            tabPageUtilitySettings.Size = new Size(692, 422);
+            tabPageUtilitySettings.TabIndex = 6; // Sıraya göre index verin
+            tabPageUtilitySettings.Text = "Enerji/Hat Ayarları";
+            tabPageUtilitySettings.UseVisualStyleBackColor = true;
+            // 
             // tabPageRecipeDesigner
             // 
             tabPageRecipeDesigner.Location = new Point(4, 24);
@@ -109,6 +121,7 @@ namespace TekstilScada.UI.Views
         private System.Windows.Forms.TabPage tabPageUserSettings;
         private System.Windows.Forms.TabPage tabPageAlarmSettings;
         private System.Windows.Forms.TabPage tabPagePlcOperators;
+        private System.Windows.Forms.TabPage tabPageUtilitySettings;
         private System.Windows.Forms.TabPage tabPageRecipeDesigner;// YENİ
     }
 }

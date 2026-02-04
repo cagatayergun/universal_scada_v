@@ -5,6 +5,7 @@ using TekstilScada.Core;
 using TekstilScada.Properties;
 using TekstilScada.Repositories;
 using TekstilScada.Services;
+using TekstilScada.UIViews;
 namespace TekstilScada.UI.Views
 {
     public partial class Ayarlar_Control : UserControl
@@ -17,6 +18,7 @@ namespace TekstilScada.UI.Views
         private readonly PlcOperatorSettings_Control _plcOperatorSettings;
         private readonly CostSettings_Control _costSettings; // YENİ
         private readonly RecipeStepDesigner_Control _recipeStepDesigner;
+        private readonly UtilitySettings_Control _utilitySettings;
         public Ayarlar_Control()
         {
             InitializeComponent();
@@ -29,7 +31,7 @@ namespace TekstilScada.UI.Views
             // YENİ: Tasarımcı kontrolünü oluştur
             _recipeStepDesigner = new RecipeStepDesigner_Control();
             _machineSettings.MachineListChanged += (sender, args) => { MachineListChanged?.Invoke(this, args); };
-
+            _utilitySettings = new UtilitySettings_Control();
             _machineSettings.Dock = DockStyle.Fill;
             tabPageMachineSettings.Controls.Add(_machineSettings);
 
@@ -42,10 +44,13 @@ namespace TekstilScada.UI.Views
             _plcOperatorSettings.Dock = DockStyle.Fill;
             tabPagePlcOperators.Controls.Add(_plcOperatorSettings);
             _costSettings.Dock = DockStyle.Fill; // YENİ
-          //  tabPageCostSettings.Controls.Add(_costSettings); // YENİ
-                                                             // YENİ: Tasarımcı kontrolünü yeni sekmeye ekle
+                                                 //  tabPageCostSettings.Controls.Add(_costSettings); // YENİ
+                                                 // YENİ: Tasarımcı kontrolünü yeni sekmeye ekle
+            _utilitySettings.Dock = DockStyle.Fill;
+            tabPageUtilitySettings.Controls.Add(_utilitySettings);
             _recipeStepDesigner.Dock = DockStyle.Fill;
             tabPageRecipeDesigner.Controls.Add(_recipeStepDesigner);
+
             ApplyPermissions();
         }
         public void RefreshUserRoles()
@@ -68,7 +73,7 @@ namespace TekstilScada.UI.Views
             _plcOperatorSettings.Enabled = PermissionService.HasAnyPermission(new List<int> { 10 });
             _recipeStepDesigner.Visible = PermissionService.HasAnyPermission(new List<int> { 11 });
             // btnVnc.Enabled = btnVnc.Visible; // Yetkisi yoksa butonun tıklanmasını engelle
-
+            _utilitySettings.Visible = PermissionService.HasAnyPermission(new List<int> {6, 1000 });
 
             var master = PermissionService.HasAnyPermission(new List<int> { 1000 });
             if (master == true)
@@ -79,6 +84,7 @@ namespace TekstilScada.UI.Views
                 _costSettings.Enabled = PermissionService.HasAnyPermission(new List<int> { 1000 });
                 _plcOperatorSettings.Enabled = PermissionService.HasAnyPermission(new List<int> { 1000 });
                 _recipeStepDesigner.Visible = PermissionService.HasAnyPermission(new List<int> { 1000 });
+                _utilitySettings.Visible = true;
             }
 
         }
@@ -105,7 +111,7 @@ namespace TekstilScada.UI.Views
             tabPagePlcOperators.Text = Resources.PlcOperatorManagement;
            tabPageRecipeDesigner.Text = Resources.recipedesigner;
             //btnSave.Text = Resources.Save;
-
+            tabPageUtilitySettings.Text = "Line Usage Settings";
 
         }
     }

@@ -306,7 +306,7 @@ namespace TekstilScada
             // CostRepository eklendi
             _raporlarView.InitializeControl(_machineRepository, _alarmRepository, _productionRepository, _dashboardRepository, _processLogRepository, _recipeRepository, _costRepository);
 
-            _genelBakisView.InitializeControl(_pollingService, _machineRepository, _dashboardRepository, _alarmRepository, _processLogRepository, _productionRepository);
+            _genelBakisView.InitializeControl(_pollingService, _machineRepository, _dashboardRepository, _alarmRepository, _processLogRepository, _productionRepository,_utilityRepository,_utilityPollingService);
 
             _ayarlarView.RefreshMachineSettingsView();
 

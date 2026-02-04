@@ -7,16 +7,34 @@ namespace TekstilScada.Models
     public class UtilityLine
     {
         public int Id { get; set; }
-        public string LineName { get; set; } // Hat İsmi (Örn: Boyahane Hattı 1)
+        public string LineName { get; set; }
         public string IpAddress { get; set; }
         public int Port { get; set; } = 502;
         public int SlaveId { get; set; } = 1;
 
-        // Modbus Adresleri (DWORD - Int32)
+        // -- SU SAYACI --
+        public bool WaterEnabled { get; set; } = true;
         public int WaterAddress { get; set; }
+        public string WaterDataType { get; set; } = "Float"; // Word, DWord, Float, Int32
+        public double WaterMultiplier { get; set; } = 1.0; // Virgül kaydırma için (Örn: 0.1)
+
+        // -- ELEKTRİK SAYACI --
+        public bool ElecEnabled { get; set; } = true;
         public int ElecAddress { get; set; }
+        public string ElecDataType { get; set; } = "Float";
+        public double ElecMultiplier { get; set; } = 1.0;
+
+        // -- BUHAR SAYACI --
+        public bool SteamEnabled { get; set; } = true;
         public int SteamAddress { get; set; }
+        public string SteamDataType { get; set; } = "Float";
+        public double SteamMultiplier { get; set; } = 1.0;
+
+        // -- HAVA SAYACI --
+        public bool AirEnabled { get; set; } = true;
         public int AirAddress { get; set; }
+        public string AirDataType { get; set; } = "Float";
+        public double AirMultiplier { get; set; } = 1.0;
     }
 
     // Log Verisi (Veritabanı: utility_logs)

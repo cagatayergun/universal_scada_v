@@ -22,8 +22,10 @@
             pnlMain = new Panel();
             tlpMainLayout = new TableLayoutPanel();
             flpMachineGroups = new FlowLayoutPanel();
+            this.flpUtilityStrip = new System.Windows.Forms.FlowLayoutPanel();
             pnlSidebar = new Panel();
             tlpSidebarLayout = new TableLayoutPanel();
+
             gbTopAlarms = new GroupBox();
             formsPlotTopAlarms = new ScottPlot.WinForms.FormsPlot();
             gbHourlyConsumptionSteam = new GroupBox();
@@ -71,12 +73,26 @@
             // pnlMain
             // 
             pnlMain.Controls.Add(tlpMainLayout);
+            this.pnlMain.Controls.Add(this.flpUtilityStrip); // Üstte olacak (Dock.Top)
             pnlMain.Dock = DockStyle.Fill;
             pnlMain.Location = new Point(9, 91);
             pnlMain.Margin = new Padding(3, 2, 3, 2);
             pnlMain.Name = "pnlMain";
             pnlMain.Size = new Size(1032, 501);
             pnlMain.TabIndex = 2;
+            // 
+            // flpUtilityStrip (YENİ ŞERİT)
+            // 
+            this.flpUtilityStrip.BackColor = System.Drawing.Color.WhiteSmoke;
+            this.flpUtilityStrip.Dock = System.Windows.Forms.DockStyle.Top; // En üste yapışır
+            this.flpUtilityStrip.Location = new System.Drawing.Point(0, 0);
+            this.flpUtilityStrip.Name = "flpUtilityStrip";
+            this.flpUtilityStrip.Size = new System.Drawing.Size(1032, 135); // Yükseklik: Kart(100) + Scroll(10)
+            this.flpUtilityStrip.TabIndex = 3;
+            this.flpUtilityStrip.WrapContents = false; // Tek satır olsun
+            this.flpUtilityStrip.AutoScroll = true;    // Yatay scroll çıksın
+            this.flpUtilityStrip.FlowDirection = System.Windows.Forms.FlowDirection.LeftToRight; // Soldan sağa
+            this.flpUtilityStrip.Padding = new System.Windows.Forms.Padding(5);
             // 
             // tlpMainLayout
             // 
@@ -308,5 +324,6 @@
         private System.Windows.Forms.TableLayoutPanel tlpSidebarLayout;
         private System.Windows.Forms.GroupBox gbHourlyOee;
         private ScottPlot.WinForms.FormsPlot formsPlotHourlyOee;
+        private System.Windows.Forms.FlowLayoutPanel flpUtilityStrip;
     }
 }

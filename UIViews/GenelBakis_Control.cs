@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Threading.Tasks; // Task için gerekli
 using System.Windows.Forms;
 using TekstilScada.Core;
 using TekstilScada.Models;
@@ -12,6 +13,7 @@ using TekstilScada.Properties;
 using TekstilScada.Repositories;
 using TekstilScada.Services;
 using TekstilScada.UI.Controls;
+using TekstilScada.UIControls;
 using static TekstilScada.Repositories.ProcessLogRepository;
 
 namespace TekstilScada.UI.Views
@@ -19,15 +21,21 @@ namespace TekstilScada.UI.Views
     public partial class GenelBakis_Control : UserControl
     {
         private PlcPollingService _pollingService;
+        private UtilityPollingService _utilityPollingService; // YENİ: Servis Tanımı
         private MachineRepository _machineRepository;
         private DashboardRepository _dashboardRepository;
         private AlarmRepository _alarmRepository;
         private ProcessLogRepository _logRepository;
         private ProductionRepository _productionRepository;
+        private UtilityRepository _utilityRepository;
 
         private Dictionary<int, bool> _previousBatchStatuses;
         private readonly Dictionary<int, DashboardMachineCard_Control> _machineCards = new Dictionary<int, DashboardMachineCard_Control>();
         private System.Windows.Forms.Timer _uiUpdateTimer;
+
+        // Utility (Enerji) Takibi İçin
+        private Dictionary<int, DateTime> _utilityLastSeen = new Dictionary<int, DateTime>(); // Son veri zamanı
+        private Dictionary<int, UtilityDashboardCard_Control> _utilityCards = new Dictionary<int, UtilityDashboardCard_Control>();
 
         private bool _isDashboardSetup = false;
 
@@ -68,7 +76,16 @@ namespace TekstilScada.UI.Views
             ApplyLocalization();
         }
 
-        public void InitializeControl(PlcPollingService pollingService, MachineRepository machineRepo, DashboardRepository dashboardRepo, AlarmRepository alarmRepo, ProcessLogRepository logRepo, ProductionRepository productionRepo)
+        // InitializeControl GÜNCELLENDİ: utilityService parametresi eklendi
+        public void InitializeControl(
+            PlcPollingService pollingService,
+            MachineRepository machineRepo,
+            DashboardRepository dashboardRepo,
+            AlarmRepository alarmRepo,
+            ProcessLogRepository logRepo,
+            ProductionRepository productionRepo,
+            UtilityRepository utilityrepo,
+            UtilityPollingService utilityService) // <--- YENİ PARAMETRE
         {
             _pollingService = pollingService;
             _machineRepository = machineRepo;
@@ -76,6 +93,8 @@ namespace TekstilScada.UI.Views
             _alarmRepository = alarmRepo;
             _logRepository = logRepo;
             _productionRepository = productionRepo;
+            _utilityRepository = utilityrepo;
+            _utilityPollingService = utilityService; // <--- ATAMA YAPILDI
 
             if (this.IsHandleCreated && !_isDashboardSetup)
             {
@@ -116,9 +135,18 @@ namespace TekstilScada.UI.Views
                     .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.IsInRecipeMode);
 
                 BuildMachineCards();
+                BuildUtilityStrip(); // Enerji kartlarını oluştur
 
+                // Olay Abonelikleri
                 _pollingService.OnMachineDataRefreshed -= PollingService_OnMachineDataRefreshed;
                 _pollingService.OnMachineDataRefreshed += PollingService_OnMachineDataRefreshed;
+
+                // YENİ: Enerji Servisi Olay Aboneliği
+                if (_utilityPollingService != null)
+                {
+                    _utilityPollingService.OnUtilityDataRefreshed -= UtilityService_OnDataRefreshed;
+                    _utilityPollingService.OnUtilityDataRefreshed += UtilityService_OnDataRefreshed;
+                }
 
                 if (_uiUpdateTimer == null)
                 {
@@ -160,62 +188,79 @@ namespace TekstilScada.UI.Views
             flpTopKpis.Controls.Add(_kpiIdleMachines);
         }
 
+        private void BuildUtilityStrip()
+        {
+            if (_utilityRepository == null) return;
+
+            flpUtilityStrip.SuspendLayout();
+            flpUtilityStrip.Controls.Clear();
+            _utilityCards.Clear();
+
+            // Hatları çek (Repository'de GetUtilityLines var)
+            var lines = _utilityRepository.GetUtilityLines();
+
+            foreach (var line in lines)
+            {
+                var card = new UtilityDashboardCard_Control();
+
+                // Başlangıçta kartı oluşturuyoruz, henüz veri yok
+                var initialData = new UtilityDashboardDto { LineName = line.LineName };
+                card.SetData(initialData);
+                card.SetConnectionStatus(false); // Başlangıçta kopuk görünsün, veri gelince yeşil olacak
+
+                _utilityCards.Add(line.Id, card);
+                flpUtilityStrip.Controls.Add(card);
+            }
+
+            flpUtilityStrip.ResumeLayout();
+        }
+
         private void BuildMachineCards()
         {
             if (_machineRepository == null || _pollingService == null) return;
 
-            // Paneli dondur (Performans için)
             flpMachineGroups.SuspendLayout();
-
             _machineCards.Clear();
             flpMachineGroups.Controls.Clear();
 
             var allMachines = _machineRepository.GetAllEnabledMachines();
             var machineCache = _pollingService.MachineDataCache;
 
-            // 1. Makineleri Alt Tipe Göre Grupla
             var groupedMachines = allMachines
-     .GroupBy(m => m.MachineSubType ?? "Other")
-     .OrderBy(g =>
-     {
-         // Grubun ana tipini al
-         var type = g.FirstOrDefault()?.MachineType?.ToString() ?? "";
-
-         // Ana Tipe göre öncelik belirle
-         if (type.Contains("BYMakinesi")) return 1;    // En üstte Boyamalar olsun
-         if (type.Contains("Kurutma Makinesi")) return 2;   // Sonra Kurutmalar
-         return 3;                                 // Diğerleri
-     })
-     .ThenBy(g => g.Key); // Kendi içinde alfabetik
+                 .GroupBy(m => m.MachineSubType ?? "Other")
+                 .OrderBy(g =>
+                 {
+                     var type = g.FirstOrDefault()?.MachineType?.ToString() ?? "";
+                     if (type.Contains("BYMakinesi")) return 1;
+                     if (type.Contains("Kurutma Makinesi")) return 2;
+                     return 3;
+                 })
+                 .ThenBy(g => g.Key);
 
             _colorIndex = 0;
 
             foreach (var group in groupedMachines)
             {
-                // 2. Her Grup İçin Başlık (GroupBox) Oluştur
                 var groupPanel = new GroupBox
                 {
                     Text = group.Key,
-                    Width = flpMachineGroups.ClientSize.Width*2 - 50, // Scroll bar payı
-                    Height = 265, // Kart yüksekliğine göre ayarlanmalı (Kartlar ~280px ise)
+                    Width = flpMachineGroups.ClientSize.Width * 2 - 50,
+                    Height = 265,
                     Font = new System.Drawing.Font("Segoe UI", 12F, FontStyle.Bold),
                     ForeColor = Color.White,
                     BackColor = _darkColors[_colorIndex % _darkColors.Count],
-                    Padding = new Padding(5, 5, 5, 5) // Başlık için üst boşluk
+                    Padding = new Padding(5, 5, 5, 5)
                 };
 
-                // 3. Grup İçin Yatay Scroll Paneli (Inner FlowLayoutPanel)
                 var innerPanel = new FlowLayoutPanel
                 {
                     Dock = DockStyle.Fill,
                     FlowDirection = FlowDirection.LeftToRight,
-                    WrapContents = false, // Tek satırda devam etsin
-                    AutoScroll = true,    // Yatay scroll çıksın
+                    WrapContents = false,
+                    AutoScroll = true,
                     BackColor = Color.WhiteSmoke
                 };
 
-                // Makineleri öncelik sırasına göre panele ekle
-                // İlk açılışta da sıralı gelmesi için burada sıralama yapıyoruz
                 var sortedMachines = group.OrderBy(m =>
                 {
                     if (machineCache.TryGetValue(m.Id, out var status))
@@ -226,10 +271,7 @@ namespace TekstilScada.UI.Views
                 foreach (var machine in sortedMachines)
                 {
                     var card = new DashboardMachineCard_Control(machine);
-
-                    // ÖNEMLİ: Sıralama algoritmasının çalışabilmesi için ID'yi Tag'e atıyoruz
                     card.Tag = machine.Id;
-
                     _machineCards.Add(machine.Id, card);
                     innerPanel.Controls.Add(card);
                 }
@@ -248,40 +290,82 @@ namespace TekstilScada.UI.Views
 
             if (!_isDashboardSetup || _pollingService == null) return;
 
-            // Reçete modu değişikliklerini kontrol et (Gerekirse tüm yapıyı yeniden kurmak için)
             var currentBatchStatuses = _pollingService.MachineDataCache
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.IsInRecipeMode);
 
-            // Eğer makine eklenip çıkarılmadıysa BuildMachineCards çağırmaya gerek yok,
-            // sıralamayı OnMachineDataRefreshed içinde hallediyoruz. 
-            // Ancak yeni bir reçete başlangıcında kart yapısı değişiyorsa burası kalabilir.
             if (_previousBatchStatuses != null && !_previousBatchStatuses.SequenceEqual(currentBatchStatuses))
             {
-                // BuildMachineCards(); // Sıralamayı dinamik yaptığımız için full rebuild gerekmeyebilir.
                 _previousBatchStatuses = currentBatchStatuses;
             }
 
             UpdateKpiCards();
+
+            // YENİ: Enerji Bağlantı Kontrolü (Timeout)
+            CheckUtilityConnections();
+
             UpdateSidebarCharts();
+        }
+
+        // YENİ: Canlı Veri Geldiğinde Çalışacak Metot
+        private void UtilityService_OnDataRefreshed(List<UtilityLog> logs)
+        {
+            if (this.IsDisposed || !this.IsHandleCreated) return;
+
+            // UI Thread'e geçiş
+            this.BeginInvoke(new Action(() =>
+            {
+                foreach (var log in logs)
+                {
+                    if (_utilityCards.TryGetValue(log.LineId, out var card))
+                    {
+                        // 1. "Görüldü" zamanını güncelle
+                        _utilityLastSeen[log.LineId] = DateTime.Now;
+
+                        // 2. Kartı "BAĞLI" moduna geçir (Yeşil ışık)
+                        card.SetConnectionStatus(true);
+
+                        // 3. Verileri DTO'ya çevirip karta bas
+                        var dto = new UtilityDashboardDto
+                        {
+                            LineName = "", // İsim zaten kartta var, değiştirmeye gerek yok
+                            DailyElecUsage = log.ElecCounter,
+                            DailyWaterUsage = log.WaterCounter,
+                            DailySteamUsage = log.SteamCounter,
+                            DailyAirUsage = log.AirCounter
+                        };
+                        card.SetData(dto);
+                    }
+                }
+            }));
+        }
+
+        // YENİ: Bağlantı Kopma Kontrolü (25 saniye kuralı)
+        private void CheckUtilityConnections()
+        {
+            var now = DateTime.Now;
+            foreach (var kvp in _utilityCards)
+            {
+                int lineId = kvp.Key;
+                var card = kvp.Value;
+
+                // Eğer son veri üzerinden 25 saniye geçtiyse "Bağlantı Yok" yap
+                if (!_utilityLastSeen.ContainsKey(lineId) || (now - _utilityLastSeen[lineId]).TotalSeconds > 25)
+                {
+                    card.SetConnectionStatus(false);
+                }
+            }
         }
 
         private void PollingService_OnMachineDataRefreshed(int machineId, FullMachineStatus status)
         {
-            // Form veya kontrol kapandıysa işlem yapma
             if (this.IsDisposed || !this.IsHandleCreated) return;
 
-            // Veritabanı işlemi olmadığı için Task.Run'a gerek yoktur.
-            // Ancak Polling servisi arka planda çalıştığı için UI elemanlarına erişmek üzere
-            // işlemi BeginInvoke ile ana iş parçacığına (UI Thread) gönderiyoruz.
             this.BeginInvoke(new Action(() =>
             {
                 if (_machineCards.TryGetValue(machineId, out var cardToUpdate))
                 {
-                    // Trend verisi (grafik) istenmediği için boş bir liste gönderiyoruz.
-                    // Bu sayede veritabanı yorulmaz ve UI anlık olarak güncellenir.
                     cardToUpdate.UpdateData(status, new List<ProcessDataPoint>());
 
-                    // Sıralama işlemi
                     if (cardToUpdate.Parent is FlowLayoutPanel parentPanel)
                     {
                         SortMachinesInPanel(parentPanel);
@@ -290,23 +374,19 @@ namespace TekstilScada.UI.Views
             }));
         }
 
-        // --- YENİ: PANEL İÇİ SIRALAMA MANTIĞI ---
         private void SortMachinesInPanel(FlowLayoutPanel panel)
         {
-            // Paneldeki kartları al
             var cards = panel.Controls.OfType<DashboardMachineCard_Control>().ToList();
 
-            // Puanlamaya göre sırala
             var sortedCards = cards.OrderBy(c =>
             {
                 if (c.Tag is int mId && _pollingService.MachineDataCache.TryGetValue(mId, out var status))
                 {
                     return GetSortPriority(status);
                 }
-                return 100; // Bilinmeyen durum en sona
+                return 100;
             }).ToList();
 
-            // UI'daki sırasını güncelle (SetChildIndex ile)
             for (int i = 0; i < sortedCards.Count; i++)
             {
                 if (panel.Controls.GetChildIndex(sortedCards[i]) != i)
@@ -316,25 +396,20 @@ namespace TekstilScada.UI.Views
             }
         }
 
-        // --- YENİ: SIRALAMA PUANLAMA MANTIĞI ---
         private int GetSortPriority(FullMachineStatus status)
         {
             if (status == null) return 100;
-
-            // 1. Öncelik: Üretim (Reçete veya Manuel Mod) -> EN BAŞA
-            if (status.ConnectionState == ConnectionStatus.Connected && (status.IsInRecipeMode || status.manuel_status))
-                return 1;
-
-            // 2. Öncelik: Alarm Durumu -> İKİNCİ
-            if (status.ConnectionState == ConnectionStatus.Connected && status.HasActiveAlarm)
-                return 2;
-
-            // 3. Öncelik: Bekleme (Boşta) -> ÜÇÜNCÜ
-            if (status.ConnectionState == ConnectionStatus.Connected)
-                return 3;
-
-            // 4. Öncelik: Bağlantı Yok -> EN SONA
+            if (status.ConnectionState == ConnectionStatus.Connected && (status.IsInRecipeMode || status.manuel_status)) return 1;
+            if (status.ConnectionState == ConnectionStatus.Connected && status.HasActiveAlarm) return 2;
+            if (status.ConnectionState == ConnectionStatus.Connected) return 3;
             return 4;
+        }
+
+        private void UpdateUtilityKpiData()
+        {
+            // Bu metot artık kullanılmıyor, canlı veri UtilityService_OnDataRefreshed üzerinden geliyor.
+            // Ancak geçmiş verileri veya toplamları göstermek isterseniz burada tutabilirsiniz.
+            // Şimdilik boş bırakıyorum veya silebilirsiniz.
         }
 
         private void UpdateKpiCards()
@@ -370,13 +445,11 @@ namespace TekstilScada.UI.Views
 
             try
             {
-                // 1. Veritabanı işlemlerini arka plana atıyoruz (UI Donmaz)
                 var result = await Task.Run(() =>
                 {
                     var today = DateTime.Today;
                     var now = DateTime.Now;
 
-                    // Tüm verileri arka planda çekip bir nesne olarak döndürüyoruz
                     return new
                     {
                         ElecData = _dashboardRepository.GetHourlyFactoryConsumption(today),
@@ -387,9 +460,6 @@ namespace TekstilScada.UI.Views
                     };
                 });
 
-                // 2. Grafikleri güncelleme (Burası UI Thread'de çalışır)
-
-                // --- Elektrik ---
                 formsPlotHourly.Plot.Clear();
                 if (result.ElecData != null && result.ElecData.Rows.Count > 0)
                 {
@@ -404,7 +474,6 @@ namespace TekstilScada.UI.Views
                 formsPlotHourly.Plot.Axes.AutoScale();
                 formsPlotHourly.Refresh();
 
-                // --- Su ---
                 formsPlotHourlyWater.Plot.Clear();
                 if (result.WaterData != null && result.WaterData.Rows.Count > 0)
                 {
@@ -419,7 +488,6 @@ namespace TekstilScada.UI.Views
                 formsPlotHourlyWater.Plot.Axes.AutoScale();
                 formsPlotHourlyWater.Refresh();
 
-                // --- Buhar ---
                 formsPlotHourlySteam.Plot.Clear();
                 if (result.SteamData != null && result.SteamData.Rows.Count > 0)
                 {
@@ -434,7 +502,6 @@ namespace TekstilScada.UI.Views
                 formsPlotHourlySteam.Plot.Axes.AutoScale();
                 formsPlotHourlySteam.Refresh();
 
-                // --- Alarmlar ---
                 formsPlotTopAlarms.Plot.Clear();
                 if (result.TopAlarms != null && result.TopAlarms.Any())
                 {
@@ -446,24 +513,14 @@ namespace TekstilScada.UI.Views
                     var ticks = Enumerable.Range(0, labels.Length).Select(i => new ScottPlot.Tick(i, labels[i])).ToArray();
                     formsPlotTopAlarms.Plot.Axes.Bottom.TickGenerator = new ScottPlot.TickGenerators.NumericManual(ticks);
                     formsPlotTopAlarms.Plot.Axes.Bottom.TickLabelStyle.Rotation = -90;
-
-                    // 2. KRİTİK NOKTA: Hizalamayı ayarla
-                    // Alignment.MiddleRight diyerek metnin "bitiş" noktasını eksene sabitliyoruz.
-                    // Böylece metin yukarı (grafiğe) değil, aşağıya (boşluğa) doğru uzanır.
-                    formsPlotTopAlarms.Plot.Axes.Bottom.TickLabelStyle.Alignment = ScottPlot.Alignment.MiddleRight;
+                    formsPlotTopAlarms.Plot.Axes.Bottom.TickLabelStyle.Alignment = ScottPlot.Alignment.LowerRight;
                     formsPlotTopAlarms.Plot.Axes.Bottom.TickLabelStyle.FontSize = 12;
                     formsPlotTopAlarms.Plot.Axes.Bottom.TickLabelStyle.Bold = true;
-                    // ÖNEMLİ: Döndürülen yazıların grafiğin içine girmemesi için hizalamayı sola yasla (MiddleLeft)
-                    formsPlotTopAlarms.Plot.Axes.Bottom.TickLabelStyle.Alignment = ScottPlot.Alignment.LowerRight;
-
-                    // Yazılar uzunsa kesilmemesi için alt eksene minimum bir yükseklik (Padding) veriyoruz (Örn: 100 piksel)
-                    // Bu komut grafiği yukarı iterek alt tarafta yazı için yer açar.
                     formsPlotTopAlarms.Plot.Axes.Bottom.MinimumSize = 160;
                 }
                 formsPlotTopAlarms.Plot.Axes.AutoScale();
                 formsPlotTopAlarms.Refresh();
 
-                // --- OEE ---
                 formsPlotHourlyOee.Plot.Clear();
                 if (result.OeeData != null && result.OeeData.Rows.Count > 0)
                 {
@@ -492,6 +549,13 @@ namespace TekstilScada.UI.Views
             {
                 _pollingService.OnMachineDataRefreshed -= PollingService_OnMachineDataRefreshed;
             }
+
+            // YENİ: Enerji Servisi Aboneliğini Kaldır
+            if (_utilityPollingService != null)
+            {
+                _utilityPollingService.OnUtilityDataRefreshed -= UtilityService_OnDataRefreshed;
+            }
+
             _uiUpdateTimer?.Stop();
             _uiUpdateTimer?.Dispose();
             base.OnHandleDestroyed(e);
