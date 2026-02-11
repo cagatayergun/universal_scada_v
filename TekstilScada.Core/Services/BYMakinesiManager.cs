@@ -449,11 +449,11 @@ namespace TekstilScada.Services
                     swappedBytes[i] = nameBytes[i + 1];
                     swappedBytes[i + 1] = nameBytes[i];
                 }
-
-                var writeonay = await Task.Run(() => _plcClient.Write("3813", 1));
-                // await Task.Delay(300);
+                short writeonay1 = 1;
+                var writeonay = await Task.Run(() => _plcClient.Write("3813", writeonay1));
+                await Task.Delay(200);
                 var writeResult = await Task.Run(() => _plcClient.Write(currentAddress.ToString(), swappedBytes));
-
+                
 
                 // await Task.Delay(300);
                 // var writebitti = await Task.Run(() => _plcClient.Write("3813", 0));
@@ -504,7 +504,8 @@ namespace TekstilScada.Services
 
         public async Task<OperateResult> WritePlcOperatorAsync(PlcOperator plcOperator)
         {
-            var operator_write = await Task.Run(() => _plcClient.Write("3210", 1));
+            short deger = 1;
+            var operator_write = await Task.Run(() => _plcClient.Write("3210", deger));
             if (operator_write.IsSuccess) ;
             // CHANGE: Modbus address is used
             string startAddress = (3087 + plcOperator.SlotIndex * 12).ToString();

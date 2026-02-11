@@ -67,7 +67,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             chknumune.Name = "chknumune";
             chknumune.Size = new Size(109, 19);
             chknumune.TabIndex = 5;
-            chknumune.Text = "SAMPLE DOOR";
+            chknumune.Text = "OPERATOR CALL";
             chknumune.UseVisualStyleBackColor = true;
             // 
             // chkBosaltma

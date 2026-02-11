@@ -50,7 +50,7 @@ namespace TekstilScada.UI.Views
             tabPageUtilitySettings.Controls.Add(_utilitySettings);
             _recipeStepDesigner.Dock = DockStyle.Fill;
             tabPageRecipeDesigner.Controls.Add(_recipeStepDesigner);
-
+            
             ApplyPermissions();
         }
         public void RefreshUserRoles()
@@ -74,7 +74,8 @@ namespace TekstilScada.UI.Views
             _recipeStepDesigner.Visible = PermissionService.HasAnyPermission(new List<int> { 11 });
             // btnVnc.Enabled = btnVnc.Visible; // Yetkisi yoksa butonun tıklanmasını engelle
             _utilitySettings.Visible = PermissionService.HasAnyPermission(new List<int> {6, 1000 });
-
+            _utilitySettings.Visible = false;
+            
             var master = PermissionService.HasAnyPermission(new List<int> { 1000 });
             if (master == true)
             {
@@ -85,6 +86,7 @@ namespace TekstilScada.UI.Views
                 _plcOperatorSettings.Enabled = PermissionService.HasAnyPermission(new List<int> { 1000 });
                 _recipeStepDesigner.Visible = PermissionService.HasAnyPermission(new List<int> { 1000 });
                 _utilitySettings.Visible = true;
+                _utilitySettings.Visible = false;
             }
 
         }
@@ -111,7 +113,7 @@ namespace TekstilScada.UI.Views
             tabPagePlcOperators.Text = Resources.PlcOperatorManagement;
            tabPageRecipeDesigner.Text = Resources.recipedesigner;
             //btnSave.Text = Resources.Save;
-            tabPageUtilitySettings.Text = "Line Usage Settings";
+          tabPageUtilitySettings.Text = "Line Usage Settings";
 
         }
     }

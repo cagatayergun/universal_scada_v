@@ -29,6 +29,7 @@
             groupBox2 = new GroupBox();
             lstHmiRecipes = new ListBox();
             panel1 = new Panel();
+            btnDeleteRecipes = new Button();
             btnRefreshHmi = new Button();
             dgvTransfers = new DataGridView();
             tabControlMain = new TabControl();
@@ -191,6 +192,7 @@
             // 
             // panel1
             // 
+            panel1.Controls.Add(btnDeleteRecipes);
             panel1.Controls.Add(btnRefreshHmi);
             panel1.Dock = DockStyle.Top;
             panel1.Location = new Point(3, 18);
@@ -198,6 +200,17 @@
             panel1.Name = "panel1";
             panel1.Size = new Size(362, 30);
             panel1.TabIndex = 1;
+            // 
+            // btnDeleteRecipes
+            // 
+            btnDeleteRecipes.Location = new Point(253, 4);
+            btnDeleteRecipes.Margin = new Padding(3, 2, 3, 2);
+            btnDeleteRecipes.Name = "btnDeleteRecipes";
+            btnDeleteRecipes.Size = new Size(105, 22);
+            btnDeleteRecipes.TabIndex = 1;
+            btnDeleteRecipes.Text = "Recipe Delete";
+            btnDeleteRecipes.UseVisualStyleBackColor = true;
+            btnDeleteRecipes.Click += btnDeleteRecipes_Click;
             // 
             // btnRefreshHmi
             // 
@@ -337,5 +350,6 @@
         private System.Windows.Forms.TabPage tabPagePreview;
         private System.Windows.Forms.Panel pnlPreviewArea;
         private System.Windows.Forms.Label lblPreviewStatus;
+        private Button btnDeleteRecipes;
     }
 }

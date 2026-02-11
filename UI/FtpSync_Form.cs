@@ -403,7 +403,7 @@ namespace TekstilScada.UI
                 if ((controlWord & 8) != 0) stepTypes.Add("Dosing");
                 if ((controlWord & 16) != 0) stepTypes.Add("Drain");
                 if ((controlWord & 32) != 0) stepTypes.Add("Extraction");
-                if ((controlWord & 1024) != 0) stepTypes.Add("Sample Door");
+                if ((controlWord & 1024) != 0) stepTypes.Add("Operator Call");
             }
             return stepTypes.Any() ? string.Join(" + ", stepTypes) : "-";
         }
@@ -463,6 +463,116 @@ namespace TekstilScada.UI
                 float textY = cellBounds.Y + (cellBounds.Height - textSize.Height) / 2;
                 g.DrawString(text, cellStyle.Font, Brushes.Black, textX, textY);
             }
+        }
+
+        // --- YENİ EKLENEN METOT: Reçete Silme (Temizleme) Butonu ---
+        // FtpSync_Form.cs içine eklenecek metodlar
+
+        // --- YENİ: Reçete Silme (Temizleme) Butonu ---
+        private void btnDeleteRecipes_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // 1. Makine Seçimi Kontrolü
+                var selectedMachines = clbMachines.CheckedItems.Cast<Machine>().ToList();
+                if (!selectedMachines.Any())
+                {
+                    MessageBox.Show("Please select at least one machine where prescriptions can be erased.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // 2. Reçete Numarası Girişi (Başlangıç)
+                string startNumberStr = ProsesKontrol_Control.ShowInputDialog("Enter the first prescription number to be deleted (1-98):", true);
+                if (string.IsNullOrEmpty(startNumberStr) || !int.TryParse(startNumberStr, out int startNumber))
+                {
+                    return;
+                }
+
+                // 3. Reçete Sayısı Girişi (Kaç adet silinecek)
+                string countStr = ProsesKontrol_Control.ShowInputDialog("How many prescriptions should be deleted??", true);
+                if (string.IsNullOrEmpty(countStr) || !int.TryParse(countStr, out int count))
+                {
+                    return;
+                }
+
+                // Sınır Kontrolü (Örn: 98'den fazla reçete yoksa)
+                if (startNumber + count - 1 > 98)
+                {
+                    MessageBox.Show($"Of your choice {count} pcs recipe, {startNumber} The starting number exceeds the limit of 98. Please enter fewer quantities or a lower starting number.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // Onay İste
+                var confirmResult = MessageBox.Show(
+                    $"{selectedMachines.Count} machines, {startNumber} starting from number {count}prescription will be deleted.\nThis action is irreversible.!\nDo you want to continue?",
+                    "Kritik İşlem Onayı",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning);
+
+                if (confirmResult != DialogResult.Yes) return;
+
+                // 4. Boş Reçete Listesini Oluştur
+                // Tek bir boş şablon yerine, istenen adet kadar boş reçete nesnesi oluşturup bir listeye koyuyoruz.
+                // Servis, bu listeyi alıp sırasıyla (StartNumber'dan başlayarak) isimlendirip gönderecek.
+                var emptyRecipesList = new List<ScadaRecipe>();
+
+                for (int i = 0; i < count; i++)
+                {
+                    // Her seferinde yeni bir boş reçete örneği oluştur
+                    var emptyRecipe = CreateEmptyRecipeForMachineType(_targetMachineType);
+
+                    // İsteğe bağlı: Reçete adını "BOŞ" veya "EMPTY" yapabiliriz.
+                    // Bu isim PLC'de reçete listesinde görünecektir.
+                    emptyRecipe.RecipeName = "-";
+
+                    emptyRecipesList.Add(emptyRecipe);
+                }
+
+                // 5. Transfer Kuyruğuna Ekle (Toplu Gönderim)
+                // FtpTransferService'in mevcut metodunu kullanarak listeyi gönderiyoruz.
+                // Bu metot, verdiğimiz listeyi startNumber'dan başlayarak sırasıyla (XPR00001, XPR00002...) isimlendirip kuyruğa atar.
+                _transferService.QueueSequentiallyNamedSendJobs(emptyRecipesList, selectedMachines, startNumber);
+
+                MessageBox.Show($"{count} The number of prescription deletions has been added to the transfer queue.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                // --- LOGLAMA ---
+                if (CurrentUser.User != null && _userRepository != null)
+                {
+                    string details = $"{count} recipes cleared (overwritten with empty) on {selectedMachines.Count} machines. Start #: {startNumber}";
+                    _userRepository.LogAction(CurrentUser.User.Id, "FTP_BATCH_DELETE", details);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred during the deletion process: {ex.Message}", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Yardımcı Metot: Boş Reçete Oluşturucu
+        private ScadaRecipe CreateEmptyRecipeForMachineType(string machineType)
+        {
+            var recipe = new ScadaRecipe
+            {
+                TargetMachineType = machineType,
+                RecipeName = "",
+                CreationDate = DateTime.Now,
+                Steps = new List<ScadaRecipeStep>()
+            };
+
+            // DÜZELTME 1: Kullanıcı isteği üzerine 1'den 99'a kadar tüm adımları oluşturuyoruz.
+            for (int i = 1; i <= 99; i++)
+            {
+                var emptyStep = new ScadaRecipeStep
+                {
+                    StepNumber = (short)i,
+                    // DÜZELTME 2: Boyut 96 yerine 25 yapıldı. 
+                    // CSV dönüştürücünüz her adımı 25 satır olarak okuduğu için 96 yolladığımızda 4 adım (96/25) gibi görünüyordu.
+                    StepDataWords = new short[25]
+                };
+                recipe.Steps.Add(emptyStep);
+            }
+
+            return recipe;
         }
     }
 }

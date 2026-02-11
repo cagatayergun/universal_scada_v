@@ -12,6 +12,9 @@ namespace TekstilScada.UIControls
         public UtilityDashboardCard_Control()
         {
             InitializeComponent();
+
+            // Başlangıçta kopuk (Gri) olarak başlasın
+            SetConnectionStatus(false);
         }
 
         // Bağlantı durumunu güncelleyen metot

@@ -277,7 +277,7 @@ namespace TekstilScada.Core.Services
             if ((controlWord & 128) != 0) stepTypes.Add("Timed Working");
             if ((controlWord & 256) != 0) stepTypes.Add("Humidity/Timed Working");
             if ((controlWord & 512) != 0) stepTypes.Add("Cooling");
-            if ((controlWord & 1024) != 0) stepTypes.Add("Sample Door");
+            if ((controlWord & 1024) != 0) stepTypes.Add("Operator Call");
 
             return stepTypes.Any() ? string.Join(" + ", stepTypes) : "Waiting....";
         }

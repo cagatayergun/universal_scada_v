@@ -92,6 +92,7 @@ namespace TekstilScada.UI.Views
             tabPageUtilitySettings.TabIndex = 6; // Sıraya göre index verin
             tabPageUtilitySettings.Text = "Enerji/Hat Ayarları";
             tabPageUtilitySettings.UseVisualStyleBackColor = true;
+            
             // 
             // tabPageRecipeDesigner
             // 

@@ -149,7 +149,7 @@ namespace TekstilScada.UI.Controls
             // 
             lblMachineIdTitle.AutoSize = true;
             lblMachineIdTitle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblMachineIdTitle.Location = new Point(13, 152);
+            lblMachineIdTitle.Location = new Point(5, 152);
             lblMachineIdTitle.Name = "lblMachineIdTitle";
             lblMachineIdTitle.Size = new Size(80, 15);
             lblMachineIdTitle.TabIndex = 9;
@@ -159,17 +159,17 @@ namespace TekstilScada.UI.Controls
             // 
             lblMachineNameTitle.AutoSize = true;
             lblMachineNameTitle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblMachineNameTitle.Location = new Point(13, 129);
+            lblMachineNameTitle.Location = new Point(5, 129);
             lblMachineNameTitle.Name = "lblMachineNameTitle";
-            lblMachineNameTitle.Size = new Size(88, 15);
+            lblMachineNameTitle.Size = new Size(101, 15);
             lblMachineNameTitle.TabIndex = 8;
-            lblMachineNameTitle.Text = "MACHINE ADI:";
+            lblMachineNameTitle.Text = "MACHINE NAME:";
             // 
             // lblStepTitle
             // 
             lblStepTitle.AutoSize = true;
             lblStepTitle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblStepTitle.Location = new Point(13, 106);
+            lblStepTitle.Location = new Point(5, 106);
             lblStepTitle.Name = "lblStepTitle";
             lblStepTitle.Size = new Size(37, 15);
             lblStepTitle.TabIndex = 7;
@@ -179,7 +179,7 @@ namespace TekstilScada.UI.Controls
             // 
             lblOperatorTitle.AutoSize = true;
             lblOperatorTitle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblOperatorTitle.Location = new Point(13, 84);
+            lblOperatorTitle.Location = new Point(5, 84);
             lblOperatorTitle.Name = "lblOperatorTitle";
             lblOperatorTitle.Size = new Size(71, 15);
             lblOperatorTitle.TabIndex = 6;
@@ -189,7 +189,7 @@ namespace TekstilScada.UI.Controls
             // 
             lblRecipeNameTitle.AutoSize = true;
             lblRecipeNameTitle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblRecipeNameTitle.Location = new Point(13, 62);
+            lblRecipeNameTitle.Location = new Point(5, 62);
             lblRecipeNameTitle.Name = "lblRecipeNameTitle";
             lblRecipeNameTitle.Size = new Size(85, 15);
             lblRecipeNameTitle.TabIndex = 5;
@@ -217,7 +217,7 @@ namespace TekstilScada.UI.Controls
             // 
             lblProcessing.AutoSize = true;
             lblProcessing.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblProcessing.Location = new Point(13, 38);
+            lblProcessing.Location = new Point(5, 38);
             lblProcessing.Name = "lblProcessing";
             lblProcessing.Size = new Size(80, 15);
             lblProcessing.TabIndex = 1;

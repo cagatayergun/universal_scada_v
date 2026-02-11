@@ -596,8 +596,8 @@ namespace TekstilScada.Services
                     swappedBytes[i] = nameBytes[i + 1];
                     swappedBytes[i + 1] = nameBytes[i];
                 }
-
-                var writeonay = await Task.Run(() => _plcClient.Write("3813", 1));
+                short writeonay1 = 1;
+                var writeonay = await Task.Run(() => _plcClient.Write("3813",writeonay1));
                 // await Task.Delay(300);
                 var writeResult = await Task.Run(() => _plcClient.Write(currentAddress.ToString(), swappedBytes));
 

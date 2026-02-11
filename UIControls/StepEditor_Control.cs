@@ -116,12 +116,12 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             // 1. Get all currently checked checkboxes from the panel
             var checkedBoxes = pnlStepTypes.Controls.OfType<CheckBox>().Where(c => c.Checked).ToList();
 
-            // --- NEW RULE: Sample Door (chkNumuneKapisi) Must Be Alone ---
-            // If "Sample Door" is in the list AND the total count is greater than 1, it's a violation.
+            // --- NEW RULE: Operator Call (chkNumuneKapisi) Must Be Alone ---
+            // If "Operator Call" is in the list AND the total count is greater than 1, it's a violation.
             // It cannot be combined with Standard steps OR Special steps.
             if (checkedBoxes.Contains(chknumune) && checkedBoxes.Count > 1)
             {
-                MessageBox.Show("The 'Sample Door' step cannot be selected together with any other step. Please select it alone.",
+                MessageBox.Show("The 'Operator Call' step cannot be selected together with any other step. Please select it alone.",
                                 "Rule Violation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
                 // Return false to indicate the selection is invalid (undo the click)

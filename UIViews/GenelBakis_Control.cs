@@ -195,7 +195,7 @@ namespace TekstilScada.UI.Views
             flpUtilityStrip.SuspendLayout();
             flpUtilityStrip.Controls.Clear();
             _utilityCards.Clear();
-
+            flpUtilityStrip.Visible=false;
             // Hatları çek (Repository'de GetUtilityLines var)
             var lines = _utilityRepository.GetUtilityLines();
 

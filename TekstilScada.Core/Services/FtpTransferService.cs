@@ -248,7 +248,7 @@ namespace TekstilScada.Services
         {
             _isProcessing = true;
 
-            while (true) // Yeni döngü yapısı: Kilit altında iş bitene kadar bekle
+            while (true)
             {
                 TransferJob job;
 
@@ -275,12 +275,28 @@ namespace TekstilScada.Services
                     var ftpService = new FtpService(job.Machine.VncAddress, job.Machine.FtpUsername, job.Machine.FtpPassword);
                     job.Progress = 20;
                     OnJobProgressChanged?.Invoke(job);
+
                     if (job.OperationType == TransferType.Send)
                     {
-                        var fullRecipe = recipeRepo.GetRecipeById(job.LocalRecipe.Id);
-                        if (fullRecipe == null || !fullRecipe.Steps.Any())
+                        // --- DÜZELTME BAŞLANGICI ---
+                        ScadaRecipe fullRecipe;
+
+                        // Eğer reçetenin geçerli bir ID'si varsa (DB'de kayıtlıysa) en güncel halini çek
+                        if (job.LocalRecipe != null && job.LocalRecipe.Id > 0)
                         {
-                            throw new Exception("Recipe not found in database or steps are empty.");
+                            fullRecipe = recipeRepo.GetRecipeById(job.LocalRecipe.Id);
+                        }
+                        else
+                        {
+                            // ID yoksa (0 ise), bu bellekte oluşturulmuş geçici bir reçetedir (Örn: Silme işlemi için boş reçete)
+                            // Doğrudan job üzerindeki nesneyi kullan.
+                            fullRecipe = job.LocalRecipe;
+                        }
+                        // --- DÜZELTME BİTİŞİ ---
+
+                        if (fullRecipe == null || fullRecipe.Steps == null || !fullRecipe.Steps.Any())
+                        {
+                            throw new Exception("Recipe object is null or steps are empty.");
                         }
 
                         // Write the recipe name to the PLC
@@ -306,19 +322,39 @@ namespace TekstilScada.Services
                         }
 
                         // Update step 99 to embed the recipe name in the PLC
-                        string nameToEmbed = job.LocalRecipe.RecipeName;
+                        string nameToEmbed = fullRecipe.RecipeName; // Null kontrolü eklendi
+                        if (nameToEmbed == " ") nameToEmbed = " ";
                         if (nameToEmbed.Length > 10)
                         {
                             nameToEmbed = nameToEmbed.Substring(0, 10);
                         }
                         byte[] asciiBytes = new byte[10];
                         Encoding.ASCII.GetBytes(nameToEmbed, 0, nameToEmbed.Length, asciiBytes, 0);
+
                         var step99 = fullRecipe.Steps.FirstOrDefault(s => s.StepNumber == 99);
                         if (step99 == null)
                         {
-                            step99 = new ScadaRecipeStep { StepNumber = 99 };
+                            step99 = new ScadaRecipeStep
+                            {
+                                StepNumber = 99,
+                                StepDataWords = new short[25] // Varsayılan boyut ile oluştur
+                            };
                             fullRecipe.Steps.Add(step99);
-                            fullRecipe.Steps = fullRecipe.Steps.OrderBy(s => s.StepNumber).ToList();
+                            // Sıralama bozulmasın diye (opsiyonel)
+                            // fullRecipe.Steps = fullRecipe.Steps.OrderBy(s => s.StepNumber).ToList();
+                        }
+
+                        // DataWords boyutu kontrolü (Eğer 5'ten küçükse hata almamak için)
+                        if (step99.StepDataWords.Length < 5)
+                        {
+                            // HATA ÇÖZÜMÜ: Property'i önce yerel değişkene al
+                            short[] tempArray = step99.StepDataWords;
+
+                            // Yerel değişkeni yeniden boyutlandır
+                            Array.Resize(ref tempArray, 25);
+
+                            // Sonucu tekrar property'e ata
+                            step99.StepDataWords = tempArray;
                         }
 
                         for (int i = 0; i < 5; i++)

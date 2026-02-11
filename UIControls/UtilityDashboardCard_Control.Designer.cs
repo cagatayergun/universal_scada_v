@@ -40,7 +40,7 @@
             this.pnlHeader.Name = "pnlHeader";
             this.pnlHeader.Padding = new System.Windows.Forms.Padding(5);
             this.pnlHeader.Size = new System.Drawing.Size(318, 30);
-            this.pnlHeader.TabIndex = 2;
+            this.pnlHeader.TabIndex = 0;
             // 
             // lblLineName
             // 
@@ -51,7 +51,7 @@
             this.lblLineName.Name = "lblLineName";
             this.lblLineName.Size = new System.Drawing.Size(288, 20);
             this.lblLineName.TabIndex = 2;
-            this.lblLineName.Text = "Hat İsmi Bekleniyor...";
+            this.lblLineName.Text = "Hat İsmi";
             this.lblLineName.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // pnlStatusIndicator
@@ -86,7 +86,7 @@
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 40F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 60F));
             this.tableLayoutPanel1.Size = new System.Drawing.Size(318, 68);
-            this.tableLayoutPanel1.TabIndex = 3;
+            this.tableLayoutPanel1.TabIndex = 1;
             // 
             // lblAirVal
             // 

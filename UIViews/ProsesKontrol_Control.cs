@@ -613,7 +613,7 @@ namespace TekstilScada.UI.Views
             if ((controlWord & 8) != 0) stepTypes.Add("Dosage");
             if ((controlWord & 16) != 0) stepTypes.Add("Unloading");
             if ((controlWord & 32) != 0) stepTypes.Add("Squeezing");
-            if ((controlWord & 1024) != 0) stepTypes.Add("Sample Door");
+            if ((controlWord & 1024) != 0) stepTypes.Add("Operator Call");
             return string.Join(" + ", stepTypes);
         }
 

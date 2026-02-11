@@ -74,8 +74,8 @@ builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
     provider.GetRequiredService<CustomAuthStateProvider>());
 
 // --- 5. HttpClient ---
-//var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5000";
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:7039";
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5000";
+//var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:7039";
 builder.Services.AddHttpClient("WebApiClient", client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
