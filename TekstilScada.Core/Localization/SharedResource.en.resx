@@ -214,7 +214,7 @@
     <value>MACHINES IN ALARM</value>
   </data>
   <data name="BekleyenMakine" xml:space="preserve">
-    <value>IDLE MACHINES</value>
+    <value>WAITING</value>
   </data>
   <data name="MakineTanimlanmamis" xml:space="preserve">
     <value>No machines defined in the system yet.</value>
@@ -1352,6 +1352,9 @@
   </data>
   <data name="DisaAktarmaHatasi" xml:space="preserve">
     <value>Export error</value>
+  </data>
+  <data name="AktifCalisma" xml:space="preserve">
+    <value>Active Working</value>
   </data>
   <data name="MakineAlarm" xml:space="preserve">
     <value>Machine Alarm</value>

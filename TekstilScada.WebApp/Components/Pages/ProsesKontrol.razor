@@ -63,9 +63,13 @@
                     <MudIcon Icon="@Icons.Material.Filled.EditNote" Size="MudBlazor.Size.Large" style="font-size: 5rem;" />
                     <MudText Typo="Typo.h5" Class="mt-3">@Loc["DuzenlemekIcinReceteSecin"]</MudText>
 
-                    <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Info" StartIcon="@Icons.Material.Filled.CloudSync" OnClick="OpenFtpSync" Class="mt-4">
-                        @Loc["FtpSenkronizasyonMerkezi"]
-                    </MudButton>
+                    @* Kurutma değilse FTP butonunu göster *@
+                    @if (!IsDryerMachine)
+                    {
+                        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Info" StartIcon="@Icons.Material.Filled.CloudSync" OnClick="OpenFtpSync" Class="mt-4">
+                            @Loc["FtpSenkronizasyonMerkezi"]
+                        </MudButton>
+                    }
                 </div>
             }
             else
@@ -78,10 +82,23 @@
                         <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveCurrentRecipe" Disabled="@isBusy">@Loc["Kaydet"]</MudButton>
 
                         <MudMenu Label="@Loc["IslemlerMenu"]" Variant="Variant.Filled" Color="MudBlazor.Color.Info" EndIcon="@Icons.Material.Filled.KeyboardArrowDown">
-                            <MudMenuItem OnClick="SendToPlc" Icon="@Icons.Material.Filled.Upload" Disabled="@(SelectedMachineId == 0)">@Loc["SeciliMakineyeGonder"]</MudMenuItem>
+
+                            @* 1. DİREK GÖNDERİM: BY Makinelerinde KAPALI, Diğerlerinde AÇIK *@
+                            @if (!IsByMachine)
+                            {
+                                <MudMenuItem OnClick="SendToPlc" Icon="@Icons.Material.Filled.Upload" Disabled="@(SelectedMachineId == 0)">@Loc["SeciliMakineyeGonder"]</MudMenuItem>
+                            }
+
+                            @* 2. OKUMA: Herkeste AÇIK *@
                             <MudMenuItem OnClick="ReadFromPlc" Icon="@Icons.Material.Filled.Download" Disabled="@(SelectedMachineId == 0)">@Loc["SeciliMakinedenOku"]</MudMenuItem>
+
                             <MudDivider />
-                            <MudMenuItem OnClick="OpenFtpSync" Icon="@Icons.Material.Filled.CloudSync">@Loc["FtpCokluGonderim"]</MudMenuItem>
+
+                            @* 3. FTP: Kurutmalarda KAPALI, Diğerlerinde AÇIK *@
+                            @if (!IsDryerMachine)
+                            {
+                                <MudMenuItem OnClick="OpenFtpSync" Icon="@Icons.Material.Filled.CloudSync">@Loc["FtpCokluGonderim"]</MudMenuItem>
+                            }
                         </MudMenu>
                     </MudItem>
                 </MudGrid>
@@ -115,7 +132,10 @@
                         <MudItem xs="12" md="9">
                             @if (selectedStep != null)
                             {
-                                <StepEditor Step="selectedStep"
+                                @* DÜZELTME: @key="selectedStep" eklendi.
+                                   Bu sayede adım değiştiğinde bileşen tamamen yenilenir ve veriler eksiksiz yüklenir. *@
+                                <StepEditor @key="selectedStep"
+                                            Step="selectedStep"
                                             MachineSubType="@(GetMachineFilterType(selectedMachine))"
                                             OnChanged="RefreshStepList" />
                             }
@@ -131,22 +151,43 @@
     </MudItem>
 </MudGrid>
 
-
-
 @code {
     private List<ScadaRecipe>? recipes;
     private List<ScadaRecipe> filteredRecipes = new();
     private List<Machine>? machines;
-    private ScadaRecipe? selectedRecipe; // Sayfa açılışında null
+    private ScadaRecipe? selectedRecipe;
     private ScadaRecipeStep? selectedStep;
-    private int selectedMachineId; // Sayfa açılışında 0
+    private int selectedMachineId;
     private bool isBusy = false;
     private string statusMessage = string.Empty;
     private bool showFtpModal = false;
 
     private Machine? selectedMachine;
 
-    // YENİ: FTP Penceresini Açma Metodu
+    // --- YARDIMCI ÖZELLİKLER ---
+    // Seçili makinenin BY Makinesi olup olmadığını kontrol eder.
+    private bool IsByMachine
+    {
+        get
+        {
+            if (selectedMachine == null) return false;
+            // Makine tipi veya alt tipi "BY" içeriyorsa
+            var type = (selectedMachine.MachineType ?? "") + (selectedMachine.MachineSubType ?? "");
+            return type.Contains("BYMakinesi", StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    // Seçili makinenin Kurutma Makinesi olup olmadığını kontrol eder.
+    private bool IsDryerMachine
+    {
+        get
+        {
+            if (selectedMachine == null) return false;
+            return (selectedMachine.MachineType ?? "").Contains("KurutmaMakinesi", StringComparison.OrdinalIgnoreCase);
+        }
+    }
+    // ----------------------------
+
     private async Task OpenFtpSync()
     {
         if (recipes == null || machines == null)
@@ -161,7 +202,6 @@
             { x => x.AllMachines, machines },
             { x => x.InitialTargetType, selectedRecipe?.TargetMachineType ?? "" }
         };
-
         var options = new DialogOptions
         {
             MaxWidth = MaxWidth.ExtraLarge,
@@ -169,9 +209,9 @@
             CloseButton = true,
             BackdropClick = false
         };
-
         var dialog = await DialogService.ShowAsync<FtpSyncModal>(Loc["FtpSenkronizasyonMerkezi"], parameters, options);
     }
+
     private string GetMachineFilterType(Machine? machine)
     {
         if (machine == null) return string.Empty;
@@ -184,12 +224,9 @@
         set
         {
             if (selectedMachineId == value) return;
-
             selectedMachineId = value;
             selectedMachine = machines?.FirstOrDefault(m => m.Id == value);
-
-            // Makine değiştiğinde, reçete listesini filtrele. Otomatik seçim, filtreleme mantığı içinde yapılacak.
-            FilterRecipesByMachine(autoSelectFirst: false); // FALSE: Sadece filtrele, ilkini seçme
+            FilterRecipesByMachine(autoSelectFirst: false);
         }
     }
 
@@ -197,21 +234,12 @@
     {
         isBusy = true;
         statusMessage = Loc["BilesenlerYukleniyor"];
-
-        // 1. Makineler yükleniyor (selectedMachineId = 0 olarak kalır)
         await LoadMachines();
-
-        // 2. Reçeteler yükleniyor
         await LoadRecipes();
         isBusy = false;
-
-        // 3. İlk filtrelemeyi yap. Sayfa boş açılsın diye selectedRecipe = null
         selectedRecipe = null;
         selectedStep = null;
-
-        // Tüm reçeteleri göster (makine seçimi 0 olduğu için)
         FilterRecipesByMachine(autoSelectFirst: false);
-
         StateHasChanged();
     }
 
@@ -220,8 +248,7 @@
         machines = await ScadaDataService.GetMachinesAsync();
         if (machines != null && machines.Any())
         {
-            // İlk yüklemede, varsayılan makine seçilmeyecek, sadece listeyi dolduracağız.
-            // selectedMachineId = 0 olarak kalır.
+            // Initial load logic if needed
         }
         else
         {
@@ -233,7 +260,6 @@
     private async Task LoadRecipes()
     {
         isBusy = true;
-
         recipes = await ScadaDataService.GetRecipesAsync();
         StateHasChanged();
         FilterRecipesByMachine(autoSelectFirst: false);
@@ -242,11 +268,9 @@
 
     private void FilterRecipesByMachine(bool autoSelectFirst = false)
     {
-        // Filtrelemeden önce her zaman mevcut seçimi temizle
         selectedRecipe = null;
         selectedStep = null;
 
-        // 0. Hiç makine seçilmediyse, tüm reçeteleri göster (filtresiz)
         if (SelectedMachineId == 0 || machines == null || recipes == null)
         {
             filteredRecipes = new List<ScadaRecipe>();
@@ -262,12 +286,9 @@
             return;
         }
 
-        // 1. Makineye göre filtrele
         string filterType = GetMachineFilterType(machine);
-
         filteredRecipes = recipes.Where(r => r.TargetMachineType == filterType).ToList();
 
-        // 2. İsteğe bağlı olarak ilk reçeteyi seç (Yani makineyi seçtiğinde, reçete varsa detaylar gelsin)
         if (autoSelectFirst && filteredRecipes.Any())
         {
             var firstRecipe = filteredRecipes.First();
@@ -287,13 +308,11 @@
         }
 
         string targetType = GetMachineFilterType(selectedMachine);
-
         selectedRecipe = new ScadaRecipe
         {
             RecipeName = Loc["YeniReceteVarsayilanAd"],
             TargetMachineType = targetType
         };
-
         int stepCount = (selectedMachine?.MachineType == "Kurutma Makinesi") ? 1 : 98;
 
         selectedRecipe.Steps.Clear();
@@ -310,7 +329,6 @@
     private async Task SelectRecipe(int recipeId, bool isFromList = false)
     {
         if (selectedRecipe?.Id == recipeId && isFromList) return;
-
         isBusy = true;
         statusMessage = Loc["ReceteDetaylariYukleniyor"];
         selectedStep = null;
@@ -318,7 +336,6 @@
         selectedRecipe = await ScadaDataService.GetRecipeDetailsAsync(recipeId);
 
         isBusy = false;
-
         if (selectedRecipe != null && selectedMachine != null)
         {
             selectedRecipe.TargetMachineType = GetMachineFilterType(selectedMachine);
@@ -345,7 +362,6 @@
         isBusy = true;
         statusMessage = Loc["ReceteKaydediliyor"];
         StateHasChanged();
-
         try
         {
             var savedRecipe = await ScadaDataService.SaveRecipeAsync(selectedRecipe);
@@ -376,7 +392,6 @@
     private async Task DeleteSelectedRecipe()
     {
         if (selectedRecipe == null) return;
-
         bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", string.Format(Loc["ReceteSilOnay"], selectedRecipe.RecipeName));
 
         if (!confirmed) return;
@@ -384,11 +399,9 @@
         isBusy = true;
         statusMessage = Loc["ReceteSiliniyor"];
         StateHasChanged();
-
         try
         {
             bool success = await ScadaDataService.DeleteRecipeAsync(selectedRecipe.Id);
-
             if (success)
             {
                 selectedRecipe = null;
@@ -414,52 +427,37 @@
         }
     }
 
-
     private async Task SendToPlc()
     {
         if (selectedRecipe == null || selectedMachine == null) return;
 
-        // Makine tipine göre işlem
-        if (selectedMachine.MachineType == "BYMakinesi")
+        // BY Makineleri için bu metot artık menüden engellendi ama güvenlik için kontrol kalsın
+        if (IsByMachine)
         {
-            // BY Makinesi için Numara Girme Dialogu
-            string recipeNoStr = await JSRuntime.InvokeAsync<string>("prompt", Loc["HmiReceteNoGiriniz"].Value);
-
-            if (int.TryParse(recipeNoStr, out int recipeNo) && recipeNo >= 1 && recipeNo <= 99)
-            {
-                isBusy = true;
-                StateHasChanged();
-
-                // İLERLEME GÖSTERİMİ (Snackbar ile)
-                Snackbar.Add(string.Format(Loc["ReceteGonderiliyor"], selectedMachine.MachineName), Severity.Info);
-
-                try
-                {
-                    string remoteFileName = string.Format("XPR{0:D5}.csv", recipeNo);
-                    bool success = await ScadaDataService.QueueReceiveJobsAsync(new List<string> { remoteFileName }, selectedMachine.Id);
-                    // Not: Yukarıdaki satır orijinal kodda QueueReceiveJobsAsync olarak kalmış. Eğer Send (Gönderim) ise ilgili Send metodunun kullanılması gerekir.
-                    // Orijinal kodu bozmamak için burada bırakıyorum.
-
-                    // Simülasyon
-                    await Task.Delay(1000);
-
-                    Snackbar.Add(Loc["GonderimBasarili"], Severity.Success);
-                }
-                catch (Exception ex)
-                {
-                    Snackbar.Add($"{Loc["Hata"]}: {ex.Message}", Severity.Error);
-                }
-                finally
-                {
-                    isBusy = false;
-                    StateHasChanged();
-                }
-            }
+            await JSRuntime.InvokeVoidAsync("alert", "BY Makineleri için sadece FTP gönderimi desteklenmektedir.");
+            return;
         }
-        else
+
+        // Diğer makineler için direk gönderim (Eski kodunuzdaki mantık korunabilir veya buraya eklenebilir)
+        isBusy = true;
+        StateHasChanged();
+        try
         {
-            // Diğer makineler için direk gönderim
-            // ...
+            // Örnek direk gönderim kodu (DataService üzerinden)
+            bool success = await ScadaDataService.SendRecipeToPlcAsync(selectedRecipe.Id, selectedMachine.Id);
+            if (success)
+                Snackbar.Add(Loc["GonderimBasarili"], Severity.Success);
+            else
+                Snackbar.Add(Loc["GonderimBasarisiz"], Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{Loc["Hata"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isBusy = false;
+            StateHasChanged();
         }
     }
 
@@ -471,11 +469,9 @@
         statusMessage = string.Format(Loc["ReceteOkunuyor"], selectedMachine.MachineName);
         selectedRecipe = null;
         StateHasChanged();
-
         try
         {
             var recipeFromPlc = await ScadaDataService.ReadRecipeFromPlcAsync(selectedMachine.Id);
-
             if (recipeFromPlc != null)
             {
                 recipeFromPlc.RecipeName = $"PLC_{selectedMachine.MachineUserDefinedId}_{DateTime.Now:HHmm}";
@@ -502,7 +498,6 @@
             StateHasChanged();
         }
     }
-
 
     private string GetStepTypeName(ScadaRecipeStep step)
     {

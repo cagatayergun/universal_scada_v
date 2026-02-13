@@ -313,6 +313,101 @@
             };
     </script>
     <script>
+    window.plotSyncedTrendCharts = (data, divTempId, divRpmId, divLevelId) => {
+    if (!data || data.length === 0) return;
+
+    // Verileri dizilere ayır
+    var timestamps = data.map(d => d.timestamp);
+    // Sıcaklık verisi web tarafında ham (örn 905) gelebilir, 10'a bölüyoruz.
+    var tempData = data.map(d => d.temperature / 10.0);
+    var rpmData = data.map(d => d.rpm);
+    var levelData = data.map(d => d.waterLevel);
+
+    // Ortak Eksen Ayarı
+    var commonLayout = {
+    xaxis: {
+    type: 'date',
+    tickformat: '%H:%M:%S',
+    autorange: true
+    },
+    margin: { t: 30, b: 40, l: 60, r: 20 },
+    showlegend: false
+    };
+
+    // 1. Sıcaklık Grafiği
+    var traceTemp = {
+    x: timestamps,
+    y: tempData,
+    mode: 'lines',
+    name: 'Sıcaklık',
+    line: { color: '#dc3545', width: 2 },
+    fill: 'tozeroy'
+    };
+    var layoutTemp = Object.assign({}, commonLayout, {
+    yaxis: { title: 'Sıcaklık (°C)' }
+    });
+
+    // 2. Devir Grafiği
+    var traceRpm = {
+    x: timestamps,
+    y: rpmData,
+    mode: 'lines',
+    name: 'Devir',
+    line: { color: '#198754', width: 2 }
+    };
+    var layoutRpm = Object.assign({}, commonLayout, {
+    yaxis: { title: 'Devir (d/d)' }
+    });
+
+    // 3. Seviye Grafiği
+    var traceLevel = {
+    x: timestamps,
+    y: levelData,
+    mode: 'lines',
+    name: 'Seviye',
+    line: { color: '#0dcaf0', width: 2 },
+    fill: 'tozeroy'
+    };
+    var layoutLevel = Object.assign({}, commonLayout, {
+    yaxis: { title: 'Seviye (%)' }
+    });
+
+    // Grafikleri Çiz
+    Plotly.newPlot(divTempId, [traceTemp], layoutTemp, { responsive: true, displayModeBar: false });
+    Plotly.newPlot(divRpmId, [traceRpm], layoutRpm, { responsive: true, displayModeBar: false });
+    Plotly.newPlot(divLevelId, [traceLevel], layoutLevel, { responsive: true, displayModeBar: false });
+
+    // --- SENKRONİZASYON (ZOOM/PAN) ---
+    var divTemp = document.getElementById(divTempId);
+    var divRpm = document.getElementById(divRpmId);
+    var divLevel = document.getElementById(divLevelId);
+
+    // Sıcaklık grafiğinde zoom yapılınca diğerlerine uygula
+    divTemp.on('plotly_relayout', function (eventdata) {
+    if (eventdata['xaxis.range[0]'] || eventdata['xaxis.autorange']) {
+    Plotly.relayout(divRpmId, eventdata);
+    Plotly.relayout(divLevelId, eventdata);
+    }
+    });
+
+    // Devir grafiğinde zoom yapılınca diğerlerine uygula
+    divRpm.on('plotly_relayout', function (eventdata) {
+    if (eventdata['xaxis.range[0]'] || eventdata['xaxis.autorange']) {
+    Plotly.relayout(divTempId, eventdata);
+    Plotly.relayout(divLevelId, eventdata);
+    }
+    });
+
+    // Seviye grafiğinde zoom yapılınca diğerlerine uygula
+    divLevel.on('plotly_relayout', function (eventdata) {
+    if (eventdata['xaxis.range[0]'] || eventdata['xaxis.autorange']) {
+    Plotly.relayout(divTempId, eventdata);
+    Plotly.relayout(divRpmId, eventdata);
+    }
+    });
+    };
+    </script>
+    <script>
     window.plotSyncedCharts = (data) => {
     if (!data || data.length === 0) return;
 

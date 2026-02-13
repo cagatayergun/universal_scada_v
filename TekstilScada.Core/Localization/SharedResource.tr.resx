@@ -214,7 +214,7 @@
     <value>ALARMDAKİ MAKİNE</value>
   </data>
   <data name="BekleyenMakine" xml:space="preserve">
-    <value>BEKLEYEN MAKİNE</value>
+    <value>BEKLİYOR</value>
   </data>
   <data name="MakineTanimlanmamis" xml:space="preserve">
     <value>Sistemde henüz makine tanımlanmamıştır.</value>
@@ -412,7 +412,7 @@
     <value>Bağlantı Yok</value>
   </data>
   <data name="BaglantiKoptu" xml:space="preserve">
-    <value>KOPUK</value>
+    <value>OFFLINE</value>
   </data>
   <data name="Alarm" xml:space="preserve">
     <value>ALARM</value>

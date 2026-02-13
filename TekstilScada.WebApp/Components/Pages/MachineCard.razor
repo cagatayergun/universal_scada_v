@@ -75,7 +75,9 @@
                 <MudStack Row="true" AlignItems="AlignItems.Center">
                     <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Size="Size.Small" Color="Color.Default" />
                     <MudText Typo="Typo.body2" Style="font-weight:bold;">@Loc["Recete"]</MudText>
-                    <MudText Typo="Typo.body2" Class="ml-auto text-truncate">@MachineStatus.RecipeName</MudText>
+                    <MudTooltip Text="@MachineStatus.RecipeName">
+                        <MudText Typo="Typo.body2" Class="ml-auto text-truncate" Style="max-width: 180px;">@MachineStatus.RecipeName</MudText>
+                    </MudTooltip>
                 </MudStack>
             </MudItem>
 
@@ -83,7 +85,29 @@
                 <MudStack Row="true" AlignItems="AlignItems.Center">
                     <MudIcon Icon="@Icons.Material.Filled.QrCode" Size="Size.Small" Color="Color.Default" />
                     <MudText Typo="Typo.caption">@Loc["Parti"]</MudText>
-                    <MudText Typo="Typo.body2" Class="ml-auto"><b>@MachineStatus.BatchNumarasi</b></MudText>
+                    <MudTooltip Text="@MachineStatus.BatchNumarasi">
+                        <MudText Typo="Typo.body2" Class="ml-auto text-truncate" Style="max-width: 80px;"><b>@MachineStatus.BatchNumarasi</b></MudText>
+                    </MudTooltip>
+                </MudStack>
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Small" Color="Color.Default" />
+                    <MudText Typo="Typo.caption">Sipariş</MudText>
+                    <MudTooltip Text="@MachineStatus.SiparisNumarasi">
+                        <MudText Typo="Typo.body2" Class="ml-auto text-truncate" Style="max-width: 80px;"><b>@MachineStatus.SiparisNumarasi</b></MudText>
+                    </MudTooltip>
+                </MudStack>
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" Color="Color.Default" />
+                    <MudText Typo="Typo.caption">Müşteri</MudText>
+                    <MudTooltip Text="@MachineStatus.MusteriNumarasi">
+                        <MudText Typo="Typo.body2" Class="ml-auto text-truncate" Style="max-width: 80px;"><b>@MachineStatus.MusteriNumarasi</b></MudText>
+                    </MudTooltip>
                 </MudStack>
             </MudItem>
 
@@ -91,7 +115,11 @@
                 <MudStack Row="true" AlignItems="AlignItems.Center">
                     <MudIcon Icon="@Icons.Material.Filled.FormatListNumbered" Size="Size.Small" Color="Color.Default" />
                     <MudText Typo="Typo.caption">@Loc["Adim"]</MudText>
-                    <MudText Typo="Typo.body2" Class="ml-auto"><b>@MachineStatus.AktifAdimNo</b></MudText>
+                    <MudTooltip Text="@($"{MachineStatus.AktifAdimNo} - {MachineStatus.AktifAdimAdi}")">
+                        <MudText Typo="Typo.body2" Class="ml-auto text-truncate" Style="max-width: 90px;">
+                            <b>@MachineStatus.AktifAdimNo</b> - @MachineStatus.AktifAdimAdi
+                        </MudText>
+                    </MudTooltip>
                 </MudStack>
             </MudItem>
 
@@ -125,7 +153,6 @@
 </MudCard>
 
 <style>
-    /* Hafif bir hover efekti ekleyelim */
     .machine-card-hover {
         transition: all 0.3s ease;
     }
@@ -142,17 +169,12 @@
     [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
     [Parameter] public EventCallback<int> OnInfoClick { get; set; }
 
-    // --- YENİ METOT: KURUTMA KONTROLÜ ---
     private bool IsDryerMachine()
     {
         if (string.IsNullOrEmpty(MachineStatus.MakineTipi)) return false;
-
-        // Veritabanında "Kurutma" veya "Kurutma Makinesi" olarak kayıtlı olabilir.
-        // Büyük/küçük harf duyarlılığını kaldırarak kontrol ediyoruz.
         var type = MachineStatus.MakineTipi.Trim().ToLower();
         return type.Contains("kurutma");
     }
-    // ------------------------------------
 
     private Color GetConnectionColor()
     {
@@ -201,7 +223,6 @@
         return Icons.Material.Filled.StopCircle;
     }
 
-    // Alarm durumunda kartın kenarlığını kırmızı yapmak için stil
     private string GetCardBorderStyle()
     {
         if (MachineStatus.HasActiveAlarm)
@@ -224,12 +245,12 @@
     {
         NavigationManager.NavigateTo($"/makine-detay/{MachineStatus.MachineId}");
     }
+
     private async Task OpenVncPopup(int machineId)
     {
         try
         {
             var parameters = new DialogParameters { ["MachineId"] = machineId };
-
             var options = new DialogOptions
             {
                 MaxWidth = MaxWidth.ExtraLarge,
@@ -238,10 +259,9 @@
                 BackdropClick = false,
                 NoHeader = false
             };
-
             var dialog = await DialogService.ShowAsync<VncMonitorDialog>("", parameters, options);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Hata yönetimi
         }

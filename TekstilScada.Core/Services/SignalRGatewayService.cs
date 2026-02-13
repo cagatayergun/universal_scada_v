@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using System;
 using System.Collections.Generic;
+using System.Data; // EKLENDİ: DataTable işlemleri için gerekli
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -466,14 +467,54 @@ namespace TekstilScada.Services
             });
             _requestHandlers["GetProductionDetail"] = async args => await RunDb(() => GetProductionDetailInternal(GetArg<int>(args, 0), GetArg<string>(args, 1)));
 
-            // -- DASHBOARD METOTLARI --
+            // -- DASHBOARD METOTLARI (DÜZELTİLDİ) --
             _requestHandlers["GetOeeReport"] = async args => await RunDb(() =>
             {
                 var rf = GetArg<ReportFilters>(args, 0);
                 return _dashboardRepo.GetOeeReport(rf.StartTime, rf.EndTime, rf.MachineId);
             });
-            _requestHandlers["GetHourlyFactoryConsumption"] = async _ => await RunDb(() => new List<HourlyConsumptionData>()); // TODO: Repoya bağlanacak
-            _requestHandlers["GetHourlyAverageOee"] = async _ => await RunDb(() => new List<HourlyOeeData>()); // TODO: Repoya bağlanacak
+
+            // GÜNCELLENDİ: Windows Forms mantığı ile birebir aynı veri çekme işlemi
+            _requestHandlers["GetHourlyFactoryConsumption"] = async _ => await RunDb(() =>
+            {
+                var dt = _dashboardRepo.GetHourlyFactoryConsumption(DateTime.Today);
+                var list = new List<HourlyConsumptionData>();
+                if (dt != null)
+                {
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        list.Add(new HourlyConsumptionData
+                        {
+                            Saat = Convert.ToDouble(row["Saat"]),
+                            // WinForms'ta olduğu gibi 1000'e bölerek gönderiyoruz
+                            ToplamElektrik = row.IsNull("ToplamElektrik") ? 0 : (Convert.ToDouble(row["ToplamElektrik"]) / 1000.0),
+                            ToplamSu = row.IsNull("ToplamSu") ? 0 : (Convert.ToDouble(row["ToplamSu"]) / 1000.0),
+                            ToplamBuhar = row.IsNull("ToplamBuhar") ? 0 : (Convert.ToDouble(row["ToplamBuhar"]) / 1000.0)
+                        });
+                    }
+                }
+                return list;
+            });
+
+            // GÜNCELLENDİ: OEE Verisi
+            _requestHandlers["GetHourlyAverageOee"] = async _ => await RunDb(() =>
+            {
+                var dt = _dashboardRepo.GetHourlyAverageOee(DateTime.Today);
+                var list = new List<HourlyOeeData>();
+                if (dt != null)
+                {
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        list.Add(new HourlyOeeData
+                        {
+                            Saat = Convert.ToDouble(row["Saat"]),
+                            AverageOEE = row.IsNull("AverageOEE") ? 0 : Convert.ToDouble(row["AverageOEE"])
+                        });
+                    }
+                }
+                return list;
+            });
+
             _requestHandlers["GetTopAlarmsByFrequency"] = async _ => await RunDb(() => _alarmRepo.GetTopAlarmsByFrequency(DateTime.Now.AddDays(-1), DateTime.Now));
 
             // -- EXCEL EXPORT (Ağır İşlemler) --
