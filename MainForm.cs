@@ -52,8 +52,11 @@ namespace TekstilScada
 
         private VncViewer_Form _activeVncViewerForm = null;
         private readonly UserSettings_Control _user_setting;
-    
-        private VncProxyServer _vncServer;
+
+        // ESKÝ: private VncProxyServer _vncServer;
+
+        // YENÝ: Makine ID'sine göre çalýþan sunucularý tutar
+        private Dictionary<int, VncProxyServer> _activeVncServers = new Dictionary<int, VncProxyServer>();
         string apiKey = LicenseManager.GenerateHardwareKey();
         public MainForm()
         {
@@ -212,14 +215,7 @@ namespace TekstilScada
                     hardwareKey // <--- DOÐRU YER: En sonda (Service yapýnýzla uyumlu)
                 );
                 // VNC Sunucusunu Baþlat
-                try
-                {
-                    _vncServer = new VncProxyServer(_gatewayService);
-                }
-                catch (Exception ex)
-                {
-                    //($"VNC Server Hatasý: {ex.Message}");
-                }
+               
                 _gatewayService.OnRemoteCommandReceived += CloudSyncService_OnRemoteCommandReceived;
 
                 await _gatewayService.StartAsync();
@@ -522,7 +518,10 @@ namespace TekstilScada
             // ------------------------------------------
 
 
-            _vncServer?.StopStream();
+            foreach (var server in _activeVncServers.Values)
+            {
+                server.StopStream();
+            }
             _backupService?.Stop();
         }
 
@@ -534,62 +533,51 @@ namespace TekstilScada
                 return;
             }
 
-            AppendLog($"UZAK KOMUT ALINDI: Makine {machineId} -> {command}");
-
-            var managers = _pollingService.GetPlcManagers();
-            if (managers.TryGetValue(machineId, out var plcManager))
+            try
             {
-                try
+                // START_VNC KOMUTU
+                if (command == "START_VNC")
                 {
-                    switch (command.ToUpper())
+                    var parts = parameters.Split(';');
+                    string ip = parts[0];
+                    string pass = parts.Length > 1 ? parts[1] : "";
+
+                    // Bu makine için zaten çalýþan bir VNC varsa önce onu durdur
+                    if (_activeVncServers.ContainsKey(machineId))
                     {
-                        case "STOP":
-                            // await plcManager.StopMachineAsync();
-                            MessageBox.Show($"Makine {machineId} için DURDURMA emri!", "Uzak Kontrol", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                            break;
-                        case "START":
-                            // await plcManager.StartMachineAsync();
-                            MessageBox.Show($"Makine {machineId} için BAÞLATMA emri!", "Uzak Kontrol", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            break;
-                        case "CLICK":
-                            // Parametre formatý: "X;Y"
-                            var coords = parameters.Split(';');
-                            if (coords.Length == 2 &&
-                                int.TryParse(coords[0], out int x) &&
-                                int.TryParse(coords[1], out int y))
-                            {
-                                // VncProxyServer'a týklamayý ilet
-                                _vncServer.SendClick(x, y);
-                            }
-                            break;
-                        case "START_VNC":
-                            // Parameters içinde PLC IP'si ve Þifresi gelebilir (Format: IP;Password)
-                            var parts = parameters.Split(';');
-                            string ip = parts.Length > 0 ? parts[0] : "";
-                            string pass = parts.Length > 1 ? parts[1] : "";
+                        _activeVncServers[machineId].StopStream();
+                        _activeVncServers.Remove(machineId);
+                    }
 
-                            if (!string.IsNullOrEmpty(ip))
-                            {
-                                _vncServer.StartStream(machineId, ip, pass);
-                                AppendLog($"Makine {machineId} için VNC yayýný baþlatýldý ({ip}).");
-                            }
-                            break;
+                    // Yeni bir VNC sunucu örneði oluþtur ve baþlat
+                    var newVnc = new VncProxyServer(_gatewayService);
+                    newVnc.StartStream(machineId, ip, pass);
 
-                        case "STOP_VNC":
-                            _vncServer.StopStream();
-                            AppendLog($"Makine {machineId} için VNC yayýný durduruldu.");
-                            break;
-                        // -----------------------------
-                        default:
-                            AppendLog($"Bilinmeyen komut: {command}");
-                            break;
+                    // Listeye ekle
+                    _activeVncServers.Add(machineId, newVnc);
+                }
+                // STOP_VNC KOMUTU
+                else if (command == "STOP_VNC")
+                {
+                    if (_activeVncServers.ContainsKey(machineId))
+                    {
+                        _activeVncServers[machineId].StopStream();
+                        _activeVncServers.Remove(machineId);
                     }
                 }
-                catch (Exception ex)
+                // CLICK KOMUTU
+                else if (command == "CLICK")
                 {
-                    AppendLog($"Komut hatasý: {ex.Message}");
+                    // Ýlgili makinenin sunucusunu bul ve týklat
+                    if (_activeVncServers.TryGetValue(machineId, out var server))
+                    {
+                        var parts = parameters.Split(';');
+                        if (parts.Length == 2)
+                            server.SendClick(int.Parse(parts[0]), int.Parse(parts[1]));
+                    }
                 }
             }
+            catch (Exception ex) { /* Loglama */ }
         }
 
         private void AppendLog(string message)

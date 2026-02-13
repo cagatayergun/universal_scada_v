@@ -108,6 +108,7 @@ namespace TekstilScada.Repositories
             }
             return alarms;
         }
+
         public void AddAlarmDefinition(AlarmDefinition definition)
         {
             using (var connection = new MySqlConnection(_connectionString))
@@ -235,12 +236,13 @@ namespace TekstilScada.Repositories
         public List<AlarmDetail> GetAlarmDetailsForBatch(string batchId, int machineId)
         {
             var details = new List<AlarmDetail>();
-            DateTime startTime, endTime;
+            DateTime batchStart, batchEnd;
 
             using (var connection = new MySqlConnection(_connectionString))
             {
                 connection.Open();
-                // Önce batch'in başlangıç ve bitiş zamanını bul
+
+                // 1. Batch'in zaman aralığını bul
                 string batchQuery = "SELECT StartTime, EndTime FROM production_batches WHERE BatchId = @BatchId AND MachineId = @MachineId;";
                 var batchCmd = new MySqlCommand(batchQuery, connection);
                 batchCmd.Parameters.AddWithValue("@BatchId", batchId);
@@ -248,35 +250,48 @@ namespace TekstilScada.Repositories
 
                 using (var reader = batchCmd.ExecuteReader())
                 {
-                    if (!reader.Read()) return details; // Batch bulunamadı
-                    startTime = reader.GetDateTime("StartTime");
-                    endTime = reader.IsDBNull(reader.GetOrdinal("EndTime")) ? DateTime.Now : reader.GetDateTime("EndTime");
+                    if (!reader.Read()) return details;
+                    batchStart = reader.GetDateTime("StartTime");
+                    batchEnd = reader.IsDBNull(reader.GetOrdinal("EndTime")) ? DateTime.Now : reader.GetDateTime("EndTime");
                 }
 
-                // Şimdi bu zaman aralığındaki alarmları çek
+                // 2. Bu zaman aralığındaki alarmları tüm detaylarıyla çek
+                // JOIN ile alarm_definitions tablosundan AlarmNumber bilgisini alıyoruz
                 string alarmQuery = @"
-                    SELECT ad.AlarmText 
-                    FROM alarm_history ah
-                    JOIN alarm_definitions ad ON ah.AlarmDefinitionId = ad.Id
-                    WHERE ah.MachineId = @MachineId 
-                      AND ah.EventType = 'ACTIVE' 
-                      AND ah.EventTimestamp BETWEEN @StartTime AND @EndTime
-                    ORDER BY ah.EventTimestamp;";
+            SELECT 
+                ad.AlarmNumber, 
+                ad.AlarmText, 
+                ah.EventTimestamp AS StartTime,
+                (SELECT MIN(ia.EventTimestamp) 
+                 FROM alarm_history ia 
+                 WHERE ia.MachineId = ah.MachineId 
+                   AND ia.AlarmDefinitionId = ah.AlarmDefinitionId 
+                   AND ia.EventType = 'INACTIVE' 
+                   AND ia.EventTimestamp > ah.EventTimestamp) AS EndTime
+            FROM alarm_history ah
+            JOIN alarm_definitions ad ON ah.AlarmDefinitionId = ad.Id
+            WHERE ah.MachineId = @MachineId 
+              AND ah.EventType = 'ACTIVE' 
+              AND ah.EventTimestamp BETWEEN @BatchStart AND @BatchEnd
+            ORDER BY ah.EventTimestamp ASC;";
 
                 var alarmCmd = new MySqlCommand(alarmQuery, connection);
                 alarmCmd.Parameters.AddWithValue("@MachineId", machineId);
-                alarmCmd.Parameters.AddWithValue("@StartTime", startTime);
-                alarmCmd.Parameters.AddWithValue("@EndTime", endTime);
+                alarmCmd.Parameters.AddWithValue("@BatchStart", batchStart);
+                alarmCmd.Parameters.AddWithValue("@BatchEnd", batchEnd);
 
                 using (var reader = alarmCmd.ExecuteReader())
                 {
-                    int stepCounter = 1; // Adım no'yu şimdilik varsayımsal olarak artırıyoruz
+                    int counter = 1;
                     while (reader.Read())
                     {
                         details.Add(new AlarmDetail
                         {
-                            StepNumber = stepCounter++,
-                            AlarmDescription = reader.GetString("AlarmText")
+                            StepNumber = counter++,
+                            AlarmNumber = reader.GetInt32("AlarmNumber"),
+                            AlarmDescription = reader.GetString("AlarmText"),
+                            StartTime = reader.GetDateTime("StartTime"),
+                            EndTime = reader.IsDBNull(reader.GetOrdinal("EndTime")) ? (DateTime?)null : reader.GetDateTime("EndTime")
                         });
                     }
                 }

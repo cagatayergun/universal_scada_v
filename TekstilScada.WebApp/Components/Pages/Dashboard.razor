@@ -190,11 +190,21 @@
 
     private async Task LoadSidebarDataAsync()
     {
-        // ScadaService içindeki bu metotlar zaten seçili fabrika ID'sini (ResolveId) kullandığı için güvenlidir.
-        HourlyConsumptionData = await ScadaService.GetHourlyConsumptionAsync() ?? new();
-        HourlyOeeData = await ScadaService.GetHourlyOeeAsync() ?? new();
-        TopAlarms = await ScadaService.GetTopAlarmsAsync() ?? new();
-        _shouldRenderCharts = true;
+        try
+        {
+            // Verileri çek
+            HourlyConsumptionData = await ScadaService.GetHourlyConsumptionAsync() ?? new();
+            HourlyOeeData = await ScadaService.GetHourlyOeeAsync() ?? new();
+            TopAlarms = await ScadaService.GetTopAlarmsAsync() ?? new();
+
+            // Veriler geldi, render bayrağını kaldır ve UI'ı zorla güncelle
+            _shouldRenderCharts = true;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Yan panel verileri yüklenirken hata: {ex.Message}");
+        }
     }
 
     // ScadaService tarafından tetiklenen metod (Push)

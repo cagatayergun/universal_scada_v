@@ -157,7 +157,7 @@
             if (machine != null)
             {
                 string vncParams = $"{machine.VncAddress};{machine.VncPassword}";
-                await hubConnection.InvokeAsync("SendCommandToLocal", MachineId, "START_VNC", vncParams);
+                await hubConnection.InvokeAsync("SendCommandToLocal", ScadaService.CurrentFactoryId, MachineId, "START_VNC", vncParams);
             }
         }
         catch (Exception ex)
@@ -179,7 +179,8 @@
 
                 if (coords != null)
                 {
-                    await hubConnection.InvokeAsync("SendCommandToLocal", MachineId, "CLICK", $"{coords.X};{coords.Y}");
+                   
+                    await hubConnection.InvokeAsync("SendCommandToLocal", ScadaService.CurrentFactoryId, MachineId, "CLICK", $"{coords.X};{coords.Y}");
                 }
             }
             catch (Exception ex) { Console.WriteLine($"[Click Error] {ex.Message}"); }
@@ -197,7 +198,7 @@
 
                 if (coords != null)
                 {
-                    await hubConnection.InvokeAsync("SendCommandToLocal", MachineId, "CLICK", $"{coords.X};{coords.Y}");
+                    await hubConnection.InvokeAsync("SendCommandToLocal", ScadaService.CurrentFactoryId, MachineId, "CLICK", $"{coords.X};{coords.Y}");
                 }
             }
             catch { }
@@ -213,7 +214,7 @@
             {
                 // Sunucuya boş bir komut veya özel bir Heartbeat mesajı atıyoruz.
                 // Bu, Gateway tarafındaki zaman aşımı sayacını sıfırlamak içindir.
-                await hubConnection.InvokeAsync("SendCommandToLocal", MachineId, "HEARTBEAT", "");
+                await hubConnection.InvokeAsync("SendCommandToLocal", ScadaService.CurrentFactoryId, MachineId, "HEARTBEAT", "");
             }
             catch { }
         }
@@ -243,7 +244,7 @@
         {
             try
             {
-                await hubConnection.InvokeAsync("SendCommandToLocal", MachineId, "STOP_VNC", "");
+                await hubConnection.InvokeAsync("SendCommandToLocal", ScadaService.CurrentFactoryId, MachineId, "STOP_VNC", "");
             }
             catch { /* Kapanırken hata olabilir, yut */ }
         }

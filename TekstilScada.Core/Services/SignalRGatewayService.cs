@@ -58,10 +58,23 @@ public class ProductionStepDetailDto : ProductionStepDetail
 
 public class AlarmDetailDto
 {
+    // Alarmın başlangıç zamanı
     public DateTime AlarmTime { get; set; } = DateTime.MinValue;
+
+    // Kritik: Alarm ID'si (0-499: Makine, 500-600: Operatör ayrımı için şart)
+    public int AlarmNumber { get; set; }
+
+    // Alarmın tipi (Warning, Error vb.)
     public string AlarmType { get; set; } = string.Empty;
+
+    // Alarm açıklaması
     public string AlarmDescription { get; set; } = string.Empty;
+
+    // Alarm süresi
     public TimeSpan Duration { get; set; } = TimeSpan.Zero;
+
+    // Zaman kesişim analizi (Interval Merging) yaparken hassasiyet için EndTime eklendi
+    public DateTime EndTime => AlarmTime.Add(Duration);
 }
 
 public class ProductionDetailDto
@@ -654,12 +667,14 @@ namespace TekstilScada.Services
         // Yardımcı Metotlar (Private)
         private ProductionDetailDto GetProductionDetailInternal(int machineId, string batchId)
         {
+            // 1. Header (Başlık) Bilgisi
             var headerFilter = new ReportFilters { MachineId = machineId, BatchNo = batchId, StartTime = DateTime.MinValue, EndTime = DateTime.MaxValue };
             var reportList = _productionRepo.GetProductionReport(headerFilter);
             var reportItem = reportList.Count > 0 ? reportList[0] : null;
 
             if (reportItem == null) return null;
 
+            // 2. Adım Detayları (Aynen korundu)
             var rawSteps = _productionRepo.GetProductionStepDetails(batchId, machineId);
             var stepDtos = rawSteps.Select(s => new ProductionStepDetailDto
             {
@@ -670,18 +685,36 @@ namespace TekstilScada.Services
                 StopTime = s.StopTime,
                 DeflectionTime = s.DeflectionTime,
                 TheoreticalDurationSeconds = TimeSpan.TryParse(s.TheoreticalTime, out var tt) ? tt.TotalSeconds : 0,
-                Temperature = 90.5
+               // Temperature = s.Temperature
             }).ToList();
 
+            // 3. ALARMLAR (BURASI DÜZELTİLDİ)
             var rawAlarms = _alarmRepo.GetAlarmDetailsForBatch(batchId, machineId);
-            var alarmDtos = rawAlarms.Select((a, index) => new AlarmDetailDto
+
+            // Batch bitiş zamanı (Eğer üretim devam ediyorsa şu anı al)
+            DateTime batchEndTime = reportItem.EndTime == DateTime.MinValue ? DateTime.Now : reportItem.EndTime;
+
+            var alarmDtos = rawAlarms.Select(a =>
             {
-                AlarmTime = DateTime.Now.AddMinutes(-index * 5),
-                AlarmType = "Makine Alarmı",
-                AlarmDescription = a.AlarmDescription,
-                Duration = TimeSpan.FromMinutes(1)
+                // Bitiş zamanı yoksa (hala aktifse) veya null ise batch bitişini/şu anı kullan
+                DateTime effectiveEnd = a.EndTime ?? batchEndTime;
+
+                // Süreyi hesapla
+                TimeSpan duration = effectiveEnd - a.StartTime;
+                if (duration < TimeSpan.Zero) duration = TimeSpan.Zero; // Negatif süre koruması
+
+                return new AlarmDetailDto
+                {
+                    AlarmTime = a.StartTime,          // GERÇEK BAŞLANGIÇ
+                    AlarmNumber = a.AlarmNumber,      // GERÇEK ID (0-499 Makine, 500+ Operatör ayrımı için şart)
+                    AlarmType = (a.AlarmNumber >= 500) ? "Operatör" : "Makine",
+                    AlarmDescription = a.AlarmDescription,
+                    Duration = duration               // GERÇEK HESAPLANAN SÜRE
+                };
             }).ToList();
 
+            // 4. LOG (TREND) VERİLERİ (Aynen korundu)
+            // Gateway'den veri çekerken büyük veri setlerinde kısıtlama yapmak gerekebilir
             var rawLogs = _processLogRepo.GetLogsForBatch(machineId, batchId);
             var logDtos = rawLogs.Select(p => new TrendDataPoint
             {
@@ -691,7 +724,13 @@ namespace TekstilScada.Services
                 WaterLevel = (double)p.WaterLevel
             }).ToList();
 
-            return new ProductionDetailDto { Header = reportItem, Steps = stepDtos, Alarms = alarmDtos, LogData = logDtos };
+            return new ProductionDetailDto
+            {
+                Header = reportItem,
+                Steps = stepDtos,
+                Alarms = alarmDtos,
+                LogData = logDtos
+            };
         }
 
         private byte[] ExportProductionDetailInternal(int machineId, string batchId)

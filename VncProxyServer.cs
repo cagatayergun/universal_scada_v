@@ -67,6 +67,7 @@ namespace TekstilScada
                 // VNC Bağlantısını Kur (ViewOnly = false yani kontrol edilebilir)
                 // Not: Bazı VncSharp sürümlerinde GetPasswordHandler gerekebilir, 
                 // ancak genelde Connect içinde veya otomatik halledilir.
+                _vncEngine.GetPassword = () => _password;
                 _vncEngine.Connect(plcIp, 0, false);
 
                 // Zamanlayıcıları Başlat

@@ -380,10 +380,23 @@ namespace TekstilScada.Core.Core
 
         public class AlarmDetailDto
         {
+            // Alarmın başlangıç zamanı
             public DateTime AlarmTime { get; set; } = DateTime.MinValue;
+
+            // Kritik: Alarm ID'si (0-499: Makine, 500-600: Operatör ayrımı için şart)
+            public int AlarmNumber { get; set; }
+
+            // Alarmın tipi (Warning, Error vb.)
             public string AlarmType { get; set; } = string.Empty;
+
+            // Alarm açıklaması
             public string AlarmDescription { get; set; } = string.Empty;
+
+            // Alarm süresi
             public TimeSpan Duration { get; set; } = TimeSpan.Zero;
+
+            // Zaman kesişim analizi (Interval Merging) yaparken hassasiyet için EndTime eklendi
+            public DateTime EndTime => AlarmTime.Add(Duration);
         }
 
         public class ProductionDetailDto

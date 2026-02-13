@@ -82,8 +82,7 @@
             };
         }
 
-        // --- 2. DASHBOARD GRAFİKLERİ ---
-        function plotDashboardCharts(hourlyOeeData, hourlyConsumptionData, topAlarmsData) {
+                function plotDashboardCharts(hourlyOeeData, hourlyConsumptionData, topAlarmsData) {
             if (typeof Plotly === 'undefined') {
                 setTimeout(() => plotDashboardCharts(hourlyOeeData, hourlyConsumptionData, topAlarmsData), 500);
                 return;
@@ -91,33 +90,67 @@
             const isMobile = window.innerWidth <= 768;
             const config = { displayModeBar: false, responsive: true };
 
-            // OEE
+            // --- 1. OEE GRAFİĞİ ---
             const oeeContainer = document.getElementById('oeeChartContainer');
             if (oeeContainer) {
-                const data = hourlyOeeData.length > 0 ? hourlyOeeData.map(d => ({ hour: d.saat, oee: d.averageOEE })) : [{ hour: 0, oee: 0 }];
-                const trace = { x: data.map(d => `${d.hour}:00`), y: data.map(d => d.oee), type: 'bar', marker: { color: data.map(d => d.oee < 50 ? '#e74c3c' : '#2ecc71') } };
+                // C# 'Saat' veya 'saat', 'AverageOEE' veya 'averageOEE' gönderebilir. İkisini de kontrol ediyoruz.
+                const data = (hourlyOeeData || []).map(d => ({
+                    hour: d.saat !== undefined ? d.saat : (d.Saat !== undefined ? d.Saat : 0),
+                    oee: d.averageOEE !== undefined ? d.averageOEE : (d.AverageOEE !== undefined ? d.AverageOEE : 0)
+                }));
+
+                const trace = {
+                    x: data.map(d => `${d.hour}:00`),
+                    y: data.map(d => d.oee),
+                    type: 'bar',
+                    marker: { color: data.map(d => d.oee < 50 ? '#e74c3c' : '#2ecc71') }
+                };
                 const layout = getCommonLayout('', 'OEE (%)', isMobile);
                 layout.yaxis.range = [0, 100];
                 Plotly.newPlot(oeeContainer, [trace], layout, config);
             }
 
-            // Tüketimler
-            const plotCons = (id, key, unit, color) => {
+            // --- 2. TÜKETİM GRAFİKLERİ (Elektrik, Su, Buhar) ---
+            const plotCons = (id, jsonKey, unit, color) => {
                 const container = document.getElementById(id);
-                if (!container) return;
-                const values = hourlyConsumptionData.map(d => d[key]);
-                const trace = { x: hourlyConsumptionData.map(d => `${d.hour}:00`), y: values, type: 'scatter', mode: 'lines+markers', fill: 'tozeroy', line: { color: color, width: 2 } };
+                if (!container || !hourlyConsumptionData) return;
+
+                // jsonKey: 'toplamElektrik' ise hem d.toplamElektrik hem d.ToplamElektrik bakılır
+                const upperKey = jsonKey.charAt(0).toUpperCase() + jsonKey.slice(1);
+
+                const xValues = hourlyConsumptionData.map(d => {
+                    const h = d.saat !== undefined ? d.saat : (d.Saat !== undefined ? d.Saat : d.hour || 0);
+                    return `${h}:00`;
+                });
+
+                const yValues = hourlyConsumptionData.map(d => d[jsonKey] !== undefined ? d[jsonKey] : (d[upperKey] !== undefined ? d[upperKey] : 0));
+
+                const trace = {
+                    x: xValues,
+                    y: yValues,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    fill: 'tozeroy',
+                    line: { color: color, width: 2 }
+                };
                 Plotly.newPlot(container, [trace], getCommonLayout('', unit, isMobile), config);
             };
+
             plotCons('electricChartContainer', 'toplamElektrik', 'kWh', '#00bcd4');
             plotCons('waterChartContainer', 'toplamSu', 'Litre', '#2196f3');
             plotCons('steamChartContainer', 'toplamBuhar', 'kg', '#9c27b0');
 
-            // Alarmlar
+            // --- 3. ALARMLAR GRAFİĞİ ---
             const alarmContainer = document.getElementById('topAlarmsChartContainer');
-            if (alarmContainer) {
+            if (alarmContainer && topAlarmsData) {
                 const data = topAlarmsData.slice(0, 5);
-                const trace = { x: data.map(d => d.count), y: data.map(d => d.alarmText.substring(0, isMobile ? 15 : 25) + '...'), type: 'bar', orientation: 'h', marker: { color: '#ff5722' } };
+                const trace = {
+                    x: data.map(d => d.count || d.Count || 0),
+                    y: data.map(d => (d.alarmText || d.AlarmText || '').substring(0, isMobile ? 15 : 25) + '...'),
+                    type: 'bar',
+                    orientation: 'h',
+                    marker: { color: '#ff5722' }
+                };
                 const layout = getCommonLayout('', '', isMobile);
                 layout.margin.l = isMobile ? 80 : 150;
                 Plotly.newPlot(alarmContainer, [trace], layout, config);
@@ -218,7 +251,174 @@
             link.click();
             document.body.removeChild(link);
         };
+                window.plotSyncedDetailCharts = (data, divTempId, divRpmId, divLevelId) => {
+            if (!data || data.length === 0) return;
+
+            // Verileri Hazırla
+            var timestamps = data.map(d => d.timestamp);
+            var tempData = data.map(d => d.temperature);
+            var rpmData = data.map(d => d.rpm);
+            var levelData = data.map(d => d.waterLevel);
+
+            // Ortak Eksen Ayarları
+            var commonLayout = {
+                xaxis: { type: 'date', tickformat: '%H:%M', autorange: true },
+                margin: { t: 30, b: 30, l: 60, r: 20 },
+                height: 250,
+                showlegend: false
+            };
+
+            // Grafikleri Tanımla
+            var traceTemp = { x: timestamps, y: tempData, mode: 'lines', name: 'Sıcaklık', line: { color: '#dc3545', width: 2 }, fill: 'tozeroy' };
+            var layoutTemp = Object.assign({}, commonLayout, { title: { text: 'Sıcaklık (°C)', font: { size: 14, color: '#dc3545' } }, yaxis: { title: '°C' } });
+
+            var traceRpm = { x: timestamps, y: rpmData, mode: 'lines', name: 'Devir', line: { color: '#198754', width: 2 } };
+            var layoutRpm = Object.assign({}, commonLayout, { title: { text: 'Devir (RPM)', font: { size: 14, color: '#198754' } }, yaxis: { title: 'd/d' } });
+
+            var traceLevel = { x: timestamps, y: levelData, mode: 'lines', name: 'Seviye', line: { color: '#0dcaf0', width: 2 }, fill: 'tozeroy' };
+            var layoutLevel = Object.assign({}, commonLayout, { title: { text: 'Seviye', font: { size: 14, color: '#0dcaf0' } }, yaxis: { title: 'Lt / %' } });
+
+            // Çizdir
+            Plotly.newPlot(divTempId, [traceTemp], layoutTemp, { responsive: true, displayModeBar: false });
+            Plotly.newPlot(divRpmId, [traceRpm], layoutRpm, { responsive: true, displayModeBar: false });
+            Plotly.newPlot(divLevelId, [traceLevel], layoutLevel, { responsive: true, displayModeBar: false });
+
+            // --- SENKRONİZASYON (ÇÖKME ÇÖZÜMÜ) ---
+            var divTemp = document.getElementById(divTempId);
+            var divRpm = document.getElementById(divRpmId);
+            var divLevel = document.getElementById(divLevelId);
+
+            var isRelayouting = false; // Sonsuz döngü kilidi
+
+            function syncZoom(source, targets) {
+                source.on('plotly_relayout', function (eventdata) {
+                    if (isRelayouting) return; // Zaten işlem yapılıyorsa dur
+
+                    // Sadece X ekseni (zaman) değişimlerinde tetikle
+                    if (eventdata['xaxis.range[0]'] || eventdata['xaxis.autorange']) {
+                        isRelayouting = true;
+
+                        var update = {};
+                        if(eventdata['xaxis.range[0]']) {
+                            update['xaxis.range[0]'] = eventdata['xaxis.range[0]'];
+                            update['xaxis.range[1]'] = eventdata['xaxis.range[1]'];
+                        }
+                        if(eventdata['xaxis.autorange']) {
+                            update['xaxis.autorange'] = true;
+                        }
+
+                        // Diğer grafiklere uygula
+                        var promises = targets.map(t => Plotly.relayout(t, update));
+
+                        // İşlem bitince kilidi aç
+                        Promise.all(promises).then(() => setTimeout(() => isRelayouting = false, 50));
+                    }
+                });
+            }
+
+            syncZoom(divTemp, [divRpm, divLevel]);
+            syncZoom(divRpm, [divTemp, divLevel]);
+            syncZoom(divLevel, [divTemp, divRpm]);
+        };
     </script>
+    <script>
+    // 180 Derece İbreli Gösterge (Speedometer)
+                      window.plotRpmGauge = (divId, value, maxValue) => {
+            const el = document.getElementById(divId);
+            if (!el) return;
+
+            // Varsayılan değer kontrolü
+            if (!maxValue || maxValue <= 0) maxValue = 1500;
+
+            var data = [
+                {
+                    type: "indicator",
+                    mode: "gauge+number",
+                    value: value,
+                    number: {
+                        suffix: " RPM",
+                        font: { size: 22, color: "#333", family: "Arial" }
+                    },
+                    domain: { x: [0, 1], y: [0, 1] },
+                    gauge: {
+                        axis: {
+                            range: [0, maxValue], // DİNAMİK MAX DEĞER BURAYA GELDİ
+                            tickwidth: 1,
+                            tickcolor: "#888",
+                            nticks: 6
+                        },
+                        bar: { color: "#2c3e50", thickness: 0.25 },
+                        bgcolor: "#f8f9fa",
+                        borderwidth: 2,
+                        bordercolor: "#eee",
+                        steps: [
+                            { range: [0, maxValue * 0.33], color: "#198754" },    // Yeşil (%33)
+                            { range: [maxValue * 0.33, maxValue * 0.73], color: "#ffc107" },  // Sarı
+                            { range: [maxValue * 0.73, maxValue], color: "#dc3545" }  // Kırmızı
+                        ],
+                        threshold: {
+                            line: { color: "red", width: 4 },
+                            thickness: 0.75,
+                            value: maxValue * 0.95 // Max'ın %95'i uyarı noktası
+                        }
+                    }
+                }
+            ];
+
+            var layout = {
+                // height ve margin ayarları kaymayı engeller
+                height: 160,
+                margin: { t: 25, b: 25, l: 30, r: 30 },
+                paper_bgcolor: "rgba(0,0,0,0)",
+                plot_bgcolor: "rgba(0,0,0,0)",
+                font: { color: "#333", family: "Arial" },
+                hovermode: false,
+                autosize: true
+            };
+
+            var config = {
+                responsive: true,
+                displayModeBar: false,
+                staticPlot: true
+            };
+
+            Plotly.react(divId, data, layout, config);
+        };
+
+           
+
+        // Senkronize Grafik Fonksiyonu (Döngü Korumalı)
+        window.plotSyncedDetailCharts = (data, divTempId, divRpmId, divLevelId) => {
+            if (!data || data.length === 0) return;
+            const divs = [divTempId, divRpmId, divLevelId];
+            if (!document.getElementById(divTempId)) return;
+
+            const timestamps = data.map(d => d.timestamp);
+            const commonLayout = {
+                xaxis: { type: 'date', tickformat: '%H:%M', autorange: true, gridcolor: '#eee' },
+                margin: { t: 30, b: 30, l: 50, r: 20 }, height: 220, showlegend: false
+            };
+
+            Plotly.newPlot(divTempId, [{ x: timestamps, y: data.map(d => d.temperature), mode: 'lines', line: { color: '#dc3545' }, fill: 'tozeroy' }], Object.assign({}, commonLayout, { title: 'Sıcaklık' }));
+            Plotly.newPlot(divRpmId, [{ x: timestamps, y: data.map(d => d.rpm), mode: 'lines', line: { color: '#198754' } }], Object.assign({}, commonLayout, { title: 'Devir' }));
+            Plotly.newPlot(divLevelId, [{ x: timestamps, y: data.map(d => d.waterLevel), mode: 'lines', line: { color: '#0dcaf0' }, fill: 'tozeroy' }], Object.assign({}, commonLayout, { title: 'Seviye' }));
+
+            let isRelayouting = false;
+            divs.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.on('plotly_relayout', function (ed) {
+                        if (isRelayouting) return;
+                        if (ed['xaxis.range[0]'] || ed['xaxis.autorange']) {
+                            isRelayouting = true;
+                            divs.filter(dId => dId !== id).forEach(dId => Plotly.relayout(dId, ed));
+                            setTimeout(() => { isRelayouting = false; }, 100);
+                        }
+                    });
+                }
+            });
+        };
+</script>
     <script>
         window.startVnc = async (elementId, url, password) => {
 
@@ -485,6 +685,94 @@
     });
     });
     };
+    </script>
+    <script>
+        // Global scope'a eklenmesi için 'window.' ile başlatıyoruz
+        window.plotSyncedChartsWithLimits = (data, startTime, endTime) => {
+            // Güvenlik kontrolü: Veri yoksa veya div'ler henüz oluşmamışsa dur.
+            if (!data || data.length === 0) return;
+            if (!document.getElementById('tempChart')) return;
+
+            // Verileri Ayrıştır
+            const timestamps = data.map(d => d.timestamp);
+            // Not: C# tarafında 10'a bölmediyseniz burada bölebilirsiniz.
+            // Eğer C#'ta zaten böldüyseniz "/ 10.0" kısmını kaldırın.
+            const temps = data.map(d => d.temperature / 10.0);
+            const levels = data.map(d => d.waterLevel);
+            const rpms = data.map(d => d.rpm);
+
+            // Ortak Eksen Ayarı (Batch Başlangıç-Bitiş Kilitli)
+            const commonLayout = {
+                xaxis: {
+                    type: 'date',
+                    range: [startTime, endTime], // EKSEN KİLİTLEME BURADA YAPILIYOR
+                    showgrid: true,
+                    gridcolor: '#eee',
+                    zeroline: false
+                },
+                margin: { l: 50, r: 20, t: 30, b: 30 },
+                paper_bgcolor: "transparent",
+                plot_bgcolor: "transparent",
+                showlegend: false,
+                font: { family: 'Segoe UI, Arial', size: 11, color: '#666' }
+            };
+
+            // 1. Sıcaklık Grafiği
+            const traceTemp = {
+                x: timestamps, y: temps,
+                mode: 'lines', name: 'Sıcaklık',
+                line: { color: '#e74c3c', width: 2 }, fill: 'tozeroy'
+            };
+            const layoutTemp = { ...commonLayout, title: { text: 'Sıcaklık (°C)', font: { size: 12 } } };
+            Plotly.newPlot('tempChart', [traceTemp], layoutTemp, { responsive: true, displayModeBar: false });
+
+            // 2. Su Seviyesi Grafiği
+            const traceLevel = {
+                x: timestamps, y: levels,
+                mode: 'lines', name: 'Su Seviyesi',
+                line: { color: '#3498db', width: 2 }, fill: 'tozeroy'
+            };
+            const layoutLevel = { ...commonLayout, title: { text: 'Su Seviyesi (%)', font: { size: 12 } } };
+            Plotly.newPlot('levelChart', [traceLevel], layoutLevel, { responsive: true, displayModeBar: false });
+
+            // 3. Devir Grafiği
+            const traceRpm = {
+                x: timestamps, y: rpms,
+                mode: 'lines', name: 'Devir',
+                line: { color: '#2ecc71', width: 2 }
+            };
+            const layoutRpm = { ...commonLayout, title: { text: 'Devir (RPM)', font: { size: 12 } } };
+            Plotly.newPlot('rpmChart', [traceRpm], layoutRpm, { responsive: true, displayModeBar: false });
+
+            // --- SENKRONİZASYON (Biri zoom yapınca hepsi değişsin) ---
+            const chartIds = ['tempChart', 'levelChart', 'rpmChart'];
+
+            chartIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+
+                el.on('plotly_relayout', function (eventdata) {
+                    // Sonsuz döngü engelleme: Eğer işlem kod tarafından tetiklendiyse dur.
+                    if (eventdata._source === 'sync') return;
+
+                    // Sadece X ekseni değişimlerini (Zoom/Pan) diğerlerine uygula
+                    if (eventdata['xaxis.range[0]'] || eventdata['xaxis.autorange']) {
+                        const update = {
+                            'xaxis.range[0]': eventdata['xaxis.range[0]'],
+                            'xaxis.range[1]': eventdata['xaxis.range[1]'],
+                            'xaxis.autorange': eventdata['xaxis.autorange'],
+                            _source: 'sync' // Kaynak işaretlemesi
+                        };
+
+                        chartIds.forEach(targetId => {
+                            if (targetId !== id) {
+                                Plotly.relayout(targetId, update);
+                            }
+                        });
+                    }
+                });
+            });
+        };
     </script>
 </body>
 </html>

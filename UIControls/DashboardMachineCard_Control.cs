@@ -119,11 +119,13 @@ namespace TekstilScada.UI.Controls
 
             lblRecipeName.Text = $"Recipe: {status.RecipeName ?? "-"}";
             lblBatchId.Text = $"Party: {status.BatchNumarasi ?? "-"}";
-           
-            
-            gaugeRpm.Value = status.AnlikDevirRpm;
-            gaugeRpm.Text = status.AnlikDevirRpm.ToString();
 
+            try
+            {
+                gaugeRpm.Value = status.AnlikDevirRpm;
+                gaugeRpm.Text = status.AnlikDevirRpm.ToString();
+            }
+            catch (Exception ex) { }
             // --- YENİ: Kurutma Makinesi Kontrolü ---
             bool isDrying = _machine.MachineType == "Kurutma Makinesi";
             if (!isDrying)

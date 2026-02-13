@@ -131,7 +131,8 @@
         new StepTypeInfo(3, "Çalışma", 4, 14),
         new StepTypeInfo(4, "Dozaj", 8, 5),
         new StepTypeInfo(5, "Boşaltma", 16, 10),
-        new StepTypeInfo(6, "Sıkma", 32, 8)
+        new StepTypeInfo(6, "Sıkma", 32, 8),
+        new StepTypeInfo(7, "Operatör Çağrı", 1024, 0)
     };
 
     private List<StepTypeInfo> ActiveStepInfos => StepTypes.Where(s => IsStepTypeChecked(s.BitValue)).ToList();
@@ -140,7 +141,7 @@
     {
         { 1, "rgba(204, 229, 255, 0.7)" }, { 2, "rgba(255, 204, 204, 0.7)" },
         { 3, "rgba(204, 255, 204, 0.7)" }, { 4, "rgba(255, 211, 106, 0.7)" },
-        { 5, "rgba(173, 216, 230, 0.7)" }, { 6, "rgba(213, 213, 211, 0.7)" }
+        { 5, "rgba(173, 216, 230, 0.7)" }, { 6, "rgba(213, 213, 211, 0.7)" },{ 7, "rgba(189, 195, 199, 0.7)" }
     };
 
     // --- LIFE CYCLE ---
@@ -154,7 +155,7 @@
             StepTypes[3].Name = Loc["AdimTipi_Dozaj"];
             StepTypes[4].Name = Loc["AdimTipi_Bosaltma"];
             StepTypes[5].Name = Loc["AdimTipi_Sikma"];
-
+            StepTypes[6].Name = "Opertor Call";
             if (ScadaService == null)
             {
                 errorMessage = Loc["ServisKayitHatasi"];

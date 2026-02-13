@@ -589,7 +589,7 @@
     <value>Waiting for connection... Cannot check active alarm status.</value>
   </data>
   <data name="AlarmGecmisiBaslik" xml:space="preserve">
-    <value>Alarm History (Last 30 Days)</value>
+    <value>Batch Alarms</value>
   </data>
   <data name="AlarmGecmisiYukleniyor" xml:space="preserve">
     <value>Loading alarm history...</value>
@@ -1306,7 +1306,7 @@
     <value>Timeline Chart will be displayed here.</value>
   </data>
   <data name="SureDagilimiBaslik" xml:space="preserve">
-    <value>Duration Distribution (Pie Chart)</value>
+    <value>Duration Distribution</value>
   </data>
   <data name="PastaGrafikPlaceholder" xml:space="preserve">
     <value>Pie Chart will be displayed here.</value>

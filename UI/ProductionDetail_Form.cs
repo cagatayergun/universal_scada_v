@@ -106,79 +106,118 @@ namespace TekstilScada.UI
 
         private void LoadPieChart()
         {
-            // 1. HAZIR VERİLERİ SANİYE OLARAK AL
-            double totalMachineAlarmSeconds = _reportItem.MachineAlarmDurationSeconds;
-            double totalOperatorPauseSeconds = _reportItem.OperatorPauseDurationSeconds;
-            double totalBatchSeconds = (_reportItem.EndTime - _reportItem.StartTime).TotalSeconds;
+            // 1. TOPLAM BATCH SÜRESİNİ HESAPLA
+            DateTime batchStart = _reportItem.StartTime;
+            DateTime batchEnd = (_reportItem.EndTime == DateTime.MinValue) ? DateTime.Now : _reportItem.EndTime;
+            double totalBatchSeconds = (batchEnd - batchStart).TotalSeconds;
 
-            // 2. AKTİF SÜREYİ SANİYE OLARAK HESAPLA
-            double activeWorkingSeconds = totalBatchSeconds - totalMachineAlarmSeconds - totalOperatorPauseSeconds;
-            if (activeWorkingSeconds < 0) activeWorkingSeconds = 0;
+            // 2. ALARMLARI ÇEK
+            var allAlarms = _alarmRepo.GetAlarmDetailsForBatch(_reportItem.BatchId, _reportItem.MachineId);
 
-            // 3. GRAFİĞİ TEMİZLE
+            // 3. KATEGORİZE ET VE LİSTELE (Süreleri henüz toplamıyoruz)
+            var machineAlarms = allAlarms
+                .Where(a => a.AlarmNumber >= 0 && a.AlarmNumber <= 499)
+                .ToList();
+
+            var operatorAlarms = allAlarms
+                .Where(a => a.AlarmNumber >= 500 && a.AlarmNumber <= 600)
+                .ToList();
+
+            // 4. ÇAKIŞAN ZAMANLARI BİRLEŞTİREREK NET SÜRELERİ HESAPLA
+            double netMachineAlarmSec = CalculateUniqueDuration(machineAlarms, batchEnd);
+            double netOperatorAlarmSec = CalculateUniqueDuration(operatorAlarms, batchEnd);
+
+            // 5. TOPLAM DURUŞU HESAPLA (Makine + Operatör çakışmalarını da temizle)
+            // Eğer bir makine alarmı varken aynı anda operatör pause yapmışsa, o süreyi 2 kere düşmemek için:
+            double totalNetDowntimeSec = CalculateUniqueDuration(allAlarms, batchEnd);
+
+            // 6. AKTİF ÇALIŞMAYI HESAPLA
+            double activeWorkSec = totalBatchSeconds - totalNetDowntimeSec;
+            if (activeWorkSec < 0) activeWorkSec = 0;
+
+            // 7. GRAFİĞİ TEMİZLE VE ÇİZDİR
             pieChartControl.Series.Clear();
             pieChartControl.Legends.Clear();
 
-            // 4. YENİ SERİYİ OLUŞTUR
-            System.Windows.Forms.DataVisualization.Charting.Series series = new System.Windows.Forms.DataVisualization.Charting.Series("Time Distribution")
+            var series = new System.Windows.Forms.DataVisualization.Charting.Series("Efficiency")
             {
                 ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Pie,
-                Font = new System.Drawing.Font("Arial", 10f, System.Drawing.FontStyle.Bold),
-                LabelForeColor = System.Drawing.Color.White,
-                IsValueShownAsLabel = true
+                Font = new System.Drawing.Font("Segoe UI", 10f, System.Drawing.FontStyle.Bold),
+                IsValueShownAsLabel = true,
+                Label = "#PERCENT{P1}"
             };
             pieChartControl.Series.Add(series);
 
-            // 5. VERİ NOKTALARINI SANİYE DEĞERLERİYLE EKLE
-            if (activeWorkingSeconds > 0)
-            {
-                // ✅ DÜZELTME: Tam yolu belirtildi
-                System.Windows.Forms.DataVisualization.Charting.DataPoint dp = new System.Windows.Forms.DataVisualization.Charting.DataPoint(0, activeWorkingSeconds);
-                dp.Color = System.Drawing.Color.DodgerBlue; // ✅ DÜZELTME
-                dp.LegendText = $"Active Work ({TimeSpan.FromSeconds(activeWorkingSeconds):hh\\:mm\\:ss})";
-                series.Points.Add(dp);
-            }
-            if (totalMachineAlarmSeconds > 0)
-            {
-                // ✅ DÜZELTME: Tam yolu belirtildi
-                System.Windows.Forms.DataVisualization.Charting.DataPoint dp = new System.Windows.Forms.DataVisualization.Charting.DataPoint(0, totalMachineAlarmSeconds);
-                dp.Color = System.Drawing.Color.Crimson; // ✅ DÜZELTME
-                dp.LegendText = $"Machine Alarm ({TimeSpan.FromSeconds(totalMachineAlarmSeconds):hh\\:mm\\:ss})";
-                series.Points.Add(dp);
-            }
-            if (totalOperatorPauseSeconds > 0)
-            {
-                // ✅ DÜZELTME: Tam yolu belirtildi
-                System.Windows.Forms.DataVisualization.Charting.DataPoint dp = new System.Windows.Forms.DataVisualization.Charting.DataPoint(0, totalOperatorPauseSeconds);
-                dp.Color = System.Drawing.Color.Orange; // ✅ DÜZELTME
-                dp.LegendText = $"Operator Pause ({TimeSpan.FromSeconds(totalOperatorPauseSeconds):hh\\:mm\\:ss})";
-                series.Points.Add(dp);
-            }
+            // Veri Noktaları
+            AddPiePoint(series, activeWorkSec, "Aktif Çalışma", System.Drawing.Color.DodgerBlue);
+            AddPiePoint(series, netMachineAlarmSec, "Makine Alarmları", System.Drawing.Color.Crimson);
+            AddPiePoint(series, netOperatorAlarmSec, "Operatör Alarmları", System.Drawing.Color.Orange);
 
-            if (series.Points.Count == 0)
-            {
-                // ✅ DÜZELTME: Tam yolu belirtildi
-                System.Windows.Forms.DataVisualization.Charting.DataPoint dp = new System.Windows.Forms.DataVisualization.Charting.DataPoint(0, 1);
-                dp.Color = System.Drawing.Color.Gray; // ✅ DÜZELTME
-                dp.LegendText = "No Data";
-                dp.IsValueShownAsLabel = false;
-                series.Points.Add(dp);
-            }
-
-            // 6. ETİKET VE GÖSTERGELERİ AYARLA
-            series.Label = "#PERCENT{P0}";
-
-            System.Windows.Forms.DataVisualization.Charting.Legend legend = new System.Windows.Forms.DataVisualization.Charting.Legend("Süreler")
+            // Legend Ayarları
+            var legend = new System.Windows.Forms.DataVisualization.Charting.Legend("Default")
             {
                 Docking = System.Windows.Forms.DataVisualization.Charting.Docking.Bottom,
-                Alignment = System.Drawing.StringAlignment.Center,
-                Font = new System.Drawing.Font("Arial", 9f)
+                Alignment = System.Drawing.StringAlignment.Center
             };
             pieChartControl.Legends.Add(legend);
-
-            series.LegendText = "#LEGENDTEXT";
-
             pieChartControl.Invalidate();
+        }
+
+        // --- KRİTİK ALGORİTMA: ÇAKIŞAN ZAMAN ARALIKLARINI BİRLEŞTİRME ---
+        private double CalculateUniqueDuration(List<AlarmDetail> alarms, DateTime limitEndTime)
+        {
+            if (alarms == null || !alarms.Any()) return 0;
+
+            // 1. Alarmları başlangıç zamanına göre sırala
+            var sortedIntervals = alarms
+                .Select(a => new {
+                    Start = a.StartTime,
+                    End = a.EndTime ?? limitEndTime
+                })
+                .OrderBy(a => a.Start)
+                .ToList();
+
+            if (!sortedIntervals.Any()) return 0;
+
+            double totalSeconds = 0;
+            DateTime currentStart = sortedIntervals[0].Start;
+            DateTime currentEnd = sortedIntervals[0].End;
+
+            // 2. Kesişen aralıkları birleştir (Merge Intervals)
+            for (int i = 1; i < sortedIntervals.Count; i++)
+            {
+                if (sortedIntervals[i].Start < currentEnd)
+                {
+                    // Çakışma var, mevcut aralığın sonunu uzat
+                    if (sortedIntervals[i].End > currentEnd)
+                    {
+                        currentEnd = sortedIntervals[i].End;
+                    }
+                }
+                else
+                {
+                    // Çakışma yok, önceki aralığın süresini ekle ve yeni aralığa geç
+                    totalSeconds += (currentEnd - currentStart).TotalSeconds;
+                    currentStart = sortedIntervals[i].Start;
+                    currentEnd = sortedIntervals[i].End;
+                }
+            }
+
+            // Son aralığı ekle
+            totalSeconds += (currentEnd - currentStart).TotalSeconds;
+
+            return totalSeconds;
+        }
+
+        private void AddPiePoint(System.Windows.Forms.DataVisualization.Charting.Series series, double seconds, string label, System.Drawing.Color color)
+        {
+            if (seconds > 0)
+            {
+                var dp = new System.Windows.Forms.DataVisualization.Charting.DataPoint(0, seconds);
+                dp.Color = color;
+                dp.LegendText = $"{label} ({TimeSpan.FromSeconds(seconds):hh\\:mm\\:ss})";
+                series.Points.Add(dp);
+            }
         }
 
         // FormLoad metodundan LoadPieChart çağrısını parametresiz yap

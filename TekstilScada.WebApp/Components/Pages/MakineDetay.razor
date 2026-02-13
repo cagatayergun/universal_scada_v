@@ -5,6 +5,7 @@
 @using TekstilScada.Repositories
 @using TekstilScada.Core.Localization
 @using Microsoft.Extensions.Localization
+@using System.Text.Json
 @inject ScadaDataService ScadaDataService
 @inject IJSRuntime JSRuntime
 @inject IStringLocalizer<SharedResource> Loc
@@ -14,389 +15,211 @@
 
 @if (Status == null)
 {
-    <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">@Loc["Yukleniyor"]</span>
-        </div>
-        <p class="ms-3">@string.Format(Loc["MakineDurumuYukleniyor"], MachineId)</p>
+    <div class="d-flex justify-content-center align-items-center" style="height: 80vh;">
+        <div class="spinner-border text-primary" role="status"></div>
     </div>
 }
 else
 {
-    @* --- ÜST BİLGİ PANELİ (HEADER) --- *@
+    @* --- ÜST DURUM PANELİ --- *@
     <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">@Status.MachineName <small class="text-muted fs-6">(@Status.MakineTipi)</small></h2>
         <div>
-            <h1 class="mb-0">@Status.MachineName</h1>
-            <span class="badge bg-secondary">@Status.MakineTipi</span>
-        </div>
-        <div class="text-end">
-            <div class="badge @GetConnectionCssClass() p-2 fs-6">
-                @Status.ConnectionState
-            </div>
+            <span class="badge @GetConnectionCssClass() p-2">@Status.ConnectionState</span>
+            <span class="badge bg-dark p-2 ms-2">@GetStatusText()</span>
         </div>
     </div>
 
-    @* --- GÖRSEL GÖSTERGE PANELİ (GAUGES) --- *@
+    @* --- GÖSTERGELER (BARLAR VE İBRE) --- *@
     <div class="row mb-4">
-        @* 1. SICAKLIK GÖSTERGESİ *@
+        @* Sıcaklık Dikey Bar *@
         <div class="col-md-4 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header text-center fw-bold text-danger">
-                    <i class="bi bi-thermometer-half me-1"></i> @Loc["Sicaklik"]
-                </div>
-                <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                    <h2 class="display-4 fw-bold text-danger">@GetFormattedTemperature() <span class="fs-4">°C</span></h2>
-
-                    @* Dikey Bar (CSS ile) *@
-                    <div class="gauge-container mt-3">
-                        <div class="gauge-fill-wrapper">
-                            <div class="gauge-fill bg-danger" style="height: @(GetTemperaturePercentage())%;"></div>
-                        </div>
+            <div class="card h-100 shadow-sm border-danger border-top border-4">
+                <div class="card-header bg-white py-1 fw-bold text-danger text-center">@Loc["Sicaklik"]</div>
+                <div class="card-body d-flex align-items-center justify-content-around">
+                    <div class="v-gauge-container">
+                        <div class="v-gauge-fill bg-danger" style="height: @(GetTemperaturePercentage())%;"></div>
+                    </div>
+                    <div class="text-center">
+                        <h2 class="text-danger fw-bold mb-0">@GetFormattedTemperature()</h2>
+                        <small class="text-muted fw-bold">°C</small>
                     </div>
                 </div>
             </div>
         </div>
 
-        @* 2. RPM (DEVİR) GÖSTERGESİ *@
+        @* Devir İbre (180 Derece) *@
         <div class="col-md-4 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header text-center fw-bold text-success">
-                    <i class="bi bi-speedometer2 me-1"></i> @Loc["Devir"]
+            <div class="card h-100 shadow-sm border-success border-top border-4">
+                <div class="card-header bg-white py-1 fw-bold text-success text-center">
+                    @Loc["Devir"]
                 </div>
-                <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                    <h2 class="display-4 fw-bold text-success">@Status.AnlikDevirRpm <span class="fs-4">d/d</span></h2>
-
-                    @* Dairesel Gösterge Simülasyonu *@
-                    <div class="progress mt-4" style="height: 25px; width: 100%;">
-                        <div class="progress-bar bg-success progress-bar-striped progress-bar-animated"
-                             role="progressbar"
-                             style="width: @(Math.Min(100, (Status.AnlikDevirRpm / 15.0)))%">
-                        </div>
-                    </div>
-                    <small class="text-muted mt-2">0 - 1500 RPM</small>
+                <div class="card-body p-0 d-flex flex-column align-items-center justify-content-center" style="min-height: 160px;">
+                    @* Grafik buraya gelecek, config içindeki staticPlot sayesinde üzerine gelince hiçbir şey çıkmaz *@
+                    <div id="gaugeRpmContainer" style="width: 100%;"></div>
                 </div>
             </div>
         </div>
 
-        @* 3. SU SEVİYESİ / NEM GÖSTERGESİ *@
+        @* Su Seviyesi Dikey Bar *@
         <div class="col-md-4 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header text-center fw-bold text-primary">
-                    @if (IsDryerMachine())
-                    {
-                        <span><i class="bi bi-moisture me-1"></i> Nem (Humidity)</span>
-                    }
-                    else
-                    {
-                        <span><i class="bi bi-droplet-half me-1"></i> @Loc["SuSeviyesiLabel"]</span>
-                    }
-                </div>
-                <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                    <h2 class="display-4 fw-bold text-primary">
-                        @Status.AnlikSuSeviyesi
-                        <span class="fs-4">@(IsDryerMachine() ? "Rh" : "Lt")</span>
-                    </h2>
-
-                    @* Dikey Bar (Mavi) *@
-                    <div class="gauge-container mt-3">
-                        <div class="gauge-fill-wrapper">
-                            <div class="gauge-fill bg-primary" style="height: @(Math.Min(100, (double)Status.AnlikSuSeviyesi))%;"></div>
-                        </div>
+            <div class="card h-100 shadow-sm border-primary border-top border-4">
+                <div class="card-header bg-white py-1 fw-bold text-primary text-center">@(IsDryerMachine() ? "Nem (Rh)" : Loc["SuSeviyesiLabel"])</div>
+                <div class="card-body d-flex align-items-center justify-content-around">
+                    <div class="v-gauge-container border-primary">
+                        <div class="v-gauge-fill bg-primary" style="height: @(Math.Min(100, (double)Status.AnlikSuSeviyesi))%;"></div>
+                    </div>
+                    <div class="text-center">
+                        <h2 class="text-primary fw-bold mb-0">@Status.AnlikSuSeviyesi</h2>
+                        <small class="text-muted fw-bold">@(IsDryerMachine() ? "Rh" : "Lt")</small>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    @* --- DETAY BİLGİLERİ VE ALARMLAR --- *@
-    <div class="row mb-4">
-        @* Sol Taraf: Reçete ve Parti Bilgileri *@
-        <div class="col-lg-8">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light fw-bold">
-                    @Loc["UretimDetaylari"]
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="text-muted small">@Loc["ReceteLabel"]</label>
-                            <div class="fw-bold fs-5">@Status.RecipeName</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small">@Loc["BatchLabel"]</label>
-                            <div class="fw-bold fs-5">@Status.BatchNumarasi</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small">@Loc["OperatorLabel"]</label>
-                            <div class="fw-bold">@Status.OperatorIsmi</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small">@Loc["Calisiyor"]</label>
-                            <div class="fw-bold">@GetStatusText()</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small">@Loc["MusteriNoLabel"]</label>
-                            <div>@Status.MusteriNumarasi</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small">@Loc["SiparisNoLabel"]</label>
-                            <div>@Status.SiparisNumarasi</div>
-                        </div>
-                    </div>
-
-                    <hr />
-
-                    @* Proses İlerleme *@
-                    <div>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>@Loc["ProsesYuzdesi"]</span>
-                            <span class="fw-bold">@Status.ProsesYuzdesi%</span>
-                        </div>
-                        <div class="progress" style="height: 20px;">
-                            <div class="progress-bar progress-bar-striped bg-info"
-                                 role="progressbar"
-                                 style="width: @(Status.ProsesYuzdesi)%">
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    @* --- MÜŞTERİ / SİPARİŞ BİLGİ KUTUCUKLARI (KPI BOX) --- *@
+    <div class="row mb-4 g-2">
+        <div class="col-6 col-md-3">
+            <div class="kpi-box border-start border-4 border-warning shadow-sm bg-white p-2">
+                <label class="text-muted small fw-bold text-uppercase d-block">@Loc["MusteriNoLabel"]</label>
+                <div class="h6 fw-bold mb-0">@(string.IsNullOrEmpty(Status.MusteriNumarasi) ? "---" : Status.MusteriNumarasi)</div>
             </div>
         </div>
-
-        @* Sağ Taraf: Aktif Alarm Kutusu *@
-        <div class="col-lg-4">
-            <div class="card shadow-sm h-100 border-0">
-                <div class="card-header text-white @(Status.HasActiveAlarm ? "bg-danger" : "bg-success")">
-                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> @Loc["AktifAlarmBaslik"]</h5>
-                </div>
-                <div class="card-body d-flex align-items-center justify-content-center text-center">
-                    @if (Status.HasActiveAlarm)
-                    {
-                        <div>
-                            <h1 class="text-danger mb-0">#@Status.ActiveAlarmNumber</h1>
-                            <p class="lead text-danger fw-bold">@Status.ActiveAlarmText</p>
-                        </div>
-                    }
-                    else
-                    {
-                        <div>
-                            <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
-                            <p class="lead text-success mt-2">@Loc["AktifAlarmYok"]</p>
-                        </div>
-                    }
-                </div>
+        <div class="col-6 col-md-3">
+            <div class="kpi-box border-start border-4 border-info shadow-sm bg-white p-2">
+                <label class="text-muted small fw-bold text-uppercase d-block">@Loc["SiparisNoLabel"]</label>
+                <div class="h6 fw-bold mb-0">@(string.IsNullOrEmpty(Status.SiparisNumarasi) ? "---" : Status.SiparisNumarasi)</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="kpi-box border-start border-4 border-success shadow-sm bg-white p-2">
+                <label class="text-muted small fw-bold text-uppercase d-block">@Loc["BatchLabel"]</label>
+                <div class="h6 fw-bold mb-0">@(string.IsNullOrEmpty(Status.BatchNumarasi) ? "---" : Status.BatchNumarasi)</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="kpi-box border-start border-4 border-primary shadow-sm bg-white p-2">
+                <label class="text-muted small fw-bold text-uppercase d-block">@Loc["ReceteLabel"]</label>
+                <div class="h6 fw-bold mb-0">@(string.IsNullOrEmpty(Status.RecipeName) ? "---" : Status.RecipeName)</div>
             </div>
         </div>
     </div>
 
-    @* --- SEKMELER (ADIMLAR, GRAFİK, GEÇMİŞ) --- *@
+    @* --- SEKMELER --- *@
     <div class="card shadow-sm">
-        <div class="card-header">
-            <ul class="nav nav-tabs card-header-tabs" id="detailTabs" role="tablist">
-                <li class="nav-item">
-                    <button class="nav-link @(ActiveTab == "steps" ? "active" : "")" @onclick="@(() => ChangeTab("steps"))">
-                        <i class="bi bi-list-ol"></i> @Loc["PlcReceteAdimlari"]
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link @(ActiveTab == "trend" ? "active" : "")" @onclick="@(() => ChangeTab("trend"))">
-                        <i class="bi bi-graph-up"></i> @Loc["TrendAnaliziTab"]
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link @(ActiveTab == "alarm" ? "active" : "")" @onclick="@(() => ChangeTab("alarm"))">
-                        <i class="bi bi-clock-history"></i> @Loc["AlarmGecmisiTab"]
-                    </button>
-                </li>
+        <div class="card-header p-0">
+            <ul class="nav nav-tabs nav-fill">
+                <li class="nav-item"><button class="nav-link rounded-0 @(ActiveTab == "steps" ? "active" : "")" @onclick="@(() => ChangeTab("steps"))">@Loc["PlcReceteAdimlari"]</button></li>
+                <li class="nav-item"><button class="nav-link rounded-0 @(ActiveTab == "trend" ? "active" : "")" @onclick="@(() => ChangeTab("trend"))">@Loc["TrendAnaliziTab"]</button></li>
+                <li class="nav-item"><button class="nav-link rounded-0 @(ActiveTab == "alarm" ? "active" : "")" @onclick="@(() => ChangeTab("alarm"))">@Loc["AlarmGecmisiTab"]</button></li>
             </ul>
         </div>
         <div class="card-body">
-            @* 1. REÇETE ADIMLARI TABLOSU *@
             @if (ActiveTab == "steps")
             {
-                if (isLoadingRecipe)
-                {
-                    <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
-                }
-                else
-                {
-                    var visibleRecipeSteps = RecipeSteps?
-                    .Where(s => GetStepTypeName(s) != Loc["TanimsizAdim"]) // Boş adımları gizle
-                    .OrderBy(s => s.StepNumber)
-                    .ToList();
-
-                    if (visibleRecipeSteps == null || !visibleRecipeSteps.Any())
-                    {
-                        <div class="alert alert-warning">@Loc["AktifAdimBulunamadi"]</div>
-                    }
-                    else
-                    {
-                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
-                            <table class="table table-hover table-bordered align-middle">
-                                <thead class="table-light sticky-top">
-                                    <tr>
-                                        <th style="width: 80px;" class="text-center">@Loc["AdimSutun"]</th>
-                                        <th>@Loc["AciklamaSutun"]</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var step in visibleRecipeSteps)
-                                    {
-                                        // Aktif adım renklendirmesi (WinForms gibi)
-                                        bool isActive = step.StepNumber == Status.AktifAdimNo;
-                                        <tr class="@(isActive ? "table-success border-success" : "")">
-                                            <td class="text-center fw-bold">
-                                                @step.StepNumber
-                                                @if (isActive)
-                                                {
-                                                    <i class="bi bi-caret-right-fill text-success"></i>
-                                                }
-                                            </td>
-                                            <td class="@(isActive ? "fw-bold" : "")">@GetStepTypeName(step)</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                }
-            }
-
-            @* 2. TREND GRAFİĞİ *@
-            @if (ActiveTab == "trend")
-            {
-                if (isLoading)
-                {
-                    <div class="text-center py-4"><div class="spinner-border text-primary"></div><p>@Loc["TrendVerileriYukleniyor"]</p></div>
-                }
-                else if (TrendData == null || !TrendData.Any())
-                {
-                    <div class="alert alert-info">@Loc["TrendVerisiYok"]</div>
-                }
-                else
-                {
-                    <div id="trendChartContainer" style="width: 100%; height: 500px;"></div>
-                }
-            }
-
-            @* 3. ALARM GEÇMİŞİ *@
-            @if (ActiveTab == "alarm")
-            {
-                if (isLoading)
-                {
-                    <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
-                }
-                else if (AlarmHistory == null || !AlarmHistory.Any())
-                {
-                    <div class="alert alert-info">@Loc["GecmisAlarmYok"]</div>
-                }
-                else
-                {
-                    <div class="table-responsive">
-                        <table class="table table-striped table-sm">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>@Loc["BaslangicZamani"]</th>
-                                    <th>@Loc["AlarmKodu"]</th>
-                                    <th>@Loc["Aciklama"]</th>
-                                    <th>@Loc["Sure"]</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var alarm in AlarmHistory.Take(50))
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-sm table-hover table-bordered mb-0">
+                        <thead class="table-light sticky-top"><tr><th width="70" class="text-center">No</th><th>@Loc["Aciklama"]</th></tr></thead>
+                        <tbody>
+                            @if (RecipeSteps != null)
+                            {
+                                foreach (var step in RecipeSteps.Where(s => !string.IsNullOrEmpty(GetStepTypeName(s))))
                                 {
-                                    <tr>
-                                        <td>@alarm.StartTime.ToLocalTime()</td>
-                                        <td>@alarm.AlarmNumber</td>
-                                        <td>@alarm.AlarmText</td>
-                                        <td>@alarm.Duration</td>
+                                    <tr class="@(step.StepNumber == Status.AktifAdimNo ? "table-success fw-bold" : "")">
+                                        <td class="text-center">@step.StepNumber</td>
+                                        <td>@GetStepTypeName(step)</td>
                                     </tr>
                                 }
-                            </tbody>
-                        </table>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else if (ActiveTab == "trend")
+            {
+                if (isLoading)
+                {
+
+                    <div class="text-center p-5"><div class="spinner-border"></div></div>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-2 bg-light p-2 rounded">
+                        <div id="chartTemp" class="bg-white rounded"></div>
+                        <div id="chartRpm" class="bg-white rounded"></div>
+                        <div id="chartLevel" class="bg-white rounded"></div>
                     </div>
                 }
+            }
+            else if (ActiveTab == "alarm")
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm border mb-0">
+                        <thead class="table-dark"><tr><th>@Loc["BaslangicZamani"]</th><th>@Loc["Aciklama"]</th><th>@Loc["Sure"]</th></tr></thead>
+                        <tbody>
+                            @if (AlarmHistory != null)
+                            {
+                                foreach (var alarm in AlarmHistory)
+                                {
+                                    <tr><td>@alarm.StartTime.ToString("HH:mm:ss")</td><td>@alarm.AlarmText</td><td>@alarm.Duration</td></tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
             }
         </div>
     </div>
 }
 
-@* --- CSS STYLES --- *@
 <style>
-    /* Dikey Gauge Stilleri */
-    .gauge-container {
-        width: 60px;
-        height: 200px;
-        background-color: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
+    .v-gauge-container {
+        width: 25px;
+        height: 110px;
+        background: #eee;
+        border: 1px solid #ccc;
+        border-radius: 12px;
         position: relative;
         overflow: hidden;
-        margin: 0 auto;
+        display: inline-block;
     }
 
-    .gauge-fill-wrapper {
+    .v-gauge-fill {
+        width: 100%;
         position: absolute;
         bottom: 0;
-        left: 0;
-        width: 100%;
+        transition: height 0.5s ease;
+    }
+
+    .kpi-box {
         height: 100%;
-        display: flex;
-        align-items: flex-end; /* İçeriği aşağı yasla */
     }
 
-    .gauge-fill {
-        width: 100%;
-        transition: height 0.5s ease-in-out; /* Akıcı animasyon */
-    }
-
-    .status-card {
-        transition: transform 0.2s;
-    }
-
-        .status-card:hover {
-            transform: translateY(-2px);
-        }
-
-    .active-step-highlight {
+    .nav-tabs .nav-link.active {
         font-weight: bold;
-        border: 2px solid #198754;
+        border-bottom: 3px solid #0d6efd;
     }
 </style>
 
 @code {
     [Parameter] public int MachineId { get; set; }
-
     private FullMachineStatus? Status;
-    private bool isSubscribed = false;
-    private string ActiveTab { get; set; } = "steps"; // Başlangıç sekmesi Adımlar olsun
+    private string ActiveTab = "steps";
     private bool isLoading = false;
-    private bool isLoadingRecipe = false;
     private bool shouldRenderChart = false;
-
     private List<AlarmReportItem>? AlarmHistory;
     private List<ScadaRecipeStep>? RecipeSteps;
     private List<TrendDataPointRich>? TrendData;
 
-    // DTO Class for Trend Data
-    public class TrendDataPointRich
-    {
-        public DateTime Timestamp { get; set; }
-        public double TimestampOADate { get; set; }
-        public double Temperature { get; set; }
-        public double Rpm { get; set; }
-        public double WaterLevel { get; set; }
-    }
+    public class TrendDataPointRich { public DateTime Timestamp { get; set; } public double Temperature { get; set; } public double Rpm { get; set; } public double WaterLevel { get; set; } }
 
     protected override async Task OnInitializedAsync()
     {
         await ScadaDataService.GetMachinesAsync();
         ScadaDataService.OnDataUpdated += HandleDataUpdate;
-        isSubscribed = true;
-
-        // Sayfa açılışında reçeteyi ve varsa aktif sekmenin verisini çek
+        if (ScadaDataService.MachineData.TryGetValue(MachineId, out var s)) Status = s;
         await LoadRecipeStepsAsync();
-        if (ActiveTab != "steps") await LoadReportData();
     }
 
     private void HandleDataUpdate()
@@ -408,160 +231,134 @@ else
         }
     }
 
-    private async Task LoadRecipeStepsAsync()
-    {
-        isLoadingRecipe = true;
-        RecipeSteps = null;
-        try
-        {
-            // Servisten reçeteyi oku (Gateway üzerinden PLC'den okuyabilir)
-            var recipe = await ScadaDataService.ReadRecipeFromPlcAsync(MachineId);
-            if (recipe != null)
-            {
-                // WinForms mantığı: 98 adım veya Kurutma için tek adım
-                RecipeSteps = recipe.Steps.OrderBy(s => s.StepNumber).ToList();
-            }
-        }
-        catch { RecipeSteps = new List<ScadaRecipeStep>(); }
-        isLoadingRecipe = false;
-        StateHasChanged();
-    }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (shouldRenderChart && TrendData != null && TrendData.Any() && ActiveTab == "trend")
+        try
         {
-            shouldRenderChart = false;
-            await JSRuntime.InvokeVoidAsync("plotTrendChart1", "trendChartContainer", TrendData, Loc["CanliTrendAnalizi"].Value);
+            if (shouldRenderChart && ActiveTab == "trend")
+            {
+                shouldRenderChart = false;
+                await JSRuntime.InvokeVoidAsync("plotSyncedDetailCharts", TrendData, "chartTemp", "chartRpm", "chartLevel");
+            }
+            if (Status != null) await JSRuntime.InvokeVoidAsync("plotRpmGauge", "gaugeRpmContainer", Status.AnlikDevirRpm);
         }
+        catch { }
     }
 
-    private async Task ChangeTab(string tabName)
-    {
-        if (ActiveTab != tabName)
-        {
-            ActiveTab = tabName;
-            // Adımlar zaten yüklü, diğerleri için fetch yap
-            if (tabName != "steps") await LoadReportData();
-        }
-    }
+    private async Task ChangeTab(string t) { ActiveTab = t; if (t != "steps") await LoadReportData(); }
 
     private async Task LoadReportData()
     {
         isLoading = true;
         shouldRenderChart = false;
+        TrendData = null;
+        AlarmHistory = null;
         StateHasChanged();
-
-        var defaultFilter = new ReportFilters { StartTime = DateTime.Today.AddDays(-30), EndTime = DateTime.Now.AddHours(1), MachineId = MachineId };
-        var trendFilter = new ReportFilters { StartTime = DateTime.Now.AddMinutes(-360), EndTime = DateTime.Now.AddMinutes(1), MachineId = MachineId }; // WinForms'daki gibi son 360dk
 
         try
         {
+            bool isBatchMode = Status != null && !string.IsNullOrEmpty(Status.BatchNumarasi) && Status.IsInRecipeMode;
+            DateTime startTime = isBatchMode ? DateTime.MinValue : DateTime.Now.AddHours(-3);
+
+            var filter = new ReportFilters
+            {
+                MachineId = MachineId,
+                StartTime = startTime,
+                EndTime = DateTime.Now,
+                BatchNo = isBatchMode ? Status!.BatchNumarasi : null
+            };
+
+            // 1. ALARM GEÇMİŞİ YÜKLEME
             if (ActiveTab == "alarm")
             {
-                AlarmHistory = await ScadaDataService.GetAlarmReportAsync(defaultFilter);
+                if (isBatchMode)
+                {
+                    var detail = await ScadaDataService.GetProductionDetailAsync(MachineId, Status!.BatchNumarasi);
+                    AlarmHistory = detail?.Alarms.Select(a => new AlarmReportItem
+                    {
+                        StartTime = a.AlarmTime,
+                        AlarmText = a.AlarmDescription,
+                        Duration = a.Duration.ToString(@"hh\:mm\:ss")
+                    }).OrderByDescending(x => x.StartTime).ToList();
+                }
+                else
+                {
+                    AlarmHistory = (await ScadaDataService.GetAlarmReportAsync(filter)).OrderByDescending(x => x.StartTime).ToList();
+                }
             }
+
+            // 2. TREND VERİSİ YÜKLEME (Hatanın olduğu kısım burasıydı)
             else if (ActiveTab == "trend")
             {
-                var rawData = await ScadaDataService.GetTrendDataAsync(trendFilter);
-                if (rawData != null)
-                {
-                    var jsonString = System.Text.Json.JsonSerializer.Serialize(rawData);
-                    var deserializedData = System.Text.Json.JsonSerializer.Deserialize<List<TrendDataPointRich>>(jsonString, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                // Veriyi generic bir liste olarak tanımlıyoruz
+                System.Collections.IEnumerable? rawDataRaw = null;
 
-                    if (deserializedData != null)
-                    {
-                        bool isDryer = IsDryerMachine();
-                        TrendData = deserializedData.Select(d => new TrendDataPointRich
-                        {
-                            Timestamp = d.Timestamp,
-                            TimestampOADate = d.Timestamp.ToOADate(),
-                            // WinForms Mantığı: Kurutma ise /100, değilse /10
-                            Temperature = isDryer ? ((double)d.Temperature / 100.0) : ((double)d.Temperature / 10.0),
-                            Rpm = (double)d.Rpm,
-                            WaterLevel = (double)d.WaterLevel
-                        }).ToList();
-                    }
+                if (isBatchMode)
+                {
+                    var detail = await ScadaDataService.GetProductionDetailAsync(MachineId, Status!.BatchNumarasi);
+                    rawDataRaw = detail?.LogData;
                 }
-                shouldRenderChart = (TrendData != null && TrendData.Any());
+                else
+                {
+                    rawDataRaw = await ScadaDataService.GetTrendDataAsync(filter);
+                }
+
+                if (rawDataRaw != null)
+                {
+                    // Her iki tipi de JSON üzerinden ortak DTO'muza güvenli bir şekilde dönüştürüyoruz
+                    var jsonString = JsonSerializer.Serialize(rawDataRaw);
+                    var deserialized = JsonSerializer.Deserialize<List<TrendDataPointRich>>(jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    bool isDry = IsDryerMachine();
+                    TrendData = deserialized?.Select(d => new TrendDataPointRich
+                    {
+                        Timestamp = d.Timestamp,
+                        Temperature = isDry ? d.Temperature / 100.0 : d.Temperature / 10.0,
+                        Rpm = d.Rpm,
+                        WaterLevel = d.WaterLevel
+                    }).OrderBy(x => x.Timestamp).ToList();
+
+                    shouldRenderChart = (TrendData != null && TrendData.Any());
+                }
             }
         }
-        catch { }
-        finally { isLoading = false; StateHasChanged(); }
-    }
-
-    // --- YARDIMCI METOTLAR (WinForms Mantığı) ---
-
-    private bool IsDryerMachine()
-    {
-        if (Status == null || string.IsNullOrEmpty(Status.MakineTipi)) return false;
-        return Status.MakineTipi.Contains("Kurutma", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private string GetFormattedTemperature()
-    {
-        if (Status == null) return "-";
-        // WinForms mantığı: Kurutma ise 100'e böl, diğerleri 10'a böl
-        return IsDryerMachine()
-            ? (Status.AnlikSicaklik / 100.0m).ToString("F1")
-            : (Status.AnlikSicaklik / 10.0m).ToString("F1");
-    }
-
-    private int GetTemperaturePercentage()
-    {
-        if (Status == null) return 0;
-        // Termometre barı için yüzde hesaplama (0-150 derece arası varsayım)
-        double temp = IsDryerMachine()
-            ? (double)Status.AnlikSicaklik / 100.0
-            : (double)Status.AnlikSicaklik / 10.0;
-        return (int)Math.Min(100, (temp / 150.0) * 100);
-    }
-
-    private string GetConnectionCssClass()
-    {
-        return Status?.ConnectionState switch
+        catch (Exception ex)
         {
-            ConnectionStatus.Connected => "bg-success",
-            ConnectionStatus.Connecting => "bg-warning text-dark",
-            _ => "bg-danger"
-        };
+            Console.WriteLine($"Veri yükleme hatası: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
     }
 
+    private async Task LoadRecipeStepsAsync()
+    {
+        try { var r = await ScadaDataService.ReadRecipeFromPlcAsync(MachineId); if (r != null) RecipeSteps = r.Steps.OrderBy(s => s.StepNumber).ToList(); } catch { }
+    }
+
+    private bool IsDryerMachine() => Status?.MakineTipi?.Contains("Kurutma", StringComparison.OrdinalIgnoreCase) ?? false;
+    private int GetTemperaturePercentage() => (int)Math.Min(100, ((IsDryerMachine() ? (double)Status!.AnlikSicaklik / 100.0 : (double)Status!.AnlikSicaklik / 10.0) / 150.0) * 100);
+    private string GetFormattedTemperature() => IsDryerMachine() ? (Status!.AnlikSicaklik / 100.0m).ToString("F1") : (Status!.AnlikSicaklik / 10.0m).ToString("F1");
+    private string GetConnectionCssClass() => Status?.ConnectionState == ConnectionStatus.Connected ? "bg-success" : "bg-danger";
     private string GetStatusText()
     {
         if (Status == null || Status.ConnectionState != ConnectionStatus.Connected) return Loc["BaglantiYok"];
         if (Status.HasActiveAlarm) return Loc["Alarm"];
-        if (Status.IsPaused) return Loc["Duraklatildi"];
-        if (Status.IsInRecipeMode) return Loc["Calisiyor"];
-        if (Status.manuel_status) return "MANUEL";
-        return Loc["HazirDuruyor"];
+        return Status.IsInRecipeMode ? Loc["Calisiyor"] : Loc["HazirDuruyor"];
     }
-
     private string GetStepTypeName(ScadaRecipeStep step)
     {
-        // WinForms'daki Bitwise mantığı
-        var stepTypes = new List<string>();
-        // Veri yoksa veya kısa ise hata vermesin
-        short controlWord = (step.StepDataWords != null && step.StepDataWords.Length > 24) ? step.StepDataWords[24] : (short)0;
-
-        if ((controlWord & 1) != 0) stepTypes.Add(Loc["AdimTipi_SuAlma"]);
-        if ((controlWord & 2) != 0) stepTypes.Add(Loc["AdimTipi_Isitma"]);
-        if ((controlWord & 4) != 0) stepTypes.Add(Loc["AdimTipi_Calisma"]);
-        if ((controlWord & 8) != 0) stepTypes.Add(Loc["AdimTipi_Dozaj"]);
-        if ((controlWord & 16) != 0) stepTypes.Add(Loc["AdimTipi_Bosaltma"]);
-        if ((controlWord & 32) != 0) stepTypes.Add(Loc["AdimTipi_Sikma"]);
-        if ((controlWord & 64) != 0) stepTypes.Add("Humidity");
-        if ((controlWord & 128) != 0) stepTypes.Add("Timed");
-        if ((controlWord & 512) != 0) stepTypes.Add("Cooling");
-
-        return stepTypes.Any() ? string.Join(" + ", stepTypes) : Loc["TanimsizAdim"];
+        var types = new List<string>();
+        short w = (step.StepDataWords != null && step.StepDataWords.Length > 24) ? step.StepDataWords[24] : (short)0;
+        if ((w & 1) != 0) types.Add(Loc["AdimTipi_SuAlma"]);
+        if ((w & 2) != 0) types.Add(Loc["AdimTipi_Isitma"]);
+        if ((w & 4) != 0) types.Add(Loc["AdimTipi_Calisma"]);
+        if ((w & 8) != 0) types.Add(Loc["AdimTipi_Dozaj"]);
+        if ((w & 16) != 0) types.Add(Loc["AdimTipi_Bosaltma"]);
+        if ((w & 32) != 0) types.Add(Loc["AdimTipi_Sikma"]);
+        return types.Any() ? string.Join(" + ", types) : "";
     }
-
-    public void Dispose()
-    {
-        if (isSubscribed)
-        {
-            ScadaDataService.OnDataUpdated -= HandleDataUpdate;
-        }
-    }
+    public void Dispose() { ScadaDataService.OnDataUpdated -= HandleDataUpdate; }
 }

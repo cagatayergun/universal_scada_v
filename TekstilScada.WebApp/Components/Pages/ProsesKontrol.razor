@@ -87,11 +87,12 @@
                             @if (!IsByMachine)
                             {
                                 <MudMenuItem OnClick="SendToPlc" Icon="@Icons.Material.Filled.Upload" Disabled="@(SelectedMachineId == 0)">@Loc["SeciliMakineyeGonder"]</MudMenuItem>
-                            }
-
+                            
+                            
                             @* 2. OKUMA: Herkeste AÇIK *@
                             <MudMenuItem OnClick="ReadFromPlc" Icon="@Icons.Material.Filled.Download" Disabled="@(SelectedMachineId == 0)">@Loc["SeciliMakinedenOku"]</MudMenuItem>
-
+                            
+                            }
                             <MudDivider />
 
                             @* 3. FTP: Kurutmalarda KAPALI, Diğerlerinde AÇIK *@
@@ -509,6 +510,7 @@
         if ((controlWord & 8) != 0) stepTypes.Add(Loc["AdimTipi_Dozaj"]);
         if ((controlWord & 16) != 0) stepTypes.Add(Loc["AdimTipi_Bosaltma"]);
         if ((controlWord & 32) != 0) stepTypes.Add(Loc["AdimTipi_Sikma"]);
+        if ((controlWord & 1024) != 0) stepTypes.Add("Operator Call");
         return stepTypes.Any() ? string.Join(" + ", stepTypes) : "";
     }
 }
