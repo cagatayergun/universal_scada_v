@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using TekstilScada.Models;
 using TekstilScada.Repositories;
 using TekstilScada.Services;
+using static TekstilScada.Repositories.AlarmRepository;
 
 // --- DTO Sınıfları (Global) ---
 public class TrendDataPoint { public DateTime Timestamp { get; set; } public double Temperature { get; set; } public double Rpm { get; set; } public double WaterLevel { get; set; } }
@@ -38,6 +39,7 @@ public class AlarmDetailDto
     // Zaman kesişim analizi (Interval Merging) yaparken hassasiyet için EndTime eklendi
     public DateTime EndTime => AlarmTime.Add(Duration);
 }
+
 public class ProductionDetailDto { public TekstilScada.Models.ProductionReportItem Header { get; set; } = new(); public List<ProductionStepDetailDto> Steps { get; set; } = new(); public List<AlarmDetailDto> Alarms { get; set; } = new(); public List<TrendDataPoint> LogData { get; set; } = new(); public List<TrendDataPoint> TheoreticalData { get; set; } = new(); }
 public class GeneralDetailedConsumptionFilters { public DateTime StartTime { get; set; } public DateTime EndTime { get; set; } public List<int>? MachineIds { get; set; } }
 public class ActionLogFilters { public DateTime StartTime { get; set; } public DateTime EndTime { get; set; } public string? Username { get; set; } public string? Details { get; set; } }
@@ -464,6 +466,10 @@ namespace TekstilScada.WebApp.Services
         public void ExitFactory()
         {
             CurrentFactoryName = ""; _currentSelectedFactoryId = 0; MachineData.Clear(); MachineDetailsCache.Clear(); OnFactoryChanged?.Invoke();
+        }
+        public async Task<PagedResult<AlarmReportItem>> GetAlarmReportPagedAsync(ReportFilters f, int pageNumber, int pageSize)
+        {
+            return await InvokeSafeAsync("GetAlarmReportPaged", 0, new PagedResult<AlarmReportItem>(), f, pageNumber, pageSize);
         }
     }
 }

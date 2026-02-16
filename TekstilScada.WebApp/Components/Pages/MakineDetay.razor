@@ -6,6 +6,7 @@
 @using TekstilScada.Core.Localization
 @using Microsoft.Extensions.Localization
 @using System.Text.Json
+@using TekstilScada.Core.Models
 @inject ScadaDataService ScadaDataService
 @inject IJSRuntime JSRuntime
 @inject IStringLocalizer<SharedResource> Loc
@@ -38,11 +39,12 @@ else
                 <div class="card-header bg-white py-1 fw-bold text-danger text-center">@Loc["Sicaklik"]</div>
                 <div class="card-body d-flex align-items-center justify-content-around">
                     <div class="v-gauge-container">
-                        <div class="v-gauge-fill bg-danger" style="height: @(GetTemperaturePercentage())%;"></div>
+                        @* Dinamik _maxTemp kullanıldı *@
+                        <div class="v-gauge-fill bg-danger" style="height: @(GetBarPercentage(GetTemperatureValue(), _maxTemp))%;"></div>
                     </div>
                     <div class="text-center">
                         <h2 class="text-danger fw-bold mb-0">@GetFormattedTemperature()</h2>
-                        <small class="text-muted fw-bold">°C</small>
+                        <small class="text-muted fw-bold">°C / <span class="small">Max: @_maxTemp</span></small>
                     </div>
                 </div>
             </div>
@@ -54,9 +56,9 @@ else
                 <div class="card-header bg-white py-1 fw-bold text-success text-center">
                     @Loc["Devir"]
                 </div>
-                <div class="card-body p-0 d-flex flex-column align-items-center justify-content-center" style="min-height: 160px;">
-                    @* Grafik buraya gelecek, config içindeki staticPlot sayesinde üzerine gelince hiçbir şey çıkmaz *@
-                    <div id="gaugeRpmContainer" style="width: 100%;"></div>
+                @* DÜZELTME: style="overflow: hidden" ve sabit yükseklik kaymayı önler *@
+                <div class="card-body p-0 d-flex flex-column align-items-center justify-content-center position-relative" style="min-height: 160px; overflow: hidden;">
+                    <div id="gaugeRpmContainer" style="width: 100%; height: 100%;"></div>
                 </div>
             </div>
         </div>
@@ -67,18 +69,19 @@ else
                 <div class="card-header bg-white py-1 fw-bold text-primary text-center">@(IsDryerMachine() ? "Nem (Rh)" : Loc["SuSeviyesiLabel"])</div>
                 <div class="card-body d-flex align-items-center justify-content-around">
                     <div class="v-gauge-container border-primary">
-                        <div class="v-gauge-fill bg-primary" style="height: @(Math.Min(100, (double)Status.AnlikSuSeviyesi))%;"></div>
+                        @* Dinamik _maxWater kullanıldı *@
+                        <div class="v-gauge-fill bg-primary" style="height: @(GetBarPercentage((double)Status.AnlikSuSeviyesi, _maxWater))%;"></div>
                     </div>
                     <div class="text-center">
                         <h2 class="text-primary fw-bold mb-0">@Status.AnlikSuSeviyesi</h2>
-                        <small class="text-muted fw-bold">@(IsDryerMachine() ? "Rh" : "Lt")</small>
+                        <small class="text-muted fw-bold">@(IsDryerMachine() ? "Rh" : "Lt") / <span class="small">Max: @_maxWater</span></small>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    @* --- MÜŞTERİ / SİPARİŞ BİLGİ KUTUCUKLARI (KPI BOX) --- *@
+    @* --- KPI KUTUCUKLARI --- *@
     <div class="row mb-4 g-2">
         <div class="col-6 col-md-3">
             <div class="kpi-box border-start border-4 border-warning shadow-sm bg-white p-2">
@@ -106,7 +109,7 @@ else
         </div>
     </div>
 
-    @* --- SEKMELER --- *@
+    @* --- TABLAR --- *@
     <div class="card shadow-sm">
         <div class="card-header p-0">
             <ul class="nav nav-tabs nav-fill">
@@ -140,7 +143,6 @@ else
             {
                 if (isLoading)
                 {
-
                     <div class="text-center p-5"><div class="spinner-border"></div></div>
                 }
                 else
@@ -204,13 +206,20 @@ else
 
 @code {
     [Parameter] public int MachineId { get; set; }
+
     private FullMachineStatus? Status;
     private string ActiveTab = "steps";
     private bool isLoading = false;
     private bool shouldRenderChart = false;
+
     private List<AlarmReportItem>? AlarmHistory;
     private List<ScadaRecipeStep>? RecipeSteps;
     private List<TrendDataPointRich>? TrendData;
+
+    // --- DİNAMİK LİMİTLER ---
+    private int _maxTemp = 150; // Varsayılan
+    private int _maxRpm = 1500; // Varsayılan
+    private int _maxWater = 100; // Varsayılan
 
     public class TrendDataPointRich { public DateTime Timestamp { get; set; } public double Temperature { get; set; } public double Rpm { get; set; } public double WaterLevel { get; set; } }
 
@@ -218,14 +227,72 @@ else
     {
         await ScadaDataService.GetMachinesAsync();
         ScadaDataService.OnDataUpdated += HandleDataUpdate;
-        if (ScadaDataService.MachineData.TryGetValue(MachineId, out var s)) Status = s;
+
+        if (ScadaDataService.MachineData.TryGetValue(MachineId, out var s))
+        {
+            Status = s;
+            // Makine tipi geldikten sonra limitleri çek
+            await LoadGaugeLimitsAsync(Status.MakineTipi);
+        }
+
         await LoadRecipeStepsAsync();
+    }
+
+    // --- WinForms MANTIĞINI BİREBİR UYGULAYAN METOT ---
+    private async Task LoadGaugeLimitsAsync(string machineSubType)
+    {
+        try
+        {
+            var stepTypes = await ScadaDataService.GetStepTypesAsyncDesign();
+
+            // 2. RPM Limiti (Sıkma Adımı)
+            var rpmStep = stepTypes.FirstOrDefault(s => s.StepName.Contains("Sıkma") || s.StepName.Contains("Squeezing"));
+            if (rpmStep != null)
+            {
+                var controls = await ScadaDataService.GetLayoutAsync(machineSubType, rpmStep.Id);
+                var rpmControl = controls.FirstOrDefault(c =>
+                    (c.Name != null && (c.Name.Contains("numSikmaDevri", StringComparison.OrdinalIgnoreCase) || c.Name.Contains("Rpm", StringComparison.OrdinalIgnoreCase))) ||
+                    (c.Text != null && c.Text.Contains("Devir", StringComparison.OrdinalIgnoreCase))
+                );
+
+                if (rpmControl != null)
+                {
+                    _maxRpm = (int)(rpmControl.Maximum); // WinForms mantığı
+                }
+            }
+
+            // 3. Su Limiti (Su Alma Adımı)
+            var waterStep = stepTypes.FirstOrDefault(s => s.StepName.Contains("Su Alma") || s.StepName.Contains("Water Intake"));
+            if (waterStep != null)
+            {
+                var controls = await ScadaDataService.GetLayoutAsync(machineSubType, waterStep.Id);
+                var waterControl = controls.FirstOrDefault(c =>
+                    (c.Name != null && (c.Name.Contains("numLitre", StringComparison.OrdinalIgnoreCase) || c.Name.Contains("Water", StringComparison.OrdinalIgnoreCase)))
+                );
+
+                if (waterControl != null)
+                {
+                    _maxWater = (int)waterControl.Maximum;
+                }
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Gauge limitleri yüklenirken hata: {ex.Message}");
+        }
     }
 
     private void HandleDataUpdate()
     {
         if (ScadaDataService.MachineData.TryGetValue(MachineId, out var newStatus))
         {
+            // Eğer makine tipi sonradan geldiyse limitleri tekrar kontrol et
+            if (Status == null || Status.MakineTipi != newStatus.MakineTipi)
+            {
+                _ = LoadGaugeLimitsAsync(newStatus.MakineTipi);
+            }
             Status = newStatus;
             InvokeAsync(StateHasChanged);
         }
@@ -240,7 +307,12 @@ else
                 shouldRenderChart = false;
                 await JSRuntime.InvokeVoidAsync("plotSyncedDetailCharts", TrendData, "chartTemp", "chartRpm", "chartLevel");
             }
-            if (Status != null) await JSRuntime.InvokeVoidAsync("plotRpmGauge", "gaugeRpmContainer", Status.AnlikDevirRpm);
+
+            // JS fonksiyonuna artık _maxRpm değerini de gönderiyoruz (Dinamik Limit)
+            if (Status != null)
+            {
+                await JSRuntime.InvokeVoidAsync("plotRpmGauge", "gaugeRpmContainer", Status.AnlikDevirRpm, _maxRpm);
+            }
         }
         catch { }
     }
@@ -258,21 +330,28 @@ else
         try
         {
             bool isBatchMode = Status != null && !string.IsNullOrEmpty(Status.BatchNumarasi) && Status.IsInRecipeMode;
+
+            // --- DEĞİŞİKLİK: Batch yoksa son 3 saatlik veriyi çek (Canlı İzleme) ---
             DateTime startTime = isBatchMode ? DateTime.MinValue : DateTime.Now.AddHours(-3);
+            DateTime endTime = DateTime.Now;
+
+            // Alarm için özel filtre: Batch yoksa son 1 saat
+            DateTime alarmStartTime = isBatchMode ? DateTime.MinValue : DateTime.Now.AddHours(-1);
 
             var filter = new ReportFilters
             {
                 MachineId = MachineId,
                 StartTime = startTime,
-                EndTime = DateTime.Now,
+                EndTime = endTime,
                 BatchNo = isBatchMode ? Status!.BatchNumarasi : null
             };
 
-            // 1. ALARM GEÇMİŞİ YÜKLEME
+            // 1. ALARM YÜKLEME
             if (ActiveTab == "alarm")
             {
                 if (isBatchMode)
                 {
+                    // Batch Modu: O partiye ait tüm alarmlar
                     var detail = await ScadaDataService.GetProductionDetailAsync(MachineId, Status!.BatchNumarasi);
                     AlarmHistory = detail?.Alarms.Select(a => new AlarmReportItem
                     {
@@ -283,29 +362,31 @@ else
                 }
                 else
                 {
-                    AlarmHistory = (await ScadaDataService.GetAlarmReportAsync(filter)).OrderByDescending(x => x.StartTime).ToList();
+                    // Canlı Mod: Son 1 saatlik alarmlar
+                    var alarmFilter = new ReportFilters { MachineId = MachineId, StartTime = alarmStartTime, EndTime = endTime };
+                    AlarmHistory = (await ScadaDataService.GetAlarmReportAsync(alarmFilter)).OrderByDescending(x => x.StartTime).ToList();
                 }
             }
 
-            // 2. TREND VERİSİ YÜKLEME (Hatanın olduğu kısım burasıydı)
+            // 2. TREND YÜKLEME
             else if (ActiveTab == "trend")
             {
-                // Veriyi generic bir liste olarak tanımlıyoruz
                 System.Collections.IEnumerable? rawDataRaw = null;
 
                 if (isBatchMode)
                 {
+                    // Batch Modu: O partiye ait tüm loglar
                     var detail = await ScadaDataService.GetProductionDetailAsync(MachineId, Status!.BatchNumarasi);
                     rawDataRaw = detail?.LogData;
                 }
                 else
                 {
+                    // Canlı Mod: Son 3 saatlik manuel loglar (GetTrendDataAsync filtresiyle)
                     rawDataRaw = await ScadaDataService.GetTrendDataAsync(filter);
                 }
 
                 if (rawDataRaw != null)
                 {
-                    // Her iki tipi de JSON üzerinden ortak DTO'muza güvenli bir şekilde dönüştürüyoruz
                     var jsonString = JsonSerializer.Serialize(rawDataRaw);
                     var deserialized = JsonSerializer.Deserialize<List<TrendDataPointRich>>(jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
@@ -338,16 +419,28 @@ else
         try { var r = await ScadaDataService.ReadRecipeFromPlcAsync(MachineId); if (r != null) RecipeSteps = r.Steps.OrderBy(s => s.StepNumber).ToList(); } catch { }
     }
 
+    // --- YARDIMCI METOTLAR ---
     private bool IsDryerMachine() => Status?.MakineTipi?.Contains("Kurutma", StringComparison.OrdinalIgnoreCase) ?? false;
-    private int GetTemperaturePercentage() => (int)Math.Min(100, ((IsDryerMachine() ? (double)Status!.AnlikSicaklik / 100.0 : (double)Status!.AnlikSicaklik / 10.0) / 150.0) * 100);
+
+    private double GetTemperatureValue() => IsDryerMachine() ? (double)Status!.AnlikSicaklik / 100.0 : (double)Status!.AnlikSicaklik / 10.0;
+
+    // Yüzde hesaplaması artık dinamik "max" değerini kullanıyor
+    private int GetBarPercentage(double value, int max)
+    {
+        if (max <= 0) max = 100;
+        return (int)Math.Min(100, (value / (double)max) * 100);
+    }
+
     private string GetFormattedTemperature() => IsDryerMachine() ? (Status!.AnlikSicaklik / 100.0m).ToString("F1") : (Status!.AnlikSicaklik / 10.0m).ToString("F1");
     private string GetConnectionCssClass() => Status?.ConnectionState == ConnectionStatus.Connected ? "bg-success" : "bg-danger";
+
     private string GetStatusText()
     {
         if (Status == null || Status.ConnectionState != ConnectionStatus.Connected) return Loc["BaglantiYok"];
         if (Status.HasActiveAlarm) return Loc["Alarm"];
         return Status.IsInRecipeMode ? Loc["Calisiyor"] : Loc["HazirDuruyor"];
     }
+
     private string GetStepTypeName(ScadaRecipeStep step)
     {
         var types = new List<string>();
@@ -360,5 +453,6 @@ else
         if ((w & 32) != 0) types.Add(Loc["AdimTipi_Sikma"]);
         return types.Any() ? string.Join(" + ", types) : "";
     }
+
     public void Dispose() { ScadaDataService.OnDataUpdated -= HandleDataUpdate; }
 }

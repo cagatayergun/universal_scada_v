@@ -438,13 +438,22 @@ namespace TekstilScada.Services
             _requestHandlers["GetAlarmReport"] = async args => await RunDb(() =>
             {
                 var rf = GetArg<ReportFilters>(args, 0);
-                return _alarmRepo.GetAlarmReport(rf.StartTime.Date, rf.EndTime.Date.AddDays(1), rf.MachineId);
+
+                // .Date ekini sildik, böylece rf içindeki saat/dakika bilgisi korunur.
+                // .AddDays(1) ekini sildik, çünkü artık tam bitiş saatini baz alıyoruz.
+                return _alarmRepo.GetAlarmReport(rf.StartTime, rf.EndTime, rf.MachineId);
             });
             _requestHandlers["GetTrendData"] = async args => await RunDb(() =>
             {
                 var rf = GetArg<ReportFilters>(args, 0);
-                if (rf.MachineId == null) return new List<ProcessLogRepository.ProcessDataPoint>();
-                return _processLogRepo.GetLogsForDateRange(rf.MachineId.Value, rf.StartTime.Date, rf.EndTime.Date.AddDays(1));
+
+                // Güvenlik kontrolü
+                if (rf.MachineId == null)
+                    return new List<ProcessLogRepository.ProcessDataPoint>();
+
+                // .Date eklerini sildik. 
+                // Artık rf.StartTime "14:30" ise veritabanına tam olarak "14:30" gider.
+                return _processLogRepo.GetLogsForDateRange(rf.MachineId.Value, rf.StartTime, rf.EndTime);
             });
             _requestHandlers["GetManualConsumptionReport"] = async args => await RunDb(() =>
             {
@@ -554,6 +563,15 @@ namespace TekstilScada.Services
             _requestHandlers["SaveOrUpdateOperator"] = async args => await RunDb(() => { _plcOpRepo.SaveOrUpdate(GetArg<PlcOperator>(args, 0)); return true; });
             _requestHandlers["AddDefaultOperator"] = async _ => await RunDb(() => { _plcOpRepo.AddDefaultOperator(); return true; });
             _requestHandlers["DeleteOperator"] = async args => await RunDb(() => { _plcOpRepo.Delete(GetArg<int>(args, 0)); return true; });
+            _requestHandlers["GetAlarmReportPaged"] = async args => await RunDb(() =>
+            {
+                var rf = GetArg<ReportFilters>(args, 0); // Filtreler
+                int pageNumber = GetArg<int>(args, 1);   // Sayfa No
+                int pageSize = GetArg<int>(args, 2);     // Sayfa Boyutu (50)
+
+                // Repository'yi çağırıyoruz
+                return _alarmRepo.GetAlarmReportPaged(rf, pageNumber, pageSize);
+            });
         }
 
         private string GetLocalIpAddress()
@@ -769,5 +787,6 @@ namespace TekstilScada.Services
             if (_connection != null && _connection.State == HubConnectionState.Connected)
                 await _connection.InvokeAsync("SendScreenImage", machineId, base64Image);
         }
+
     }
 }

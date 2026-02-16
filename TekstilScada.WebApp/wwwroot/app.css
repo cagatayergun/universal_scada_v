@@ -899,3 +899,20 @@ html, body {
 }
 .vnc-cursor-fix canvas {
     cursor: default !important; /* veya 'crosshair' yapabilirsiniz */
+    /* Metin kutuya sýðmazsa ... ile bitirir ve tek satýrda tutar */
+    .text-truncate-dynamic {
+        white-space: nowrap; /* Alt satýra geçmeyi engeller */
+        overflow: hidden; /* Taþan kýsmý gizler */
+        text-overflow: ellipsis; /* Sonuna ... koyar */
+        display: block; /* Blok eleman gibi davranýr */
+        max-width: 100%; /* Kapsayýcýsýndan taþmaz */
+    }
+    /* Bilgileri dikey olarak hizalar ve aralarýna boþluk koyar */
+    .machine-info-stack {
+        display: flex;
+        flex-direction: column; /* Alt alta dizer */
+        justify-content: center;
+        gap: 2px; /* Satýrlar arasý minik boþluk */
+        width: 100%; /* Geniþliði tam kullan */
+        overflow: hidden; /* Taþan içeriði gizle */
+    }

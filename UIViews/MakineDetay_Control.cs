@@ -234,7 +234,7 @@ namespace TekstilScada.UI.Views
                             // --- DEĞİŞİKLİK BURADA ---
                             // Maximum değerini 1.33 ile çarpıp int'e çeviriyoruz.
                             // Örnek: 1000 * 1.33 = 1330
-                            int newMax = (int)(rpmControl.Maximum * 1.33m);
+                            int newMax = (int)(rpmControl.Maximum);
 
                             if (gaugeRpm.InvokeRequired)
                             {

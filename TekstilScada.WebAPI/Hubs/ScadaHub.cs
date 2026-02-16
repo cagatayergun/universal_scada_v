@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TekstilScada.Core.Models;
 using TekstilScada.Models;
+using TekstilScada.Repositories;
 using TekstilScada.WebAPI.Repositories;
 using static TekstilScada.Core.Core.ExcelExportHelper;
 
@@ -270,7 +271,18 @@ namespace TekstilScada.WebAPI.Hubs
             if (string.IsNullOrEmpty(targetConnectionId)) return default;
             return await SendRequestToGateway<T>(targetConnectionId, timeoutSeconds, targetMethod, args);
         }
+        public async Task<PagedResult<AlarmReportItem>> GetAlarmReportPaged(int factoryId, ReportFilters filters, int pageNumber, int pageSize)
+        {
+            // Gateway'deki "GetAlarmReportPaged" handler'ını çağırıyoruz
+            var result = await InvokeOnGateway<PagedResult<AlarmReportItem>>(
+                factoryId,
+                "GetAlarmReportPaged",
+                60, // Timeout süresi (60sn yeterli olabilir)
+                filters, pageNumber, pageSize
+            );
 
+            return result ?? new PagedResult<AlarmReportItem>();
+        }
         public Task<List<int>> GetOnlineFactoryIds()
         {
             var onlineIds = _gatewayConnections.Values.Distinct().ToList();

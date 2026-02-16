@@ -9,10 +9,15 @@ using TekstilScada.Models;
 
 namespace TekstilScada.Repositories
 {
+    public class PagedResult<T>
+    {
+        public List<T> Items { get; set; } = new();
+        public int TotalCount { get; set; }
+    }
     public class AlarmRepository
     {
         private readonly string _connectionString = AppConfig.ConnectionString;
-
+        
         public List<AlarmDefinition> GetAllAlarmDefinitions()
         {
             var definitions = new List<AlarmDefinition>();
@@ -65,6 +70,87 @@ namespace TekstilScada.Repositories
                 }
             }
             return definition;
+        }
+        // AlarmRepository.cs içine bu metodu ekleyin veya mevcut olanı güncelleyin
+        public PagedResult<AlarmReportItem> GetAlarmReportPaged(ReportFilters f, int pageNumber, int pageSize)
+        {
+            var result = new PagedResult<AlarmReportItem>();
+            int offset = pageNumber * pageSize;
+
+            using (var connection = new MySqlConnection(_connectionString))
+            {
+                connection.Open();
+
+                // 1. Önce toplam kayıt sayısını bul (Sayfalama için gerekli)
+                string countQuery = @"
+            SELECT COUNT(*) 
+            FROM alarm_history active_event
+            WHERE active_event.EventType = 'ACTIVE' 
+              AND active_event.EventTimestamp BETWEEN @StartTime AND @EndTime " +
+                    (f.MachineId.HasValue ? "AND active_event.MachineId = @MachineId " : "");
+
+                var countCmd = new MySqlCommand(countQuery, connection);
+                countCmd.Parameters.AddWithValue("@StartTime", f.StartTime);
+                countCmd.Parameters.AddWithValue("@EndTime", f.EndTime);
+                if (f.MachineId.HasValue) countCmd.Parameters.AddWithValue("@MachineId", f.MachineId.Value);
+
+                result.TotalCount = Convert.ToInt32(countCmd.ExecuteScalar());
+
+                // 2. Şimdi sadece istenen sayfayı çek (LIMIT ve OFFSET ile)
+                string dataQuery = @"
+            SELECT 
+                m.MachineName,
+                ad.AlarmNumber,
+                ad.AlarmText,
+                active_event.EventTimestamp AS StartTime,
+                (SELECT MIN(ia.EventTimestamp) 
+                 FROM alarm_history ia 
+                 WHERE ia.MachineId = active_event.MachineId 
+                   AND ia.AlarmDefinitionId = active_event.AlarmDefinitionId 
+                   AND ia.EventType = 'INACTIVE' 
+                   AND ia.EventTimestamp > active_event.EventTimestamp) AS EndTime
+            FROM alarm_history AS active_event
+            JOIN machines AS m ON active_event.MachineId = m.Id
+            JOIN alarm_definitions AS ad ON active_event.AlarmDefinitionId = ad.Id
+            WHERE 
+                active_event.EventType = 'ACTIVE' AND
+                active_event.EventTimestamp BETWEEN @StartTime AND @EndTime " +
+                    (f.MachineId.HasValue ? "AND active_event.MachineId = @MachineId " : "") +
+                    @" ORDER BY StartTime DESC
+            LIMIT @Limit OFFSET @Offset;"; // <-- KRİTİK KISIM
+
+                var dataCmd = new MySqlCommand(dataQuery, connection);
+                dataCmd.Parameters.AddWithValue("@StartTime", f.StartTime);
+                dataCmd.Parameters.AddWithValue("@EndTime", f.EndTime);
+                if (f.MachineId.HasValue) dataCmd.Parameters.AddWithValue("@MachineId", f.MachineId.Value);
+
+                // Sayfalama parametreleri
+                dataCmd.Parameters.AddWithValue("@Limit", pageSize);
+                dataCmd.Parameters.AddWithValue("@Offset", offset);
+
+                using (var reader = dataCmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var item = new AlarmReportItem
+                        {
+                            MachineName = reader.GetString("MachineName"),
+                            AlarmNumber = reader.GetInt32("AlarmNumber"),
+                            AlarmText = reader.GetString("AlarmText"),
+                            StartTime = reader.GetDateTime("StartTime"),
+                            EndTime = reader.IsDBNull(reader.GetOrdinal("EndTime")) ? (DateTime?)null : reader.GetDateTime("EndTime")
+                        };
+
+                        if (item.EndTime.HasValue)
+                            item.Duration = (item.EndTime.Value - item.StartTime).ToString(@"hh\:mm\:ss");
+                        else
+                            item.Duration = "Aktif";
+
+                        result.Items.Add(item);
+                    }
+                }
+            }
+            return result;
         }
         public List<Alarm> GetAlarmsByBatchId(string batchId)
         {

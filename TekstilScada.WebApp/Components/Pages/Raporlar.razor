@@ -103,8 +103,8 @@
                             <PropertyColumn Property="x => x.EndTime" Title="@Loc["BitisZamani"]" Format="dd.MM.yy HH:mm" />
                             <PropertyColumn Property="x => x.CycleTime" Title="@Loc["Sure"]" />
                             <PropertyColumn Property="x => x.TotalWater" Title="@Loc["SuLitre"]" AggregateDefinition="_sumAggregation" />
-                            <PropertyColumn Property="x => x.TotalElectricity" Title="@Loc["ElektrikKw"]" AggregateDefinition="_sumAggregation" />
-                            <PropertyColumn Property="x => x.TotalSteam" Title="@Loc["BuharKg"]" AggregateDefinition="_sumAggregation" />
+                            @* <PropertyColumn Property="x => x.TotalElectricity" Title="@Loc["ElektrikKw"]" AggregateDefinition="_sumAggregation" />*@
+                            
                                 @* --- GÜNCELLEME BAŞLANGICI: Watt -> kW Dönüşümü ve Formatlama --- *@
                     <TemplateColumn Title="@Loc["ElektrikKw"]" Sortable="true">
                         <CellTemplate>
@@ -112,6 +112,7 @@
                             @((context.Item.TotalElectricity / 1000.0).ToString("N3"))
                         </CellTemplate>
                     </TemplateColumn>
+                            <PropertyColumn Property="x => x.TotalSteam" Title="@Loc["BuharKg"]" AggregateDefinition="_sumAggregation" />
                     @* --- GÜNCELLEME BİTİŞİ --- *@
                         </Columns>
                         <PagerContent><MudDataGridPager T="ProductionReportItem" /></PagerContent>
@@ -132,11 +133,22 @@
                 <MudCard Class="mb-4" Elevation="3">
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                            @* 1. Tarih Aralığı *@
                             <MudItem xs="12" md="5">
-                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]" @bind-DateRange="_alarmDateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]"
+                                                    @bind-DateRange="_alarmDateRange"
+                                                    Color="MudBlazor.Color.Primary"
+                                                    Variant="Variant.Outlined"
+                                                    Margin="Margin.Dense" />
                             </MudItem>
+
+                            @* 2. Makine Seçimi *@
                             <MudItem xs="12" md="3">
-                                <MudSelect T="int" Label="@Loc["MakineLabel"]" @bind-Value="selectedAlarmMachineId" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                <MudSelect T="int" Label="@Loc["MakineLabel"]"
+                                           @bind-Value="selectedAlarmMachineId"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           AnchorOrigin="Origin.BottomCenter">
                                     <MudSelectItem Value="0">@Loc["TumMakineler"]</MudSelectItem>
                                     @if (machines != null)
                                     {
@@ -147,11 +159,20 @@
                                     }
                                 </MudSelect>
                             </MudItem>
+
+                            @* 3. Butonlar *@
                             <MudItem xs="12" md="4" Class="d-flex justify-end gap-2">
-                                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.ManageSearch" OnClick="GenerateAlarmReport" Disabled="@isLoading">
-                                    @(isLoading? Loc["Hesaplaniyor"].Value : Loc["RaporlaButon"].Value)
+                                <MudButton Variant="Variant.Filled"
+                                           Color="MudBlazor.Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.ManageSearch"
+                                           OnClick="OnAlarmReportButtonClick">
+                                    @Loc["RaporlaButon"]
                                 </MudButton>
-                                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Success" StartIcon="@Icons.Material.Filled.FileDownload" OnClick="ExportAlarmsToExcel" Disabled="@(alarmReportItems == null || !alarmReportItems.Any())">
+
+                                <MudButton Variant="Variant.Filled"
+                                           Color="MudBlazor.Color.Success"
+                                           StartIcon="@Icons.Material.Filled.FileDownload"
+                                           OnClick="ExportAlarmsToExcel">
                                     @Loc["ExcelIndirButon"]
                                 </MudButton>
                             </MudItem>
@@ -159,47 +180,51 @@
                     </MudCardContent>
                 </MudCard>
 
-                @if (alarmReportItems != null && alarmReportItems.Any())
-                {
-                    <MudDataGrid T="AlarmReportItem" Items="@alarmReportItems" Filterable="true" SortMode="SortMode.Multiple" Groupable="true" Dense="true" Striped="true" Bordered="true" RowClassFunc="@AlarmRowStyleFunc" QuickFilter="@_quickFilterAlarm" RowsPerPage="15">
-                        <ToolBarContent>
-                            <MudText Typo="Typo.h6">@Loc["AlarmGecmisiBaslikRaporlar"]</MudText>
-                            <MudSpacer />
-                            <MudTextField @bind-Value="_searchStringAlarm" Placeholder="@Loc["AlarmAraPlaceholder"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" Immediate="true"></MudTextField>
-                        </ToolBarContent>
-                        <Columns>
-                            <PropertyColumn Property="x => x.MachineName" Title="@Loc["MakineLabel"]" Groupable="true" CellStyle="white-space: normal; min-width: 100px;" />
-                            <PropertyColumn Property="x => x.AlarmNumber" Title="@Loc["No"]" CellStyle="min-width: 60px;" />
-                            <PropertyColumn Property="x => x.AlarmText" Title="@Loc["Aciklama"]" CellStyle="white-space: normal; min-width: 200px;" />
-                            <PropertyColumn Property="x => x.StartTime" Title="@Loc["BaslangicZamani"]" Format="dd.MM.yy HH:mm:ss" CellStyle="white-space: normal;" />
-                            <TemplateColumn Title="@Loc["BitisZamani"]" SortBy="@(x => x.EndTime)">
-                                <CellTemplate>
-                                    @if (context.Item.EndTime.HasValue)
-                                    {
-                                        @context.Item.EndTime.Value.ToString("dd.MM.yy HH:mm:ss")
-                                    }
-                                    else
-                                    {
+                @* Server-Side DataGrid *@
+                <MudDataGrid T="AlarmReportItem"
+                             ServerData="@AlarmServerReload"
+                             @ref="_alarmDataGrid"
+                             Filterable="false"
+                             SortMode="SortMode.None"
+                             Groupable="false"
+                             Dense="true"
+                             Striped="true"
+                             Bordered="true"
+                             RowsPerPage="50">
+                    @* <-- DEĞİŞİKLİK BURADA: 15 yerine 50 yapıldı *@
 
-                                        <MudChip T="string" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" Variant="Variant.Filled">@Loc["Aktif"]</MudChip>
-                                    }
-                                </CellTemplate>
-                            </TemplateColumn>
-                            <PropertyColumn Property="x => x.Duration" Title="@Loc["Sure"]" />
-                        </Columns>
-                        <PagerContent><MudDataGridPager T="AlarmReportItem" /></PagerContent>
-                    </MudDataGrid>
-                }
-                else if (isLoading)
-                {
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">@Loc["AlarmGecmisiBaslikRaporlar"]</MudText>
+                        <MudSpacer />
+                    </ToolBarContent>
 
-                    <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" Class="my-7" />
-                }
-                else if (alarmReportItems != null)
-                {
+                    <Columns>
+                        <PropertyColumn Property="x => x.MachineName" Title="@Loc["MakineLabel"]" />
+                        <PropertyColumn Property="x => x.AlarmNumber" Title="@Loc["No"]" />
+                        <PropertyColumn Property="x => x.AlarmText" Title="@Loc["Aciklama"]" />
+                        <PropertyColumn Property="x => x.StartTime" Title="@Loc["BaslangicZamani"]" Format="dd.MM.yy HH:mm:ss" />
 
-                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">@Loc["KriterlereUygunKayitYok"]</MudAlert>
-                }
+                        <TemplateColumn Title="@Loc["BitisZamani"]">
+                            <CellTemplate>
+                                @if (context.Item.EndTime.HasValue)
+                                {
+                                    @context.Item.EndTime.Value.ToString("dd.MM.yy HH:mm:ss")
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" Variant="Variant.Filled">@Loc["Aktif"]</MudChip>
+                                }
+                            </CellTemplate>
+                        </TemplateColumn>
+
+                        <PropertyColumn Property="x => x.Duration" Title="@Loc["Sure"]" />
+                    </Columns>
+
+                    <PagerContent>
+                        @* Sayfalama kontrolü (50, 100, Hepsi gibi seçenekler sunar) *@
+                        <MudDataGridPager T="AlarmReportItem" PageSizeOptions="@(new int[] { 50, 100, 200 })" />
+                    </PagerContent>
+                </MudDataGrid>
                 break;
 
             case "trend":
@@ -563,6 +588,39 @@
             // Log error
         }
     }
+    private bool _canLoadAlarmData = false;
+    private MudDataGrid<AlarmReportItem> _alarmDataGrid;
+
+    // ServerData fonksiyonu (Otomatik sayfalama yapar)
+    // --- ALARM SERVER DATA RELOAD METODU (DÜZELTİLDİ) ---
+    private async Task<GridData<AlarmReportItem>> AlarmServerReload(GridState<AlarmReportItem> state)
+    {
+        // Eğer henüz butona basılmadıysa boş veri döndür
+        if (!_canLoadAlarmData)
+        {
+            return new GridData<AlarmReportItem> { TotalItems = 0, Items = new List<AlarmReportItem>() };
+        }
+
+        UpdateFiltersFromDateRanges();
+
+        var pagedData = await ScadaDataService.GetAlarmReportPagedAsync(alarmFilters, state.Page, state.PageSize);
+
+        return new GridData<AlarmReportItem>
+        {
+            TotalItems = pagedData.TotalCount,
+            Items = pagedData.Items
+        };
+    }
+
+    // --- BUTONA BASILINCA ÇALIŞACAK METOT (YENİ) ---
+    private async Task OnAlarmReportButtonClick()
+    {
+        _canLoadAlarmData = true; // Artık veri çekmeye izin ver
+        if (_alarmDataGrid != null)
+        {
+            await _alarmDataGrid.ReloadServerData(); // Grid'i tetikle
+        }
+    }
 
     private void SetDefaultFilters(DateTime start, DateTime end)
     {
@@ -723,6 +781,7 @@
 
         if (activeTab == "uretim" && await LocalStorage.ContainKeyAsync("rep_prod_machine"))
         {
+            // Filtreleri geri yükle
             selectedMachineId = await LocalStorage.GetItemAsync<int>("rep_prod_machine");
             var start = await LocalStorage.GetItemAsync<DateTime?>("rep_prod_start");
             var end = await LocalStorage.GetItemAsync<DateTime?>("rep_prod_end");
@@ -734,11 +793,24 @@
             filters.MusteriNo = await LocalStorage.GetItemAsync<string>("rep_prod_musteri");
             filters.OperatorName = await LocalStorage.GetItemAsync<string>("rep_prod_operator");
 
-            await GenerateReportCore(false);
-            if (await LocalStorage.ContainKeyAsync("rep_prod_page"))
+            // --- KRİTİK DEĞİŞİKLİK BURADA ---
+            // Eğer "rep_return_from_detail" bayrağı varsa raporu otomatik çalıştır.
+            // Yoksa (ilk açılışsa) sadece filtreleri doldur ama raporu çalıştırma.
+            bool isReturning = await LocalStorage.ContainKeyAsync("rep_return_from_detail");
+
+            if (isReturning)
             {
-                _currentPage = await LocalStorage.GetItemAsync<int>("rep_prod_page");
-                await InvokeAsync(StateHasChanged);
+                // Bayrağı temizle ki F5 yapınca tekrar çalışmasın (isteğe bağlı)
+                await LocalStorage.RemoveItemAsync("rep_return_from_detail");
+
+                // Raporu çalıştır ve tabloyu doldur
+                await GenerateReportCore(false);
+
+                // Sayfalama (Pagination) durumunu geri yükle
+                if (await LocalStorage.ContainKeyAsync("rep_prod_page"))
+                {
+                    _currentPage = await LocalStorage.GetItemAsync<int>("rep_prod_page");
+                }
             }
         }
     }
@@ -904,6 +976,11 @@
     private async Task GoToProductionDetail(int machineId, string batchId)
     {
         await SaveProductionFilters();
+
+        // --- YENİ EKLENEN SATIR ---
+        // Detaya gidiyorum, geri dönersem raporu tekrar yükle
+        await LocalStorage.SetItemAsync("rep_return_from_detail", true);
+
         NavigationManager.NavigateTo($"/reports/production-detail/{machineId}/{batchId}");
     }
 

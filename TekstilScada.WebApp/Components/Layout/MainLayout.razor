@@ -22,7 +22,8 @@
 <MudSnackbarProvider />
 
 <MudLayout>
-    <AlarmBanner />
+    @* <AlarmBanner /> BİLEŞENİ KALDIRILDI *@
+
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="MudBlazor.Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
         <MudText Typo="Typo.h5" Class="ml-3">Universal Scada</MudText>
@@ -59,18 +60,16 @@
     bool _drawerOpen = true;
     private bool _isInitialized = false;
     private int _currentUserId = 0;
-    private HashSet<int> _machinesWithAlarm = new();
 
-    // --- 1. GÜNCELLENMİŞ İZİNLİ SAYFALAR LİSTESİ ---
-    // Buraya "portal" ve "admin" sayfalarını da ekledik.
-    // Artık bu sayfalar fabrika seçimi kontrolüne takılmayacak.
+    // _machinesWithAlarm HASHSET'İ KALDIRILDI (Artık ihtiyaç yok)
+
     private readonly string[] _publicPages = new[]
     {
         "select-factory",
         "login",
         "logout",
-        "portal",  // YENİ EKLENDİ
-        "admin"    // YENİ EKLENDİ
+        "portal",
+        "admin"
     };
 
     protected override async Task OnInitializedAsync()
@@ -79,7 +78,10 @@
         {
             await GetCurrentUserAsync();
             NavigationManager.LocationChanged += HandleLocationChanged;
-            ScadaService.OnDataUpdated += CheckAlarms;
+
+            // CheckAlarms EVENT ABONELİĞİ KALDIRILDI
+            // ScadaService.OnDataUpdated += CheckAlarms;
+
             _isInitialized = true;
         }
     }
@@ -117,7 +119,6 @@
     {
         var relativePath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLower();
 
-        // 1. İzinli sayfalardaysak (Login, Logout vb.) kontrol etme
         if (_publicPages.Any(page => relativePath.StartsWith(page)))
         {
             return;
@@ -126,62 +127,24 @@
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
-        // --- 2. YENİ KURAL: Adminler User sayfalarında (MainLayout) gezemez ---
         if (user.IsInRole("SystemAdmin"))
         {
-            // Admin paneline geri yolla
             NavigationManager.NavigateTo("/admin");
             return;
         }
         if (user.IsInRole("CompanyAdmin"))
         {
-            // Şirket portalına geri yolla
             NavigationManager.NavigateTo("/portal");
             return;
         }
-        // ----------------------------------------------------------------------
 
-        // 3. Normal Kullanıcılar için Fabrika Seçimi Zorunluluğu (Aynen kalıyor)
         if (string.IsNullOrEmpty(ScadaService.CurrentFactoryName))
         {
             NavigationManager.NavigateTo("/select-factory");
         }
     }
 
-    // ... (Geri kalan metotlar: CheckAlarms, DrawerToggle, HandleLogout, GetCurrentUserAsync, HandleLocationChanged, Dispose aynı kalacak) ...
-
-    private void CheckAlarms()
-    {
-        if (ScadaService.MachineData.IsEmpty)
-        {
-            _machinesWithAlarm.Clear();
-            return;
-        }
-        foreach (var machine in ScadaService.MachineData.Values)
-        {
-            if (machine.HasActiveAlarm && !_machinesWithAlarm.Contains(machine.MachineId))
-            {
-                _machinesWithAlarm.Add(machine.MachineId);
-                string format = Loc["AlarmBalonMesaji"] ?? "{0} makinesinde alarm: {1}";
-                string msg = string.Format(format, machine.MachineName, machine.ActiveAlarmNumber);
-
-                Snackbar.Add(msg, Severity.Error, config =>
-                {
-                    config.Icon = Icons.Material.Filled.Warning;
-                    config.ShowCloseIcon = true;
-                    config.VisibleStateDuration = 10000;
-                });
-            }
-            else if (!machine.HasActiveAlarm && _machinesWithAlarm.Contains(machine.MachineId))
-            {
-                _machinesWithAlarm.Remove(machine.MachineId);
-                string format = Loc["AlarmGiderildiMesaji"] ?? "{0} makinesindeki alarm düzeldi.";
-                string msg = string.Format(format, machine.MachineName);
-
-                Snackbar.Add(msg, Severity.Success);
-            }
-        }
-    }
+    // CheckAlarms METODU TAMAMEN KALDIRILDI
 
     void DrawerToggle()
     {
@@ -235,9 +198,8 @@
     public void Dispose()
     {
         NavigationManager.LocationChanged -= HandleLocationChanged;
-        if (ScadaService != null)
-        {
-            ScadaService.OnDataUpdated -= CheckAlarms;
-        }
+
+        // Event aboneliği zaten yukarıda silindiği için buradaki çıkarma işlemine de gerek kalmadı.
+        // if (ScadaService != null) { ScadaService.OnDataUpdated -= CheckAlarms; }
     }
 }

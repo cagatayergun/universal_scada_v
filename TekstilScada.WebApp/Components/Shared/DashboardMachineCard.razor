@@ -44,12 +44,34 @@
         {
             @if (MachineStatus.IsInRecipeMode)
             {
-                <div class="mb-2 px-2 py-1 rounded" style="background-color:var(--mud-palette-background-grey);">
-                    <div class="d-flex justify-space-between">
-                        <MudText Typo="Typo.caption"><b>@Loc["BatchLabel"]</b> @MachineStatus.BatchNumarasi</MudText>
-                        <MudText Typo="Typo.caption"><b>@Loc["AdimLabel"]</b> @MachineStatus.AktifAdimNo</MudText>
+                <div class="mb-2 px-2 py-1 rounded" style="background-color:var(--mud-palette-background-grey); overflow: hidden;">
+
+                    @* --- SATIR 1: BATCH BİLGİSİ --- *@
+                    <div class="d-flex align-center w-100 mb-1">
+                        <MudText Typo="Typo.caption" Class="mr-1" Style="font-weight:bold; white-space:nowrap; flex-shrink: 0;">
+                            @Loc["BatchLabel"]
+                        </MudText>
+
+                        <MudTooltip Text="@MachineStatus.BatchNumarasi" Arrow="true" Placement="Placement.Top">
+                            <MudText Typo="Typo.caption" Class="d-block text-truncate" Style="max-width: 100%;">
+                                @MachineStatus.BatchNumarasi
+                            </MudText>
+                        </MudTooltip>
                     </div>
-                    <MudText Typo="Typo.caption" Class="d-block text-truncate">@MachineStatus.AktifAdimAdi</MudText>
+
+                    @* --- SATIR 2: ADIM NO VE ADI --- *@
+                    <div class="d-flex align-center w-100">
+                        <MudText Typo="Typo.caption" Class="mr-1" Style="font-weight:bold; white-space:nowrap; flex-shrink: 0;">
+                            @Loc["AdimLabel"] @MachineStatus.AktifAdimNo:
+                        </MudText>
+
+                        <MudTooltip Text="@MachineStatus.AktifAdimAdi" Arrow="true" Placement="Placement.Top">
+                            <MudText Typo="Typo.caption" Class="d-block text-truncate" Style="max-width: 100%;">
+                                @MachineStatus.AktifAdimAdi
+                            </MudText>
+                        </MudTooltip>
+                    </div>
+
                 </div>
             }
             else

@@ -89,7 +89,7 @@ namespace TekstilScada.UI.Controls
                         if (rpmControl != null)
                         {
                             // 5. Değeri ata (1.33 katı ile)
-                            int newMax = (int)(rpmControl.Maximum * 1.33m);
+                            int newMax = (int)(rpmControl.Maximum);
 
                             if (gaugeRpm.InvokeRequired)
                             {
