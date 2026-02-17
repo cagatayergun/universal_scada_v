@@ -273,7 +273,11 @@ namespace TekstilScada.Services
             Task<T> RunDb<T>(Func<T> action) => Task.Run(action);
 
             // -- MAKİNE İŞLEMLERİ --
-            _requestHandlers["GetAllMachineStatuses"] = async _ => await RunDb(() => _plcService.MachineDataCache.Values.ToList());
+            _requestHandlers["GetAllMachineStatuses"] = async _ =>
+            {
+                // PLC'ye gitme, sadece RAM'deki sözlüğü dön
+                return await Task.Run(() => _plcService.MachineDataCache.Values.ToList());
+            };
             _requestHandlers["GetAllMachines"] = async _ => await RunDb(() => _machineRepo.GetAllMachines());
             _requestHandlers["GetMachineStatus"] = async args =>
             {

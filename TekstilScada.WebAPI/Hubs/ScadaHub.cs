@@ -173,7 +173,7 @@ namespace TekstilScada.WebAPI.Hubs
             string? targetConnectionId = _gatewayConnections.FirstOrDefault(x => x.Value == factoryId).Key;
             if (string.IsNullOrEmpty(targetConnectionId)) return new List<FullMachineStatus>();
 
-            var result = await SendRequestToGateway<List<FullMachineStatus>>(targetConnectionId, 60, "GetAllMachineStatuses");
+            var result = await SendRequestToGateway<List<FullMachineStatus>>(targetConnectionId, 5, "GetAllMachineStatuses");
             return result ?? new List<FullMachineStatus>();
         }
 
