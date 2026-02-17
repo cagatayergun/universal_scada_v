@@ -4,17 +4,33 @@ namespace TekstilScada.Models
 {
     public class ControlMetadata
     {
-        // DÜZELTME: String alanların sonuna '?' koyarak boş (null) olabileceklerini belirttik.
-        // Böylece API, bu alanlar boş gelse bile hata vermez (400 Bad Request yemezsiniz).
-
         public string? ControlType { get; set; }
         public string? Name { get; set; }
         public string? Text { get; set; }
         public string? Location { get; set; }
         public string? Size { get; set; }
 
+        // --- GÖRSEL VE YAZI AYARLARI ---
+        public string? BackColor { get; set; }
+        public string? ForeColor { get; set; }
+        public float FontSize { get; set; } = 9.75f;
+        public bool FontBold { get; set; } = false;
+
+        // --- HİZALAMA ---
+        public string? ContentAlignment { get; set; }
+        public string? HorizontalAlignment { get; set; }
+
+        // --- YENİ: BUTON ÖZELLEŞTİRME (TOGGLE & STİL) ---
+        public bool IsToggleButton { get; set; } = false;      // Basılı kalma özelliği
+        public string? PressedText { get; set; }               // Basılıyken yazacak metin
+        public string? PressedBackColor { get; set; }          // Basılıyken arka plan rengi
+        public string? PressedForeColor { get; set; }          // Basılıyken yazı rengi
+        public string? ButtonStyle { get; set; } = "Standard"; // Standard (Kabartma) veya Flat (Solid)
+        // ----------------------------------------------------
+
         public decimal Maximum { get; set; } = 1000;
-        public decimal Minimum { get; set; } = 0; // YENİ: Bu satırı ekleyin
+        public decimal Minimum { get; set; } = 0;
+
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int DecimalPlaces { get; set; }
 
