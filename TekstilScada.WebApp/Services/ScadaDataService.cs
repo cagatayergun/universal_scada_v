@@ -390,7 +390,11 @@ namespace TekstilScada.WebApp.Services
 
         public async Task<ConsumptionTotals?> GetConsumptionTotalsAsync(ReportFilters f, int factoryId = 0)
             => await InvokeSafeAsync<ConsumptionTotals?>("GetConsumptionTotals", factoryId, null, f, 120);
-
+        // ScadaDataService.cs içine ekleyin
+        public async Task<List<object>> GetManualTrendDataAsync(ReportFilters f, int factoryId = 0)
+        {
+            return await InvokeSafeAsync("GetManualTrendData", factoryId, new List<object>(), f);
+        }
         public async Task<List<ProductionReportItem>?> GetGeneralDetailedConsumptionReportAsync(GeneralDetailedConsumptionFilters f, int factoryId = 0)
             => await InvokeSafeAsync<List<ProductionReportItem>?>("GetGeneralDetailedConsumptionReport", factoryId, null, f, 180);
 

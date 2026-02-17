@@ -173,7 +173,7 @@ namespace TekstilScada.WebAPI.Hubs
             string? targetConnectionId = _gatewayConnections.FirstOrDefault(x => x.Value == factoryId).Key;
             if (string.IsNullOrEmpty(targetConnectionId)) return new List<FullMachineStatus>();
 
-            var result = await SendRequestToGateway<List<FullMachineStatus>>(targetConnectionId, 30, "GetAllMachineStatuses");
+            var result = await SendRequestToGateway<List<FullMachineStatus>>(targetConnectionId, 60, "GetAllMachineStatuses");
             return result ?? new List<FullMachineStatus>();
         }
 
@@ -306,23 +306,23 @@ namespace TekstilScada.WebAPI.Hubs
         // --- CHUNKING YÖNETİMİ ---
         public void ReceiveResponseChunk(string requestId, string chunk, bool isLast)
         {
-            if (!_pendingRequests.ContainsKey(requestId)) return; // Zaman aşımına uğramışsa yoksay
+            if (!_pendingRequests.ContainsKey(requestId)) return;
 
             var buffer = _chunkBuffers.GetOrAdd(requestId, _ => new StringBuilder());
 
-            // Çift kontrol (Race condition önlemi)
-            if (!_pendingRequests.ContainsKey(requestId))
+            lock (buffer) // Tüm süreci kilitle
             {
-                _chunkBuffers.TryRemove(requestId, out _);
-                return;
-            }
+                buffer.Append(chunk);
 
-            lock (buffer) { buffer.Append(chunk); }
-
-            if (isLast)
-            {
-                if (_pendingRequests.TryGetValue(requestId, out var tcs))
-                    tcs.TrySetResult(buffer.ToString());
+                if (isLast)
+                {
+                    if (_pendingRequests.TryRemove(requestId, out var tcs))
+                    {
+                        var finalJson = buffer.ToString();
+                        _chunkBuffers.TryRemove(requestId, out _); // Temizliği hemen yap
+                        tcs.TrySetResult(finalJson);
+                    }
+                }
             }
         }
 
@@ -452,7 +452,12 @@ namespace TekstilScada.WebAPI.Hubs
         public async Task<List<HourlyConsumptionData>> GetHourlyConsumption(int factoryId) => await InvokeOnGateway<List<HourlyConsumptionData>>(factoryId, "GetHourlyFactoryConsumption") ?? new List<HourlyConsumptionData>();
         public async Task<List<HourlyOeeData>> GetHourlyOee(int factoryId) => await InvokeOnGateway<List<HourlyOeeData>>(factoryId, "GetHourlyAverageOee") ?? new List<HourlyOeeData>();
         public async Task<List<TopAlarmData>> GetTopAlarms(int factoryId) => await InvokeOnGateway<List<TopAlarmData>>(factoryId, "GetTopAlarmsByFrequency") ?? new List<TopAlarmData>();
-
+        public async Task<List<object>> GetManualTrendData(int factoryId, ReportFilters filters)
+        {
+            // Gateway'deki "GetManualTrendData" handler'ını çağırır
+            var result = await InvokeOnGateway<List<object>>(factoryId, "GetManualTrendData", 60, filters);
+            return result ?? new List<object>();
+        }
         // --- RAPORLAR (Timeout Süreleri Artırıldı: 120sn) ---
         public async Task<List<ProductionReportItem>> GetProductionReport(int factoryId, ReportFilters filters, int timeout = 120) => await InvokeOnGateway<List<ProductionReportItem>>(factoryId, "GetProductionReport", timeout, filters) ?? new List<ProductionReportItem>();
         public async Task<List<AlarmReportItem>> GetAlarmReport(int factoryId, ReportFilters filters, int timeout = 120) => await InvokeOnGateway<List<AlarmReportItem>>(factoryId, "GetAlarmReport", timeout, filters) ?? new List<AlarmReportItem>();

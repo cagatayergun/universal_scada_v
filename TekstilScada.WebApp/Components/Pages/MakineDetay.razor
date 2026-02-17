@@ -375,14 +375,20 @@ else
 
                 if (isBatchMode)
                 {
-                    // Batch Modu: O partiye ait tüm loglar
                     var detail = await ScadaDataService.GetProductionDetailAsync(MachineId, Status!.BatchNumarasi);
                     rawDataRaw = detail?.LogData;
                 }
                 else
                 {
-                    // Canlı Mod: Son 3 saatlik manuel loglar (GetTrendDataAsync filtresiyle)
-                    rawDataRaw = await ScadaDataService.GetTrendDataAsync(filter);
+                    // WinForms uyumu: Son 6 saatlik veriyi çek
+                    var manualFilter = new ReportFilters
+                    {
+                        MachineId = MachineId,
+                        StartTime = DateTime.Now.AddHours(-3),
+                        EndTime = DateTime.Now
+                    };
+                    // Yeni eklediğimiz metotla manuel logları çekiyoruz
+                    rawDataRaw = await ScadaDataService.GetManualTrendDataAsync(manualFilter);
                 }
 
                 if (rawDataRaw != null)

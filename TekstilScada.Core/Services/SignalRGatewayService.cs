@@ -464,6 +464,15 @@ namespace TekstilScada.Services
                 var m = _machineRepo.GetAllMachines().Find(x => x.Id == rf.MachineId);
                 return _processLogRepo.GetManualConsumptionSummary(rf.MachineId.Value, m?.MachineName ?? "Bilinmeyen", s, e);
             });
+            _requestHandlers["GetManualTrendData"] = async args => await RunDb(() =>
+            {
+                var rf = GetArg<ReportFilters>(args, 0);
+                if (rf == null || rf.MachineId == null)
+                    return new List<ProcessLogRepository.ProcessDataPoint>();
+
+                // WinForms'taki gibi manual_mode_log tablosundan verileri çeker
+                return _processLogRepo.GetManualLogs(rf.MachineId.Value, rf.StartTime, rf.EndTime);
+            });
             _requestHandlers["GetConsumptionTotalsForPeriod"] = async args => await RunDb(() =>
             {
                 var rf = GetArg<ReportFilters>(args, 0);

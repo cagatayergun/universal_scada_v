@@ -48,6 +48,7 @@ builder.Services.AddSignalR(hubOptions =>
     options.PayloadSerializerOptions.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals;
     options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+    options.PayloadSerializerOptions.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
 });
 // ============================================================
 
