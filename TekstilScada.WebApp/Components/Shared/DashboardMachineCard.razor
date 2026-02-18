@@ -167,7 +167,7 @@
     {
         if (string.IsNullOrEmpty(MachineStatus.MakineTipi)) return false;
         // Case-insensitive check for "Kurutma"
-        return MachineStatus.MakineTipi.Contains("Kurutma", StringComparison.OrdinalIgnoreCase);
+        return MachineStatus.MakineTipi.Contains("Kurutma Makinesi", StringComparison.OrdinalIgnoreCase);
     }
 
     // --- Temperature Formatting Logic based on WinForms code ---

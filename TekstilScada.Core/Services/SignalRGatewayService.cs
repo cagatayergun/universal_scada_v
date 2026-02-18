@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data; // EKLENDİ: DataTable işlemleri için gerekli
 using System.Linq;
@@ -137,7 +138,10 @@ namespace TekstilScada.Services
         // --- DISPATCHER (YENİ: Command Pattern için Sözlük) ---
         // Metot isminden çalıştırılacak fonksiyona haritalama yapar.
         private readonly Dictionary<string, Func<object[], Task<object>>> _requestHandlers;
+        private readonly ConcurrentDictionary<int, FullMachineStatus> _bufferedMachineStatuses = new();
 
+        // Gönderim Döngüsü için Cancellation Token
+        private CancellationTokenSource _loopCts;
         // JSON ayarlarını statik yapıp performansı artırıyoruz
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
         {
@@ -208,6 +212,8 @@ namespace TekstilScada.Services
                 .Build();
 
             RegisterSignalRListeners();
+            _loopCts = new CancellationTokenSource();
+            _ = StartBatchSenderLoopAsync(_loopCts.Token);
         }
 
         private void RegisterSignalRListeners()
@@ -273,7 +279,11 @@ namespace TekstilScada.Services
             Task<T> RunDb<T>(Func<T> action) => Task.Run(action);
 
             // -- MAKİNE İŞLEMLERİ --
-            _requestHandlers["GetAllMachineStatuses"] = async _ => await RunDb(() => _plcService.MachineDataCache.Values.ToList());
+            _requestHandlers["GetAllMachineStatuses"] = async _ =>
+            {
+                // PLC'ye gitme, sadece RAM'deki sözlüğü dön
+                return await Task.Run(() => _plcService.MachineDataCache.Values.ToList());
+            };
             _requestHandlers["GetAllMachines"] = async _ => await RunDb(() => _machineRepo.GetAllMachines());
             _requestHandlers["GetMachineStatus"] = async args =>
             {
@@ -670,17 +680,41 @@ namespace TekstilScada.Services
             catch { }
         }
 
-        private async void OnLocalDataRefreshed(int machineId, FullMachineStatus status)
+        private void OnLocalDataRefreshed(int machineId, FullMachineStatus status)
         {
-            if (_connection.State != HubConnectionState.Connected || status == null) return;
-            if ((DateTime.Now - _lastSentTime).TotalMilliseconds < _sendIntervalMs) return;
+            if (status == null) return;
 
-            try
+            // Dictionary'yi güncelle (Varsa ezer, yoksa ekler)
+            _bufferedMachineStatuses.AddOrUpdate(machineId, status, (key, oldValue) => status);
+        }
+
+        // 2. TOPLU GÖNDERİM DÖNGÜSÜ (5 Saniyede bir çalışır)
+        private async Task StartBatchSenderLoopAsync(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
             {
-                await _connection.InvokeAsync("BroadcastFromLocal", status);
-                _lastSentTime = DateTime.Now;
+                try
+                {
+                    // 5 Saniye bekle
+                    await Task.Delay(5000, token);
+
+                    if (_connection.State == HubConnectionState.Connected && !_bufferedMachineStatuses.IsEmpty)
+                    {
+                        // Havuzdaki tüm değerleri listeye çevir
+                        var packageToSend = _bufferedMachineStatuses.Values.ToList();
+
+                        // Hub üzerindeki "yeni" toplu güncelleme metoduna gönder
+                        await _connection.InvokeAsync("BroadcastMachineBatch", packageToSend, token);
+
+                        Console.WriteLine($"[Gateway] {packageToSend.Count} makine verisi toplu gönderildi.");
+                    }
+                }
+                catch (OperationCanceledException) { break; }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Gateway] Toplu gönderim hatası: {ex.Message}");
+                }
             }
-            catch { }
         }
 
         private T GetArg<T>(object[] args, int index)

@@ -184,7 +184,7 @@
         get
         {
             if (selectedMachine == null) return false;
-            return (selectedMachine.MachineType ?? "").Contains("KurutmaMakinesi", StringComparison.OrdinalIgnoreCase);
+            return (selectedMachine.MachineType ?? "").Contains("Kurutma Makinesi", StringComparison.OrdinalIgnoreCase);
         }
     }
     // ----------------------------
@@ -435,7 +435,7 @@
         // BY Makineleri için bu metot artık menüden engellendi ama güvenlik için kontrol kalsın
         if (IsByMachine)
         {
-            await JSRuntime.InvokeVoidAsync("alert", "BY Makineleri için sadece FTP gönderimi desteklenmektedir.");
+            await JSRuntime.InvokeVoidAsync("alert", "For drying machines, FTP uploading is not supported.");
             return;
         }
 

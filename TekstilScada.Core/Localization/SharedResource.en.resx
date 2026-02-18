@@ -1015,10 +1015,10 @@
     <value>min</value>
   </data>
   <data name="Evet" xml:space="preserve">
-    <value>YES</value>
+    <value>Yes</value>
   </data>
   <data name="Hayir" xml:space="preserve">
-    <value>NO</value>
+    <value>No</value>
   </data>
   <data name="TamProsesKontrolu" xml:space="preserve">
     <value>Full Process Control</value>
@@ -1364,5 +1364,450 @@
   </data>
   <data name="VeriYok" xml:space="preserve">
     <value>No Data</value>
+  </data>
+  <data name="sunucukopuk" xml:space="preserve">
+    <value>Server connection lost! You are being redirected to the factory selection screen.</value>
+  </data>
+  <data name="Oturum_Kapatma" xml:space="preserve">
+    <value>Logout</value>
+  </data>
+  <data name="Kullanıcı_çıkış_yaptı" xml:space="preserve">
+    <value>User logged out</value>
+  </data>
+  <data name="anasayfa" xml:space="preserve">
+    <value>Main Page</value>
+  </data>
+  <data name="sayfaziyareti" xml:space="preserve">
+    <value>Page Visit</value>
+  </data>
+  <data name="GoruntulenenSayfa" xml:space="preserve">
+    <value>Page Viewed</value>
+  </data>
+  <data name="NavMenu_Factories" xml:space="preserve">
+    <value>Factories</value>
+  </data>
+  <data name="Selected_Factory" xml:space="preserve">
+    <value>Selected factory</value>
+  </data>
+  <data name="Please_Select_Factory" xml:space="preserve">
+    <value>Please choose a factory.</value>
+  </data>
+  <data name="Sev_Dusuk" xml:space="preserve">
+    <value>Low Level</value>
+  </data>
+  <data name="Sev_Orta" xml:space="preserve">
+    <value>Middle Level</value>
+  </data>
+  <data name="Sev_Yuksek" xml:space="preserve">
+    <value>High Level</value>
+  </data>
+  <data name="Log_ReceteTransferDetay" xml:space="preserve">
+    <value>Recipes: [{0}] -&gt; Target: {1} (Slot: {2})</value>
+  </data>
+  <data name="nem" xml:space="preserve">
+    <value>Moisture (Rh)</value>
+  </data>
+  <data name="Girişyapmak" xml:space="preserve">
+    <value>Click here to log in.</value>
+  </data>
+  <data name="YetkiliFabrikaBulunamadi" xml:space="preserve">
+    <value>No authorized factory found.</value>
+  </data>
+  <data name="Fabrika_Seçimi" xml:space="preserve">
+    <value>Factory Selection</value>
+  </data>
+  <data name="gateway" xml:space="preserve">
+    <value>Gateway connection is down.</value>
+  </data>
+  <data name="fabrikakapalı" xml:space="preserve">
+    <value>This factory is currently offline!</value>
+  </data>
+  <data name="AdimTipi_operator" xml:space="preserve">
+    <value>Operator Call</value>
+  </data>
+  <data name="SistemYonetimi" xml:space="preserve">
+    <value>System Management</value>
+  </data>
+  <data name="SistemYonetimiAciklama" xml:space="preserve">
+    <value>Manage companies, factories, and admins from a single place.</value>
+  </data>
+  <data name="Sirketler" xml:space="preserve">
+    <value>Companies</value>
+  </data>
+  <data name="YeniSirket" xml:space="preserve">
+    <value>New Company</value>
+  </data>
+  <data name="SirketAra" xml:space="preserve">
+    <value>Search Company...</value>
+  </data>
+  <data name="KayitBulunamadi" xml:space="preserve">
+    <value>No records found.</value>
+  </data>
+  <data name="SirketiDuzenle" xml:space="preserve">
+    <value>Edit Company</value>
+  </data>
+  <data name="SirketiSil" xml:space="preserve">
+    <value>Delete Company</value>
+  </data>
+  <data name="Fabrikalar" xml:space="preserve">
+    <value>Factories</value>
+  </data>
+  <data name="FabrikaEkle" xml:space="preserve">
+    <value>Add Factory</value>
+  </data>
+  <data name="FabrikaAdi" xml:space="preserve">
+    <value>Factory Name</value>
+  </data>
+  <data name="LisansAnahtari" xml:space="preserve">
+    <value>License Key</value>
+  </data>
+  <data name="HenuzFabrikaEklenmemis" xml:space="preserve">
+    <value>No factory added yet.</value>
+  </data>
+  <data name="Yoneticiler" xml:space="preserve">
+    <value>Admins</value>
+  </data>
+  <data name="YoneticiEkle" xml:space="preserve">
+    <value>Add Admin</value>
+  </data>
+  <data name="Rol" xml:space="preserve">
+    <value>Role</value>
+  </data>
+  <data name="YoneticiTanimlanmamis" xml:space="preserve">
+    <value>No admin defined!</value>
+  </data>
+  <data name="LutfenSirketSeciniz" xml:space="preserve">
+    <value>Please select a company from the list on the left to proceed.</value>
+  </data>
+  <data name="VeyaYeniSirketEkle" xml:space="preserve">
+    <value>Or start by adding a new company.</value>
+  </data>
+  <data name="YeniSirketOlustur" xml:space="preserve">
+    <value>Create New Company</value>
+  </data>
+  <data name="SirketDuzenle" xml:space="preserve">
+    <value>Edit Company</value>
+  </data>
+  <data name="SirketAdi" xml:space="preserve">
+    <value>Company Name</value>
+  </data>
+  <data name="AktifSirket" xml:space="preserve">
+    <value>Active Company</value>
+  </data>
+  <data name="YeniFabrikaEkle" xml:space="preserve">
+    <value>Add New Factory</value>
+  </data>
+  <data name="Sirket" xml:space="preserve">
+    <value>Company</value>
+  </data>
+  <data name="DonanimAnahtari" xml:space="preserve">
+    <value>Hardware Key</value>
+  </data>
+  <data name="YeniYoneticiEkle" xml:space="preserve">
+    <value>Add New Admin</value>
+  </data>
+  <data name="BuKullaniciTamYetkiliOlacak" xml:space="preserve">
+    <value>This user will be created with full access rights to all factories.</value>
+  </data>
+  <data name="Olustur" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="ApiHatasi" xml:space="preserve">
+    <value>API Error</value>
+  </data>
+  <data name="ListeYuklenemedi" xml:space="preserve">
+    <value>List could not be loaded</value>
+  </data>
+  <data name="BaglantiHatasi" xml:space="preserve">
+    <value>Connection Error</value>
+  </data>
+  <data name="SunucuyaUlasilamadi" xml:space="preserve">
+    <value>Server unreachable.</value>
+  </data>
+  <data name="DetaylarAlinamadi" xml:space="preserve">
+    <value>Details could not be retrieved</value>
+  </data>
+  <data name="SirketAdiBosOlamaz" xml:space="preserve">
+    <value>Company name cannot be empty.</value>
+  </data>
+  <data name="SirketKaydedildi" xml:space="preserve">
+    <value>Company saved.</value>
+  </data>
+  <data name="Kaydedilemedi" xml:space="preserve">
+    <value>Could not save.</value>
+  </data>
+  <data name="SilmeOnayi" xml:space="preserve">
+    <value>Deletion Confirmation</value>
+  </data>
+  <data name="SirketSilinecekOnay" xml:space="preserve">
+    <value>{0} will be deleted. Do you confirm?</value>
+  </data>
+  <data name="SirketSilindi" xml:space="preserve">
+    <value>Company deleted.</value>
+  </data>
+  <data name="Silinemedi" xml:space="preserve">
+    <value>Could not delete.</value>
+  </data>
+  <data name="FabrikaEklendi" xml:space="preserve">
+    <value>Factory added.</value>
+  </data>
+  <data name="FabrikaEklenemedi" xml:space="preserve">
+    <value>Factory could not be added.</value>
+  </data>
+  <data name="XSilinsinMi" xml:space="preserve">
+    <value>Delete {0}?</value>
+  </data>
+  <data name="Silindi" xml:space="preserve">
+    <value>Deleted</value>
+  </data>
+  <data name="EksikBilgi" xml:space="preserve">
+    <value>Missing information.</value>
+  </data>
+  <data name="YoneticiEklendi" xml:space="preserve">
+    <value>Admin added.</value>
+  </data>
+  <data name="KullaniciEklenemedi" xml:space="preserve">
+    <value>User could not be added.</value>
+  </data>
+  <data name="KullaniciSilindi" xml:space="preserve">
+    <value>User deleted.</value>
+  </data>
+	<data name="OEEYuzde" xml:space="preserve">
+    <value>OEE (%)</value>
+  </data>
+	<data name="BirimKWh" xml:space="preserve">
+    <value>kWh</value>
+  </data>
+	<data name="BirimLitre" xml:space="preserve">
+    <value>Liter</value>
+  </data>
+	<data name="BirimKg" xml:space="preserve">
+    <value>kg</value>
+  </data>
+	<data name="Adim" xml:space="preserve">
+    <value>Step</value>
+  </data>
+	<data name="AdimSicaklikTrendi" xml:space="preserve">
+    <value>Step Temperature Trend</value>
+  </data>
+	<data name="CanliTrend" xml:space="preserve">
+    <value>Live Trend</value>
+  </data>
+	<data name="SicaklikDerece" xml:space="preserve">
+    <value>Temperature (°C)</value>
+  </data>
+	<data name="DevirRPM" xml:space="preserve">
+    <value>RPM</value>
+  </data>
+	<data name="DevirDd" xml:space="preserve">
+    <value>RPM (d/d)</value>
+  </data>
+	<data name="BirimDd" xml:space="preserve">
+    <value>d/d</value>
+  </data>
+	<data name="Seviye" xml:space="preserve">
+    <value>Level</value>
+  </data>
+	<data name="BirimLtYuzde" xml:space="preserve">
+    <value>Lt / %</value>
+  </data>
+	<data name="SeviyeYuzde" xml:space="preserve">
+    <value>Level (%)</value>
+  </data>
+	<data name="SuSeviyesiYuzde" xml:space="preserve">
+    <value>Water Level (%)</value>
+  </data>
+	<data name="BirimRPM" xml:space="preserve">
+    <value>RPM</value>
+  </data>
+	<data name="UretimRaporu" xml:space="preserve">
+    <value>Production Report</value>
+  </data>
+	<data name="MakineAdi" xml:space="preserve">
+    <value>Machine Name</value>
+  </data>
+	<data name="ReceteAdi" xml:space="preserve">
+    <value>Recipe Name</value>
+  </data>
+	<data name="BatchNo" xml:space="preserve">
+    <value>Batch No</value>
+  </data>
+	<data name="Operator" xml:space="preserve">
+    <value>Operator</value>
+  </data>
+	<data name="Baslangic" xml:space="preserve">
+    <value>Start</value>
+  </data>
+	<data name="Bitis" xml:space="preserve">
+    <value>End</value>
+  </data>
+	<data name="Sure" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+	<data name="UretilenMiktar" xml:space="preserve">
+    <value>Produced Quantity</value>
+  </data>
+	<data name="ToplamSuL" xml:space="preserve">
+    <value>Total Water (L)</value>
+  </data>
+	<data name="ToplamElektrikKW" xml:space="preserve">
+    <value>Total Electricity (kW)</value>
+  </data>
+	<data name="AlarmRaporu" xml:space="preserve">
+    <value>Alarm Report</value>
+  </data>
+	<data name="AlarmNo" xml:space="preserve">
+    <value>Alarm No</value>
+  </data>
+	<data name="AlarmAciklamasi" xml:space="preserve">
+    <value>Alarm Description</value>
+  </data>
+	<data name="BaslangicZamani" xml:space="preserve">
+    <value>Start Time</value>
+  </data>
+	<data name="BitisZamani" xml:space="preserve">
+    <value>End Time</value>
+  </data>
+	<data name="OEERaporu" xml:space="preserve">
+    <value>OEE Report</value>
+  </data>
+	<data name="KullanilabilirlikA" xml:space="preserve">
+    <value>Availability (A)</value>
+  </data>
+	<data name="PerformansP" xml:space="preserve">
+    <value>Performance (P)</value>
+  </data>
+	<data name="KaliteQ" xml:space="preserve">
+    <value>Quality (Q)</value>
+  </data>
+	<data name="OEEFormul" xml:space="preserve">
+    <value>OEE (A x P x Q)</value>
+  </data>
+	<data name="ManuelTuketimOzeti" xml:space="preserve">
+    <value>Manual Consumption Summary</value>
+  </data>
+	<data name="ManuelTuketimOzetiBaslik" xml:space="preserve">
+    <value>Manual Consumption Summary - {0}</value>
+  </data>
+	<data name="RaporAraligi" xml:space="preserve">
+    <value>Report Interval</value>
+  </data>
+	<data name="ToplamManuelCalismaSuresi" xml:space="preserve">
+    <value>Total Manual Runtime</value>
+  </data>
+	<data name="OrtalamaSicaklikC" xml:space="preserve">
+    <value>Average Temperature (°C)</value>
+  </data>
+	<data name="OrtalamaDevirRpm" xml:space="preserve">
+    <value>Average Speed (Rpm)</value>
+  </data>
+	<data name="TuketimDegerleri" xml:space="preserve">
+    <value>Consumption Values</value>
+  </data>
+	<data name="ToplamSuTuketimiL" xml:space="preserve">
+    <value>Total Water Consumption (Litre)</value>
+  </data>
+	<data name="ToplamElektrikTuketimiKW" xml:space="preserve">
+    <value>Total Electricity Consumption (kW)</value>
+  </data>
+	<data name="ToplamBuharTuketimiKg" xml:space="preserve">
+    <value>Total Steam Consumption (kg)</value>
+  </data>
+	<data name="DetayliTuketim" xml:space="preserve">
+    <value>Detailed Consumption</value>
+  </data>
+	<data name="SuLitre" xml:space="preserve">
+    <value>Water (Litre)</value>
+  </data>
+	
+	<data name="BuharKg" xml:space="preserve">
+    <value>Steam (kg)</value>
+  </data>
+	<data name="TuketimDegeri" xml:space="preserve">
+    <value>Consumption Value</value>
+  </data>
+	<data name="EylemKayitlari" xml:space="preserve">
+    <value>Action Logs</value>
+  </data>
+	<data name="ZamanDamgasi" xml:space="preserve">
+    <value>Timestamp</value>
+  </data>
+	<data name="KullaniciAdi" xml:space="preserve">
+    <value>Username</value>
+  </data>
+	<data name="EylemTipi" xml:space="preserve">
+    <value>Action Type</value>
+  </data>
+	<data name="Detaylar" xml:space="preserve">
+    <value>Details</value>
+  </data>
+	<data name="UretimDetayi" xml:space="preserve">
+    <value>Production Detail</value>
+  </data>
+	<data name="GenelBilgiler" xml:space="preserve">
+    <value>General Information</value>
+  </data>
+	<data name="BatchID" xml:space="preserve">
+    <value>Batch ID</value>
+  </data>
+	<data name="MakineAlarmSuresiSn" xml:space="preserve">
+    <value>Machine Alarm Duration (sec)</value>
+  </data>
+	<data name="OperatorDuraklamaSuresiSn" xml:space="preserve">
+    <value>Operator Pause Duration (sec)</value>
+  </data>
+	<data name="ToplamSure" xml:space="preserve">
+    <value>Total Duration</value>
+  </data>
+	<data name="AdimDetaylari" xml:space="preserve">
+    <value>Step Details</value>
+  </data>
+	<data name="AdimNo" xml:space="preserve">
+    <value>Step No</value>
+  </data>
+	<data name="Aciklama" xml:space="preserve">
+    <value>Description</value>
+  </data>
+	<data name="TeorikSure" xml:space="preserve">
+    <value>Theoretical Duration</value>
+  </data>
+	<data name="GerceklesenSure" xml:space="preserve">
+    <value>Actual Duration</value>
+  </data>
+	<data name="SicaklikC" xml:space="preserve">
+    <value>Temperature (°C)</value>
+  </data>
+	<data name="AlarmDetaylari" xml:space="preserve">
+    <value>Alarm Details</value>
+  </data>
+	<data name="Tarih" xml:space="preserve">
+    <value>Date</value>
+  </data>
+	<data name="Tip" xml:space="preserve">
+    <value>Type</value>
+  </data>
+	<data name="Toplam" xml:space="preserve">
+    <value>Total</value>
+  </data>
+	<data name="Min" xml:space="preserve">
+    <value>Min</value>
+  </data>
+	<data name="Max" xml:space="preserve">
+    <value>Max</value>
+  </data>
+	<data name="Ort" xml:space="preserve">
+    <value>Avg</value>
+  </data>
+	<data name="LutfenMakineSeciniz" xml:space="preserve">
+    <value>Please select a machine.</value>
+  </data>
+	<data name="LutfenEnAzBirMakineSeciniz" xml:space="preserve">
+    <value>Please select at least one machine.</value>
+  </data>
+	<data name="IndirilecekVeriYok" xml:space="preserve">
+    <value>No data to download.</value>
+  </data>
+	<data name="ExcelExportHatasi" xml:space="preserve">
+    <value>Excel export error</value>
   </data>
 </root>

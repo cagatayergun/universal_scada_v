@@ -98,7 +98,8 @@
                     type: 'bar',
                     marker: { color: data.map(d => d.oee < 50 ? '#e74c3c' : '#2ecc71') }
                 };
-                const layout = getCommonLayout('', 'OEE (%)', isMobile);
+                // ÇEVİRİ: OEEYuzde
+                const layout = getCommonLayout('', '@Loc["OEEYuzde"]', isMobile);
                 layout.yaxis.range = [0, 100];
                 Plotly.newPlot(oeeContainer, [trace], layout, config);
             }
@@ -119,9 +120,10 @@
                 Plotly.newPlot(container, [trace], getCommonLayout('', unit, isMobile), config);
             };
 
-            plotCons('electricChartContainer', 'toplamElektrik', 'kWh', '#00bcd4');
-            plotCons('waterChartContainer', 'toplamSu', 'Litre', '#2196f3');
-            plotCons('steamChartContainer', 'toplamBuhar', 'kg', '#9c27b0');
+            // ÇEVİRİLER: BirimKWh, BirimLitre, BirimKg
+            plotCons('electricChartContainer', 'toplamElektrik', '@Loc["BirimKWh"]', '#00bcd4');
+            plotCons('waterChartContainer', 'toplamSu', '@Loc["BirimLitre"]', '#2196f3');
+            plotCons('steamChartContainer', 'toplamBuhar', '@Loc["BirimKg"]', '#9c27b0');
 
             const alarmContainer = document.getElementById('topAlarmsChartContainer');
             if (alarmContainer && topAlarmsData) {
@@ -165,12 +167,14 @@
         function drawTimelineChart(elementId, chartData) {
              if (!document.getElementById(elementId)) return;
              if (!chartData || chartData.length === 0) { Plotly.purge(elementId); return; }
-             const steps = chartData.map(d => `Adım ${d.stepNumber}\n${d.description.substring(0,10)}`);
+             // ÇEVİRİ: Adim
+             const steps = chartData.map(d => `@Loc["Adim"] ${d.stepNumber}\n${d.description.substring(0,10)}`);
              const trace = {
                  x: steps, y: chartData.map(d => d.temperature),
                  mode: 'lines+markers', type: 'scatter', name: window.appLabels.temperature, line: { color: '#e74c3c', width: 2 }
              };
-             const layout = getCommonLayout('Adım Sıcaklık Trendi', `${window.appLabels.temperature} (°C)`, window.innerWidth <= 768);
+             // ÇEVİRİ: AdimSicaklikTrendi, SicaklikDerece
+             const layout = getCommonLayout('@Loc["AdimSicaklikTrendi"]', `@Loc["SicaklikDerece"]`, window.innerWidth <= 768);
              layout.xaxis.tickangle = 45;
              Plotly.newPlot(elementId, [trace], layout, { responsive: true });
         }
@@ -179,7 +183,7 @@
             if (!document.getElementById(chartId)) return;
             if (!dataPoints) dataPoints = [];
 
-            // --- GÜNCELLEME: 'Z' Temizleme ---
+            // 'Z' Temizleme
             const x = dataPoints.map(p => p.timestamp.toString().replace('Z', ''));
 
             let y, title, color;
@@ -197,14 +201,15 @@
             if (!document.getElementById(chartId)) return;
             if (!dataPoints) dataPoints = [];
 
-            // --- GÜNCELLEME: 'Z' Temizleme ---
+            // 'Z' Temizleme
             const x = dataPoints.map(p => p.timestamp.toString().replace('Z', ''));
 
             const t1 = { x:x, y:dataPoints.map(d=>d.temperature), name: window.appLabels.temperature, type:'scatter', line:{color:'#e74c3c'}, yaxis:'y1' };
             const t2 = { x:x, y:dataPoints.map(d=>d.rpm), name: window.appLabels.rpm, type:'scatter', line:{color:'#3498db'}, yaxis:'y2' };
             const t3 = { x:x, y:dataPoints.map(d=>d.waterLevel), name: window.appLabels.level, type:'scatter', line:{color:'#2ecc71'}, yaxis:'y3' };
 
-            const layout = getCommonLayout(title||'Canlı Trend', window.appLabels.temperature, false);
+            // ÇEVİRİ: CanliTrend
+            const layout = getCommonLayout(title||'@Loc["CanliTrend"]', window.appLabels.temperature, false);
             layout.yaxis.gridcolor='#444';
             layout.yaxis2={ title: window.appLabels.rpm, overlaying:'y', side:'right', position:0.98, showgrid:false, tickfont:{color:'#3498db'} };
             layout.yaxis3={ title: window.appLabels.level, overlaying:'y', side:'right', position:0.90, showgrid:false, tickfont:{color:'#2ecc71'} };
@@ -226,7 +231,7 @@
         window.plotSyncedDetailCharts = (data, divTempId, divRpmId, divLevelId) => {
             if (!data || data.length === 0) return;
 
-            // --- GÜNCELLEME: 'Z' Temizleme ---
+            // 'Z' Temizleme
             var timestamps = data.map(d => d.timestamp.toString().replace('Z', ''));
             var tempData = data.map(d => d.temperature);
             var rpmData = data.map(d => d.rpm);
@@ -237,14 +242,15 @@
                 margin: { t: 30, b: 30, l: 60, r: 20 }, height: 250, showlegend: false
             };
 
-            var traceTemp = { x: timestamps, y: tempData, mode: 'lines', name: 'Sıcaklık', line: { color: '#dc3545', width: 2 }, fill: 'tozeroy' };
-            var layoutTemp = Object.assign({}, commonLayout, { title: { text: 'Sıcaklık (°C)', font: { size: 14, color: '#dc3545' } }, yaxis: { title: '°C' } });
+            // ÇEVİRİ: Sicaklik, SicaklikDerece, Devir, DevirRPM, Seviye, BirimLtYuzde
+            var traceTemp = { x: timestamps, y: tempData, mode: 'lines', name: '@Loc["Sicaklik"]', line: { color: '#dc3545', width: 2 }, fill: 'tozeroy' };
+            var layoutTemp = Object.assign({}, commonLayout, { title: { text: '@Loc["SicaklikDerece"]', font: { size: 14, color: '#dc3545' } }, yaxis: { title: '°C' } });
 
-            var traceRpm = { x: timestamps, y: rpmData, mode: 'lines', name: 'Devir', line: { color: '#198754', width: 2 } };
-            var layoutRpm = Object.assign({}, commonLayout, { title: { text: 'Devir (RPM)', font: { size: 14, color: '#198754' } }, yaxis: { title: 'd/d' } });
+            var traceRpm = { x: timestamps, y: rpmData, mode: 'lines', name: '@Loc["Devir"]', line: { color: '#198754', width: 2 } };
+            var layoutRpm = Object.assign({}, commonLayout, { title: { text: '@Loc["DevirRPM"]', font: { size: 14, color: '#198754' } }, yaxis: { title: '@Loc["BirimDd"]' } });
 
-            var traceLevel = { x: timestamps, y: levelData, mode: 'lines', name: 'Seviye', line: { color: '#0dcaf0', width: 2 }, fill: 'tozeroy' };
-            var layoutLevel = Object.assign({}, commonLayout, { title: { text: 'Seviye', font: { size: 14, color: '#0dcaf0' } }, yaxis: { title: 'Lt / %' } });
+            var traceLevel = { x: timestamps, y: levelData, mode: 'lines', name: '@Loc["Seviye"]', line: { color: '#0dcaf0', width: 2 }, fill: 'tozeroy' };
+            var layoutLevel = Object.assign({}, commonLayout, { title: { text: '@Loc["Seviye"]', font: { size: 14, color: '#0dcaf0' } }, yaxis: { title: '@Loc["BirimLtYuzde"]' } });
 
             Plotly.newPlot(divTempId, [traceTemp], layoutTemp, { responsive: true, displayModeBar: false });
             Plotly.newPlot(divRpmId, [traceRpm], layoutRpm, { responsive: true, displayModeBar: false });
@@ -285,7 +291,8 @@
             var data = [
                 {
                     type: "indicator", mode: "gauge+number", value: value,
-                    number: { suffix: " RPM", font: { size: 22, color: "#333", family: "Arial" } },
+                    // ÇEVİRİ: BirimRPM
+                    number: { suffix: " @Loc["BirimRPM"]", font: { size: 22, color: "#333", family: "Arial" } },
                     domain: { x: [0, 1], y: [0, 1] },
                     gauge: {
                         axis: { range: [0, maxValue], tickwidth: 1, tickcolor: "#888", nticks: 6 },
@@ -360,7 +367,7 @@
         window.plotSyncedTrendCharts = (data, divTempId, divRpmId, divLevelId) => {
             if (!data || data.length === 0) return;
 
-            // --- GÜNCELLEME: 'Z' Temizleme ---
+            // 'Z' Temizleme
             var timestamps = data.map(d => d.timestamp.toString().replace('Z', ''));
             var tempData = data.map(d => d.temperature / 10.0);
             var rpmData = data.map(d => d.rpm);
@@ -371,9 +378,10 @@
                 margin: { t: 30, b: 40, l: 60, r: 20 }, showlegend: false
             };
 
-            Plotly.newPlot(divTempId, [{ x: timestamps, y: tempData, mode: 'lines', line: { color: '#dc3545' }, fill: 'tozeroy' }], Object.assign({}, commonLayout, { yaxis: { title: 'Sıcaklık (°C)' } }));
-            Plotly.newPlot(divRpmId, [{ x: timestamps, y: rpmData, mode: 'lines', line: { color: '#198754' } }], Object.assign({}, commonLayout, { yaxis: { title: 'Devir (d/d)' } }));
-            Plotly.newPlot(divLevelId, [{ x: timestamps, y: levelData, mode: 'lines', line: { color: '#0dcaf0' }, fill: 'tozeroy' }], Object.assign({}, commonLayout, { yaxis: { title: 'Seviye (%)' } }));
+            // ÇEVİRİ: SicaklikDerece, DevirDd, SeviyeYuzde
+            Plotly.newPlot(divTempId, [{ x: timestamps, y: tempData, mode: 'lines', line: { color: '#dc3545' }, fill: 'tozeroy' }], Object.assign({}, commonLayout, { yaxis: { title: '@Loc["SicaklikDerece"]' } }));
+            Plotly.newPlot(divRpmId, [{ x: timestamps, y: rpmData, mode: 'lines', line: { color: '#198754' } }], Object.assign({}, commonLayout, { yaxis: { title: '@Loc["DevirDd"]' } }));
+            Plotly.newPlot(divLevelId, [{ x: timestamps, y: levelData, mode: 'lines', line: { color: '#0dcaf0' }, fill: 'tozeroy' }], Object.assign({}, commonLayout, { yaxis: { title: '@Loc["SeviyeYuzde"]' } }));
 
             var divTemp = document.getElementById(divTempId);
             divTemp.on('plotly_relayout', function (eventdata) {
@@ -396,7 +404,7 @@
         window.plotSyncedCharts = (data) => {
             if (!data || data.length === 0) return;
 
-            // --- GÜNCELLEME: 'Z' Temizleme ---
+            // 'Z' Temizleme
             const timestamps = data.map(d => d.timestamp.toString().replace('Z', ''));
             const temps = data.map(d => d.temperature / 10.0);
             const levels = data.map(d => d.waterLevel);
@@ -404,9 +412,10 @@
 
             const commonLayout = { xaxis: { type: 'date', showgrid: true }, margin: { l: 50, r: 20, t: 30, b: 30 }, showlegend: false };
 
-            Plotly.newPlot('tempChart', [{ x: timestamps, y: temps, mode: 'lines', line: { color: '#e74c3c' }, fill: 'tozeroy' }], { ...commonLayout, title: 'Sıcaklık (°C)', yaxis: { title: '°C' } });
-            Plotly.newPlot('levelChart', [{ x: timestamps, y: levels, mode: 'lines', line: { color: '#3498db' }, fill: 'tozeroy' }], { ...commonLayout, title: 'Su Seviyesi (%)', yaxis: { title: '%' } });
-            Plotly.newPlot('rpmChart', [{ x: timestamps, y: rpms, mode: 'lines', line: { color: '#2ecc71' } }], { ...commonLayout, title: 'Devir (RPM)', yaxis: { title: 'rpm' } });
+            // ÇEVİRİ: SicaklikDerece, SuSeviyesiYuzde, DevirRPM
+            Plotly.newPlot('tempChart', [{ x: timestamps, y: temps, mode: 'lines', line: { color: '#e74c3c' }, fill: 'tozeroy' }], { ...commonLayout, title: '@Loc["SicaklikDerece"]', yaxis: { title: '°C' } });
+            Plotly.newPlot('levelChart', [{ x: timestamps, y: levels, mode: 'lines', line: { color: '#3498db' }, fill: 'tozeroy' }], { ...commonLayout, title: '@Loc["SuSeviyesiYuzde"]', yaxis: { title: '%' } });
+            Plotly.newPlot('rpmChart', [{ x: timestamps, y: rpms, mode: 'lines', line: { color: '#2ecc71' } }], { ...commonLayout, title: '@Loc["DevirRPM"]', yaxis: { title: 'rpm' } });
 
             const charts = [document.getElementById('tempChart'), document.getElementById('levelChart'), document.getElementById('rpmChart')];
             charts.forEach(chart => {
@@ -424,7 +433,7 @@
         window.plotSyncedChartsWithLimits = (data, startTime, endTime) => {
             if (!data || data.length === 0 || !document.getElementById('tempChart')) return;
 
-            // --- GÜNCELLEME: 'Z' Temizleme ---
+            // 'Z' Temizleme
             const timestamps = data.map(d => d.timestamp.toString().replace('Z', ''));
             const temps = data.map(d => d.temperature / 10.0);
             const levels = data.map(d => d.waterLevel);
@@ -436,9 +445,10 @@
                 showlegend: false, font: { family: 'Segoe UI, Arial', size: 11, color: '#666' }
             };
 
-            Plotly.newPlot('tempChart', [{ x: timestamps, y: temps, mode: 'lines', line: { color: '#e74c3c' }, fill: 'tozeroy' }], { ...commonLayout, title: { text: 'Sıcaklık (°C)', font: { size: 12 } } });
-            Plotly.newPlot('levelChart', [{ x: timestamps, y: levels, mode: 'lines', line: { color: '#3498db' }, fill: 'tozeroy' }], { ...commonLayout, title: { text: 'Su Seviyesi (%)', font: { size: 12 } } });
-            Plotly.newPlot('rpmChart', [{ x: timestamps, y: rpms, mode: 'lines', line: { color: '#2ecc71' } }], { ...commonLayout, title: { text: 'Devir (RPM)', font: { size: 12 } } });
+            // ÇEVİRİ: SicaklikDerece, SuSeviyesiYuzde, DevirRPM
+            Plotly.newPlot('tempChart', [{ x: timestamps, y: temps, mode: 'lines', line: { color: '#e74c3c' }, fill: 'tozeroy' }], { ...commonLayout, title: { text: '@Loc["SicaklikDerece"]', font: { size: 12 } } });
+            Plotly.newPlot('levelChart', [{ x: timestamps, y: levels, mode: 'lines', line: { color: '#3498db' }, fill: 'tozeroy' }], { ...commonLayout, title: { text: '@Loc["SuSeviyesiYuzde"]', font: { size: 12 } } });
+            Plotly.newPlot('rpmChart', [{ x: timestamps, y: rpms, mode: 'lines', line: { color: '#2ecc71' } }], { ...commonLayout, title: { text: '@Loc["DevirRPM"]', font: { size: 12 } } });
 
             const chartIds = ['tempChart', 'levelChart', 'rpmChart'];
             chartIds.forEach(id => {

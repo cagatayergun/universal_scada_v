@@ -9,6 +9,9 @@
 @inject CustomAuthStateProvider AuthProvider
 @inject AuthenticationStateProvider AuthStateProvider
 @layout TekstilScada.WebApp.Components.Layout.EmptyLayout
+@using TekstilScada.Core.Localization
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SharedResource> Loc
 
 <div class="absolute-top-right pa-4">
     <MudButton Variant="Variant.Outlined"
@@ -20,7 +23,7 @@
 </div>
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-16">
-    <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true">Fabrika Seçimi</MudText>
+    <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true">@Loc["Fabrika_Seçimi"]</MudText>
 
     @if (isLoading)
     {
@@ -30,7 +33,7 @@
     }
     else if (factories == null || !factories.Any())
     {
-        <MudAlert Severity="Severity.Warning" Class="mt-4">Yetkili olduğunuz fabrika bulunamadı.</MudAlert>
+        <MudAlert Severity="Severity.Warning" Class="mt-4">@Loc["YetkiliFabrikaBulunamadi"]</MudAlert>
     }
     else
     {
@@ -56,7 +59,7 @@
                                     @factory.FactoryName
                                 </MudText>
                                 <MudText Typo="Typo.caption" Color="@(isOnline? Color.Success: Color.Error)">
-                                    @(isOnline ? "Çevrimiçi" : "Bağlantı Yok")
+                                    @(isOnline ? "Online" : "Offline")
                                 </MudText>
                             </CardHeaderContent>
                         </MudCardHeader>
@@ -64,11 +67,11 @@
                         <MudCardContent>
                             @if (isOnline)
                             {
-                                <MudText>Giriş yapmak için tıklayın.</MudText>
+                                <MudText>@Loc["Girişyapmak"]</MudText>
                             }
                             else
                             {
-                                <MudText Color="Color.Dark">Gateway bağlantısı kesik.</MudText>
+                                <MudText Color="Color.Dark">@Loc["gateway"]</MudText>
                             }
                         </MudCardContent>
                     </MudCard>
@@ -128,7 +131,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add("Veriler yüklenirken hata oluştu: " + ex.Message, Severity.Error);
+            Snackbar.Add("An error occurred while loading the data: " + ex.Message, Severity.Error);
         }
         finally
         {
@@ -140,7 +143,7 @@
     {
         if (!onlineFactoryIds.Contains(factory.Id))
         {
-            Snackbar.Add("Bu fabrika şu an çevrimdışı!", Severity.Warning);
+            Snackbar.Add(@Loc["fabrikakapalı"], Severity.Warning);
             return;
         }
 

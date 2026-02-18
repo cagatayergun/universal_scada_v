@@ -320,7 +320,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Kuyruk listesi yüklenemedi: {ex.Message}", Severity.Warning);
+            Snackbar.Add($"The queue list could not be loaded: {ex.Message}", Severity.Warning);
         }
         var user = authState.User;
         if (user.Identity != null && user.Identity.IsAuthenticated)
@@ -483,10 +483,13 @@
                 if (currentUserId > 0)
                 {
                     // Örn: "FTP Transfer: Reçete1, Reçete2 -> Makine1 (Başlangıç Slot: 1)"
-                    string logDetails = $"Reçeteler: [{recipeNames}] -> Hedef: {machineItem.Machine.MachineName} (Slot: {startSlot})";
-
+                    string logDetails = Loc["Log_ReceteTransferDetay",
+    recipeNames,
+    machineItem.Machine.MachineName,
+    startSlot
+];
                     // Fire-and-forget (Await etmiyoruz ki arayüz donmasın)
-                    _ = ScadaDataService.LogUserActionAsync(currentUserId, "FTP Reçete Gönderimi", logDetails);
+                    _ = ScadaDataService.LogUserActionAsync(currentUserId, "FTP_BATCH_SEND", logDetails);
                 }
             }
         }

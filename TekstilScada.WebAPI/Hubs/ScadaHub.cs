@@ -140,7 +140,7 @@ namespace TekstilScada.WebAPI.Hubs
         private static readonly ConcurrentDictionary<string, StringBuilder> _chunkBuffers = new();
         private static readonly ConcurrentDictionary<string, TaskCompletionSource<object?>> _pendingRequests = new();
         private static readonly ConcurrentDictionary<int, string> _factoryIps = new();
-
+        private static readonly ConcurrentDictionary<int, ConcurrentDictionary<int, FullMachineStatus>> _machineStateCache = new();
         public ScadaHub(CentralFactoryRepository factoryRepo)
         {
             _factoryRepo = factoryRepo;
@@ -166,14 +166,50 @@ namespace TekstilScada.WebAPI.Hubs
 
             Console.WriteLine($"[Hub] Gateway Onaylandı: {factory.FactoryName} (ID: {factory.Id})");
         }
+        public async Task BroadcastMachineBatch(List<FullMachineStatus> statuses)
+        {
+            // Hangi fabrikadan geldiğini bul
+            if (_gatewayConnections.TryGetValue(Context.ConnectionId, out int factoryId))
+            {
+                // 1. Server-Side Cache'i güncelle (Dashboard ilk açılış hızı için)
+                var factoryCache = _machineStateCache.GetOrAdd(factoryId, new ConcurrentDictionary<int, FullMachineStatus>());
 
+                foreach (var status in statuses)
+                {
+                    factoryCache[status.MachineId] = status;
+                }
+
+                // 2. O fabrikaya abone olan Dashboard'lara "Toplu Paket" gönder
+                // Dashboard tarafında da "ReceiveMachineBatch" adında bir listener olacak
+                await Clients.Group($"Factory_{factoryId}").SendAsync("ReceiveMachineBatch", factoryId, statuses);
+            }
+        }
         // --- 2. CANLI DURUM SORGUSU ---
         public async Task<List<FullMachineStatus>> GetLiveMachineStatusByFactoryId(int factoryId)
         {
+            // A. Önce Önbelleğe Bak (Hızlı Yanıt)
+            if (_machineStateCache.TryGetValue(factoryId, out var factoryCache) && !factoryCache.IsEmpty)
+            {
+                // Eğer önbellekte veri varsa, Gateway'e gitmeden hemen döndür
+                return factoryCache.Values.ToList();
+            }
+
+            // B. Önbellek Boşsa Gateway'e Sor (Fallback - Yavaş olabilir)
             string? targetConnectionId = _gatewayConnections.FirstOrDefault(x => x.Value == factoryId).Key;
             if (string.IsNullOrEmpty(targetConnectionId)) return new List<FullMachineStatus>();
 
             var result = await SendRequestToGateway<List<FullMachineStatus>>(targetConnectionId, 60, "GetAllMachineStatuses");
+
+            // C. Gateway'den gelen veriyi de önbelleğe yaz (Bir sonraki istek hızlı olsun)
+            if (result != null && result.Any())
+            {
+                var cache = _machineStateCache.GetOrAdd(factoryId, new ConcurrentDictionary<int, FullMachineStatus>());
+                foreach (var status in result)
+                {
+                    cache[status.MachineId] = status;
+                }
+            }
+
             return result ?? new List<FullMachineStatus>();
         }
 
@@ -247,7 +283,14 @@ namespace TekstilScada.WebAPI.Hubs
         public async Task BroadcastFromLocal(FullMachineStatus status)
         {
             if (_gatewayConnections.TryGetValue(Context.ConnectionId, out int factoryId))
+            {
+                // A. Sunucu Önbelleğini Güncelle
+                var factoryCache = _machineStateCache.GetOrAdd(factoryId, new ConcurrentDictionary<int, FullMachineStatus>());
+                factoryCache[status.MachineId] = status;
+
+                // B. İstemcilere Yayınla
                 await Clients.Group($"Factory_{factoryId}").SendAsync("ReceiveMachineUpdate", factoryId, status);
+            }
         }
 
         // --- 6. KOMUT GÖNDERİMİ ---

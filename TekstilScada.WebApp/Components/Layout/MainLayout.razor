@@ -26,7 +26,7 @@
 
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="MudBlazor.Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h5" Class="ml-3">Universal Scada</MudText>
+        <MudText Typo="Typo.h5" Class="ml-3">YILMAK TELEMETRY</MudText>
 
         <MudSpacer />
 
@@ -100,7 +100,7 @@
                 ScadaService.HubConnection.Closed += async (error) =>
                 {
                     ScadaService.ExitFactory();
-                    Snackbar.Add("Sunucu bağlantısı koptu! Fabrika seçim ekranına yönlendiriliyorsunuz.", Severity.Error, config =>
+                    Snackbar.Add(@Loc["sunucukopuk"], Severity.Error, config =>
                     {
                         config.Icon = Icons.Material.Filled.WifiOff;
                         config.VisibleStateDuration = 5000;
@@ -155,7 +155,7 @@
     {
         if (_currentUserId > 0)
         {
-            await ScadaService.LogUserActionAsync(_currentUserId, "Oturum Kapatma", "Kullanıcı çıkış yaptı.");
+            await ScadaService.LogUserActionAsync(_currentUserId, @Loc["Oturum_Kapatma"], @Loc["Kullanıcı_çıkış_yaptı"]);
         }
 
         await AuthProvider.LogoutAsync();
@@ -188,8 +188,8 @@
         if (_currentUserId > 0)
         {
             var relativePath = NavigationManager.ToBaseRelativePath(e.Location);
-            if (string.IsNullOrEmpty(relativePath)) relativePath = "Ana Sayfa";
-            _ = ScadaService.LogUserActionAsync(_currentUserId, "Sayfa Ziyareti", $"Görüntülenen Sayfa: {relativePath}");
+            if (string.IsNullOrEmpty(relativePath)) relativePath = @Loc["anasayfa"];
+            _ = ScadaService.LogUserActionAsync(_currentUserId, @Loc["sayfaziyareti"], @Loc["GoruntulenenSayfa", relativePath]);
         }
 
         CheckFactorySelection();

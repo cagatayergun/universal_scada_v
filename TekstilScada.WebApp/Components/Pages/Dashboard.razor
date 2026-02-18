@@ -21,7 +21,7 @@
     {
         <div class="loading-overlay">
             <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2">@Loc["VerilerYukleniyor"]</p>
+            <p class="mt-2">@Loc["VerilerYukleniyor"]...</p>
         </div>
     }
     else
@@ -119,56 +119,63 @@
         {
             _userCulture = CultureInfo.CurrentUICulture;
 
-            // 1. Canlı Veri Akışına Abone Ol
+            // 1. Canlı Veri Akışına Abone Ol (Bu artık Batch update ile tetiklenecek)
             ScadaService.OnDataUpdated += HandleDataUpdate;
 
-            // 2. İlk Verileri Hemen Yükle (Beklemeden)
+            // Servis henüz başlamadıysa başlat
+            if (ScadaService.HubConnection == null || ScadaService.HubConnection.State != HubConnectionState.Connected)
+            {
+                await ScadaService.InitializeAsync();
+            }
+
+            // 2. İlk Verileri Yükle
             await LoadInitialData();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Dashboard Init Hatası: {ex.Message}");
+            Console.WriteLine($"Dashboard Init Error: {ex.Message}");
             _isLoading = false;
         }
     }
 
     private async Task LoadInitialData()
     {
-        _isLoading = true;
+        // ADIM 1: Veritabanındaki makine listesini al (Hızlı)
+        var dbMachines = await ScadaService.GetMachinesAsync();
+
+        // ADIM 2: Hub'dan canlı verileri (Önbellekten) al
+        // ScadaDataService içindeki MachineData dictionary'sini güncelle
+        var liveStatuses = await ScadaService.GetLiveMachineStatusByFactoryId(ScadaService.CurrentFactoryId);
+
+        foreach (var m in dbMachines)
+        {
+            // Canlı veri var mı diye bak
+            var liveStatus = liveStatuses.FirstOrDefault(s => s.MachineId == m.Id);
+
+            if (liveStatus != null)
+            {
+                ScadaService.MachineData[m.Id] = liveStatus;
+            }
+            else if (!ScadaService.MachineData.ContainsKey(m.Id))
+            {
+                // Veri yoksa offline olarak oluştur
+                ScadaService.MachineData[m.Id] = new FullMachineStatus
+                {
+                    MachineId = m.Id,
+                    MachineName = m.MachineName,
+                    MakineTipi = m.MachineSubType ?? "Standart",
+                    ConnectionState = ConnectionStatus.Disconnected
+                };
+            }
+        }
+
+        // ADIM 3: Ekranı Çiz
+        _isLoading = false;
+        UpdateDashboardData();
         StateHasChanged();
 
-        try
-        {
-            // A. Makine Tanımlarını Çek (Eksik makine görünmemesi için temel)
-            await ScadaService.GetMachinesAsync();
-
-            // B. Canlı Verileri Çek (Snapshot)
-            var liveStatuses = await ScadaService.GetLiveMachineStatusByFactoryId(0);
-
-            if (liveStatuses != null && liveStatuses.Any())
-            {
-                // Cache'i güncelle
-                foreach (var status in liveStatuses)
-                {
-                    ScadaService.MachineData[status.MachineId] = status;
-                }
-            }
-
-            // C. Dashboard Verilerini Hesapla
-            UpdateDashboardData();
-
-            // D. Grafik Verilerini Yükle
-            await LoadSidebarDataAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Dashboard Veri Yükleme Hatası: {ex.Message}");
-        }
-        finally
-        {
-            _isLoading = false;
-            StateHasChanged();
-        }
+        // ADIM 4: Grafikleri Arka Planda Yükle
+        _ = LoadSidebarDataAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -181,10 +188,7 @@
                 await JSRuntime.InvokeVoidAsync("plotDashboardCharts",
                     HourlyOeeData, HourlyConsumptionData, TopAlarms);
             }
-            catch (Exception)
-            {
-                // JS hatalarını yut (Navigasyon sırasında oluşabilir)
-            }
+            catch (Exception) { /* JS hatalarını yut */ }
         }
     }
 
@@ -192,22 +196,20 @@
     {
         try
         {
-            // Verileri çek
             HourlyConsumptionData = await ScadaService.GetHourlyConsumptionAsync() ?? new();
             HourlyOeeData = await ScadaService.GetHourlyOeeAsync() ?? new();
             TopAlarms = await ScadaService.GetTopAlarmsAsync() ?? new();
 
-            // Veriler geldi, render bayrağını kaldır ve UI'ı zorla güncelle
             _shouldRenderCharts = true;
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Yan panel verileri yüklenirken hata: {ex.Message}");
+            Console.WriteLine($"An error occurred while loading side panel data.: {ex.Message}");
         }
     }
 
-    // ScadaService tarafından tetiklenen metod (Push)
+    // ScadaService tarafından tetiklenen metod (Batch update sonrası burası çalışır)
     private void HandleDataUpdate()
     {
         InvokeAsync(() =>
@@ -219,34 +221,27 @@
 
     private void UpdateDashboardData()
     {
-        // --- DEĞİŞİKLİK: Veriyi ScadaService.MachineData'dan alıyoruz ---
-        List<FullMachineStatus> allStatuses;
-
-        if (ScadaService.MachineData.Any())
+        // 1. Veritabanındaki makineler ile Canlı verileri birleştir
+        var allStatuses = ScadaService.MachineDetailsCache.Values.Select(m =>
         {
-            allStatuses = ScadaService.MachineData.Values.ToList();
-        }
-        else
-        {
-            // EĞER CANLI VERİ YOKSA: Makine tanımlarından boş durum oluştur.
-            // Bu sayede "20 makine varken 0 görünüyor" sorunu çözülür.
-            if (ScadaService.MachineDetailsCache.Any())
+            if (ScadaService.MachineData.TryGetValue(m.Id, out var liveStatus))
             {
-                allStatuses = ScadaService.MachineDetailsCache.Values.Select(m => new FullMachineStatus
-                {
-                    MachineId = m.Id,
-                    MachineName = m.MachineName,
-                    MakineTipi = m.MachineSubType,
-                    ConnectionState = ConnectionStatus.Disconnected // Hepsi offline başlar
-                }).ToList();
+                if (string.IsNullOrEmpty(liveStatus.MakineTipi))
+                    liveStatus.MakineTipi = m.MachineSubType;
+                return liveStatus;
             }
-            else
-            {
-                allStatuses = new List<FullMachineStatus>();
-            }
-        }
 
-        // --- 2. İstatistikler (Aynen korundu) ---
+            return new FullMachineStatus
+            {
+                MachineId = m.Id,
+                MachineName = m.MachineName,
+                MakineTipi = string.IsNullOrEmpty(m.MachineSubType) ? "Undefined" : m.MachineSubType,
+                ConnectionState = ConnectionStatus.Disconnected,
+                manuel_status = false
+            };
+        }).ToList();
+
+        // 2. İstatistikler
         TotalMachines = allStatuses.Count;
         RunningMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.IsInRecipeMode && !s.HasActiveAlarm);
         AlarmMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.HasActiveAlarm);
@@ -260,23 +255,21 @@
             return;
         }
 
-        // --- 3. Sıralama ve Gruplama ---
+        // 3. Sıralama
         var sortedMachines = allStatuses
-            .OrderByDescending(m => m.IsInRecipeMode)
-            .ThenBy(m => m.HasActiveAlarm)
+            .OrderByDescending(m => m.ConnectionState == ConnectionStatus.Connected)
+            .ThenByDescending(m => m.IsInRecipeMode)
+            .ThenByDescending(m => m.HasActiveAlarm)
             .ThenBy(m => m.MachineName);
 
+        // 4. Gruplama
         GroupedMachines = sortedMachines
-            .GroupBy(m =>
-            {
-                if (string.IsNullOrEmpty(m.MakineTipi)) return "Tanımsız";
-                return m.MakineTipi;
-            })
+            .GroupBy(m => string.IsNullOrEmpty(m.MakineTipi) ? "Undefined" : m.MakineTipi)
             .OrderByDescending(g => g.Any(m => m.IsInRecipeMode))
             .ThenBy(g => g.Key)
             .ToList();
 
-        // --- 4. Renk Atama ---
+        // 5. Renkler
         if (GroupColors.Count != GroupedMachines.Count)
         {
             _colorIndex = 0;
@@ -301,7 +294,6 @@
 
     public void Dispose()
     {
-        // ScadaService aboneliğini bırak
         if (ScadaService != null)
         {
             ScadaService.OnDataUpdated -= HandleDataUpdate;

@@ -94,7 +94,7 @@
             <MudItem xs="6">
                 <MudStack Row="true" AlignItems="AlignItems.Center">
                     <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Small" Color="Color.Default" />
-                    <MudText Typo="Typo.caption">Sipariş</MudText>
+                    <MudText Typo="Typo.caption">@Loc["SiparisNoLabel"]</MudText>
                     <MudTooltip Text="@MachineStatus.SiparisNumarasi">
                         <MudText Typo="Typo.body2" Class="ml-auto text-truncate" Style="max-width: 80px;"><b>@MachineStatus.SiparisNumarasi</b></MudText>
                     </MudTooltip>
@@ -104,7 +104,7 @@
             <MudItem xs="6">
                 <MudStack Row="true" AlignItems="AlignItems.Center">
                     <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" Color="Color.Default" />
-                    <MudText Typo="Typo.caption">Müşteri</MudText>
+                    <MudText Typo="Typo.caption">@Loc["MusteriNoLabel"]</MudText>
                     <MudTooltip Text="@MachineStatus.MusteriNumarasi">
                         <MudText Typo="Typo.body2" Class="ml-auto text-truncate" Style="max-width: 80px;"><b>@MachineStatus.MusteriNumarasi</b></MudText>
                     </MudTooltip>
@@ -173,7 +173,7 @@
     {
         if (string.IsNullOrEmpty(MachineStatus.MakineTipi)) return false;
         var type = MachineStatus.MakineTipi.Trim().ToLower();
-        return type.Contains("kurutma");
+        return type.Contains("Kurutma Makinesi");
     }
 
     private Color GetConnectionColor()

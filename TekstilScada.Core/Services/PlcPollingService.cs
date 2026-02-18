@@ -851,7 +851,7 @@ namespace TekstilScada.Services
                     {
                         if (lastSeenAlarms.TryGetValue(alarmId, out DateTime lastSeenTime))
                         {
-                            if ((now - lastSeenTime).TotalSeconds > 45)
+                            if ((now - lastSeenTime).TotalSeconds > 300)
                             {
                                 CloseAlarm(machineId, alarmId, currentStatus.MachineName);
                                 activeAlarms.TryRemove(alarmId, out _);

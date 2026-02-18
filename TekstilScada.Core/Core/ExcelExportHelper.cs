@@ -1,34 +1,51 @@
-﻿// File: TekstilScada.Core/Core/ExcelExportHelper.cs
-
-using ClosedXML.Excel;
+﻿using ClosedXML.Excel;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using TekstilScada.Core.Models;
 using TekstilScada.Models;
+using System.Resources;
+using System.Globalization;
+using TekstilScada.Core.Localization;
 
 namespace TekstilScada.Core.Core
 {
     public static class ExcelExportHelper
     {
+        // Kaynak Yöneticisi (Resx dosyasına erişim için)
+        private static readonly ResourceManager _rm = new ResourceManager("TekstilScada.Core.Localization.SharedResource", typeof(SharedResource).Assembly);
+
+        // Helper: Çeviri yoksa anahtarı döndürür
+        private static string L(string key)
+        {
+            try
+            {
+                return _rm.GetString(key) ?? key;
+            }
+            catch
+            {
+                return key;
+            }
+        }
+
         public static byte[] ExportProductionReportToExcel(List<ProductionReportItem> reportItems)
         {
             using (var workbook = new XLWorkbook())
             {
-                var worksheet = workbook.Worksheets.Add("Üretim Raporu");
+                var worksheet = workbook.Worksheets.Add(L("UretimRaporu"));
                 int currentRow = 1;
 
                 // Başlıkları yaz
-                worksheet.Cell(currentRow, 1).Value = "Makine Adı";
-                worksheet.Cell(currentRow, 2).Value = "Reçete Adı";
-                worksheet.Cell(currentRow, 3).Value = "Batch No";
-                worksheet.Cell(currentRow, 4).Value = "Operatör";
-                worksheet.Cell(currentRow, 5).Value = "Başlangıç";
-                worksheet.Cell(currentRow, 6).Value = "Bitiş";
-                worksheet.Cell(currentRow, 7).Value = "Süre";
-                worksheet.Cell(currentRow, 8).Value = "Üretilen Miktar";
-                worksheet.Cell(currentRow, 9).Value = "Toplam Su (L)";
-                worksheet.Cell(currentRow, 10).Value = "Toplam Elektrik (kW)";
+                worksheet.Cell(currentRow, 1).Value = L("MakineAdi");
+                worksheet.Cell(currentRow, 2).Value = L("ReceteAdi");
+                worksheet.Cell(currentRow, 3).Value = L("BatchNo");
+                worksheet.Cell(currentRow, 4).Value = L("Operator");
+                worksheet.Cell(currentRow, 5).Value = L("Baslangic");
+                worksheet.Cell(currentRow, 6).Value = L("Bitis");
+                worksheet.Cell(currentRow, 7).Value = L("Sure");
+                worksheet.Cell(currentRow, 8).Value = L("UretilenMiktar");
+                worksheet.Cell(currentRow, 9).Value = L("ToplamSuL");
+                worksheet.Cell(currentRow, 10).Value = L("ToplamElektrikKW");
 
                 // Başlıkları kalın yap
                 worksheet.Range(1, 1, 1, 10).Style.Font.SetBold(true).Fill.SetBackgroundColor(XLColor.LightGray);
@@ -61,7 +78,6 @@ namespace TekstilScada.Core.Core
                 worksheet.Column(9).Style.NumberFormat.SetFormat("#,##0");
                 worksheet.Column(10).Style.NumberFormat.SetFormat("#,##0.00");
 
-
                 // Bellek akışına yaz ve byte dizisi olarak döndür
                 using (var stream = new MemoryStream())
                 {
@@ -70,7 +86,8 @@ namespace TekstilScada.Core.Core
                 }
             }
         }
-            public static byte[] ExportAlarmReportToExcel(List<AlarmReportItem> reportItems)
+
+        public static byte[] ExportAlarmReportToExcel(List<AlarmReportItem> reportItems)
         {
             if (reportItems == null || !reportItems.Any())
             {
@@ -79,16 +96,16 @@ namespace TekstilScada.Core.Core
 
             using (var workbook = new XLWorkbook())
             {
-                var worksheet = workbook.Worksheets.Add("Alarm Raporu");
+                var worksheet = workbook.Worksheets.Add(L("AlarmRaporu"));
                 int currentRow = 1;
 
                 // Başlıklar
-                worksheet.Cell(currentRow, 1).Value = "Makine Adı";
-                worksheet.Cell(currentRow, 2).Value = "Alarm No";
-                worksheet.Cell(currentRow, 3).Value = "Alarm Açıklaması";
-                worksheet.Cell(currentRow, 4).Value = "Başlangıç Zamanı";
-                worksheet.Cell(currentRow, 5).Value = "Bitiş Zamanı";
-                worksheet.Cell(currentRow, 6).Value = "Süre";
+                worksheet.Cell(currentRow, 1).Value = L("MakineAdi");
+                worksheet.Cell(currentRow, 2).Value = L("AlarmNo");
+                worksheet.Cell(currentRow, 3).Value = L("AlarmAciklamasi");
+                worksheet.Cell(currentRow, 4).Value = L("BaslangicZamani");
+                worksheet.Cell(currentRow, 5).Value = L("BitisZamani");
+                worksheet.Cell(currentRow, 6).Value = L("Sure");
 
                 // Biçimlendir
                 worksheet.Range(1, 1, 1, 6).Style.Font.SetBold(true).Fill.SetBackgroundColor(XLColor.LightCoral);
@@ -102,9 +119,12 @@ namespace TekstilScada.Core.Core
                     worksheet.Cell(currentRow, 3).Value = item.AlarmText;
                     worksheet.Cell(currentRow, 4).Value = item.StartTime;
                     worksheet.Cell(currentRow, 5).Value = item.EndTime;
-                    worksheet.Cell(currentRow, 6).Value = item.Duration;
 
-                    // Aktif alarmları vurgula
+                    // "Aktif" metni gelirse çevir, yoksa süreyi yaz
+                    string durationDisplay = item.Duration == "Aktif" ? L("Aktif") : item.Duration;
+                    worksheet.Cell(currentRow, 6).Value = durationDisplay;
+
+                    // Aktif alarmları vurgula (Kaynak verideki 'Aktif' stringine göre kontrol ediyoruz)
                     if (item.Duration == "Aktif")
                     {
                         worksheet.Row(currentRow).Style.Fill.SetBackgroundColor(XLColor.Red);
@@ -123,6 +143,7 @@ namespace TekstilScada.Core.Core
                 }
             }
         }
+
         public static byte[] ExportOeeReportToExcel(List<OeeData> reportItems)
         {
             if (reportItems == null || !reportItems.Any())
@@ -132,18 +153,18 @@ namespace TekstilScada.Core.Core
 
             using (var workbook = new XLWorkbook())
             {
-                var worksheet = workbook.Worksheets.Add("OEE Raporu");
+                var worksheet = workbook.Worksheets.Add(L("OEERaporu"));
                 int currentRow = 1;
 
                 // Başlıklar
-                worksheet.Cell(currentRow, 1).Value = "Makine Adı";
-                worksheet.Cell(currentRow, 2).Value = "Batch No";
-                worksheet.Cell(currentRow, 3).Value = "Kullanılabilirlik (A)";
-                worksheet.Cell(currentRow, 4).Value = "Performans (P)";
-                worksheet.Cell(currentRow, 5).Value = "Kalite (Q)";
-                worksheet.Cell(currentRow, 6).Value = "OEE (A x P x Q)";
-                worksheet.Cell(currentRow, 7).Value = "Başlangıç Zamanı";
-                worksheet.Cell(currentRow, 8).Value = "Bitiş Zamanı";
+                worksheet.Cell(currentRow, 1).Value = L("MakineAdi");
+                worksheet.Cell(currentRow, 2).Value = L("BatchNo");
+                worksheet.Cell(currentRow, 3).Value = L("KullanilabilirlikA");
+                worksheet.Cell(currentRow, 4).Value = L("PerformansP");
+                worksheet.Cell(currentRow, 5).Value = L("KaliteQ");
+                worksheet.Cell(currentRow, 6).Value = L("OEEFormul");
+                worksheet.Cell(currentRow, 7).Value = L("BaslangicZamani");
+                worksheet.Cell(currentRow, 8).Value = L("BitisZamani");
 
                 // Biçimlendir
                 worksheet.Range(1, 1, 1, 8).Style.Font.SetBold(true).Fill.SetBackgroundColor(XLColor.LightYellow);
@@ -158,7 +179,6 @@ namespace TekstilScada.Core.Core
                     worksheet.Cell(currentRow, 4).Value = item.Performance;
                     worksheet.Cell(currentRow, 5).Value = item.Quality;
                     worksheet.Cell(currentRow, 6).Value = item.OEE;
-                 
 
                     // OEE değerine göre satır rengi
                     if (item.OEE < 60)
@@ -193,6 +213,7 @@ namespace TekstilScada.Core.Core
                 }
             }
         }
+
         public static byte[] ExportManualConsumptionReportToExcel(ManualConsumptionSummary summary)
         {
             // Bu rapor bir nesne bekler.
@@ -203,40 +224,40 @@ namespace TekstilScada.Core.Core
 
             using (var workbook = new XLWorkbook())
             {
-                var worksheet = workbook.Worksheets.Add("Manuel Tüketim Özeti");
+                var worksheet = workbook.Worksheets.Add(L("ManuelTuketimOzeti"));
 
-                // Başlık
-                worksheet.Cell("A1").Value = $"Manuel Tüketim Özeti - {summary.Makine}";
+                // Başlık (Placeholder {0} kullanımı)
+                worksheet.Cell("A1").Value = string.Format(L("ManuelTuketimOzetiBaslik"), summary.Makine);
                 worksheet.Range("A1:B1").Merge().Style.Font.SetBold(true).Fill.SetBackgroundColor(XLColor.LightSkyBlue);
 
                 // Özet Detayları
-                worksheet.Cell("A3").Value = "Rapor Aralığı:";
+                worksheet.Cell("A3").Value = L("RaporAraligi") + ":";
                 worksheet.Cell("B3").Value = summary.RaporAraligi;
 
-                worksheet.Cell("A4").Value = "Toplam Manuel Çalışma Süresi:";
+                worksheet.Cell("A4").Value = L("ToplamManuelCalismaSuresi") + ":";
                 worksheet.Cell("B4").Value = summary.ToplamManuelSure;
 
-                worksheet.Cell("A5").Value = "Ortalama Sıcaklık (°C):";
+                worksheet.Cell("A5").Value = L("OrtalamaSicaklikC") + ":";
                 worksheet.Cell("B5").Value = summary.OrtalamaSicaklik;
                 worksheet.Cell("B5").Style.NumberFormat.SetFormat("0.0");
 
-                worksheet.Cell("A6").Value = "Ortalama Devir (Rpm):";
+                worksheet.Cell("A6").Value = L("OrtalamaDevirRpm") + ":";
                 worksheet.Cell("B6").Value = summary.OrtalamaDevir;
                 worksheet.Cell("B6").Style.NumberFormat.SetFormat("0");
 
                 // Tüketim Başlıkları
-                worksheet.Cell("A8").Value = "Tüketim Değerleri";
+                worksheet.Cell("A8").Value = L("TuketimDegerleri");
                 worksheet.Range("A8:B8").Merge().Style.Font.SetBold(true).Fill.SetBackgroundColor(XLColor.LightGreen);
 
-                worksheet.Cell("A9").Value = "Toplam Su Tüketimi (Litre):";
+                worksheet.Cell("A9").Value = L("ToplamSuTuketimiL") + ":";
                 worksheet.Cell("B9").Value = summary.ToplamSuTuketimi_Litre;
                 worksheet.Cell("B9").Style.NumberFormat.SetFormat("#,##0");
 
-                worksheet.Cell("A10").Value = "Toplam Elektrik Tüketimi (kW):";
+                worksheet.Cell("A10").Value = L("ToplamElektrikTuketimiKW") + ":";
                 worksheet.Cell("B10").Value = summary.ToplamElektrikTuketimi_kW;
                 worksheet.Cell("B10").Style.NumberFormat.SetFormat("#,##0.00");
 
-                worksheet.Cell("A11").Value = "Toplam Buhar Tüketimi (kg):";
+                worksheet.Cell("A11").Value = L("ToplamBuharTuketimiKg") + ":";
                 worksheet.Cell("B11").Value = summary.ToplamBuharTuketimi_kg;
                 worksheet.Cell("B11").Style.NumberFormat.SetFormat("#,##0.00");
 
@@ -251,6 +272,7 @@ namespace TekstilScada.Core.Core
                 }
             }
         }
+
         public static byte[] ExportGeneralDetailedConsumptionReportToExcel(List<ProductionReportItem> reportItems, string selectedConsumptionType)
         {
             if (reportItems == null || !reportItems.Any())
@@ -263,10 +285,10 @@ namespace TekstilScada.Core.Core
             {
                 return type switch
                 {
-                    "TotalWater" => "Su (Litre)",
-                    "TotalElectricity" => "Elektrik (kW)",
-                    "TotalSteam" => "Buhar (kg)",
-                    _ => "Tüketim Değeri"
+                    "TotalWater" => L("SuLitre"),
+                    "TotalElectricity" => L("ElektrikKW"),
+                    "TotalSteam" => L("BuharKg"),
+                    _ => L("TuketimDegeri")
                 };
             }
 
@@ -275,13 +297,13 @@ namespace TekstilScada.Core.Core
 
             using (var workbook = new XLWorkbook())
             {
-                var worksheet = workbook.Worksheets.Add("Detaylı Tüketim");
+                var worksheet = workbook.Worksheets.Add(L("DetayliTuketim"));
                 int currentRow = 1;
 
                 // Başlıklar
-                worksheet.Cell(currentRow, 1).Value = "Makine Adı";
-                worksheet.Cell(currentRow, 2).Value = "Batch No";
-                worksheet.Cell(currentRow, 3).Value = "Bitiş Zamanı";
+                worksheet.Cell(currentRow, 1).Value = L("MakineAdi");
+                worksheet.Cell(currentRow, 2).Value = L("BatchNo");
+                worksheet.Cell(currentRow, 3).Value = L("BitisZamani");
                 worksheet.Cell(currentRow, 4).Value = consumptionColumnName;
 
                 // Biçimlendir
@@ -321,6 +343,7 @@ namespace TekstilScada.Core.Core
                 }
             }
         }
+
         public static byte[] ExportActionLogsReportToExcel(List<ActionLogEntry> logs)
         {
             if (logs == null || !logs.Any())
@@ -330,14 +353,14 @@ namespace TekstilScada.Core.Core
 
             using (var workbook = new XLWorkbook())
             {
-                var worksheet = workbook.Worksheets.Add("Eylem Kayıtları");
+                var worksheet = workbook.Worksheets.Add(L("EylemKayitlari"));
                 int currentRow = 1;
 
                 // Başlıklar
-                worksheet.Cell(currentRow, 1).Value = "Zaman Damgası";
-                worksheet.Cell(currentRow, 2).Value = "Kullanıcı Adı";
-                worksheet.Cell(currentRow, 3).Value = "Eylem Tipi";
-                worksheet.Cell(currentRow, 4).Value = "Detaylar";
+                worksheet.Cell(currentRow, 1).Value = L("ZamanDamgasi");
+                worksheet.Cell(currentRow, 2).Value = L("KullaniciAdi");
+                worksheet.Cell(currentRow, 3).Value = L("EylemTipi");
+                worksheet.Cell(currentRow, 4).Value = L("Detaylar");
 
                 // Biçimlendir
                 worksheet.Range(1, 1, 1, 4).Style.Font.SetBold(true).Fill.SetBackgroundColor(XLColor.LightCyan);
@@ -363,50 +386,13 @@ namespace TekstilScada.Core.Core
                 }
             }
         }
-        public class TrendDataPoint
-        {
-            public DateTime Timestamp { get; set; }
-            public double Temperature { get; set; }
-            public double Rpm { get; set; }
-            public double WaterLevel { get; set; }
-        }
 
-        public class ProductionStepDetailDto : ProductionStepDetail
-        {
-            public double TheoreticalDurationSeconds { get; set; } = 0;
-            public double Temperature { get; set; } = 0;
-            public string StepDescription => StepName;
-        }
+        // ... DTO Sınıfları (Aynen Kalıyor) ...
+        public class TrendDataPoint { public DateTime Timestamp { get; set; } public double Temperature { get; set; } public double Rpm { get; set; } public double WaterLevel { get; set; } }
+        public class ProductionStepDetailDto : ProductionStepDetail { public double TheoreticalDurationSeconds { get; set; } = 0; public double Temperature { get; set; } = 0; public string StepDescription => StepName; }
+        public class AlarmDetailDto { public DateTime AlarmTime { get; set; } = DateTime.MinValue; public int AlarmNumber { get; set; } public string AlarmType { get; set; } = string.Empty; public string AlarmDescription { get; set; } = string.Empty; public TimeSpan Duration { get; set; } = TimeSpan.Zero; public DateTime EndTime => AlarmTime.Add(Duration); }
+        public class ProductionDetailDto { public ProductionReportItem Header { get; set; } = new(); public List<ProductionStepDetailDto> Steps { get; set; } = new(); public List<AlarmDetailDto> Alarms { get; set; } = new(); public List<TrendDataPoint> LogData { get; set; } = new(); public List<TrendDataPoint> TheoreticalData { get; set; } = new(); }
 
-        public class AlarmDetailDto
-        {
-            // Alarmın başlangıç zamanı
-            public DateTime AlarmTime { get; set; } = DateTime.MinValue;
-
-            // Kritik: Alarm ID'si (0-499: Makine, 500-600: Operatör ayrımı için şart)
-            public int AlarmNumber { get; set; }
-
-            // Alarmın tipi (Warning, Error vb.)
-            public string AlarmType { get; set; } = string.Empty;
-
-            // Alarm açıklaması
-            public string AlarmDescription { get; set; } = string.Empty;
-
-            // Alarm süresi
-            public TimeSpan Duration { get; set; } = TimeSpan.Zero;
-
-            // Zaman kesişim analizi (Interval Merging) yaparken hassasiyet için EndTime eklendi
-            public DateTime EndTime => AlarmTime.Add(Duration);
-        }
-
-        public class ProductionDetailDto
-        {
-            public ProductionReportItem Header { get; set; } = new();
-            public List<ProductionStepDetailDto> Steps { get; set; } = new();
-            public List<AlarmDetailDto> Alarms { get; set; } = new();
-            public List<TrendDataPoint> LogData { get; set; } = new();
-            public List<TrendDataPoint> TheoreticalData { get; set; } = new();
-        }
         public static byte[] ExportProductionDetailToExcel(ProductionDetailDto detailData)
         {
             if (detailData == null || detailData.Header == null)
@@ -416,39 +402,39 @@ namespace TekstilScada.Core.Core
 
             using (var workbook = new XLWorkbook())
             {
-                var worksheet = workbook.Worksheets.Add("Üretim Detayı");
+                var worksheet = workbook.Worksheets.Add(L("UretimDetayi"));
                 int currentRow = 1;
 
                 // --- BÖLÜM 1: GENEL BİLGİLER (Header) ---
-                worksheet.Cell(currentRow, 1).Value = "Genel Bilgiler";
+                worksheet.Cell(currentRow, 1).Value = L("GenelBilgiler");
                 worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold(true).Fill.SetBackgroundColor(XLColor.LightBlue);
                 currentRow++;
 
-                worksheet.Cell(currentRow, 1).Value = "Makine Adı:"; worksheet.Cell(currentRow, 2).Value = detailData.Header.MachineName; currentRow++;
-                worksheet.Cell(currentRow, 1).Value = "Batch ID:"; worksheet.Cell(currentRow, 2).Value = detailData.Header.BatchId; currentRow++;
-                worksheet.Cell(currentRow, 1).Value = "Reçete Adı:"; worksheet.Cell(currentRow, 2).Value = detailData.Header.RecipeName; currentRow++;
-                worksheet.Cell(currentRow, 1).Value = "Operatör:"; worksheet.Cell(currentRow, 2).Value = detailData.Header.OperatorName; currentRow++;
-                worksheet.Cell(currentRow, 1).Value = "Başlangıç Zamanı:"; worksheet.Cell(currentRow, 2).Value = detailData.Header.StartTime; currentRow++;
-                worksheet.Cell(currentRow, 1).Value = "Bitiş Zamanı:"; worksheet.Cell(currentRow, 2).Value = detailData.Header.EndTime; currentRow++;
-                worksheet.Cell(currentRow, 1).Value = "Toplam Süre:"; worksheet.Cell(currentRow, 2).Value = detailData.Header.CycleTime; currentRow++;
-                worksheet.Cell(currentRow, 1).Value = "Makine Alarm Süresi (sn):"; worksheet.Cell(currentRow, 2).Value = detailData.Header.MachineAlarmDurationSeconds; currentRow++;
-                worksheet.Cell(currentRow, 1).Value = "Operatör Duraklama Süresi (sn):"; worksheet.Cell(currentRow, 2).Value = detailData.Header.OperatorPauseDurationSeconds; currentRow++;
+                worksheet.Cell(currentRow, 1).Value = L("MakineAdi") + ":"; worksheet.Cell(currentRow, 2).Value = detailData.Header.MachineName; currentRow++;
+                worksheet.Cell(currentRow, 1).Value = L("BatchID") + ":"; worksheet.Cell(currentRow, 2).Value = detailData.Header.BatchId; currentRow++;
+                worksheet.Cell(currentRow, 1).Value = L("ReceteAdi") + ":"; worksheet.Cell(currentRow, 2).Value = detailData.Header.RecipeName; currentRow++;
+                worksheet.Cell(currentRow, 1).Value = L("Operator") + ":"; worksheet.Cell(currentRow, 2).Value = detailData.Header.OperatorName; currentRow++;
+                worksheet.Cell(currentRow, 1).Value = L("BaslangicZamani") + ":"; worksheet.Cell(currentRow, 2).Value = detailData.Header.StartTime; currentRow++;
+                worksheet.Cell(currentRow, 1).Value = L("BitisZamani") + ":"; worksheet.Cell(currentRow, 2).Value = detailData.Header.EndTime; currentRow++;
+                worksheet.Cell(currentRow, 1).Value = L("ToplamSure") + ":"; worksheet.Cell(currentRow, 2).Value = detailData.Header.CycleTime; currentRow++;
+                worksheet.Cell(currentRow, 1).Value = L("MakineAlarmSuresiSn") + ":"; worksheet.Cell(currentRow, 2).Value = detailData.Header.MachineAlarmDurationSeconds; currentRow++;
+                worksheet.Cell(currentRow, 1).Value = L("OperatorDuraklamaSuresiSn") + ":"; worksheet.Cell(currentRow, 2).Value = detailData.Header.OperatorPauseDurationSeconds; currentRow++;
 
                 worksheet.Range("A1:A9").Style.Font.SetBold(true);
 
                 currentRow += 2;
 
                 // --- BÖLÜM 2: ADIM DETAYLARI (Steps) ---
-                worksheet.Cell(currentRow, 1).Value = "Adım Detayları";
+                worksheet.Cell(currentRow, 1).Value = L("AdimDetaylari");
                 worksheet.Range(currentRow, 1, currentRow, 5).Merge().Style.Font.SetBold(true).Fill.SetBackgroundColor(XLColor.LightGreen);
                 currentRow++;
 
                 // Başlıklar
-                worksheet.Cell(currentRow, 1).Value = "Adım No";
-                worksheet.Cell(currentRow, 2).Value = "Açıklama";
-                worksheet.Cell(currentRow, 3).Value = "Teorik Süre";
-                worksheet.Cell(currentRow, 4).Value = "Gerçekleşen Süre";
-                worksheet.Cell(currentRow, 5).Value = "Sıcaklık (°C)";
+                worksheet.Cell(currentRow, 1).Value = L("AdimNo");
+                worksheet.Cell(currentRow, 2).Value = L("Aciklama");
+                worksheet.Cell(currentRow, 3).Value = L("TeorikSure");
+                worksheet.Cell(currentRow, 4).Value = L("GerceklesenSure");
+                worksheet.Cell(currentRow, 5).Value = L("SicaklikC");
                 worksheet.Row(currentRow).Style.Font.SetBold(true);
                 currentRow++;
 
@@ -458,7 +444,7 @@ namespace TekstilScada.Core.Core
                     {
                         worksheet.Cell(currentRow, 1).Value = step.StepNumber;
                         worksheet.Cell(currentRow, 2).Value = step.StepDescription;
-                        worksheet.Cell(currentRow, 3).Value = TimeSpan.FromSeconds(step.TheoreticalDurationSeconds).ToString(@"hh\:mm\:ss");
+                        worksheet.Cell(currentRow, 3).Value = System.TimeSpan.FromSeconds(step.TheoreticalDurationSeconds).ToString(@"hh\:mm\:ss");
                         worksheet.Cell(currentRow, 4).Value = step.WorkingTime;
                         worksheet.Cell(currentRow, 5).Value = step.Temperature;
                         currentRow++;
@@ -468,15 +454,15 @@ namespace TekstilScada.Core.Core
                 currentRow += 2;
 
                 // --- BÖLÜM 3: ALARM DETAYLARI (Alarms) ---
-                worksheet.Cell(currentRow, 1).Value = "Alarm Detayları";
+                worksheet.Cell(currentRow, 1).Value = L("AlarmDetaylari");
                 worksheet.Range(currentRow, 1, currentRow, 4).Merge().Style.Font.SetBold(true).Fill.SetBackgroundColor(XLColor.LightCoral);
                 currentRow++;
 
                 // Başlıklar
-                worksheet.Cell(currentRow, 1).Value = "Tarih";
-                worksheet.Cell(currentRow, 2).Value = "Tip";
-                worksheet.Cell(currentRow, 3).Value = "Açıklama";
-                worksheet.Cell(currentRow, 4).Value = "Süre";
+                worksheet.Cell(currentRow, 1).Value = L("Tarih");
+                worksheet.Cell(currentRow, 2).Value = L("Tip");
+                worksheet.Cell(currentRow, 3).Value = L("Aciklama");
+                worksheet.Cell(currentRow, 4).Value = L("Sure");
                 worksheet.Row(currentRow).Style.Font.SetBold(true);
                 currentRow++;
 
@@ -505,6 +491,5 @@ namespace TekstilScada.Core.Core
                 }
             }
         }
-        // Diğer raporlar (Alarm, OEE vb.) için de benzer metotlar eklenebilir.
     }
 }

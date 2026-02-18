@@ -6,6 +6,8 @@
 @using System.Net.Http.Headers
 @using Blazored.LocalStorage
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.Extensions.Localization
+@using TekstilScada.Core.Localization
 
 @attribute [Authorize(Roles = "CompanyAdmin")]
 
@@ -13,6 +15,7 @@
 @inject ILocalStorageService LocalStorage
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject IStringLocalizer<SharedResource> Loc
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
 
@@ -20,14 +23,14 @@
         <div>
             <MudText Typo="Typo.h4" Color="Color.Primary">
                 <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Class="mr-2" />
-                Personel Yönetimi
+                @Loc["PersonelYonetimi"]
             </MudText>
             <MudText Typo="Typo.subtitle1" Class="text-muted ml-1">
-                Fabrikalarınıza erişecek operatörleri ve yetkilerini yönetin.
+                @Loc["PersonelYonetimiAciklama"]
             </MudText>
         </div>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="CreateNewUser">
-            Yeni Personel Ekle
+            @Loc["YeniPersonelEkle"]
         </MudButton>
     </div>
 
@@ -47,42 +50,42 @@
         {
             <MudTable Items="myUsers" Dense="true" Hover="true" Striped="true" Filter="new Func<CentralUser, bool>(FilterFunc)">
                 <ToolBarContent>
-                    <MudText Typo="Typo.h6">Personel Listesi</MudText>
+                    <MudText Typo="Typo.h6">@Loc["PersonelListesi"]</MudText>
                     <MudSpacer />
-                    <MudTextField @bind-Value="searchString" Placeholder="Ara..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                    <MudTextField @bind-Value="searchString" Placeholder="@Loc["Ara"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
                 </ToolBarContent>
                 <HeaderContent>
-                    <MudTh>Ad Soyad</MudTh>
-                    <MudTh>Kullanıcı Adı</MudTh>
-                    <MudTh>Rol</MudTh>
-                    <MudTh>Erişilebilen Fabrikalar</MudTh>
-                    <MudTh Style="text-align:right">İşlemler</MudTh>
+                    <MudTh>@Loc["AdSoyad"]</MudTh>
+                    <MudTh>@Loc["KullaniciAdi"]</MudTh>
+                    <MudTh>@Loc["Rol"]</MudTh>
+                    <MudTh>@Loc["ErisilebilenFabrikalar"]</MudTh>
+                    <MudTh Style="text-align:right">@Loc["Islemler"]</MudTh>
                 </HeaderContent>
                 <RowTemplate Context="user">
-                    <MudTd DataLabel="Ad Soyad"><b>@user.FullName</b></MudTd>
-                    <MudTd DataLabel="Kullanıcı Adı">@user.Username</MudTd>
-                    <MudTd DataLabel="Rol">
+                    <MudTd DataLabel="@Loc["AdSoyad"]"><b>@user.FullName</b></MudTd>
+                    <MudTd DataLabel="@Loc["KullaniciAdi"]">@user.Username</MudTd>
+                    <MudTd DataLabel="@Loc["Rol"]">
                         <MudChip T="string" Size="Size.Small" Color="Color.Secondary">@user.Role</MudChip>
                     </MudTd>
-                    <MudTd DataLabel="Fabrikalar">
+                    <MudTd DataLabel="@Loc["Fabrikalar"]">
                         <MudText Typo="Typo.body2" Style="font-size: 0.85rem;">
                             @GetFactoryNames(user.AllowedFactoryIds)
                         </MudText>
                     </MudTd>
                     <MudTd Style="text-align:right">
-                        <MudTooltip Text="Düzenle">
+                        <MudTooltip Text="@Loc["Duzenle"]">
                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditUser(user))" />
                         </MudTooltip>
-                        <MudTooltip Text="Sil">
+                        <MudTooltip Text="@Loc["Sil"]">
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteUser(user))" />
                         </MudTooltip>
                     </MudTd>
                 </RowTemplate>
                 <PagerContent>
-                    <MudTablePager RowsPerPageString="Sayfa başına kayıt:" />
+                    <MudTablePager RowsPerPageString="@Loc["SayfaBasinaKayit"]" />
                 </PagerContent>
                 <NoRecordsContent>
-                    <MudText Typo="Typo.body2" Class="pa-4 text-center">Henüz personel eklenmemiş.</MudText>
+                    <MudText Typo="Typo.body2" Class="pa-4 text-center">@Loc["HenuzPersonelEklenmemis"]</MudText>
                 </NoRecordsContent>
             </MudTable>
         }
@@ -96,23 +99,23 @@
         <div class="d-flex justify-space-between align-center mb-4">
             <MudText Typo="Typo.h6">
                 <MudIcon Icon="@(editingUser.Id == 0 ? Icons.Material.Filled.PersonAdd : Icons.Material.Filled.Edit)" Class="mr-2" />
-                @(editingUser.Id == 0 ? "Yeni Personel Ekle" : "Personel Düzenle")
+                @(editingUser.Id == 0 ? Loc["YeniPersonelEkle"] : Loc["PersonelDuzenle"])
             </MudText>
             <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="CloseModal" Size="Size.Small" />
         </div>
 
-        <MudTextField @bind-Value="editingUser.FullName" Label="Ad Soyad" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+        <MudTextField @bind-Value="editingUser.FullName" Label="@Loc["AdSoyad"]" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
 
-        <MudTextField @bind-Value="editingUser.Username" Label="Kullanıcı Adı" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3"
-                      Disabled="@(editingUser.Id > 0)" HelperText="@(editingUser.Id > 0 ? "Kullanıcı adı değiştirilemez." : "")" />
+        <MudTextField @bind-Value="editingUser.Username" Label="@Loc["KullaniciAdi"]" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3"
+                      Disabled="@(editingUser.Id > 0)" HelperText="@(editingUser.Id > 0 ? Loc["KullaniciAdiDegistirilemez"] : "")" />
 
-        <MudTextField @bind-Value="editingPassword" Label="Şifre" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Dense"
-                      HelperText="@(editingUser.Id > 0 ? "Değiştirmek istemiyorsanız boş bırakın." : "Yeni kullanıcı için zorunludur.")" Class="mb-4" />
+        <MudTextField @bind-Value="editingPassword" Label="@Loc["Sifre"]" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Dense"
+                      HelperText="@(editingUser.Id > 0 ? Loc["SifreDegistirmekIstemiyorsanizBosBirakin"] : Loc["YeniKullaniciIcinZorunludur"])" Class="mb-4" />
 
         <MudDivider Class="my-4" />
 
-        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">Fabrika Erişim Yetkileri</MudText>
-        <MudText Typo="Typo.caption" Class="mb-2 d-block text-muted">Bu personel hangi fabrikaları görebilsin?</MudText>
+        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">@Loc["FabrikaErisimYetkileri"]</MudText>
+        <MudText Typo="Typo.caption" Class="mb-2 d-block text-muted">@Loc["BuPersonelHangiFabrikalariGorebilsin"]</MudText>
 
         @if (myFactories != null && myFactories.Any())
         {
@@ -134,20 +137,20 @@
         }
         else
         {
-            <MudAlert Severity="Severity.Warning" Dense="true">Sisteme tanımlı fabrikanız bulunmuyor.</MudAlert>
+            <MudAlert Severity="Severity.Warning" Dense="true">@Loc["SistemeTanimliFabrikanizBulunmuyor"]</MudAlert>
         }
 
         <div class="d-flex justify-end mt-6">
-            <MudButton OnClick="CloseModal" Class="mr-2">İptal</MudButton>
+            <MudButton OnClick="CloseModal" Class="mr-2">@Loc["Iptal"]</MudButton>
             <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveUser" Disabled="@isSaving">
                 @if (isSaving)
                 {
                     <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                    <MudText Class="ms-2">Kaydediliyor</MudText>
+                    <MudText Class="ms-2">@Loc["Kaydediliyor"]</MudText>
                 }
                 else
                 {
-                    <MudText>Kaydet</MudText>
+                    <MudText>@Loc["Kaydet"]</MudText>
                 }
             </MudButton>
         </div>
@@ -204,7 +207,7 @@
         }
         else
         {
-            debugError = "Hata: Oturum anahtarı bulunamadı. Lütfen çıkış yapıp tekrar girin.";
+            debugError = Loc["HataOturumAnahtariBulunamadi"];
             showDebug = true;
         }
 
@@ -225,7 +228,7 @@
             }
             else
             {
-                debugError += $"Fabrika Hatası: {facResponse.StatusCode} ";
+                debugError += $"{Loc["FabrikaHatasi"]}: {facResponse.StatusCode} ";
                 showDebug = true;
             }
 
@@ -237,15 +240,15 @@
             }
             else
             {
-                debugError += $"Kullanıcı Hatası: {usrResponse.StatusCode}";
+                debugError += $"{Loc["KullaniciHatasi"]}: {usrResponse.StatusCode}";
                 showDebug = true;
             }
         }
         catch (Exception ex)
         {
-            debugError = $"Bağlantı Hatası: {ex.Message}";
+            debugError = $"{Loc["BaglantiHatasi"]}: {ex.Message}";
             showDebug = true;
-            Snackbar.Add("Sunucuya erişilemiyor.", Severity.Error);
+            Snackbar.Add(Loc["SunucuyaErisilemiyor"], Severity.Error);
         }
         finally
         {
@@ -265,8 +268,8 @@
     // --- HELPER METHODS ---
     private string GetFactoryNames(string allowedIds)
     {
-        if (string.IsNullOrEmpty(allowedIds)) return "Yetki Yok";
-        if (allowedIds == "ALL") return "Tüm Fabrikalar";
+        if (string.IsNullOrEmpty(allowedIds)) return Loc["YetkiYok"];
+        if (allowedIds == "ALL") return Loc["TumFabrikalar"];
 
         var ids = allowedIds.Split(',')
                             .Where(s => int.TryParse(s, out _))
@@ -277,7 +280,7 @@
                                .Select(f => f.FactoryName);
 
         var result = string.Join(", ", names);
-        return string.IsNullOrEmpty(result) ? "Bilinmeyen Fabrika" : result;
+        return string.IsNullOrEmpty(result) ? Loc["BilinmeyenFabrika"] : result;
     }
 
     // --- MODAL ACTIONS ---
@@ -353,13 +356,13 @@
     {
         if (string.IsNullOrWhiteSpace(editingUser.Username) || string.IsNullOrWhiteSpace(editingUser.FullName))
         {
-            Snackbar.Add("Ad Soyad ve Kullanıcı Adı zorunludur.", Severity.Warning);
+            Snackbar.Add(Loc["AdSoyadVeKullaniciAdiZorunludur"], Severity.Warning);
             return;
         }
 
         if (editingUser.Id == 0 && string.IsNullOrWhiteSpace(editingPassword))
         {
-            Snackbar.Add("Yeni kullanıcı için şifre belirlemelisiniz.", Severity.Warning);
+            Snackbar.Add(Loc["YeniKullaniciIcinSifreBelirlemelisiniz"], Severity.Warning);
             return;
         }
 
@@ -398,17 +401,18 @@
             {
                 await LoadData();
                 showModal = false;
-                Snackbar.Add("Personel başarıyla kaydedildi.", Severity.Success);
+                Snackbar.Add(Loc["PersonelBasariylaKaydedildi"], Severity.Success);
             }
             else
             {
                 var msg = await response.Content.ReadAsStringAsync();
-                Snackbar.Add($"Kayıt başarısız: {msg}", Severity.Error);
+                // Parametreli Loc kullanımı
+                Snackbar.Add(Loc["KayitBasarisiz", msg], Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Hata: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{Loc["Hata"]}: {ex.Message}", Severity.Error);
         }
         finally
         {
@@ -419,9 +423,9 @@
     private async Task DeleteUser(CentralUser user)
     {
         bool? result = await DialogService.ShowMessageBox(
-            "Silme Onayı",
-            $"{user.FullName} personelini silmek istediğinize emin misiniz?",
-            yesText: "Evet, Sil", cancelText: "İptal");
+            Loc["SilmeOnayi"],
+            Loc["PersoneliSilmekIstiyorMusunuz", user.FullName],
+            yesText: Loc["EvetSil"], cancelText: Loc["Iptal"]);
 
         if (result != true) return;
 
@@ -434,16 +438,16 @@
             if (response.IsSuccessStatusCode)
             {
                 await LoadData();
-                Snackbar.Add("Personel silindi.", Severity.Success);
+                Snackbar.Add(Loc["PersonelSilindi"], Severity.Success);
             }
             else
             {
-                Snackbar.Add("Silme işlemi başarısız.", Severity.Error);
+                Snackbar.Add(Loc["SilmeIslemiBasarisiz"], Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Hata: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{Loc["Hata"]}: {ex.Message}", Severity.Error);
         }
     }
 }
