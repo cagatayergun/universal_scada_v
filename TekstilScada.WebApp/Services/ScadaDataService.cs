@@ -514,5 +514,6 @@ namespace TekstilScada.WebApp.Services
         {
             return await InvokeSafeAsync("GetAlarmReportPaged", 0, new PagedResult<AlarmReportItem>(), f, pageNumber, pageSize);
         }
+      
     }
 }

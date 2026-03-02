@@ -95,12 +95,15 @@ namespace TekstilScada.WebAPI.Controllers
         [Authorize(Roles = "SystemAdmin")]
         public IActionResult CreateCompanyAdmin([FromBody] SaveSubUserDto dto)
         {
+            // DÜZELTME: Şirket ID'si 0 (Sistem Şirketi) ise rolü SystemAdmin yap, değilse CompanyAdmin olarak devam et.
+            string assignedRole = (dto.CompanyId == 0) ? "SystemAdmin" : "CompanyAdmin";
+
             var user = new CentralUser
             {
                 CompanyId = dto.CompanyId,
                 Username = dto.Username,
                 FullName = dto.FullName,
-                Role = "CompanyAdmin",
+                Role = assignedRole, // Artık dinamik (Hardcoded "CompanyAdmin" kaldırıldı)
                 AllowedFactoryIds = "ALL"
             };
 

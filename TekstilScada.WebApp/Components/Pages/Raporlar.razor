@@ -20,22 +20,22 @@
     <div class="card-header">
         <ul class="nav nav-tabs card-header-tabs">
             <li class="nav-item">
-                <a class="nav-link @(activeTab == "uretim" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "uretim"'>@Loc["UretimRaporuTab"]</a>
+                <a class="nav-link @(activeTab == "uretim" ? "active" : "")" href="javascript:void(0);" @onclick='() => ChangeTab("uretim")'>@Loc["UretimRaporuTab"]</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(activeTab == "alarmlar" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "alarmlar"'>@Loc["GecmisAlarmlarTab"]</a>
+                <a class="nav-link @(activeTab == "alarmlar" ? "active" : "")" href="javascript:void(0);" @onclick='() => ChangeTab("alarmlar")'>@Loc["GecmisAlarmlarTab"]</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(activeTab == "trend" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "trend"'>@Loc["TrendAnaliziTabRaporlar"]</a>
+                <a class="nav-link @(activeTab == "trend" ? "active" : "")" href="javascript:void(0);" @onclick='() => ChangeTab("trend")'>@Loc["TrendAnaliziTabRaporlar"]</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(activeTab == "manuelTuketim" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "manuelTuketim"'>@Loc["ManuelTuketimTab"]</a>
+                <a class="nav-link @(activeTab == "manuelTuketim" ? "active" : "")" href="javascript:void(0);" @onclick='() => ChangeTab("manuelTuketim")'>@Loc["ManuelTuketimTab"]</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(activeTab == "genelTuketim" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "genelTuketim"'>@Loc["GenelTuketimRaporuTab"]</a>
+                <a class="nav-link @(activeTab == "genelTuketim" ? "active" : "")" href="javascript:void(0);" @onclick='() => ChangeTab("genelTuketim")'>@Loc["GenelTuketimRaporuTab"]</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(activeTab == "eylemKayitlari" ? "active" : "")" href="javascript:void(0);" @onclick='() => activeTab = "eylemKayitlari"'>@Loc["EylemKayitlariTab"]</a>
+                <a class="nav-link @(activeTab == "eylemKayitlari" ? "active" : "")" href="javascript:void(0);" @onclick='() => ChangeTab("eylemKayitlari")'>@Loc["EylemKayitlariTab"]</a>
             </li>
         </ul>
     </div>
@@ -493,7 +493,7 @@
     private DateRange _actionDateRange = new DateRange(DateTime.Now.Date.AddDays(-7), DateTime.Now.Date);
     private string _searchStringAlarm;
     private string _searchStringAction;
-
+    private DateTime GetEndOfDay(DateTime date) => date.Date.AddDays(1).AddTicks(-1);
     private class TrendProcessDataPoint
     {
         public int MachineId { get; set; }
@@ -649,7 +649,7 @@
             var effectiveFilters = new ReportFilters
             {
                 StartTime = filters.StartTime.Date,
-                EndTime = filters.EndTime.Date.AddDays(1).AddTicks(-1),
+                EndTime = GetEndOfDay(trendFilters.EndTime),
                 MachineId = selectedMachineId == 0 ? (int?)null : selectedMachineId,
                 BatchNo = filters.BatchNo,
                 RecipeName = filters.RecipeName,
@@ -687,77 +687,117 @@
         isLoading = true;
         trendDataPoints = null;
         shouldRenderChart = false;
-        await InvokeAsync(StateHasChanged);
+        StateHasChanged();
 
         try
         {
-            var effectiveFilters = new ReportFilters { StartTime = trendFilters.StartTime.Date, EndTime = trendFilters.EndTime.Date.AddDays(1), MachineId = selectedTrendMachineIdInt };
-
+            var effectiveFilters = new ReportFilters { StartTime = trendFilters.StartTime.Date, EndTime = GetEndOfDay(trendFilters.EndTime), MachineId = selectedTrendMachineIdInt };
             var rawData = await ScadaDataService.GetTrendDataAsync(effectiveFilters);
 
             if (rawData != null)
             {
-                if (rawData.Count > 0 && rawData[0] is JsonElement)
+                // JSON işlemlerini arka plana atıyoruz
+                trendDataPoints = await Task.Run(() =>
                 {
-                    trendDataPoints = rawData.Select(x => ((JsonElement)x).Deserialize<TrendProcessDataPoint>()).ToList();
-                }
-                else
-                {
-                    var jsonString = JsonSerializer.Serialize(rawData);
-                    trendDataPoints = JsonSerializer.Deserialize<List<TrendProcessDataPoint>>(jsonString);
-                }
+                    if (rawData.Count > 0 && rawData[0] is JsonElement)
+                        return rawData.Select(x => ((JsonElement)x).Deserialize<TrendProcessDataPoint>()).ToList();
+                    else
+                    {
+                        var jsonString = JsonSerializer.Serialize(rawData);
+                        return JsonSerializer.Deserialize<List<TrendProcessDataPoint>>(jsonString);
+                    }
+                });
 
                 if (trendDataPoints != null && trendDataPoints.Any())
                 {
-                    var temps = trendDataPoints.Select(x => x.Temperature / 10.0m).ToList();
-                    var rpms = trendDataPoints.Select(x => x.Rpm).ToList();
-                    var levels = trendDataPoints.Select(x => x.WaterLevel).ToList();
-
-                    trendStats = new TrendStats
+                    // Ağır hesaplamaları UI'ı kilitlememek için arka planda yaptırıyoruz
+                    trendStats = await Task.Run(() =>
                     {
-                        MinTemp = temps.Min(),
-                        MaxTemp = temps.Max(),
-                        AvgTemp = temps.Average(),
-                        MinRpm = rpms.Min(),
-                        MaxRpm = rpms.Max(),
-                        AvgRpm = rpms.Average(),
-                        MinLevel = levels.Min(),
-                        MaxLevel = levels.Max(),
-                        AvgLevel = levels.Average()
-                    };
+                        var temps = trendDataPoints.Select(x => x.Temperature / 10.0m).ToList();
+                        var rpms = trendDataPoints.Select(x => x.Rpm).ToList();
+                        var levels = trendDataPoints.Select(x => x.WaterLevel).ToList();
+
+                        return new TrendStats
+                        {
+                            MinTemp = temps.DefaultIfEmpty(0).Min(),
+                            MaxTemp = temps.DefaultIfEmpty(0).Max(),
+                            AvgTemp = temps.DefaultIfEmpty(0).Average(),
+                            MinRpm = rpms.DefaultIfEmpty(0).Min(),
+                            MaxRpm = rpms.DefaultIfEmpty(0).Max(),
+                            AvgRpm = rpms.DefaultIfEmpty(0).Average(),
+                            MinLevel = levels.DefaultIfEmpty(0).Min(),
+                            MaxLevel = levels.DefaultIfEmpty(0).Max(),
+                            AvgLevel = levels.DefaultIfEmpty(0).Average()
+                        };
+                    });
+
                     shouldRenderChart = true;
                 }
             }
         }
-        catch { }
-        finally { isLoading = false; await InvokeAsync(StateHasChanged); }
+        catch (Exception ex)
+        {
+            //Console.WriteLine($"Trend Hatası: {ex.Message}");
+        }
+        finally { isLoading = false; }
     }
+    private void ChangeTab(string tabName)
+    {
+        activeTab = tabName;
 
+        // RAM'i korumak için aktif olmayan devasa listeleri temizliyoruz (Sadece açık olan kalır)
+        if (tabName != "uretim") reportItems = null;
+        if (tabName != "trend") { trendDataPoints = null; shouldRenderChart = false; }
+        if (tabName != "manuelTuketim") manualConsumptionReports = null;
+        if (tabName != "genelTuketim") generalDetailedConsumptionReport = null;
+        if (tabName != "eylemKayitlari") actionLogs = null;
+    }
     private async Task GenerateManualConsumptionReport()
     {
         UpdateFiltersFromDateRanges();
-        if (_selectedManualMachineIds == null || !_selectedManualMachineIds.Any()) { await JSRuntime.InvokeVoidAsync("alert", Loc["LutfenEnAzBirMakineSeciniz"].Value); return; }
+        if (_selectedManualMachineIds == null || !_selectedManualMachineIds.Any())
+        {
+            await JSRuntime.InvokeVoidAsync("alert", Loc["LutfenEnAzBirMakineSeciniz"].Value);
+            return;
+        }
 
         isLoading = true;
         manualConsumptionReports = new List<ManualConsumptionSummary>();
-        await InvokeAsync(StateHasChanged);
+        StateHasChanged(); // Sadece loading animasyonunu başlatmak için
 
         try
         {
-            foreach (var mId in _selectedManualMachineIds)
+            // 1. Tüm API isteklerini aynı anda (paralel) başlatıyoruz
+            var fetchTasks = _selectedManualMachineIds.Select(async mId =>
             {
-                var effectiveFilters = new ReportFilters { StartTime = manualFilters.StartTime.Date, EndTime = manualFilters.EndTime.Date.AddDays(1), MachineId = mId };
+                var effectiveFilters = new ReportFilters { StartTime = manualFilters.StartTime.Date, EndTime = GetEndOfDay(manualFilters.EndTime), MachineId = mId };
                 var summary = await ScadaDataService.GetManualConsumptionReportAsync(effectiveFilters);
+
                 if (summary != null)
                 {
                     var machineInfo = machines?.FirstOrDefault(m => m.Id == mId);
-                    if (machineInfo != null && machineInfo.MachineType == "Kurutma Makinesi") summary.ToplamSuTuketimi_Litre = 0;
-                    manualConsumptionReports.Add(summary);
+                    // İş mantığı: Kurutma makinesi ise suyu sıfırla
+                    if (machineInfo != null && machineInfo.MachineType == "Kurutma Makinesi")
+                        summary.ToplamSuTuketimi_Litre = 0;
                 }
-            }
+                return summary;
+            });
+
+            // 2. Tüm paralel isteklerin bitmesini tek seferde bekliyoruz
+            var results = await Task.WhenAll(fetchTasks);
+
+            // 3. Null olmayan sonuçları listeye ekliyoruz
+            manualConsumptionReports = results.Where(r => r != null).ToList();
         }
-        catch { }
-        finally { isLoading = false; await InvokeAsync(StateHasChanged); }
+        catch (Exception ex)
+        {
+            //Console.WriteLine($"Manuel Tüketim Hatası: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            // Blazor butona basılma olayı bittiğinde StateHasChanged'i kendisi çağırır, tekrar yazmaya gerek yok.
+        }
     }
 
     private async Task GenerateGeneralDetailedConsumptionReport()
@@ -771,7 +811,7 @@
 
         try
         {
-            var effectiveFilters = new GeneralDetailedConsumptionFilters { StartTime = generalConsumptionFilters.StartTime.Date, EndTime = generalConsumptionFilters.EndTime.Date.AddDays(1), MachineIds = _selectedGeneralMachineIds.ToList() };
+            var effectiveFilters = new GeneralDetailedConsumptionFilters { StartTime = generalConsumptionFilters.StartTime.Date, EndTime = GetEndOfDay(generalConsumptionFilters.EndTime), MachineIds = _selectedGeneralMachineIds.ToList() };
             generalDetailedConsumptionReport = await ScadaDataService.GetGeneralDetailedConsumptionReportAsync(effectiveFilters);
         }
         catch { }
@@ -787,7 +827,7 @@
 
         try
         {
-            var effectiveFilters = new ActionLogFilters { StartTime = actionLogFilters.StartTime.Date, EndTime = actionLogFilters.EndTime.Date.AddDays(1), Username = actionLogFilters.Username, Details = actionLogFilters.Details };
+            var effectiveFilters = new ActionLogFilters { StartTime = actionLogFilters.StartTime.Date, EndTime = GetEndOfDay(actionLogFilters.EndTime), Username = actionLogFilters.Username, Details = actionLogFilters.Details };
             actionLogs = await ScadaDataService.GetActionLogsAsync(effectiveFilters);
         }
         catch { }
@@ -803,7 +843,8 @@
         var exportFilters = new ReportFilters
         {
             StartTime = alarmFilters.StartTime.Date,
-            EndTime = alarmFilters.EndTime.Date.AddDays(1).AddTicks(-1), // Gün sonuna kadar
+            EndTime = GetEndOfDay(alarmFilters.EndTime),
+          
             MachineId = selectedAlarmMachineId == 0 ? (int?)null : selectedAlarmMachineId
         };
 
@@ -836,12 +877,14 @@
 
         var combinedSummary = new ManualConsumptionSummary
         {
-            Makine = "Seçilenler",
+            Makine = "Total Selected", // Sadece "Seçilenler" yerine daha net ifade
             RaporAraligi = manualConsumptionReports.First().RaporAraligi,
-            ToplamManuelSure = "",
-            ToplamSuTuketimi_Litre = manualConsumptionReports.Sum(x => x.ToplamSuTuketimi_Litre),
-            ToplamElektrikTuketimi_kW = manualConsumptionReports.Sum(x => x.ToplamElektrikTuketimi_kW),
-            ToplamBuharTuketimi_kg = manualConsumptionReports.Sum(x => x.ToplamBuharTuketimi_kg)
+            ToplamManuelSure = "-", // Excel'de hataya yol açmaması için boşluk yerine tire
+
+            // ÖNEMLİ: Null ihtimaline karşı ?? 0 kontrolü eklenmeli!
+            ToplamSuTuketimi_Litre = manualConsumptionReports.Sum(x => x?.ToplamSuTuketimi_Litre ?? 0),
+            ToplamElektrikTuketimi_kW = manualConsumptionReports.Sum(x => x?.ToplamElektrikTuketimi_kW ?? 0),
+            ToplamBuharTuketimi_kg = manualConsumptionReports.Sum(x => x?.ToplamBuharTuketimi_kg ?? 0)
         };
 
         await ExportHelper(async () => await ScadaDataService.ExportManualConsumptionReportAsync(combinedSummary), "Manuel_Tuketim_Ozet");
@@ -882,8 +925,13 @@
     private bool CheckFilter(string s1, string s2, string s3, string s4, string s5, string s6, string search)
     {
         if (string.IsNullOrWhiteSpace(search)) return true;
-        search = search.ToLower();
-        return (s1?.ToLower().Contains(search) == true) || (s2?.ToLower().Contains(search) == true) || (s3?.ToLower().Contains(search) == true) || (s4?.ToLower().Contains(search) == true) || (s5?.ToLower().Contains(search) == true) || (s6?.ToLower().Contains(search) == true);
+
+        return (s1?.Contains(search, StringComparison.OrdinalIgnoreCase) == true) ||
+               (s2?.Contains(search, StringComparison.OrdinalIgnoreCase) == true) ||
+               (s3?.Contains(search, StringComparison.OrdinalIgnoreCase) == true) ||
+               (s4?.Contains(search, StringComparison.OrdinalIgnoreCase) == true) ||
+               (s5?.Contains(search, StringComparison.OrdinalIgnoreCase) == true) ||
+               (s6?.Contains(search, StringComparison.OrdinalIgnoreCase) == true);
     }
 
     private async Task SaveProductionFilters()

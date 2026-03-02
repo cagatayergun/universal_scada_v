@@ -56,9 +56,18 @@
                             <MudListItem Value="@company" OnClick="@(() => SelectCompany(company))">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <MudText Typo="Typo.body1" Style="font-weight: 500;">@company.CompanyName</MudText>
-                                    <MudChip T="string" Size="Size.Small" Color="@(company.IsActive? Color.Success: Color.Error)" Variant="Variant.Text">
-                                        @(company.IsActive? Loc["Aktif"] : Loc["Pasif"])
-                                    </MudChip>
+
+                                    @* ID 0 (Sistem) ise farklı bir chip göster *@
+                                    @if (company.Id == 0)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled">SISTEM</MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="@(company.IsActive? Color.Success: Color.Error)" Variant="Variant.Text">
+                                            @(company.IsActive? Loc["Aktif"] : Loc["Pasif"])
+                                        </MudChip>
+                                    }
                                 </div>
                             </MudListItem>
                             <MudDivider />
@@ -82,17 +91,22 @@
                             <MudText Typo="Typo.caption">ID: @selectedCompany.Id</MudText>
                         </CardHeaderContent>
                         <CardHeaderActions>
-                            <MudTooltip Text="@Loc["SirketiDuzenle"]">
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="EditSelectedCompany" />
-                            </MudTooltip>
-                            <MudTooltip Text="@Loc["SirketiSil"]">
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="DeleteSelectedCompany" />
-                            </MudTooltip>
+                            @* Sistem şirketi (ID 0) silinemez veya düzenlenemez, butonları gizle *@
+                            @if (selectedCompany.Id > 0)
+                            {
+                                <MudTooltip Text="@Loc["SirketiDuzenle"]">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="EditSelectedCompany" />
+                                </MudTooltip>
+                                <MudTooltip Text="@Loc["SirketiSil"]">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="DeleteSelectedCompany" />
+                                </MudTooltip>
+                            }
                         </CardHeaderActions>
                     </MudCardHeader>
 
                     <MudCardContent>
                         <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+                            @* Sistem Şirketi için Fabrika sekmesi anlamsız olabilir ama yapı bozulmasın diye tutuyoruz *@
                             <MudTabPanel Text="@Loc["Fabrikalar"]" Icon="@Icons.Material.Filled.Factory">
                                 <div class="d-flex justify-content-end mb-2">
                                     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenFactoryModal" Size="Size.Small">@Loc["FabrikaEkle"]</MudButton>
@@ -213,6 +227,11 @@
 
         <MudAlert Severity="Severity.Info" Class="mt-3" Dense="true">@Loc["BuKullaniciTamYetkiliOlacak"]</MudAlert>
 
+        @if (selectedCompany?.Id == 0)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mt-2" Dense="true">Dikkat: Bu kullanıcı <b>SystemAdmin</b> rolüyle oluşturulacak ve tüm sisteme tam erişimi olacaktır.</MudAlert>
+        }
+
         <div class="d-flex justify-end mt-4">
             <MudButton OnClick="() => showAdminModal = false" Class="mr-2">@Loc["Iptal"]</MudButton>
             <MudButton Color="Color.Warning" Variant="Variant.Filled" OnClick="SaveAdmin">@Loc["Olustur"]</MudButton>
@@ -225,23 +244,18 @@
     public class Company { public int Id { get; set; } public string CompanyName { get; set; } public bool IsActive { get; set; } = true; }
     public class CreateUserDto
     {
-        // : CentralUser İBARESİNİ SİLDİK.
-        // Tüm özellikleri buraya açıkça yazıyoruz:
-
         public int Id { get; set; }
         public int CompanyId { get; set; }
         public string Username { get; set; }
         public string FullName { get; set; }
         public string Password { get; set; }
         public string Role { get; set; }
-
-        // Bu alanın burada açıkça yazılması, verinin kaybolmamasını sağlar.
         public string AllowedFactoryIds { get; set; }
     }
 
     // STATE
     private List<Company> companies = new();
-    private object selectedCompanyObj; // MudList için bağlayıcı
+    private object selectedCompanyObj;
     private Company? selectedCompany;
     private List<CentralFactory> companyFactories = new();
     private List<CentralUser> companyAdmins = new();
@@ -249,12 +263,11 @@
     private bool isLoading = true;
     private string searchString = "";
     private HttpClient Http;
-    // Hata Mesajı Gösterimi İçin
     private string debugError = "";
     private bool showDebug = false;
+
     // Modallar
     private bool showCompanyModal, showFactoryModal, showAdminModal;
-    private DialogOptions dialogOptions = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
 
     // Edit Objeleri
     private Company editingCompany = new();
@@ -267,11 +280,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // 1. Client Oluştur
         Http = HttpClientFactory.CreateClient("WebApiClient");
-
-        // 🔴 KRİTİK DÜZELTME: TOKEN EKLEME 🔴
-        // "Listem çıkmıyor" hatasının çözümü buradadır.
         var token = await LocalStorage.GetItemAsync<string>("authToken");
         if (!string.IsNullOrEmpty(token))
         {
@@ -284,7 +293,7 @@
     private async Task LoadCompanies()
     {
         isLoading = true;
-        debugError = ""; // Önceki hatayı temizle
+        debugError = "";
         try
         {
             var response = await Http.GetAsync("api/CentralManagement/companies");
@@ -292,10 +301,22 @@
             if (response.IsSuccessStatusCode)
             {
                 companies = await response.Content.ReadFromJsonAsync<List<Company>>() ?? new List<Company>();
+
+                // --- YENİ EKLENEN: SİSTEM ŞİRKETİ (ID=0) KONTROLÜ ---
+                // Eğer veritabanından ID=0 gelmiyorsa, sanal olarak listeye ekle.
+                if (!companies.Any(c => c.Id == 0))
+                {
+                    var systemCompany = new Company
+                    {
+                        Id = 0,
+                        CompanyName = "System Company", // Resource'dan alacak
+                        IsActive = true
+                    };
+                    companies.Insert(0, systemCompany);
+                }
             }
             else
             {
-                // HATA DETAYINI YAKALA
                 var content = await response.Content.ReadAsStringAsync();
                 debugError = $"{Loc["ApiHatasi"]}! Kod: {response.StatusCode} - Detay: {content}";
                 showDebug = true;
@@ -314,7 +335,7 @@
     private async Task SelectCompany(Company company)
     {
         selectedCompany = company;
-        selectedCompanyObj = company; // UI vurgusu için
+        selectedCompanyObj = company;
         await LoadCompanyDetails(company.Id);
     }
 
@@ -322,10 +343,23 @@
     {
         try
         {
+            // API ID=0 için uygun değilse boş döndürmesi gerekir, try-catch bunu yönetir.
             companyFactories = await Http.GetFromJsonAsync<List<CentralFactory>>($"api/CentralManagement/factories/{companyId}") ?? new List<CentralFactory>();
             companyAdmins = await Http.GetFromJsonAsync<List<CentralUser>>($"api/CentralManagement/admins/{companyId}") ?? new List<CentralUser>();
         }
-        catch (Exception ex) { Snackbar.Add($"{Loc["DetaylarAlinamadi"]}: {ex.Message}", Severity.Error); }
+        catch (Exception ex)
+        {
+            // ID=0 için 404 dönerse boş liste kabul et
+            if (companyId == 0)
+            {
+                companyFactories = new List<CentralFactory>();
+                companyAdmins = new List<CentralUser>(); // Veya backend'den henüz gelmiyorsa boş
+            }
+            else
+            {
+                Snackbar.Add($"{Loc["DetaylarAlinamadi"]}: {ex.Message}", Severity.Error);
+            }
+        }
     }
 
     // --- ŞİRKET İŞLEMLERİ ---
@@ -348,7 +382,6 @@
                 showCompanyModal = false;
                 Snackbar.Add(Loc["SirketKaydedildi"], Severity.Success);
 
-                // Eğer düzenleme yaptıysak seçimi güncelle
                 if (editingCompany.Id > 0 && selectedCompany?.Id == editingCompany.Id)
                 {
                     selectedCompany.CompanyName = editingCompany.CompanyName;
@@ -420,7 +453,20 @@
     {
         if (string.IsNullOrWhiteSpace(newAdminUser.Username) || string.IsNullOrWhiteSpace(newAdminPassword)) { Snackbar.Add(Loc["EksikBilgi"], Severity.Warning); return; }
 
-        var dto = new CreateUserDto { CompanyId = selectedCompany.Id, FullName = newAdminUser.FullName, Username = newAdminUser.Username, Password = newAdminPassword, Role = "CompanyAdmin", AllowedFactoryIds = "ALL" };
+        // --- DEĞİŞİKLİK: ROL BELİRLEME ---
+        // Eğer şirket ID'si 0 ise rol "SystemAdmin", değilse "CompanyAdmin"
+        string role = selectedCompany.Id == 0 ? "SystemAdmin" : "CompanyAdmin";
+
+        var dto = new CreateUserDto
+        {
+            CompanyId = selectedCompany.Id,
+            FullName = newAdminUser.FullName,
+            Username = newAdminUser.Username,
+            Password = newAdminPassword,
+            Role = role, // Dinamik rol
+            AllowedFactoryIds = "ALL" // Her ikisi için de tüm fabrikalara erişim (kendi kapsamındaki)
+        };
+
         var response = await Http.PostAsJsonAsync("api/CentralManagement/create-company-admin", dto);
 
         if (response.IsSuccessStatusCode) { await LoadCompanyDetails(selectedCompany.Id); showAdminModal = false; Snackbar.Add(Loc["YoneticiEklendi"], Severity.Success); }
