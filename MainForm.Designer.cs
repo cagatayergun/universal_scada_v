@@ -63,7 +63,7 @@ namespace TekstilScada
             // pictureBox2
             // 
             pictureBox2.Anchor = AnchorStyles.Bottom;
-            pictureBox2.Image = Properties.Resource1.malkan;
+            pictureBox2.Image = Properties.Resource1.LOGO;
             pictureBox2.Location = new Point(0, 266);
             pictureBox2.Name = "pictureBox2";
             pictureBox2.Size = new Size(175, 103);
@@ -73,7 +73,7 @@ namespace TekstilScada
             // 
             // btnAyarlar
             // 
-            btnAyarlar.BackColor = Color.MediumBlue;
+            btnAyarlar.BackColor = Color.Red;
             btnAyarlar.Dock = DockStyle.Top;
             btnAyarlar.FlatAppearance.BorderSize = 0;
             btnAyarlar.FlatStyle = FlatStyle.Flat;
@@ -92,7 +92,7 @@ namespace TekstilScada
             // 
             // btnRaporlar
             // 
-            btnRaporlar.BackColor = Color.MediumBlue;
+            btnRaporlar.BackColor = Color.Red;
             btnRaporlar.Dock = DockStyle.Top;
             btnRaporlar.FlatAppearance.BorderSize = 0;
             btnRaporlar.FlatStyle = FlatStyle.Flat;
@@ -111,7 +111,7 @@ namespace TekstilScada
             // 
             // btnProsesKontrol
             // 
-            btnProsesKontrol.BackColor = Color.MediumBlue;
+            btnProsesKontrol.BackColor = Color.Red;
             btnProsesKontrol.Dock = DockStyle.Top;
             btnProsesKontrol.FlatAppearance.BorderSize = 0;
             btnProsesKontrol.FlatStyle = FlatStyle.Flat;
@@ -130,7 +130,7 @@ namespace TekstilScada
             // 
             // btnProsesIzleme
             // 
-            btnProsesIzleme.BackColor = Color.MediumBlue;
+            btnProsesIzleme.BackColor = Color.Red;
             btnProsesIzleme.Dock = DockStyle.Top;
             btnProsesIzleme.FlatAppearance.BorderSize = 0;
             btnProsesIzleme.FlatStyle = FlatStyle.Flat;
@@ -149,7 +149,7 @@ namespace TekstilScada
             // 
             // btnGenelBakis
             // 
-            btnGenelBakis.BackColor = Color.MediumBlue;
+            btnGenelBakis.BackColor = Color.Red;
             btnGenelBakis.Dock = DockStyle.Top;
             btnGenelBakis.FlatAppearance.BorderSize = 0;
             btnGenelBakis.FlatStyle = FlatStyle.Flat;
@@ -265,7 +265,7 @@ namespace TekstilScada
             MainMenuStrip = menuStrip1;
             Margin = new Padding(3, 2, 3, 2);
             Name = "MainForm";
-            Text = "Tekstil SCADA Sistemi";
+            Text = "Vinç İzleme Sistemi";
             WindowState = FormWindowState.Maximized;
             FormClosing += MainForm_FormClosing;
             Load += MainForm_Load;
