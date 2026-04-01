@@ -475,7 +475,7 @@
     <value>Makine Alt Tipi (Reçete Tasarımı İçin):</value>
   </data>
   <data name="MakineAltTipiPlaceholder" xml:space="preserve">
-    <value>Örn: Yilmak_100kg</value>
+    <value>Örn: malkan_100kg</value>
   </data>
   <data name="MakineAltTipiInfo" xml:space="preserve">
     <value>Bu alan reçete tasarım ekranında filtreleme için kullanılır.</value>
@@ -1242,8 +1242,8 @@
   <data name="Ingilizce" xml:space="preserve">
     <value>İngilizce</value>
   </data>
-  <data name="Yilmak_100kg" xml:space="preserve">
-    <value>Yilmak 100KG (Standard)</value>
+  <data name="malkan_100kg" xml:space="preserve">
+    <value>malkan 100KG (Standard)</value>
   </data>
   <data name="Dozaj" xml:space="preserve">
     <value>Dozaj</value>

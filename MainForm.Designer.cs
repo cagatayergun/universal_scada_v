@@ -21,7 +21,6 @@ namespace TekstilScada
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             pnlNavigation = new Panel();
             pictureBox2 = new PictureBox();
-            pictureBox1 = new PictureBox();
             btnAyarlar = new Button();
             btnRaporlar = new Button();
             btnProsesKontrol = new Button();
@@ -40,16 +39,14 @@ namespace TekstilScada
             lblStatusLiveEvents = new ToolStripStatusLabel();
             pnlNavigation.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             menuStrip1.SuspendLayout();
             statusStrip1.SuspendLayout();
             SuspendLayout();
             // 
             // pnlNavigation
             // 
-            pnlNavigation.BackColor = Color.FromArgb(0, 0, 64);
+            pnlNavigation.BackColor = Color.White;
             pnlNavigation.Controls.Add(pictureBox2);
-            pnlNavigation.Controls.Add(pictureBox1);
             pnlNavigation.Controls.Add(btnAyarlar);
             pnlNavigation.Controls.Add(btnRaporlar);
             pnlNavigation.Controls.Add(btnProsesKontrol);
@@ -66,27 +63,17 @@ namespace TekstilScada
             // pictureBox2
             // 
             pictureBox2.Anchor = AnchorStyles.Bottom;
-            pictureBox2.Image = Properties.Resource1.yilmak;
-            pictureBox2.Location = new Point(0, 329);
+            pictureBox2.Image = Properties.Resource1.malkan;
+            pictureBox2.Location = new Point(0, 266);
             pictureBox2.Name = "pictureBox2";
-            pictureBox2.Size = new Size(175, 40);
+            pictureBox2.Size = new Size(175, 103);
             pictureBox2.SizeMode = PictureBoxSizeMode.StretchImage;
             pictureBox2.TabIndex = 6;
             pictureBox2.TabStop = false;
             // 
-            // pictureBox1
-            // 
-            pictureBox1.Anchor = AnchorStyles.Bottom;
-            pictureBox1.Image = Properties.Resource1.yilmak2___Kopya;
-            pictureBox1.Location = new Point(56, 274);
-            pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(63, 55);
-            pictureBox1.SizeMode = PictureBoxSizeMode.StretchImage;
-            pictureBox1.TabIndex = 5;
-            pictureBox1.TabStop = false;
-            // 
             // btnAyarlar
             // 
+            btnAyarlar.BackColor = Color.MediumBlue;
             btnAyarlar.Dock = DockStyle.Top;
             btnAyarlar.FlatAppearance.BorderSize = 0;
             btnAyarlar.FlatStyle = FlatStyle.Flat;
@@ -100,11 +87,12 @@ namespace TekstilScada
             btnAyarlar.TabIndex = 3;
             btnAyarlar.Text = "Ayarlar";
             btnAyarlar.TextAlign = ContentAlignment.MiddleLeft;
-            btnAyarlar.UseVisualStyleBackColor = true;
+            btnAyarlar.UseVisualStyleBackColor = false;
             btnAyarlar.Click += btnAyarlar_Click;
             // 
             // btnRaporlar
             // 
+            btnRaporlar.BackColor = Color.MediumBlue;
             btnRaporlar.Dock = DockStyle.Top;
             btnRaporlar.FlatAppearance.BorderSize = 0;
             btnRaporlar.FlatStyle = FlatStyle.Flat;
@@ -118,11 +106,12 @@ namespace TekstilScada
             btnRaporlar.TabIndex = 2;
             btnRaporlar.Text = "Raporlar";
             btnRaporlar.TextAlign = ContentAlignment.MiddleLeft;
-            btnRaporlar.UseVisualStyleBackColor = true;
+            btnRaporlar.UseVisualStyleBackColor = false;
             btnRaporlar.Click += btnRaporlar_Click;
             // 
             // btnProsesKontrol
             // 
+            btnProsesKontrol.BackColor = Color.MediumBlue;
             btnProsesKontrol.Dock = DockStyle.Top;
             btnProsesKontrol.FlatAppearance.BorderSize = 0;
             btnProsesKontrol.FlatStyle = FlatStyle.Flat;
@@ -136,11 +125,12 @@ namespace TekstilScada
             btnProsesKontrol.TabIndex = 1;
             btnProsesKontrol.Text = "Proses Kontrol";
             btnProsesKontrol.TextAlign = ContentAlignment.MiddleLeft;
-            btnProsesKontrol.UseVisualStyleBackColor = true;
+            btnProsesKontrol.UseVisualStyleBackColor = false;
             btnProsesKontrol.Click += btnProsesKontrol_Click;
             // 
             // btnProsesIzleme
             // 
+            btnProsesIzleme.BackColor = Color.MediumBlue;
             btnProsesIzleme.Dock = DockStyle.Top;
             btnProsesIzleme.FlatAppearance.BorderSize = 0;
             btnProsesIzleme.FlatStyle = FlatStyle.Flat;
@@ -154,11 +144,12 @@ namespace TekstilScada
             btnProsesIzleme.TabIndex = 0;
             btnProsesIzleme.Text = "Proses İzleme";
             btnProsesIzleme.TextAlign = ContentAlignment.MiddleLeft;
-            btnProsesIzleme.UseVisualStyleBackColor = true;
+            btnProsesIzleme.UseVisualStyleBackColor = false;
             btnProsesIzleme.Click += btnProsesIzleme_Click;
             // 
             // btnGenelBakis
             // 
+            btnGenelBakis.BackColor = Color.MediumBlue;
             btnGenelBakis.Dock = DockStyle.Top;
             btnGenelBakis.FlatAppearance.BorderSize = 0;
             btnGenelBakis.FlatStyle = FlatStyle.Flat;
@@ -172,7 +163,7 @@ namespace TekstilScada
             btnGenelBakis.TabIndex = 4;
             btnGenelBakis.Text = "Genel Bakış";
             btnGenelBakis.TextAlign = ContentAlignment.MiddleLeft;
-            btnGenelBakis.UseVisualStyleBackColor = true;
+            btnGenelBakis.UseVisualStyleBackColor = false;
             btnGenelBakis.Click += btnGenelBakis_Click;
             // 
             // pnlContent
@@ -280,7 +271,6 @@ namespace TekstilScada
             Load += MainForm_Load;
             pnlNavigation.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)pictureBox2).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
             menuStrip1.ResumeLayout(false);
             menuStrip1.PerformLayout();
             statusStrip1.ResumeLayout(false);
@@ -308,7 +298,6 @@ namespace TekstilScada
         private System.Windows.Forms.ToolStripStatusLabel lblStatusLiveEvents;
         private System.Windows.Forms.ToolStripMenuItem oturumToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem çıkışYapToolStripMenuItem;
-        private PictureBox pictureBox1;
         private PictureBox pictureBox2;
     }
 }

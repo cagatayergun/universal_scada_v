@@ -62,8 +62,8 @@ namespace TekstilScada.UI.Controls
             _originalPauseIcon = Properties.Resource1.pause2;
             _originalAlarmIcon = Properties.Resource1.alarm_var;
             _originalAlarmyokIcon = Properties.Resource1.alarm_yok;
-            _originalbaglantivarIcon = Properties.Resource1.yilmak_baglanti_2;
-            _originalbaglantiyokIcon = Properties.Resource1.yilmak_baglanti;
+            _originalbaglantivarIcon = Properties.Resource1.malkan_baglanti_2;
+            _originalbaglantiyokIcon = Properties.Resource1.malkan_baglanti;
 
             // PictureBox'ların arkaplanını şeffaf yap
             picPlay.BackColor = Color.Transparent;

@@ -240,8 +240,8 @@ namespace TekstilScada.UI.Controls
             // picConnection
             // 
             picConnection.BackColor = Color.Transparent;
-            picConnection.Image = Properties.Resource1.yilmak_baglanti_2;
-            picConnection.InitialImage = Properties.Resource1.yilmak_baglanti;
+            picConnection.Image = Properties.Resource1.malkan_baglanti_2;
+            picConnection.InitialImage = Properties.Resource1.malkan_baglanti;
             picConnection.Location = new Point(149, 4);
             picConnection.Margin = new Padding(3, 2, 3, 2);
             picConnection.Name = "picConnection";

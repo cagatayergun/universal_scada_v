@@ -475,7 +475,7 @@
     <value>Machine Sub-Type (For Recipe Design):</value>
   </data>
   <data name="MakineAltTipiPlaceholder" xml:space="preserve">
-    <value>Ex: Yilmak_100kg</value>
+    <value>Ex: malkan_100kg</value>
   </data>
   <data name="MakineAltTipiInfo" xml:space="preserve">
     <value>This field is used for filtering in the recipe design screen.</value>
@@ -1242,8 +1242,8 @@
   <data name="Ingilizce" xml:space="preserve">
     <value>English</value>
   </data>
-  <data name="Yilmak_100kg" xml:space="preserve">
-    <value>Yilmak 100KG (Standard)</value>
+  <data name="malkan_100kg" xml:space="preserve">
+    <value>malkan 100KG (Standard)</value>
   </data>
   <data name="Dozaj" xml:space="preserve">
     <value>Dosage</value>
