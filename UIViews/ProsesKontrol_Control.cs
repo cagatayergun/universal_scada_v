@@ -164,40 +164,30 @@ namespace TekstilScada.UI.Views
                 return;
             }
 
-            // 2. Seçili makinenin tipini (varsa alt tipini) belirle
-            string selectedType = !string.IsNullOrEmpty(selectedMachine.MachineSubType)
-                                  ? selectedMachine.MachineSubType
-                                  : selectedMachine.MachineType;
+            // --- YENİ MANTIK: Reçeteyi doğrudan spesifik makineye bağla ---
+            string machineRef = selectedMachine.Id.ToString();
 
             // 3. Yeni reçete nesnesini oluştur
             _currentRecipe = new ScadaRecipe
             {
-                RecipeName = "NEW RECIPE",
-                TargetMachineType = selectedType
+                RecipeName = "YENİ REÇETE",
+                TargetMachineType = machineRef // Artık spesifik Makine ID'si atanıyor
             };
 
-            // 4. Adım sayısını belirle (Kurutma için 1, diğerleri için 98)
-            // Not: Bu kontrol, mevcut kodunuzdaki mantıkla aynıdır.
-            int stepCount = (selectedType == "Kurutma Makinesi") ? 1 : 98;
+            // 4. Adım sayısını belirle (Kurutma için ana tipi kontrol etmeye devam ediyoruz)
+            int stepCount = (selectedMachine.MachineType == "Kurutma Makinesi") ? 1 : 98;
 
             _currentRecipe.Steps.Clear();
             for (int i = 1; i <= stepCount; i++)
             {
-                // Adımları varsayılan boş değerlerle oluştur
                 var newStep = new ScadaRecipeStep { StepNumber = i };
-                // 25 word'lük veri dizisini başlat (NullReference hatasını önlemek için)
                 newStep.StepDataWords = new short[25];
                 _currentRecipe.Steps.Add(newStep);
             }
 
             // 5. Arayüzü Güncelle
-            // Listeden seçimi kaldır ki yeni boş reçete editörde bağımsız olarak görünsün
             lstRecipes.ClearSelected();
-
-            // Yeni oluşturulan reçeteyi editörde göster
             DisplayCurrentRecipe();
-
-            // Kullanıcı hemen isim verebilsin diye reçete adı kutusuna odaklan
             txtRecipeName.Focus();
             txtRecipeName.SelectAll();
         }
@@ -220,27 +210,25 @@ namespace TekstilScada.UI.Views
 
         private void CmbTargetMachine_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // 1. Önce seçime göre reçete listesini filtrele (Mevcut Kod)
+            // 1. Önce seçime göre reçete listesini filtrele
             FilterRecipeList();
 
-            // 2. Makine seçimi kontrolü ve Buton Gizleme/Gösterme Mantığı (YENİ EKLENEN KISIM)
+            // 2. Makine seçimi kontrolü ve Buton Gizleme/Gösterme Mantığı
             if (cmbTargetMachine.SelectedItem is Machine selectedMachine)
             {
-                // Eğer makine tipi "BYMakinesi" ise butonları gizle, değilse göster.
                 bool isByMachine = selectedMachine.MachineType == "BYMakinesi";
 
-               // btnReadFromPlc.Visible = !isByMachine; // BYMakinesi ise false olur (gizlenir)
-               // btnSendToPlc.Visible = !isByMachine;   // BYMakinesi ise false olur (gizlenir)
+                btnReadFromPlc.Visible = !isByMachine;
+                btnSendToPlc.Visible = !isByMachine;
 
-                // 3. Reçete uyumluluk kontrolü (Mevcut Kod)
+                // 3. Reçete uyumluluk kontrolü
                 if (_currentRecipe != null)
                 {
-                    string machineTypeForRecipe = !string.IsNullOrEmpty(selectedMachine.MachineSubType)
-                                                  ? selectedMachine.MachineSubType
-                                                  : selectedMachine.MachineType;
+                    // --- YENİ MANTIK: Uyumluluğu Makine ID'sine göre kontrol et ---
+                    string machineRefForRecipe = selectedMachine.Id.ToString();
 
-                    // Mevcut reçete, yeni seçilen makine tipiyle uyumlu değilse...
-                    if (_currentRecipe.TargetMachineType != machineTypeForRecipe)
+                    // Mevcut reçete, yeni seçilen makineye ait değilse...
+                    if (_currentRecipe.TargetMachineType != machineRefForRecipe)
                     {
                         _currentRecipe = null; // Aktif reçeteyi temizle
                         lstRecipes.ClearSelected(); // Listeden seçimi kaldır
@@ -250,11 +238,8 @@ namespace TekstilScada.UI.Views
             }
             else
             {
-                // Eğer makine seçimi boşsa veya listede hiç reçete kalmadıysa editörü temizle (Mevcut Kod)
                 _currentRecipe = null;
                 DisplayCurrentRecipe();
-
-                // Makine seçili değilse butonların varsayılan durumu (isteğe bağlı, genelde açık kalabilir veya kapanabilir)
                 btnReadFromPlc.Visible = true;
                 btnSendToPlc.Visible = true;
             }
@@ -941,9 +926,7 @@ namespace TekstilScada.UI.Views
                             _currentRecipe = result.Content;
                             _currentRecipe.Id = 0;
 
-                            string targetType = !string.IsNullOrEmpty(selectedMachine.MachineSubType)
-                                                ? selectedMachine.MachineSubType
-                                                : selectedMachine.MachineType;
+                            string targetType = selectedMachine.Id.ToString();
                             _currentRecipe.TargetMachineType = targetType;
 
                             DisplayCurrentRecipe();
@@ -1001,9 +984,8 @@ namespace TekstilScada.UI.Views
                         RecipeName = $"PLC_{selectedMachine.MachineUserDefinedId}_{DateTime.Now:HHmm}",
                     };
 
-                    string targetType = !string.IsNullOrEmpty(selectedMachine.MachineSubType)
-                                        ? selectedMachine.MachineSubType
-                                        : selectedMachine.MachineType;
+                    string targetType = selectedMachine.Id.ToString();
+                    
 
                     recipeFromPlc.TargetMachineType = targetType;
 
@@ -1200,15 +1182,14 @@ namespace TekstilScada.UI.Views
                 return;
             }
 
-            string filterType = !string.IsNullOrEmpty(selectedMachine.MachineSubType)
-                                ? selectedMachine.MachineSubType
-                                : selectedMachine.MachineType;
+            // --- YENİ MANTIK: Alt Tip (SubType) yerine doğrudan Makine ID'sine göre filtrele ---
+            string filterType = selectedMachine.Id.ToString();
 
-            // 1. MAKİNE TİPİNE GÖRE FİLTRELEME
+            // 1. MAKİNE TİPİNE (ID'sine) GÖRE FİLTRELEME
             var filteredRecipes = _recipeList
                 .Where(r => r.TargetMachineType == filterType);
 
-            // 2. ARAMA METNİNE GÖRE FİLTRELEME (YENİ)
+            // 2. ARAMA METNİNE GÖRE FİLTRELEME
             string searchText = txtSearchRecipe.Text.Trim();
             if (!string.IsNullOrEmpty(searchText))
             {
@@ -1216,16 +1197,13 @@ namespace TekstilScada.UI.Views
                     r.RecipeName.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0);
             }
 
-            // 3. SIRALAMA (YENİ)
+            // 3. SIRALAMA
             if (radioSortName.Checked)
             {
-                // A'dan Z'ye Sıralama
                 filteredRecipes = filteredRecipes.OrderBy(r => r.RecipeName);
             }
             else if (radioSortDate.Checked)
             {
-                // Eklenme/Güncellenme Sırasına Göre (Id genelde bu sırayı verir)
-                // En yeni en üstte olsun istiyorsanız OrderByDescending
                 filteredRecipes = filteredRecipes.OrderByDescending(r => r.Id);
             }
 

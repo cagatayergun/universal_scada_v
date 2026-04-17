@@ -200,7 +200,8 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
                         };
                         containerPanel.Controls.Add(header);
 
-                        string layoutJson = _configRepo.GetLayoutJson(_machine.MachineSubType, stepId) ?? _configRepo.GetLayoutJson("DEFAULT", stepId);
+                        // ARTIK TASARIMLARI MAKİNE ALT TİPİNE (SubType) GÖRE DEĞİL, MAKİNE ID'SİNE GÖRE ÇAĞIRIYORUZ
+                        string layoutJson = _configRepo.GetLayoutJson(_machine.Id.ToString(), stepId) ?? _configRepo.GetLayoutJson("DEFAULT", stepId);
 
                         int maxBottom = header.Bottom + 10;
 

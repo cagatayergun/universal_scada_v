@@ -42,8 +42,11 @@ namespace TekstilScada.UI.Views
         private Stack<string> _undoStack = new Stack<string>();
 
         private readonly RecipeConfigurationRepository _configRepo = new RecipeConfigurationRepository();
+        private readonly MachineRepository _machineRepo = new MachineRepository(); // YENİ EKLENEN
         private ContextMenuStrip _contextMenu;
-
+        // --- DEĞİŞKENLER --- bölgesine ekleyin
+        //private readonly RecipeConfigurationRepository _configRepo1 = new RecipeConfigurationRepository();
+        
         public RecipeStepDesigner_Control()
         {
             InitializeComponent();
@@ -77,6 +80,8 @@ namespace TekstilScada.UI.Views
 
             tsCmbMachineType.SelectedIndexChanged += LoadLayoutForSelection;
             tsCmbStepType.SelectedIndexChanged += LoadLayoutForSelection;
+            tsCmbStepType.Visible = false;
+            tsLabelStep.Visible = false;
         }
 
         private void InitializeContextMenu()
@@ -144,9 +149,10 @@ namespace TekstilScada.UI.Views
 
         private void LoadComboBoxes()
         {
-            var machineTypes = _configRepo.GetMachineSubTypes();
-            tsCmbMachineType.Items.Clear();
-            foreach (var type in machineTypes) tsCmbMachineType.Items.Add(type);
+            var machines = _machineRepo.GetAllMachines(); // Makine listenizi çeken metot
+            tsCmbMachineType.ComboBox.DataSource = machines;
+            tsCmbMachineType.ComboBox.DisplayMember = "MachineName"; // Ekranda makine adı görünsün
+            tsCmbMachineType.ComboBox.ValueMember = "Id"; // Arka planda Makine Id'si tutulsun
 
             var steps = _configRepo.GetStepTypes();
             tsCmbStepType.ComboBox.DataSource = steps;
@@ -763,14 +769,15 @@ namespace TekstilScada.UI.Views
 
         private void LoadLayoutForSelection(object sender, EventArgs e)
         {
-            if (tsCmbMachineType.SelectedItem == null) return;
+            if (tsCmbMachineType.ComboBox.SelectedValue == null) return;
             if (tsCmbStepType.ComboBox.SelectedValue == null) return;
             if (!int.TryParse(tsCmbStepType.ComboBox.SelectedValue.ToString(), out int stepTypeId)) return;
 
-            string machineSubType = tsCmbMachineType.SelectedItem.ToString();
-            string json = _configRepo.GetLayoutJson(machineSubType, stepTypeId);
+            // Alt tip (SubType) yerine artık o makinenin ID'sini (veya adını) referans olarak alıyoruz.
+            string machineRef = tsCmbMachineType.ComboBox.SelectedValue.ToString();
 
-            _undoStack.Clear(); // Yeni mizanpaj yüklendiğinde Undo sıfırlanır
+            // _configRepo metodu argüman isminde "machineSubType" yazsa da biz ona Makine ID'si yolluyoruz.
+            string json = _configRepo.GetLayoutJson(machineRef, stepTypeId);
             ClearLayout();
 
             if (!string.IsNullOrEmpty(json))
@@ -778,7 +785,7 @@ namespace TekstilScada.UI.Views
                 try
                 {
                     var list = JsonSerializer.Deserialize<List<ControlMetadata>>(json);
-                    foreach (var item in list) CreateControlFromJson(item, false, false);
+                    foreach (var item in list) CreateControlFromJson(item);
                 }
                 catch (Exception ex) { MessageBox.Show($"Hata: {ex.Message}"); }
             }
@@ -786,20 +793,27 @@ namespace TekstilScada.UI.Views
 
         private async void BtnSaveLayout_Click(object sender, EventArgs e)
         {
-            if (tsCmbMachineType.SelectedItem == null || tsCmbStepType.ComboBox.SelectedValue == null)
+            if (tsCmbMachineType.ComboBox.SelectedValue == null || tsCmbStepType.ComboBox.SelectedValue == null)
             {
                 MessageBox.Show("Lütfen Makine ve Adım Tipi seçin."); return;
             }
 
-            string subType = tsCmbMachineType.SelectedItem.ToString();
+            // Makine ID ve ismini al
+            string machineRef = tsCmbMachineType.ComboBox.SelectedValue.ToString();
+            string machineName = tsCmbMachineType.ComboBox.Text;
+
             if (!int.TryParse(tsCmbStepType.ComboBox.SelectedValue.ToString(), out int stepTypeId)) { MessageBox.Show("Hata"); return; }
-            string name = $"{subType} - {tsCmbStepType.ComboBox.Text}";
+
+            // Tasarımın adı artık "Makine Adı - Adım Tipi" şeklinde kaydedilecek
+            string name = $"{machineName} - {tsCmbStepType.ComboBox.Text}";
 
             var list = new List<ControlMetadata>();
             foreach (Control c in pnlDesignSurface.Controls) list.Add(CreateMetadataFromControl(c));
 
             string json = JsonSerializer.Serialize(list);
-            await Task.Run(() => _configRepo.SaveLayout(name, subType, stepTypeId, json));
+
+            // SaveLayout metodunda "subType" yerine makine referansını (ID) kaydediyoruz.
+            await Task.Run(() => _configRepo.SaveLayout(name, machineRef, stepTypeId, json));
             MessageBox.Show("Kaydedildi!");
         }
 
