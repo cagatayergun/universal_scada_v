@@ -240,7 +240,7 @@ namespace TekstilScada
         }
 
         private void ApplyPermissions()
-        {
+        {//
             // === ANA MENÜ YETKÝLENDÝRME ===
             // Not: List<int> { 1 } gibi roller veritabanýnýzdaki Role ID'lerine karþýlýk gelmeli.
 
