@@ -32,7 +32,7 @@
             btnGenerateChart = new Button();
             groupBox2 = new GroupBox();
             chkRpm = new CheckBox();
-            chkWaterLevel = new CheckBox();
+            chkAirLevel = new CheckBox();
             chkTemperature = new CheckBox();
             groupBox1 = new GroupBox();
             clbMachines = new CheckedListBox();
@@ -77,7 +77,7 @@
             // groupBox2
             // 
             groupBox2.Controls.Add(chkRpm);
-            groupBox2.Controls.Add(chkWaterLevel);
+            groupBox2.Controls.Add(chkAirLevel);
             groupBox2.Controls.Add(chkTemperature);
             groupBox2.Location = new Point(11, 240);
             groupBox2.Margin = new Padding(3, 2, 3, 2);
@@ -99,16 +99,16 @@
             chkRpm.Text = "RPM";
             chkRpm.UseVisualStyleBackColor = true;
             // 
-            // chkWaterLevel
+            // chkAirLevel
             // 
-            chkWaterLevel.AutoSize = true;
-            chkWaterLevel.Location = new Point(13, 42);
-            chkWaterLevel.Margin = new Padding(3, 2, 3, 2);
-            chkWaterLevel.Name = "chkWaterLevel";
-            chkWaterLevel.Size = new Size(84, 19);
-            chkWaterLevel.TabIndex = 1;
-            chkWaterLevel.Text = "Water level";
-            chkWaterLevel.UseVisualStyleBackColor = true;
+            chkAirLevel.AutoSize = true;
+            chkAirLevel.Location = new Point(13, 42);
+            chkAirLevel.Margin = new Padding(3, 2, 3, 2);
+            chkAirLevel.Name = "chkAirLevel";
+            chkAirLevel.Size = new Size(84, 19);
+            chkAirLevel.TabIndex = 1;
+            chkAirLevel.Text = "Air level";
+            chkAirLevel.UseVisualStyleBackColor = true;
             // 
             // chkTemperature
             // 
@@ -216,7 +216,7 @@
         private System.Windows.Forms.Button btnGenerateChart;
         private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.CheckBox chkRpm;
-        private System.Windows.Forms.CheckBox chkWaterLevel;
+        private System.Windows.Forms.CheckBox chkAirLevel;
         private System.Windows.Forms.CheckBox chkTemperature;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.CheckedListBox clbMachines;

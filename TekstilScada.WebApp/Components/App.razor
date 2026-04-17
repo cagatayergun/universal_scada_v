@@ -120,7 +120,7 @@
             };
 
             plotCons('electricChartContainer', 'toplamElektrik', 'kWh', '#00bcd4');
-            plotCons('waterChartContainer', 'toplamSu', 'Litre', '#2196f3');
+            plotCons('AirChartContainer', 'toplamSu', 'Litre', '#2196f3');
             plotCons('steamChartContainer', 'toplamBuhar', 'kg', '#9c27b0');
 
             const alarmContainer = document.getElementById('topAlarmsChartContainer');
@@ -185,7 +185,7 @@
             let y, title, color;
             switch (selectedData) {
                 case 'Temperature': y = dataPoints.map(p => p.temperature/10.0); title=window.appLabels.temperature; color='#f44336'; break;
-                case 'WaterLevel': y = dataPoints.map(p => p.waterLevel); title=window.appLabels.level; color='#2196f3'; break;
+                case 'AirLevel': y = dataPoints.map(p => p.AirLevel); title=window.appLabels.level; color='#2196f3'; break;
                 case 'Rpm': y = dataPoints.map(p => p.rpm); title=window.appLabels.rpm; color='#4caf50'; break;
                 default: return;
             }
@@ -202,7 +202,7 @@
 
             const t1 = { x:x, y:dataPoints.map(d=>d.temperature), name: window.appLabels.temperature, type:'scatter', line:{color:'#e74c3c'}, yaxis:'y1' };
             const t2 = { x:x, y:dataPoints.map(d=>d.rpm), name: window.appLabels.rpm, type:'scatter', line:{color:'#3498db'}, yaxis:'y2' };
-            const t3 = { x:x, y:dataPoints.map(d=>d.waterLevel), name: window.appLabels.level, type:'scatter', line:{color:'#2ecc71'}, yaxis:'y3' };
+            const t3 = { x:x, y:dataPoints.map(d=>d.AirLevel), name: window.appLabels.level, type:'scatter', line:{color:'#2ecc71'}, yaxis:'y3' };
 
             const layout = getCommonLayout(title||'Canlı Trend', window.appLabels.temperature, false);
             layout.yaxis.gridcolor='#444';
@@ -230,7 +230,7 @@
             var timestamps = data.map(d => d.timestamp.toString().replace('Z', ''));
             var tempData = data.map(d => d.temperature);
             var rpmData = data.map(d => d.rpm);
-            var levelData = data.map(d => d.waterLevel);
+            var levelData = data.map(d => d.AirLevel);
 
             var commonLayout = {
                 xaxis: { type: 'date', tickformat: '%H:%M', autorange: true },
@@ -364,7 +364,7 @@
             var timestamps = data.map(d => d.timestamp.toString().replace('Z', ''));
             var tempData = data.map(d => d.temperature / 10.0);
             var rpmData = data.map(d => d.rpm);
-            var levelData = data.map(d => d.waterLevel);
+            var levelData = data.map(d => d.AirLevel);
 
             var commonLayout = {
                 xaxis: { type: 'date', tickformat: '%H:%M:%S', autorange: true },
@@ -399,7 +399,7 @@
             // --- GÜNCELLEME: 'Z' Temizleme ---
             const timestamps = data.map(d => d.timestamp.toString().replace('Z', ''));
             const temps = data.map(d => d.temperature / 10.0);
-            const levels = data.map(d => d.waterLevel);
+            const levels = data.map(d => d.AirLevel);
             const rpms = data.map(d => d.rpm);
 
             const commonLayout = { xaxis: { type: 'date', showgrid: true }, margin: { l: 50, r: 20, t: 30, b: 30 }, showlegend: false };
@@ -427,7 +427,7 @@
             // --- GÜNCELLEME: 'Z' Temizleme ---
             const timestamps = data.map(d => d.timestamp.toString().replace('Z', ''));
             const temps = data.map(d => d.temperature / 10.0);
-            const levels = data.map(d => d.waterLevel);
+            const levels = data.map(d => d.AirLevel);
             const rpms = data.map(d => d.rpm);
 
             const commonLayout = {

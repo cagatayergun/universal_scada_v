@@ -41,7 +41,7 @@
             gbProductionInfo = new GroupBox();
             txtSteam = new TextBox();
             label11 = new Label();
-            txtWater = new TextBox();
+            txtAir = new TextBox();
             label10 = new Label();
             txtElectricity = new TextBox();
             label9 = new Label();
@@ -172,7 +172,7 @@
             // 
             gbProductionInfo.Controls.Add(txtSteam);
             gbProductionInfo.Controls.Add(label11);
-            gbProductionInfo.Controls.Add(txtWater);
+            gbProductionInfo.Controls.Add(txtAir);
             gbProductionInfo.Controls.Add(label10);
             gbProductionInfo.Controls.Add(txtElectricity);
             gbProductionInfo.Controls.Add(label9);
@@ -227,14 +227,14 @@
             label11.TabIndex = 24;
             label11.Text = "Steam Consumption (kg):";
             // 
-            // txtWater
+            // txtAir
             // 
-            txtWater.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            txtWater.Location = new Point(11, 558);
-            txtWater.Name = "txtWater";
-            txtWater.ReadOnly = true;
-            txtWater.Size = new Size(284, 23);
-            txtWater.TabIndex = 23;
+            txtAir.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            txtAir.Location = new Point(11, 558);
+            txtAir.Name = "txtAir";
+            txtAir.ReadOnly = true;
+            txtAir.Size = new Size(284, 23);
+            txtAir.TabIndex = 23;
             // 
             // label10
             // 
@@ -244,7 +244,7 @@
             label10.Name = "label10";
             label10.Size = new Size(143, 15);
             label10.TabIndex = 22;
-            label10.Text = "Water Consumption (m³):";
+            label10.Text = "Air Consumption (m³):";
             // 
             // txtElectricity
             // 
@@ -678,7 +678,7 @@
         private System.Windows.Forms.Label labelDiff; // YENİ
         private TextBox txtSteam;
         private Label label11;
-        private TextBox txtWater;
+        private TextBox txtAir;
         private Label label10;
         private TextBox txtElectricity;
         private Label label9;

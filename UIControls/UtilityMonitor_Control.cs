@@ -24,10 +24,10 @@ namespace TekstilScada.UIControls
             public Panel PnlStatusColor { get; set; }
             public Label LblLastUpdate { get; set; }
 
-            public Label LblWaterVal { get; set; }
+            public Label LblAirVal { get; set; }
             public Label LblElecVal { get; set; }
             public Label LblSteamVal { get; set; }
-            public Label LblAirVal { get; set; }
+         //   public Label LblAirVal { get; set; }
         }
 
         public UtilityMonitor_Control()
@@ -119,9 +119,9 @@ namespace TekstilScada.UIControls
             comps.PnlStatusColor = pnlStatus;
 
             // 1. Su Sayacı
-            if (line.WaterEnabled)
+            if (line.AirEnabled)
             {
-                comps.LblWaterVal = AddRow(card, "Su Tüketimi:", "m³", Color.DarkBlue, ref currentY);
+                comps.LblAirVal = AddRow(card, "Su Tüketimi:", "m³", Color.DarkBlue, ref currentY);
             }
             // 2. Elektrik Sayacı
             if (line.ElecEnabled)
@@ -205,7 +205,7 @@ namespace TekstilScada.UIControls
                     if (_uiMap.TryGetValue(log.LineId, out var ui))
                     {
                         // Değerleri güncelle
-                        if (ui.LblWaterVal != null) ui.LblWaterVal.Text = log.WaterCounter.ToString("N2");
+                        if (ui.LblAirVal != null) ui.LblAirVal.Text = log.AirCounter.ToString("N2");
                         if (ui.LblElecVal != null) ui.LblElecVal.Text = log.ElecCounter.ToString("N2");
                         if (ui.LblSteamVal != null) ui.LblSteamVal.Text = log.SteamCounter.ToString("N2");
                         if (ui.LblAirVal != null) ui.LblAirVal.Text = log.AirCounter.ToString("N2");

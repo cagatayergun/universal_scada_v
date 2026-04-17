@@ -34,7 +34,7 @@
             label10 = new Label();
             lblAvgCycleTime2 = new Label();
             label12 = new Label();
-            lblAvgWater2 = new Label();
+            lblAvgAir2 = new Label();
             label14 = new Label();
             pnlOriginal = new Panel();
             lblAvgSteam = new Label();
@@ -43,7 +43,7 @@
             label5 = new Label();
             lblAvgCycleTime = new Label();
             label4 = new Label();
-            lblAvgWater = new Label();
+            lblAvgAir = new Label();
             label3 = new Label();
             pnlFilters.SuspendLayout();
             pnlContent.SuspendLayout();
@@ -176,7 +176,7 @@
             pnlCompare.Controls.Add(label10);
             pnlCompare.Controls.Add(lblAvgCycleTime2);
             pnlCompare.Controls.Add(label12);
-            pnlCompare.Controls.Add(lblAvgWater2);
+            pnlCompare.Controls.Add(lblAvgAir2);
             pnlCompare.Controls.Add(label14);
             pnlCompare.Dock = DockStyle.Fill;
             pnlCompare.Location = new Point(394, 0);
@@ -245,15 +245,15 @@
             label12.Text = "Average Cycle Time";
             label12.TextAlign = ContentAlignment.MiddleCenter;
             // 
-            // lblAvgWater2
+            // lblAvgAir2
             // 
-            lblAvgWater2.Font = new Font("Segoe UI", 16.2F, FontStyle.Bold);
-            lblAvgWater2.Location = new Point(13, 19);
-            lblAvgWater2.Name = "lblAvgWater2";
-            lblAvgWater2.Size = new Size(175, 30);
-            lblAvgWater2.TabIndex = 9;
-            lblAvgWater2.Text = "0 L";
-            lblAvgWater2.TextAlign = ContentAlignment.MiddleCenter;
+            lblAvgAir2.Font = new Font("Segoe UI", 16.2F, FontStyle.Bold);
+            lblAvgAir2.Location = new Point(13, 19);
+            lblAvgAir2.Name = "lblAvgAir2";
+            lblAvgAir2.Size = new Size(175, 30);
+            lblAvgAir2.TabIndex = 9;
+            lblAvgAir2.Text = "0 L";
+            lblAvgAir2.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // label14
             // 
@@ -262,7 +262,7 @@
             label14.Name = "label14";
             label14.Size = new Size(175, 19);
             label14.TabIndex = 8;
-            label14.Text = "Average Water Consumption";
+            label14.Text = "Average Air Consumption";
             label14.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // pnlOriginal
@@ -273,7 +273,7 @@
             pnlOriginal.Controls.Add(label5);
             pnlOriginal.Controls.Add(lblAvgCycleTime);
             pnlOriginal.Controls.Add(label4);
-            pnlOriginal.Controls.Add(lblAvgWater);
+            pnlOriginal.Controls.Add(lblAvgAir);
             pnlOriginal.Controls.Add(label3);
             pnlOriginal.Dock = DockStyle.Left;
             pnlOriginal.Location = new Point(0, 0);
@@ -342,15 +342,15 @@
             label4.Text = "Average Cycle Time";
             label4.TextAlign = ContentAlignment.MiddleCenter;
             // 
-            // lblAvgWater
+            // lblAvgAir
             // 
-            lblAvgWater.Font = new Font("Segoe UI", 16.2F, FontStyle.Bold);
-            lblAvgWater.Location = new Point(13, 19);
-            lblAvgWater.Name = "lblAvgWater";
-            lblAvgWater.Size = new Size(175, 30);
-            lblAvgWater.TabIndex = 1;
-            lblAvgWater.Text = "0 L";
-            lblAvgWater.TextAlign = ContentAlignment.MiddleCenter;
+            lblAvgAir.Font = new Font("Segoe UI", 16.2F, FontStyle.Bold);
+            lblAvgAir.Location = new Point(13, 19);
+            lblAvgAir.Name = "lblAvgAir";
+            lblAvgAir.Size = new Size(175, 30);
+            lblAvgAir.TabIndex = 1;
+            lblAvgAir.Text = "0 L";
+            lblAvgAir.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // label3
             // 
@@ -359,7 +359,7 @@
             label3.Name = "label3";
             label3.Size = new Size(175, 19);
             label3.TabIndex = 0;
-            label3.Text = "Average Water Consumption";
+            label3.Text = "Average Air Consumption";
             label3.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // RecipeOptimization_Control
@@ -394,7 +394,7 @@
         private System.Windows.Forms.Panel pnlAverages;
         private System.Windows.Forms.Label lblAvgCycleTime;
         private System.Windows.Forms.Label label4;
-        private System.Windows.Forms.Label lblAvgWater;
+        private System.Windows.Forms.Label lblAvgAir;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label lblAvgSteam;
         private System.Windows.Forms.Label label6;
@@ -409,7 +409,7 @@
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.Label lblAvgCycleTime2;
         private System.Windows.Forms.Label label12;
-        private System.Windows.Forms.Label lblAvgWater2;
+        private System.Windows.Forms.Label lblAvgAir2;
         private System.Windows.Forms.Label label14;
         private System.Windows.Forms.Panel pnlOriginal;
     }

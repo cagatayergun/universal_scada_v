@@ -39,7 +39,7 @@ namespace TekstilScada.UI.Views
             groupBox1.Text = Resources.makineler;
             groupBox2.Text = Resources.görüntülenecek_veriler;
             chkTemperature.Text = Resources.Temperature;
-            chkWaterLevel.Text = Resources.suseviyesi;
+            chkAirLevel.Text = Resources.suseviyesi;
             chkRpm.Text = Resources.devir;
             btnGenerateChart.Text = Resources.grafigiolustur;
         }
@@ -80,11 +80,11 @@ namespace TekstilScada.UI.Views
                 if (dataPoints.Any())
                 {
                     var groupedData = dataPoints.GroupBy(d => d.MachineId);
-                    bool anyChecked = chkTemperature.Checked || chkWaterLevel.Checked || chkRpm.Checked;
+                    bool anyChecked = chkTemperature.Checked || chkAirLevel.Checked || chkRpm.Checked;
 
                     if (!anyChecked)
                     {
-                        MessageBox.Show("Please select at least one data type (Temperature, Water Level or RPM).", "Warning");
+                        MessageBox.Show("Please select at least one data type (Temperature, Air Level or RPM).", "Warning");
                         return;
                     }
 
@@ -111,11 +111,11 @@ namespace TekstilScada.UI.Views
                             scatter.LineWidth = 2;
                         }
 
-                        if (chkWaterLevel.Checked)
+                        if (chkAirLevel.Checked)
                         {
-                            double[] waterData = group.Select(p => (double)p.WaterLevel).ToArray();
-                            var scatter = formsPlot1.Plot.Add.Scatter(timeData, waterData);
-                            scatter.LegendText = $"{machineName} - Water level";
+                            double[] AirData = group.Select(p => (double)p.AirLevel).ToArray();
+                            var scatter = formsPlot1.Plot.Add.Scatter(timeData, AirData);
+                            scatter.LegendText = $"{machineName} - Air level";
                             scatter.LineWidth = 2;
                         }
 

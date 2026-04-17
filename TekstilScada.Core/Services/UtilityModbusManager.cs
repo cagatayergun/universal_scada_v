@@ -46,9 +46,9 @@ namespace TekstilScada.Services
                     // NOT: Sensör veri tipleri (Int32, Float vb.) PLC'ye göre değişebilir.
                     // Burada standart Int32 okuma yapıyoruz.
 
-                    var waterRes = _plcClient.ReadInt32(_config.WaterAddress.ToString());
-                    if (waterRes.IsSuccess) log.WaterCounter = waterRes.Content;
-                    else return OperateResult.CreateFailedResult<UtilityLog>(waterRes);
+                    var AirRes = _plcClient.ReadInt32(_config.AirAddress.ToString());
+                    if (AirRes.IsSuccess) log.AirCounter = AirRes.Content;
+                    else return OperateResult.CreateFailedResult<UtilityLog>(AirRes);
 
                     var elecRes = _plcClient.ReadInt32(_config.ElecAddress.ToString());
                     if (elecRes.IsSuccess) log.ElecCounter = elecRes.Content;

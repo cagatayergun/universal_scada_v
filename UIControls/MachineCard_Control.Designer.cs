@@ -32,17 +32,12 @@ namespace TekstilScada.UI.Controls
             pnlMain = new Panel();
             lblMachineIdValue = new Label();
             lblMachineNameValue = new Label();
-            lblStepValue = new Label();
             lblOperatorValue = new Label();
             lblRecipeNameValue = new Label();
             lblMachineIdTitle = new Label();
             lblMachineNameTitle = new Label();
-            lblStepTitle = new Label();
             lblOperatorTitle = new Label();
             lblRecipeNameTitle = new Label();
-            lblPercentage = new Label();
-            progressBar = new ProgressBar();
-            lblProcessing = new Label();
             pnlIcons = new Panel();
             picConnection = new PictureBox();
             btnInfo = new Button();
@@ -65,17 +60,12 @@ namespace TekstilScada.UI.Controls
             pnlMain.BorderStyle = BorderStyle.FixedSingle;
             pnlMain.Controls.Add(lblMachineIdValue);
             pnlMain.Controls.Add(lblMachineNameValue);
-            pnlMain.Controls.Add(lblStepValue);
             pnlMain.Controls.Add(lblOperatorValue);
             pnlMain.Controls.Add(lblRecipeNameValue);
             pnlMain.Controls.Add(lblMachineIdTitle);
             pnlMain.Controls.Add(lblMachineNameTitle);
-            pnlMain.Controls.Add(lblStepTitle);
             pnlMain.Controls.Add(lblOperatorTitle);
             pnlMain.Controls.Add(lblRecipeNameTitle);
-            pnlMain.Controls.Add(lblPercentage);
-            pnlMain.Controls.Add(progressBar);
-            pnlMain.Controls.Add(lblProcessing);
             pnlMain.Controls.Add(pnlIcons);
             pnlMain.Controls.Add(lblMachineNumber);
             pnlMain.Dock = DockStyle.Fill;
@@ -108,18 +98,6 @@ namespace TekstilScada.UI.Controls
             lblMachineNameValue.TabIndex = 13;
             lblMachineNameValue.Text = "---";
             lblMachineNameValue.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // lblStepValue
-            // 
-            lblStepValue.BackColor = Color.White;
-            lblStepValue.BorderStyle = BorderStyle.FixedSingle;
-            lblStepValue.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
-            lblStepValue.Location = new Point(105, 105);
-            lblStepValue.Name = "lblStepValue";
-            lblStepValue.Size = new Size(158, 19);
-            lblStepValue.TabIndex = 12;
-            lblStepValue.Text = "---";
-            lblStepValue.TextAlign = ContentAlignment.MiddleLeft;
             // 
             // lblOperatorValue
             // 
@@ -165,16 +143,6 @@ namespace TekstilScada.UI.Controls
             lblMachineNameTitle.TabIndex = 8;
             lblMachineNameTitle.Text = "MACHINE NAME:";
             // 
-            // lblStepTitle
-            // 
-            lblStepTitle.AutoSize = true;
-            lblStepTitle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblStepTitle.Location = new Point(5, 106);
-            lblStepTitle.Name = "lblStepTitle";
-            lblStepTitle.Size = new Size(37, 15);
-            lblStepTitle.TabIndex = 7;
-            lblStepTitle.Text = "STEP:";
-            // 
             // lblOperatorTitle
             // 
             lblOperatorTitle.AutoSize = true;
@@ -194,34 +162,6 @@ namespace TekstilScada.UI.Controls
             lblRecipeNameTitle.Size = new Size(85, 15);
             lblRecipeNameTitle.TabIndex = 5;
             lblRecipeNameTitle.Text = "RECIPE NAME:";
-            // 
-            // lblPercentage
-            // 
-            lblPercentage.AutoSize = true;
-            lblPercentage.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblPercentage.Location = new Point(228, 38);
-            lblPercentage.Name = "lblPercentage";
-            lblPercentage.Size = new Size(27, 15);
-            lblPercentage.TabIndex = 3;
-            lblPercentage.Text = "0 %";
-            // 
-            // progressBar
-            // 
-            progressBar.Location = new Point(105, 39);
-            progressBar.Margin = new Padding(3, 2, 3, 2);
-            progressBar.Name = "progressBar";
-            progressBar.Size = new Size(114, 11);
-            progressBar.TabIndex = 2;
-            // 
-            // lblProcessing
-            // 
-            lblProcessing.AutoSize = true;
-            lblProcessing.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblProcessing.Location = new Point(5, 38);
-            lblProcessing.Name = "lblProcessing";
-            lblProcessing.Size = new Size(80, 15);
-            lblProcessing.TabIndex = 1;
-            lblProcessing.Text = "PROSESSING";
             // 
             // pnlIcons
             // 
@@ -348,17 +288,12 @@ namespace TekstilScada.UI.Controls
         private System.Windows.Forms.PictureBox picPause;
         private System.Windows.Forms.PictureBox picAlarm;
         private System.Windows.Forms.Button btnInfo;
-        private System.Windows.Forms.Label lblProcessing;
-        private System.Windows.Forms.ProgressBar progressBar;
-        private System.Windows.Forms.Label lblPercentage;
         private System.Windows.Forms.Label lblRecipeNameTitle;
         private System.Windows.Forms.Label lblOperatorTitle;
-        private System.Windows.Forms.Label lblStepTitle;
         private System.Windows.Forms.Label lblMachineNameTitle;
         private System.Windows.Forms.Label lblMachineIdTitle;
         private System.Windows.Forms.Label lblRecipeNameValue;
         private System.Windows.Forms.Label lblOperatorValue;
-        private System.Windows.Forms.Label lblStepValue;
         private System.Windows.Forms.Label lblMachineNameValue;
         private System.Windows.Forms.Label lblMachineIdValue;
         private System.Windows.Forms.PictureBox picConnection;

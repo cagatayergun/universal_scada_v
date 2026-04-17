@@ -102,7 +102,7 @@
                             <PropertyColumn Property="x => x.StartTime" Title="@Loc["BaslangicZamani"]" Format="dd.MM.yy HH:mm" />
                             <PropertyColumn Property="x => x.EndTime" Title="@Loc["BitisZamani"]" Format="dd.MM.yy HH:mm" />
                             <PropertyColumn Property="x => x.CycleTime" Title="@Loc["Sure"]" />
-                            <PropertyColumn Property="x => x.TotalWater" Title="@Loc["SuLitre"]" AggregateDefinition="_sumAggregation" />
+                            <PropertyColumn Property="x => x.TotalAir" Title="@Loc["SuLitre"]" AggregateDefinition="_sumAggregation" />
                             @* <PropertyColumn Property="x => x.TotalElectricity" Title="@Loc["ElektrikKw"]" AggregateDefinition="_sumAggregation" />*@
                             
                                 @* --- GÜNCELLEME BAŞLANGICI: Watt -> kW Dönüşümü ve Formatlama --- *@
@@ -384,7 +384,7 @@
                             <MudItem xs="12" md="3">
                                 <MudSelect T="string" Label="@Loc["TuketimTipiLabel"]" @bind-Value="selectedConsumptionType" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
                                     <MudSelectItem Value="@("TotalElectricity")">@Loc["ElektrikKw"]</MudSelectItem>
-                                    <MudSelectItem Value="@("TotalWater")">@Loc["SuLitre"]</MudSelectItem>
+                                    <MudSelectItem Value="@("TotalAir")">@Loc["SuLitre"]</MudSelectItem>
                                     <MudSelectItem Value="@("TotalSteam")">@Loc["BuharKg"]</MudSelectItem>
                                 </MudSelect>
                             </MudItem>
@@ -550,7 +550,7 @@
         public int MachineId { get; set; }
         public DateTime Timestamp { get; set; }
         public decimal Temperature { get; set; }
-        public decimal WaterLevel { get; set; }
+        public decimal AirLevel { get; set; }
         public int Rpm { get; set; }
     }
 
@@ -676,7 +676,7 @@
                         // Değerlerin ortalamasını alıyoruz (Pürüzsüz çizgi sağlar)
                         Temperature = g.Average(p => p.Value.Temperature),
                         Rpm = (int)g.Average(p => p.Value.Rpm),
-                        WaterLevel = g.Average(p => p.Value.WaterLevel)
+                        AirLevel = g.Average(p => p.Value.AirLevel)
                     })
                     .ToList();
             }
@@ -847,7 +847,7 @@
                 {
                     var temps = trendDataPoints.Select(x => x.Temperature / 10.0m).ToList();
                     var rpms = trendDataPoints.Select(x => x.Rpm).ToList();
-                    var levels = trendDataPoints.Select(x => x.WaterLevel).ToList();
+                    var levels = trendDataPoints.Select(x => x.AirLevel).ToList();
 
                     trendStats = new TrendStats
                     {
@@ -998,6 +998,6 @@
     }
 
     private string AlarmRowStyleFunc(AlarmReportItem item, int rowNumber) => (item.Duration == "Aktif" || item.EndTime == null) ? "background-color: rgba(244, 67, 54, 0.1);" : "";
-    private string GetConsumptionUnitName(string type) => type switch { "TotalWater" => "Water (m³)", "TotalElectricity" => "Electricity (kWh)", "TotalSteam" => "Steam (kg)", _ => "Value" };
-    private object GetConsumptionValue(ProductionReportItem item, string type) => type switch { "TotalWater" => (item.TotalWater / 1000).ToString("N3"), "TotalElectricity" => (item.TotalElectricity / 1000).ToString("N3"), "TotalSteam" => item.TotalSteam.ToString("N0"), _ => "N/A" };
+    private string GetConsumptionUnitName(string type) => type switch { "TotalAir" => "Air (m³)", "TotalElectricity" => "Electricity (kWh)", "TotalSteam" => "Steam (kg)", _ => "Value" };
+    private object GetConsumptionValue(ProductionReportItem item, string type) => type switch { "TotalAir" => (item.TotalAir / 1000).ToString("N3"), "TotalElectricity" => (item.TotalElectricity / 1000).ToString("N3"), "TotalSteam" => item.TotalSteam.ToString("N0"), _ => "N/A" };
 }

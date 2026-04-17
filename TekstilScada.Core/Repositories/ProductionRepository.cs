@@ -34,7 +34,7 @@ namespace TekstilScada.Repositories
             var reportItems = new List<ProductionReportItem>();
             var queryBuilder = new StringBuilder();
 
-            // GÜNCELLEME 1: SQL Sorgusuna b.TotalWater, b.TotalElectricity, b.TotalSteam eklendi.
+            // GÜNCELLEME 1: SQL Sorgusuna b.TotalAir, b.TotalElectricity, b.TotalSteam eklendi.
             queryBuilder.Append(@"
         SELECT 
             m.Id as MachineId,
@@ -50,7 +50,7 @@ namespace TekstilScada.Repositories
             b.OperatorPauseDurationSeconds,
             b.SiparisNo,
             b.TheoreticalCycleTimeSeconds,
-            b.TotalWater,       
+            b.TotalAir,       
             b.TotalElectricity, 
             b.TotalSteam        
         FROM production_batches AS b
@@ -108,7 +108,7 @@ namespace TekstilScada.Repositories
                             TheoreticalCycleTimeSeconds = reader.IsDBNull(reader.GetOrdinal("TheoreticalCycleTimeSeconds")) ? 0 : reader.GetInt32("TheoreticalCycleTimeSeconds"),
 
                             // EKLENEN KISIMLAR:
-                            TotalWater = reader.IsDBNull(reader.GetOrdinal("TotalWater")) ? 0 : Convert.ToInt32(reader["TotalWater"]),
+                            TotalAir = reader.IsDBNull(reader.GetOrdinal("TotalAir")) ? 0 : Convert.ToInt32(reader["TotalAir"]),
                             TotalElectricity = reader.IsDBNull(reader.GetOrdinal("TotalElectricity")) ? 0 : Convert.ToInt32(reader["TotalElectricity"]),
                             TotalSteam = reader.IsDBNull(reader.GetOrdinal("TotalSteam")) ? 0 : Convert.ToInt32(reader["TotalSteam"])
                         });
@@ -178,14 +178,14 @@ namespace TekstilScada.Repositories
                 string query = @"
                 UPDATE production_batches 
                 SET 
-                    TotalWater = @TotalWater, 
+                    TotalAir = @TotalAir, 
                     TotalElectricity = @TotalElectricity, 
                     TotalSteam = @TotalSteam 
                 WHERE 
                     MachineId = @MachineId AND BatchId = @BatchId;";
 
                 var cmd = new MySqlCommand(query, connection);
-                cmd.Parameters.AddWithValue("@TotalWater", summary.TotalWater);
+                cmd.Parameters.AddWithValue("@TotalAir", summary.TotalAir);
                 cmd.Parameters.AddWithValue("@TotalElectricity", summary.TotalElectricity);
                 cmd.Parameters.AddWithValue("@TotalSteam", summary.TotalSteam);
                 cmd.Parameters.AddWithValue("@MachineId", machineId);
@@ -318,7 +318,7 @@ namespace TekstilScada.Repositories
                         m.MachineName,
                         b.BatchId,
                         b.EndTime,
-                        b.TotalWater,
+                        b.TotalAir,
                         b.TotalElectricity,
                         b.TotalSteam
                     FROM production_batches b
@@ -354,7 +354,7 @@ namespace TekstilScada.Repositories
                 connection.Open();
                 var query = @"
                     SELECT 
-                        SUM(TotalWater) as Water, 
+                        SUM(TotalAir) as Air, 
                         SUM(TotalElectricity) as Electricity, 
                         SUM(TotalSteam) as Steam 
                     FROM production_batches 
@@ -368,7 +368,7 @@ namespace TekstilScada.Repositories
                 {
                     if (reader.Read())
                     {
-                        totals.TotalWater = reader["Water"] == DBNull.Value ? 0 : reader.GetDecimal("Water");
+                        totals.TotalAir = reader["Air"] == DBNull.Value ? 0 : reader.GetDecimal("Air");
                         totals.TotalElectricity = reader["Electricity"] == DBNull.Value ? 0 : reader.GetDecimal("Electricity");
                         totals.TotalSteam = reader["Steam"] == DBNull.Value ? 0 : reader.GetDecimal("Steam");
                     }

@@ -166,7 +166,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             {
                 var stepColorMap = new Dictionary<int, Color>
                 {
-                    { 1, Color.FromArgb(204, 229, 255) }, { 2, Color.FromArgb(255, 204, 204) },
+                    { 1, Color.FromArgb(255, 255, 255) }, { 2, Color.FromArgb(255, 204, 204) },
                     { 3, Color.FromArgb(204, 255, 204) }, { 4, Color.FromArgb(255, 211, 106) },
                     { 5, Color.FromArgb(173, 216, 230) }, { 6, Color.FromArgb(213, 213, 211) },{ 7, Color.FromArgb(189, 195, 199) }
                 };
@@ -282,14 +282,72 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
                 num.Minimum = data.Minimum;
                 num.DecimalPlaces = data.DecimalPlaces;
 
+                // PLC başlangıç değerini hesapla
+                decimal startValue = 0;
                 if (data.PLC_WordIndex < _step.StepDataWords.Length)
                 {
                     if (num.DecimalPlaces > 0)
-                        num.Value = _step.StepDataWords[data.PLC_WordIndex] / (decimal)Math.Pow(10, num.DecimalPlaces);
+                        startValue = _step.StepDataWords[data.PLC_WordIndex] / (decimal)Math.Pow(10, num.DecimalPlaces);
                     else
-                        num.Value = _step.StepDataWords[data.PLC_WordIndex];
+                        startValue = _step.StepDataWords[data.PLC_WordIndex];
                 }
-                num.ValueChanged += OnDynamicControlValueChanged;
+
+                // --- EĞER OKLAR İSTENMİYORSA: STANDART BİR METİN KUTUSU ÜRET ---
+                if (!data.ShowNumericArrows)
+                {
+                    TextBox cleanNumBox = new TextBox();
+                    cleanNumBox.Name = data.Name;
+                    cleanNumBox.Location = num.Location;
+                    cleanNumBox.Size = num.Size; // Artık ölü alan yok, tam boyut
+                    cleanNumBox.Font = num.Font;
+                    cleanNumBox.BackColor = num.BackColor;
+                    cleanNumBox.ForeColor = num.ForeColor;
+                    cleanNumBox.TextAlign = num.TextAlign;
+
+                    // Başlangıç değerini yaz
+                    cleanNumBox.Text = startValue.ToString();
+
+                    // Tag bilgisini aktar (PLC Mapping için)
+                    cleanNumBox.Tag = num.Tag;
+
+                    // Sadece Sayı Girilmesini Sağlayan Özellik (Kullanıcı harf giremesin)
+                    cleanNumBox.KeyPress += (s, ev) =>
+                    {
+                        // Sadece rakam, kontrol tuşları (backspace vb) ve ondalık ayırıcıya izin ver
+                        if (!char.IsControl(ev.KeyChar) && !char.IsDigit(ev.KeyChar) && (ev.KeyChar != ','))
+                        {
+                            ev.Handled = true;
+                        }
+                    };
+
+                    // Değer değiştiğinde ve metin kutusundan çıkıldığında PLC'yi güncelle
+                    cleanNumBox.Leave += (s, ev) =>
+                    {
+                        if (decimal.TryParse(cleanNumBox.Text, out decimal val))
+                        {
+                            // Limitleri uygula
+                            if (val > data.Maximum) val = data.Maximum;
+                            if (val < data.Minimum) val = data.Minimum;
+                            cleanNumBox.Text = val.ToString();
+
+                            // Normal NumericUpDown'ın tetiklediği olayı TextBox için manuel tetikle
+                            OnDynamicControlValueChanged(cleanNumBox, EventArgs.Empty);
+                        }
+                        else
+                        {
+                            cleanNumBox.Text = data.Minimum.ToString(); // Hatalı girişte sıfırla
+                        }
+                    };
+
+                    // Orijinal num kontrolünü yoksay, yerine bu temiz kutuyu dön
+                    return cleanNumBox;
+                }
+                else
+                {
+                    // Oklar isteniyorsa normal devam et
+                    num.Value = startValue;
+                    num.ValueChanged += OnDynamicControlValueChanged;
+                }
             }
             // 2. CHECKBOX
             else if (control is CheckBox chk)
@@ -303,13 +361,23 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
                 chk.CheckedChanged += OnDynamicControlValueChanged;
             }
             // 3. BUTTON (YENİ: TOGGLE ÖZELLİĞİ)
+            // 3. BUTTON (TOGGLE VE ÇOKLU DURUM ÖZELLİĞİ)
             else if (control is Button btnControl)
             {
                 if (data.ButtonStyle == "Flat") btnControl.FlatStyle = FlatStyle.Flat;
                 else btnControl.FlatStyle = FlatStyle.Standard;
 
-                // Toggle ise başlangıç durumunu yükle
-                if (data.IsToggleButton && data.PLC_WordIndex < _step.StepDataWords.Length)
+                // Windows temasının özel renkleri ezmesini engeller
+                btnControl.UseVisualStyleBackColor = false;
+
+                // --- 1. ÇOKLU DURUM (MULTI-STATE) BAŞLANGIÇ YÜKLEMESİ ---
+                if (data.IsMultiStateButton && data.PLC_WordIndex < _step.StepDataWords.Length)
+                {
+                    short savedVal = _step.StepDataWords[data.PLC_WordIndex];
+                    UpdateMultiStateVisuals(btnControl, savedVal, data);
+                }
+                // --- 2. TOGGLE (KALICI BUTON) BAŞLANGIÇ YÜKLEMESİ ---
+                else if (data.IsToggleButton && data.PLC_WordIndex < _step.StepDataWords.Length)
                 {
                     short word = _step.StepDataWords[data.PLC_WordIndex];
                     int bitMask = 1 << data.PLC_BitIndex;
@@ -317,14 +385,24 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
 
                     UpdateButtonVisualState(btnControl, isPressed, data);
                 }
+                // --- 3. NORMAL (ANLIK) BUTON ---
+                else
+                {
+                    UpdateButtonVisualState(btnControl, false, data);
 
-                // Click olayını bağla
+                    // Anlık butonlar için basılı tutma efekti (Mouse basılıyken renk değişsin)
+                    btnControl.MouseDown += (s, ev) => UpdateButtonVisualState(btnControl, true, data);
+                    btnControl.MouseUp += (s, ev) => UpdateButtonVisualState(btnControl, false, data);
+                }
+
+                // Tıklama olayını bağla
                 btnControl.Click += OnDynamicButtonClick;
             }
 
             return control;
         }
 
+        // --- BUTON TIKLAMA YÖNETİCİSİ ---
         // --- BUTON TIKLAMA YÖNETİCİSİ ---
         private void OnDynamicButtonClick(object sender, EventArgs e)
         {
@@ -333,30 +411,83 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
 
             var meta = tagData.Metadata;
 
-            // Eğer Toggle (Kalıcı) Buton ise:
+            // --- YENİ: ÇOKLU DURUM (WORD) MANTIĞI ---
+            if (meta.IsMultiStateButton)
+            {
+                // 1. Mevcut Değeri Oku
+                short currentVal = _step.StepDataWords[tagData.WordIndex];
+
+                // 2. Değeri Arttır, Maksimuma Ulaştıysa Sıfırla
+                currentVal++;
+                if (currentVal > meta.MaxStateValue)
+                {
+                    currentVal = 0;
+                }
+
+                // 3. PLC Verisini Güncelle
+                _step.StepDataWords[tagData.WordIndex] = currentVal;
+
+                // 4. Görseli Güncelle
+                UpdateMultiStateVisuals(btn, currentVal, meta);
+
+                // 5. Değişikliği Bildir
+                StepDataChanged?.Invoke(this, EventArgs.Empty);
+                return; // Multi-State ise aşağıdaki Toggle/Push kodlarına inmesin!
+            }
+
+            // --- ESKİ TOGGLE (KALICI BUTON) MANTIĞI BURADAN DEVAM EDİYOR ---
             if (meta.IsToggleButton)
             {
-                // Mevcut değeri oku
                 short currentWord = _step.StepDataWords[tagData.WordIndex];
                 int bitMask = 1 << tagData.BitIndex;
                 bool isCurrentlyPressed = (currentWord & bitMask) != 0;
 
-                // Değeri tersine çevir (Toggle)
                 bool newState = !isCurrentlyPressed;
-
-                // PLC Verisini Güncelle
                 SetBit(_step.StepDataWords, tagData.WordIndex, tagData.BitIndex, newState);
-
-                // Görünümü Güncelle
                 UpdateButtonVisualState(btn, newState, meta);
-
-                // Değişikliği Bildir
                 StepDataChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        // --- ÇOKLU DURUM GÖRSEL GÜNCELLEYİCİ ---
+        private void UpdateMultiStateVisuals(Button btn, short val, ControlMetadata meta)
+        {
+            // Eğer JSON'da bu değere (val) ait özel bir durum ayarı tanımlanmışsa onu bul:
+            var stateConfig = meta.MultiStates?.FirstOrDefault(x => x.Value == val);
+
+            if (stateConfig != null)
+            {
+                // Özel ayarlanmış Metin ve Renkleri uygula
+                if (!string.IsNullOrEmpty(stateConfig.Text)) btn.Text = stateConfig.Text;
+                else btn.Text = "";
+
+                if (!string.IsNullOrEmpty(stateConfig.BackColor)) btn.BackColor = ColorTranslator.FromHtml(stateConfig.BackColor);
+                if (!string.IsNullOrEmpty(stateConfig.ForeColor)) btn.ForeColor = ColorTranslator.FromHtml(stateConfig.ForeColor);
+
+                // Özel atanmış Resim varsa (Base64) onu arka plan olarak uygula
+                if (!string.IsNullOrEmpty(stateConfig.ImageBase64))
+                {
+                    try
+                    {
+                        byte[] imageBytes = Convert.FromBase64String(stateConfig.ImageBase64);
+                        using (var ms = new System.IO.MemoryStream(imageBytes))
+                        {
+                            btn.BackgroundImage = Image.FromStream(ms);
+                            btn.BackgroundImageLayout = ImageLayout.Zoom; // Resmi buton içine sığdır
+                        }
+                    }
+                    catch { btn.BackgroundImage = null; }
+                }
+                else
+                {
+                    btn.BackgroundImage = null;
+                }
             }
             else
             {
-                // Push Buton (Anlık) mantığı isteniyorsa buraya eklenebilir.
-                // Şimdilik sadece görsel tıklama efekti verir.
+                // Ayarlanmamışsa sadece değeri yaz (Örneğin: "0", "1", "2")
+                btn.Text = val.ToString();
+                btn.BackgroundImage = null;
             }
         }
 
@@ -402,12 +533,24 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
 
             if (mapping.WordIndex < _step.StepDataWords.Length)
             {
+                // Standart okları olan NumericUpDown ise:
                 if (control is NumericUpDown num)
                 {
                     if (num.DecimalPlaces > 0)
                         _step.StepDataWords[mapping.WordIndex] = (short)(num.Value * (decimal)Math.Pow(10, num.DecimalPlaces));
                     else
                         _step.StepDataWords[mapping.WordIndex] = (short)num.Value;
+                }
+                // Oksuz tertemiz bir TextBox ise (Yukarıda değiştirdiğimiz):
+                else if (control is TextBox txt)
+                {
+                    if (decimal.TryParse(txt.Text, out decimal val))
+                    {
+                        if (mapping.Metadata.DecimalPlaces > 0)
+                            _step.StepDataWords[mapping.WordIndex] = (short)(val * (decimal)Math.Pow(10, mapping.Metadata.DecimalPlaces));
+                        else
+                            _step.StepDataWords[mapping.WordIndex] = (short)val;
+                    }
                 }
                 else if (control is CheckBox chk)
                 {

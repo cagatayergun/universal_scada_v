@@ -17,11 +17,9 @@ namespace TekstilScada.UI.Views
         {
             tabControlSettings = new TabControl();
             tabPageMachineSettings = new TabPage();
-            tabPageUserSettings = new TabPage();
             tabPageAlarmSettings = new TabPage();
-            tabPagePlcOperators = new TabPage();
             tabPageRecipeDesigner = new TabPage();
-            tabPageUtilitySettings = new TabPage();
+            tabPageUserSettings = new TabPage();
             tabControlSettings.SuspendLayout();
             SuspendLayout();
             // 
@@ -30,8 +28,6 @@ namespace TekstilScada.UI.Views
             tabControlSettings.Controls.Add(tabPageMachineSettings);
             tabControlSettings.Controls.Add(tabPageUserSettings);
             tabControlSettings.Controls.Add(tabPageAlarmSettings);
-            tabControlSettings.Controls.Add(tabPagePlcOperators);
-            tabControlSettings.Controls.Add(tabPageUtilitySettings);
             tabControlSettings.Controls.Add(tabPageRecipeDesigner);
             tabControlSettings.Dock = DockStyle.Fill;
             tabControlSettings.Location = new Point(0, 0);
@@ -52,17 +48,6 @@ namespace TekstilScada.UI.Views
             tabPageMachineSettings.Text = "Makine Yönetimi";
             tabPageMachineSettings.UseVisualStyleBackColor = true;
             // 
-            // tabPageUserSettings
-            // 
-            tabPageUserSettings.Location = new Point(4, 24);
-            tabPageUserSettings.Margin = new Padding(3, 2, 3, 2);
-            tabPageUserSettings.Name = "tabPageUserSettings";
-            tabPageUserSettings.Padding = new Padding(3, 2, 3, 2);
-            tabPageUserSettings.Size = new Size(692, 422);
-            tabPageUserSettings.TabIndex = 1;
-            tabPageUserSettings.Text = "Kullanıcı Yönetimi";
-            tabPageUserSettings.UseVisualStyleBackColor = true;
-            // 
             // tabPageAlarmSettings
             // 
             tabPageAlarmSettings.Location = new Point(4, 24);
@@ -72,27 +57,6 @@ namespace TekstilScada.UI.Views
             tabPageAlarmSettings.TabIndex = 2;
             tabPageAlarmSettings.Text = "Alarm Tanımlama";
             tabPageAlarmSettings.UseVisualStyleBackColor = true;
-            // 
-            // tabPagePlcOperators
-            // 
-            tabPagePlcOperators.Location = new Point(4, 24);
-            tabPagePlcOperators.Margin = new Padding(3, 2, 3, 2);
-            tabPagePlcOperators.Name = "tabPagePlcOperators";
-            tabPagePlcOperators.Size = new Size(692, 422);
-            tabPagePlcOperators.TabIndex = 3;
-            tabPagePlcOperators.Text = "PLC Operatör Yönetimi";
-            tabPagePlcOperators.UseVisualStyleBackColor = true;
-            // 
-            // tabPageUtilitySettings (YENİ SEKME AYARLARI)
-            // 
-            tabPageUtilitySettings.Location = new Point(4, 24);
-            tabPageUtilitySettings.Name = "tabPageUtilitySettings";
-            tabPageUtilitySettings.Padding = new Padding(3);
-            tabPageUtilitySettings.Size = new Size(692, 422);
-            tabPageUtilitySettings.TabIndex = 6; // Sıraya göre index verin
-            tabPageUtilitySettings.Text = "Enerji/Hat Ayarları";
-            tabPageUtilitySettings.UseVisualStyleBackColor = true;
-            
             // 
             // tabPageRecipeDesigner
             // 
@@ -104,6 +68,17 @@ namespace TekstilScada.UI.Views
             tabPageRecipeDesigner.TabIndex = 5;
             tabPageRecipeDesigner.Text = "Reçete Adım Tasarımcısı";
             tabPageRecipeDesigner.UseVisualStyleBackColor = true;
+            // 
+            // tabPageUserSettings
+            // 
+            tabPageUserSettings.Location = new Point(4, 24);
+            tabPageUserSettings.Margin = new Padding(3, 2, 3, 2);
+            tabPageUserSettings.Name = "tabPageUserSettings";
+            tabPageUserSettings.Padding = new Padding(3, 2, 3, 2);
+            tabPageUserSettings.Size = new Size(692, 422);
+            tabPageUserSettings.TabIndex = 1;
+            tabPageUserSettings.Text = "Kullanıcı Yönetimi";
+            tabPageUserSettings.UseVisualStyleBackColor = true;
             // 
             // Ayarlar_Control
             // 
@@ -119,10 +94,8 @@ namespace TekstilScada.UI.Views
         #endregion
         private System.Windows.Forms.TabControl tabControlSettings;
         private System.Windows.Forms.TabPage tabPageMachineSettings;
-        private System.Windows.Forms.TabPage tabPageUserSettings;
         private System.Windows.Forms.TabPage tabPageAlarmSettings;
-        private System.Windows.Forms.TabPage tabPagePlcOperators;
-        private System.Windows.Forms.TabPage tabPageUtilitySettings;
         private System.Windows.Forms.TabPage tabPageRecipeDesigner;// YENİ
+        private TabPage tabPageUserSettings;
     }
 }

@@ -21,7 +21,7 @@ namespace TekstilScada.Repositories
 
             // 1000 Makine için StringBuilder'ın sürekli resize olmasını engellemek adına
             // tahmini bir kapasite (RowLength * Count) veriyoruz.
-            var queryBuilder = new StringBuilder("INSERT INTO process_data_log (MachineId, BatchId, LogTimestamp, LiveTemperature, LiveWaterLevel, LiveRpm) VALUES ", statusList.Count * 100);
+            var queryBuilder = new StringBuilder("INSERT INTO process_data_log (MachineId, BatchId, LogTimestamp, LiveTemperature, LiveAirLevel, LiveRpm) VALUES ", statusList.Count * 100);
 
             var parameters = new DynamicParameters(); // Dapper parametreleri veya MySqlParameter kullanılabilir. Burada manuel yönetim daha kontrollü.
             var mySqlParams = new List<MySqlParameter>();
@@ -77,7 +77,7 @@ namespace TekstilScada.Repositories
         {
             if (statusList == null || !statusList.Any()) return;
 
-            var queryBuilder = new StringBuilder("INSERT INTO manual_mode_log (MachineId, LogTimestamp, LiveTemperature, TotalWater, LiveWaterLevel, LiveRpm, LiveElectricity, LiveSteam) VALUES ", statusList.Count * 120);
+            var queryBuilder = new StringBuilder("INSERT INTO manual_mode_log (MachineId, LogTimestamp, LiveTemperature, TotalAir, LiveAirLevel, LiveRpm, LiveElectricity, LiveSteam) VALUES ", statusList.Count * 120);
             var mySqlParams = new List<MySqlParameter>();
 
             for (int i = 0; i < statusList.Count; i++)
@@ -133,7 +133,7 @@ namespace TekstilScada.Repositories
                     SELECT 
                         LogTimestamp as Timestamp, 
                         LiveTemperature as Temperature, 
-                        LiveWaterLevel as WaterLevel, 
+                        LiveAirLevel as AirLevel, 
                         LiveRpm as Rpm 
                     FROM process_data_log 
                     WHERE MachineId = @MachineId ");
@@ -171,7 +171,7 @@ namespace TekstilScada.Repositories
                     SELECT 
                         LogTimestamp as Timestamp, 
                         LiveTemperature as Temperature, 
-                        LiveWaterLevel as WaterLevel, 
+                        LiveAirLevel as AirLevel, 
                         LiveRpm as Rpm 
                     FROM process_data_log 
                     WHERE MachineId = @MachineId 
@@ -195,7 +195,7 @@ namespace TekstilScada.Repositories
                         MachineId, 
                         LogTimestamp as Timestamp, 
                         LiveTemperature as Temperature, 
-                        LiveWaterLevel as WaterLevel, 
+                        LiveAirLevel as AirLevel, 
                         LiveRpm as Rpm 
                     FROM process_data_log 
                     WHERE LogTimestamp BETWEEN @StartTime AND @EndTime 
@@ -215,7 +215,7 @@ namespace TekstilScada.Repositories
                 string sql = @"
                     SELECT 
                         LogTimestamp as Timestamp, 
-                        LiveWaterLevel as totalwatermanuel, 
+                        LiveAirLevel as totalAirmanuel, 
                         LiveElectricity as totalelectritymanuel, 
                         LiveSteam as totalsteammanuel 
                     FROM manual_mode_log 
@@ -235,7 +235,7 @@ namespace TekstilScada.Repositories
                     SELECT 
                         LogTimestamp as Timestamp, 
                         LiveTemperature as Temperature, 
-                        LiveWaterLevel as WaterLevel, 
+                        LiveAirLevel as AirLevel, 
                         LiveRpm as Rpm 
                     FROM manual_mode_log 
                     WHERE MachineId = @MachineId 
@@ -345,7 +345,7 @@ namespace TekstilScada.Repositories
                 OrtalamaDevir = dataPoints.Average(p => p.Rpm),
 
                 // Tüketimler
-                ToplamSuTuketimi_Litre = CalculateConsumption(dataPoints1, p => p.totalwatermanuel),
+                ToplamSuTuketimi_Litre = CalculateConsumption(dataPoints1, p => p.totalAirmanuel),
                 ToplamElektrikTuketimi_kW = CalculateConsumption(dataPoints1, p => p.totalelectritymanuel),
                 ToplamBuharTuketimi_kg = CalculateConsumption(dataPoints1, p => p.totalsteammanuel)
             };
@@ -358,7 +358,7 @@ namespace TekstilScada.Repositories
         {
             public int MachineId { get; set; }
             public DateTime Timestamp { get; set; }
-            public decimal totalwatermanuel { get; set; }
+            public decimal totalAirmanuel { get; set; }
             public decimal totalelectritymanuel { get; set; }
             public decimal totalsteammanuel { get; set; }
         }
@@ -368,7 +368,7 @@ namespace TekstilScada.Repositories
             public int MachineId { get; set; }
             public DateTime Timestamp { get; set; }
             public decimal Temperature { get; set; }
-            public decimal WaterLevel { get; set; }
+            public decimal AirLevel { get; set; }
             public int Rpm { get; set; }
         }
     }

@@ -62,7 +62,7 @@ namespace TekstilScada.UI.Views
                 var reportData = _productionRepository.GetProductionReport(filters);
                 foreach (var item in reportData)
                 {
-                    item.TotalWater = item.TotalWater / 1000.0;
+                    item.TotalAir = item.TotalAir / 1000.0;
                     item.TotalElectricity = item.TotalElectricity / 1000.0;
                     item.TotalSteam = item.TotalSteam ;
                 }
@@ -157,10 +157,10 @@ namespace TekstilScada.UI.Views
             SetColumnHeader(grid, "TotalDuration", "Total Duration");
 
             // --- TÜKETİMLER ---
-            if (grid.Columns.Contains("TotalWater"))
+            if (grid.Columns.Contains("TotalAir"))
             {
-                grid.Columns["TotalWater"].HeaderText = "Total Water (m³)";
-                grid.Columns["TotalWater"].DefaultCellStyle.Format = "N3"; // 0.00 formatı
+                grid.Columns["TotalAir"].HeaderText = "Total Air (m³)";
+                grid.Columns["TotalAir"].DefaultCellStyle.Format = "N3"; // 0.00 formatı
             }
 
             // ELEKTRİK

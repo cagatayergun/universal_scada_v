@@ -162,7 +162,7 @@ namespace TekstilScada.Repositories
                         SELECT 
                             HOUR(EndTime) AS Saat,
                             SUM(TotalElectricity) AS ToplamElektrik,
-                            SUM(TotalWater) AS ToplamSu,
+                            SUM(TotalAir) AS ToplamSu,
                             SUM(TotalSteam) AS ToplamBuhar
                         FROM production_batches
                         WHERE DATE(EndTime) = @SelectedDate 
@@ -175,13 +175,13 @@ namespace TekstilScada.Repositories
                         SELECT
                             LogHour as Saat,
                             SUM(MaxElec - MinElec) as ToplamElektrik,
-                            SUM(MaxWater - MinWater) as ToplamSu,
+                            SUM(MaxAir - MinAir) as ToplamSu,
                             SUM(MaxSteam - MinSteam) as ToplamBuhar
                         FROM (
                             SELECT 
                                 MachineId,
                                 HOUR(LogTimestamp) as LogHour,
-                                MIN(LiveWaterLevel) as MinWater, MAX(LiveWaterLevel) as MaxWater,
+                                MIN(LiveAirLevel) as MinAir, MAX(LiveAirLevel) as MaxAir,
                                 MIN(LiveElectricity) as MinElec, MAX(LiveElectricity) as MaxElec,
                                 MIN(LiveSteam) as MinSteam, MAX(LiveSteam) as MaxSteam
                             FROM manual_mode_log
@@ -215,7 +215,7 @@ namespace TekstilScada.Repositories
             switch (consumptionType.ToLower())
             {
                 case "su":
-                    consumptionColumn = "TotalWater";
+                    consumptionColumn = "TotalAir";
                     break;
                 case "buhar":
                     consumptionColumn = "TotalSteam";

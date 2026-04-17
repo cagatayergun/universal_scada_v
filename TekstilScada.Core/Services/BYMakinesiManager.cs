@@ -26,7 +26,7 @@ namespace TekstilScada.Services
         private const string MANUAL_MODE = "3"; // Kx30D -> D30.0 -> coil
         private const string PAUSE_STATUS = "1"; // MX1015 -> M1015
         private const string ALARM_NO = "3001"; // D3604
-        private const string CURRENT_WATER_LEVEL = "3002"; // K200 -> D200
+        private const string CURRENT_Air_LEVEL = "3002"; // K200 -> D200
         private const string CURRENT_RPM = "3003"; // D6007
         private const string CURRENT_TEMPERATURE = "3004"; // D4980
         private const string PROCESS_PERCENTAGE = "3005"; // D7752
@@ -36,7 +36,7 @@ namespace TekstilScada.Services
         private const string BATCH_NO = "3036"; // D6130
         private const string OPERATOR_NAME = "3056"; // D6460
         private const string RECIPE_NAME = "3071"; // D2550
-        private const string WATER_QUANTITY = "3077"; // D7702
+        private const string Air_QUANTITY = "3077"; // D7702
         private const string ELECTRICITY_CONSUMPTION = "3078"; // D7720
         private const string STEAM_CONSUMPTION = "3079"; // D7744
         private const string OPERATING_TIME = "3080"; // D7750
@@ -132,9 +132,9 @@ namespace TekstilScada.Services
                 if (alarmNoResult.IsSuccess) { status.ActiveAlarmNumber = alarmNoResult.Content; status.HasActiveAlarm = alarmNoResult.Content > 0; }
                 else { Debug.WriteLine($"[ERROR] {IpAddress} - {ALARM_NO} (Alarm No) could not be read: {alarmNoResult.Message}"); anyReadFailed = true; }
 
-                var suSeviyesiResult = _plcClient.ReadInt16(CURRENT_WATER_LEVEL);
+                var suSeviyesiResult = _plcClient.ReadInt16(CURRENT_Air_LEVEL);
                 if (suSeviyesiResult.IsSuccess) status.AnlikSuSeviyesi = suSeviyesiResult.Content;
-                else { Debug.WriteLine($"[ERROR] {IpAddress} - {CURRENT_WATER_LEVEL} (Current Water Level) could not be read: {suSeviyesiResult.Message}"); anyReadFailed = true; }
+                else { Debug.WriteLine($"[ERROR] {IpAddress} - {CURRENT_Air_LEVEL} (Current Air Level) could not be read: {suSeviyesiResult.Message}"); anyReadFailed = true; }
 
                 var devirResult = _plcClient.ReadInt16(CURRENT_RPM);
                 if (devirResult.IsSuccess) status.AnlikDevirRpm = devirResult.Content;
@@ -191,7 +191,7 @@ namespace TekstilScada.Services
 
                     
                 }
-                var suResult = _plcClient.ReadInt16(WATER_QUANTITY);
+                var suResult = _plcClient.ReadInt16(Air_QUANTITY);
                 if (!suResult.IsSuccess) return OperateResult.CreateFailedResult<FullMachineStatus>(suResult);
                 status.SuMiktari = suResult.Content;
 
@@ -583,9 +583,9 @@ namespace TekstilScada.Services
             {
                 var summary = new BatchSummaryData();
                 // CHANGE: Modbus address is used
-                var waterResult = await Task.Run(() => _plcClient.ReadInt16(WATER_QUANTITY));
-                if (!waterResult.IsSuccess) return OperateResult.CreateFailedResult<BatchSummaryData>(waterResult);
-                summary.TotalWater = waterResult.Content;
+                var AirResult = await Task.Run(() => _plcClient.ReadInt16(Air_QUANTITY));
+                if (!AirResult.IsSuccess) return OperateResult.CreateFailedResult<BatchSummaryData>(AirResult);
+                summary.TotalAir = AirResult.Content;
                 var electricityResult = await Task.Run(() => _plcClient.ReadInt16(ELECTRICITY_CONSUMPTION));
                 if (!electricityResult.IsSuccess) return OperateResult.CreateFailedResult<BatchSummaryData>(electricityResult);
                 summary.TotalElectricity = (short)(electricityResult.Content * 10);

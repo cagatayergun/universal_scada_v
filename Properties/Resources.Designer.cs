@@ -396,9 +396,9 @@ namespace TekstilScada.Properties {
         /// <summary>
         ///   Soğuk Su benzeri yerelleştirilmiş bir dize arar.
         /// </summary>
-        public static string ColdWater {
+        public static string ColdAir {
             get {
-                return ResourceManager.GetString("ColdWater", resourceCulture);
+                return ResourceManager.GetString("ColdAir", resourceCulture);
             }
         }
         
@@ -774,9 +774,9 @@ namespace TekstilScada.Properties {
         /// <summary>
         ///   Sıcak Su benzeri yerelleştirilmiş bir dize arar.
         /// </summary>
-        public static string HotWater {
+        public static string HotAir {
             get {
-                return ResourceManager.GetString("HotWater", resourceCulture);
+                return ResourceManager.GetString("HotAir", resourceCulture);
             }
         }
         
@@ -1026,18 +1026,18 @@ namespace TekstilScada.Properties {
         /// <summary>
         ///   Ana Tank Temiz Su Al benzeri yerelleştirilmiş bir dize arar.
         /// </summary>
-        public static string MainTankCleanWater {
+        public static string MainTankCleanAir {
             get {
-                return ResourceManager.GetString("MainTankCleanWater", resourceCulture);
+                return ResourceManager.GetString("MainTankCleanAir", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Ana Tank Mak. Su Al benzeri yerelleştirilmiş bir dize arar.
         /// </summary>
-        public static string MainTankWater {
+        public static string MainTankAir {
             get {
-                return ResourceManager.GetString("MainTankWater", resourceCulture);
+                return ResourceManager.GetString("MainTankAir", resourceCulture);
             }
         }
         
@@ -1566,9 +1566,9 @@ namespace TekstilScada.Properties {
         /// <summary>
         ///   Yumuşak Su benzeri yerelleştirilmiş bir dize arar.
         /// </summary>
-        public static string SoftWater {
+        public static string SoftAir {
             get {
-                return ResourceManager.GetString("SoftWater", resourceCulture);
+                return ResourceManager.GetString("SoftAir", resourceCulture);
             }
         }
         
@@ -1674,18 +1674,18 @@ namespace TekstilScada.Properties {
         /// <summary>
         ///   1. Tank Su Al benzeri yerelleştirilmiş bir dize arar.
         /// </summary>
-        public static string Tank1Water {
+        public static string Tank1Air {
             get {
-                return ResourceManager.GetString("Tank1Water", resourceCulture);
+                return ResourceManager.GetString("Tank1Air", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Tank Alınan Su: benzeri yerelleştirilmiş bir dize arar.
         /// </summary>
-        public static string TankWaterAmount {
+        public static string TankAirAmount {
             get {
-                return ResourceManager.GetString("TankWaterAmount", resourceCulture);
+                return ResourceManager.GetString("TankAirAmount", resourceCulture);
             }
         }
         
@@ -1872,9 +1872,9 @@ namespace TekstilScada.Properties {
         /// <summary>
         ///   SU ALMA benzeri yerelleştirilmiş bir dize arar.
         /// </summary>
-        public static string WaterIntake {
+        public static string AirIntake {
             get {
-                return ResourceManager.GetString("WaterIntake", resourceCulture);
+                return ResourceManager.GetString("AirIntake", resourceCulture);
             }
         }
         

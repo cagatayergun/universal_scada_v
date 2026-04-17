@@ -117,32 +117,32 @@ namespace TekstilScada.UI.Views
         }
 
         // Ortalama hesaplama işini ayrı bir metoda taşıyalım
-        private (double Water, double Electricity, double Steam, TimeSpan CycleTime) CalculateAverages(List<ProductionReportItem> history)
+        private (double Air, double Electricity, double Steam, TimeSpan CycleTime) CalculateAverages(List<ProductionReportItem> history)
         {
             if (!history.Any())
                 return (0, 0, 0, TimeSpan.Zero);
 
-            double avgWater = history.Average(h => h.TotalWater);
+            double avgAir = history.Average(h => h.TotalAir);
             double avgElectricity = history.Average(h => h.TotalElectricity);
             double avgSteam = history.Average(h => h.TotalSteam);
             var avgCycleTime = TimeSpan.FromSeconds(history.Average(h => TimeSpan.Parse(h.CycleTime).TotalSeconds));
 
-            return (avgWater, avgElectricity, avgSteam, avgCycleTime);
+            return (avgAir, avgElectricity, avgSteam, avgCycleTime);
         }
 
         // Sonuçları ilgili panellere yazdıran metot
-        private void DisplayAverages((double Water, double Electricity, double Steam, TimeSpan CycleTime) averages, int panelIndex)
+        private void DisplayAverages((double Air, double Electricity, double Steam, TimeSpan CycleTime) averages, int panelIndex)
         {
             if (panelIndex == 1)
             {
-                lblAvgWater.Text = $"{averages.Water:F0} L";
+                lblAvgAir.Text = $"{averages.Air:F0} L";
                 lblAvgElectricity.Text = $"{averages.Electricity:F1} kW";
                 lblAvgSteam.Text = $"{averages.Steam:F1} kg";
                 lblAvgCycleTime.Text = averages.CycleTime.ToString(@"hh\:mm\:ss");
             }
             else // Panel 2
             {
-                lblAvgWater2.Text = $"{averages.Water:F0} L";
+                lblAvgAir2.Text = $"{averages.Air:F0} L";
                 lblAvgElectricity2.Text = $"{averages.Electricity:F1} kW";
                 lblAvgSteam2.Text = $"{averages.Steam:F1} kg";
                 lblAvgCycleTime2.Text = averages.CycleTime.ToString(@"hh\:mm\:ss");
@@ -151,11 +151,11 @@ namespace TekstilScada.UI.Views
 
         // Karşılaştırma ve renklendirme metodu
         private void CompareAndHighlight(
-            (double Water, double Electricity, double Steam, TimeSpan CycleTime) avg1,
-            (double Water, double Electricity, double Steam, TimeSpan CycleTime) avg2)
+            (double Air, double Electricity, double Steam, TimeSpan CycleTime) avg1,
+            (double Air, double Electricity, double Steam, TimeSpan CycleTime) avg2)
         {
             // Su Tüketimi Karşılaştırması
-            HighlightLabel(lblAvgWater, lblAvgWater2, avg1.Water, avg2.Water);
+            HighlightLabel(lblAvgAir, lblAvgAir2, avg1.Air, avg2.Air);
             // Elektrik Tüketimi Karşılaştırması
             HighlightLabel(lblAvgElectricity, lblAvgElectricity2, avg1.Electricity, avg2.Electricity);
             // Buhar Tüketimi Karşılaştırması

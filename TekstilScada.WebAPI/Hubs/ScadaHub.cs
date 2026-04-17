@@ -69,7 +69,7 @@ public class TrendDataPoint
     public DateTime Timestamp { get; set; }
     public double Temperature { get; set; }
     public double Rpm { get; set; }
-    public double WaterLevel { get; set; }
+    public double AirLevel { get; set; }
 }
 
 public class ProductionStepDetailDto : ProductionStepDetail

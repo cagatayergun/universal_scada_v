@@ -1,7 +1,7 @@
-﻿// WaterTankGauge.Designer.cs
+﻿// AirTankGauge.Designer.cs
 namespace TekstilScada.UI.Controls
 {
-    partial class WaterTankGauge
+    partial class AirTankGauge
     {
         /// <summary> 
         /// Required designer variable.
@@ -31,11 +31,11 @@ namespace TekstilScada.UI.Controls
         {
             this.SuspendLayout();
             // 
-            // WaterTankGauge
+            // AirTankGauge
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.Name = "WaterTankGauge";
+            this.Name = "AirTankGauge";
             this.Size = new System.Drawing.Size(150, 150);
             this.ResumeLayout(false);
         }

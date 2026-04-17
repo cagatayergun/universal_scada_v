@@ -26,19 +26,7 @@
             tableLayoutPanelTop = new TableLayoutPanel();
             pnlGaugesAndInfo = new Panel();
             pnlGauges = new Panel();
-            waterTankGauge1 = new TekstilScada.UI.Controls.WaterTankGauge();
-            panelTemp = new Panel();
-            label11 = new Label();
-            label9 = new Label();
-            lblTempValue = new Label();
-            lblTempTitle = new Label();
-            progressTemp = new Panel();
-            gaugeRpm = new CircularProgressBar.CircularProgressBar();
             pnlInfo = new Panel();
-            lblSiparisNo = new Label();
-            label6 = new Label();
-            lblBatchNo = new Label();
-            label5 = new Label();
             lblMusteriNo = new Label();
             label4 = new Label();
             lblOperator = new Label();
@@ -50,20 +38,19 @@
             tblPlots = new TableLayoutPanel();
             formsPlotTemp = new ScottPlot.WinForms.FormsPlot();
             formsPlotRpm = new ScottPlot.WinForms.FormsPlot();
-            formsPlotWater = new ScottPlot.WinForms.FormsPlot();
+            formsPlotAir = new ScottPlot.WinForms.FormsPlot();
             pnlAlarmsAndSteps = new Panel();
-            dgvAdimlar = new DataGridView();
-            label10 = new Label();
-            lblCalisanAdim = new Label();
-            label8 = new Label();
             lstAlarmlar = new ListBox();
             label7 = new Label();
+            label5 = new Label();
+            label6 = new Label();
+            label8 = new Label();
+            gaugeRpm = new Label();
+            humuditytxt = new Label();
+            lblTempValue = new Label();
             label12 = new Label();
             label13 = new Label();
-            humuditytxt = new Label();
-            lblhumudity = new Label();
-            humuditybar = new Panel();
-            humuditypanel = new Panel();
+            label14 = new Label();
             pnlTop.SuspendLayout();
             pnlMainContent.SuspendLayout();
             tableLayoutPanelMain.SuspendLayout();
@@ -71,13 +58,10 @@
             tableLayoutPanelTop.SuspendLayout();
             pnlGaugesAndInfo.SuspendLayout();
             pnlGauges.SuspendLayout();
-            panelTemp.SuspendLayout();
             pnlInfo.SuspendLayout();
             pnlTimeline.SuspendLayout();
             tblPlots.SuspendLayout();
             pnlAlarmsAndSteps.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)dgvAdimlar).BeginInit();
-            humuditypanel.SuspendLayout();
             SuspendLayout();
             // 
             // pnlTop
@@ -182,137 +166,24 @@
             // 
             pnlGauges.Anchor = AnchorStyles.Top | AnchorStyles.Bottom;
             pnlGauges.AutoSize = true;
-            pnlGauges.Controls.Add(humuditypanel);
-            pnlGauges.Controls.Add(waterTankGauge1);
-            pnlGauges.Controls.Add(panelTemp);
+            pnlGauges.Controls.Add(label14);
+            pnlGauges.Controls.Add(label13);
+            pnlGauges.Controls.Add(label12);
             pnlGauges.Controls.Add(gaugeRpm);
+            pnlGauges.Controls.Add(humuditytxt);
+            pnlGauges.Controls.Add(lblTempValue);
+            pnlGauges.Controls.Add(label8);
+            pnlGauges.Controls.Add(label6);
+            pnlGauges.Controls.Add(label5);
             pnlGauges.Location = new Point(203, 0);
             pnlGauges.Margin = new Padding(3, 2, 3, 2);
             pnlGauges.Name = "pnlGauges";
             pnlGauges.Size = new Size(760, 231);
             pnlGauges.TabIndex = 1;
             // 
-            // waterTankGauge1
-            // 
-            waterTankGauge1.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            waterTankGauge1.AutoSize = true;
-            waterTankGauge1.Location = new Point(531, 18);
-            waterTankGauge1.Margin = new Padding(3, 2, 3, 2);
-            waterTankGauge1.Maximum = 5000;
-            waterTankGauge1.Name = "waterTankGauge1";
-            waterTankGauge1.Size = new Size(170, 197);
-            waterTankGauge1.TabIndex = 4;
-            waterTankGauge1.Value = 0;
-            // 
-            // panelTemp
-            // 
-            panelTemp.Anchor = AnchorStyles.None;
-            panelTemp.Controls.Add(label11);
-            panelTemp.Controls.Add(label9);
-            panelTemp.Controls.Add(lblTempValue);
-            panelTemp.Controls.Add(lblTempTitle);
-            panelTemp.Controls.Add(progressTemp);
-            panelTemp.Location = new Point(305, 28);
-            panelTemp.Margin = new Padding(3, 2, 3, 2);
-            panelTemp.Name = "panelTemp";
-            panelTemp.Size = new Size(105, 176);
-            panelTemp.TabIndex = 3;
-            // 
-            // label11
-            // 
-            label11.AutoSize = true;
-            label11.BackColor = Color.Transparent;
-            label11.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label11.Location = new Point(25, 118);
-            label11.Name = "label11";
-            label11.Size = new Size(14, 15);
-            label11.TabIndex = 6;
-            label11.Text = "0";
-            // 
-            // label9
-            // 
-            label9.AutoSize = true;
-            label9.BackColor = Color.Transparent;
-            label9.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label9.Location = new Point(11, 17);
-            label9.Name = "label9";
-            label9.Size = new Size(28, 15);
-            label9.TabIndex = 5;
-            label9.Text = "100";
-            // 
-            // lblTempValue
-            // 
-            lblTempValue.Dock = DockStyle.Bottom;
-            lblTempValue.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
-            lblTempValue.Location = new Point(0, 132);
-            lblTempValue.Name = "lblTempValue";
-            lblTempValue.Size = new Size(105, 22);
-            lblTempValue.TabIndex = 2;
-            lblTempValue.Text = "0 °C";
-            lblTempValue.TextAlign = ContentAlignment.MiddleCenter;
-            // 
-            // lblTempTitle
-            // 
-            lblTempTitle.Dock = DockStyle.Bottom;
-            lblTempTitle.Font = new Font("Segoe UI", 10F);
-            lblTempTitle.ForeColor = Color.FromArgb(100, 100, 100);
-            lblTempTitle.Location = new Point(0, 154);
-            lblTempTitle.Name = "lblTempTitle";
-            lblTempTitle.Size = new Size(105, 22);
-            lblTempTitle.TabIndex = 1;
-            lblTempTitle.Text = "Sıcaklık";
-            lblTempTitle.TextAlign = ContentAlignment.MiddleCenter;
-            // 
-            // progressTemp
-            // 
-            progressTemp.Location = new Point(39, 17);
-            progressTemp.Margin = new Padding(3, 2, 3, 2);
-            progressTemp.Name = "progressTemp";
-            progressTemp.Size = new Size(26, 113);
-            progressTemp.TabIndex = 0;
-            // 
-            // gaugeRpm
-            // 
-            gaugeRpm.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
-            gaugeRpm.AnimationFunction = WinFormAnimation.KnownAnimationFunctions.Liner;
-            gaugeRpm.AnimationSpeed = 500;
-            gaugeRpm.BackColor = Color.Transparent;
-            gaugeRpm.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
-            gaugeRpm.ForeColor = Color.FromArgb(64, 64, 64);
-            gaugeRpm.InnerColor = Color.White;
-            gaugeRpm.InnerMargin = 2;
-            gaugeRpm.InnerWidth = -1;
-            gaugeRpm.Location = new Point(24, 42);
-            gaugeRpm.Margin = new Padding(3, 2, 3, 2);
-            gaugeRpm.MarqueeAnimationSpeed = 2000;
-            gaugeRpm.Maximum = 500;
-            gaugeRpm.Name = "gaugeRpm";
-            gaugeRpm.OuterColor = Color.FromArgb(224, 224, 224);
-            gaugeRpm.OuterMargin = -25;
-            gaugeRpm.OuterWidth = 26;
-            gaugeRpm.ProgressColor = Color.FromArgb(46, 204, 113);
-            gaugeRpm.ProgressWidth = 18;
-            gaugeRpm.SecondaryFont = new Font("Segoe UI", 10F);
-            gaugeRpm.Size = new Size(159, 148);
-            gaugeRpm.StartAngle = 135;
-            gaugeRpm.SubscriptColor = Color.FromArgb(100, 100, 100);
-            gaugeRpm.SubscriptMargin = new Padding(-6, 0, 0, 0);
-            gaugeRpm.SubscriptText = "RPM";
-            gaugeRpm.SuperscriptColor = Color.FromArgb(166, 166, 166);
-            gaugeRpm.SuperscriptMargin = new Padding(0, -35, 50, 0);
-            gaugeRpm.SuperscriptText = "";
-            gaugeRpm.TabIndex = 0;
-            gaugeRpm.Text = "0";
-            gaugeRpm.TextMargin = new Padding(7, 20, 0, 0);
-            gaugeRpm.Value = 68;
-            // 
             // pnlInfo
             // 
             pnlInfo.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
-            pnlInfo.Controls.Add(lblSiparisNo);
-            pnlInfo.Controls.Add(label6);
-            pnlInfo.Controls.Add(lblBatchNo);
-            pnlInfo.Controls.Add(label5);
             pnlInfo.Controls.Add(lblMusteriNo);
             pnlInfo.Controls.Add(label4);
             pnlInfo.Controls.Add(lblOperator);
@@ -325,50 +196,6 @@
             pnlInfo.Name = "pnlInfo";
             pnlInfo.Size = new Size(360, 231);
             pnlInfo.TabIndex = 0;
-            // 
-            // lblSiparisNo
-            // 
-            lblSiparisNo.BackColor = Color.White;
-            lblSiparisNo.BorderStyle = BorderStyle.FixedSingle;
-            lblSiparisNo.Font = new Font("Segoe UI", 9F);
-            lblSiparisNo.Location = new Point(128, 161);
-            lblSiparisNo.Name = "lblSiparisNo";
-            lblSiparisNo.Size = new Size(175, 19);
-            lblSiparisNo.TabIndex = 21;
-            lblSiparisNo.Text = "---";
-            lblSiparisNo.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // label6
-            // 
-            label6.AutoSize = true;
-            label6.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label6.Location = new Point(10, 162);
-            label6.Name = "label6";
-            label6.Size = new Size(62, 15);
-            label6.TabIndex = 20;
-            label6.Text = "Order No:";
-            // 
-            // lblBatchNo
-            // 
-            lblBatchNo.BackColor = Color.White;
-            lblBatchNo.BorderStyle = BorderStyle.FixedSingle;
-            lblBatchNo.Font = new Font("Segoe UI", 9F);
-            lblBatchNo.Location = new Point(128, 137);
-            lblBatchNo.Name = "lblBatchNo";
-            lblBatchNo.Size = new Size(175, 19);
-            lblBatchNo.TabIndex = 19;
-            lblBatchNo.Text = "---";
-            lblBatchNo.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // label5
-            // 
-            label5.AutoSize = true;
-            label5.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label5.Location = new Point(10, 139);
-            label5.Name = "label5";
-            label5.Size = new Size(61, 15);
-            label5.TabIndex = 18;
-            label5.Text = "Batch No:";
             // 
             // lblMusteriNo
             // 
@@ -462,7 +289,7 @@
             tblPlots.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             tblPlots.Controls.Add(formsPlotTemp, 0, 0);
             tblPlots.Controls.Add(formsPlotRpm, 0, 1);
-            tblPlots.Controls.Add(formsPlotWater, 0, 2);
+            tblPlots.Controls.Add(formsPlotAir, 0, 2);
             tblPlots.Dock = DockStyle.Fill;
             tblPlots.Location = new Point(0, 0);
             tblPlots.Name = "tblPlots";
@@ -491,22 +318,18 @@
             formsPlotRpm.Size = new Size(957, 166);
             formsPlotRpm.TabIndex = 1;
             // 
-            // formsPlotWater
+            // formsPlotAir
             // 
-            formsPlotWater.DisplayScale = 1F;
-            formsPlotWater.Dock = DockStyle.Fill;
-            formsPlotWater.Location = new Point(3, 347);
-            formsPlotWater.Name = "formsPlotWater";
-            formsPlotWater.Size = new Size(957, 168);
-            formsPlotWater.TabIndex = 2;
+            formsPlotAir.DisplayScale = 1F;
+            formsPlotAir.Dock = DockStyle.Fill;
+            formsPlotAir.Location = new Point(3, 347);
+            formsPlotAir.Name = "formsPlotAir";
+            formsPlotAir.Size = new Size(957, 168);
+            formsPlotAir.TabIndex = 2;
             // 
             // pnlAlarmsAndSteps
             // 
             pnlAlarmsAndSteps.BackColor = Color.WhiteSmoke;
-            pnlAlarmsAndSteps.Controls.Add(dgvAdimlar);
-            pnlAlarmsAndSteps.Controls.Add(label10);
-            pnlAlarmsAndSteps.Controls.Add(lblCalisanAdim);
-            pnlAlarmsAndSteps.Controls.Add(label8);
             pnlAlarmsAndSteps.Controls.Add(lstAlarmlar);
             pnlAlarmsAndSteps.Controls.Add(label7);
             pnlAlarmsAndSteps.Dock = DockStyle.Right;
@@ -518,60 +341,6 @@
             pnlAlarmsAndSteps.TabStop = true;
             pnlAlarmsAndSteps.Paint += pnlAlarmsAndSteps_Paint;
             // 
-            // dgvAdimlar
-            // 
-            dgvAdimlar.AllowUserToAddRows = false;
-            dgvAdimlar.AllowUserToDeleteRows = false;
-            dgvAdimlar.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            dgvAdimlar.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgvAdimlar.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvAdimlar.Location = new Point(49, 89);
-            dgvAdimlar.Margin = new Padding(3, 2, 3, 2);
-            dgvAdimlar.Name = "dgvAdimlar";
-            dgvAdimlar.ReadOnly = true;
-            dgvAdimlar.RowHeadersVisible = false;
-            dgvAdimlar.RowHeadersWidth = 51;
-            dgvAdimlar.RowTemplate.Height = 24;
-            dgvAdimlar.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvAdimlar.Size = new Size(291, 305);
-            dgvAdimlar.TabIndex = 5;
-            // 
-            // label10
-            // 
-            label10.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            label10.AutoSize = true;
-            label10.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold);
-            label10.Location = new Point(136, 69);
-            label10.Name = "label10";
-            label10.Size = new Size(94, 19);
-            label10.TabIndex = 4;
-            label10.Text = "Recipe Steps";
-            // 
-            // lblCalisanAdim
-            // 
-            lblCalisanAdim.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            lblCalisanAdim.BackColor = Color.White;
-            lblCalisanAdim.BorderStyle = BorderStyle.FixedSingle;
-            lblCalisanAdim.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
-            lblCalisanAdim.ForeColor = Color.ForestGreen;
-            lblCalisanAdim.Location = new Point(49, 33);
-            lblCalisanAdim.Name = "lblCalisanAdim";
-            lblCalisanAdim.Size = new Size(291, 24);
-            lblCalisanAdim.TabIndex = 3;
-            lblCalisanAdim.Text = "---";
-            lblCalisanAdim.TextAlign = ContentAlignment.MiddleCenter;
-            // 
-            // label8
-            // 
-            label8.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            label8.AutoSize = true;
-            label8.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold);
-            label8.Location = new Point(146, 13);
-            label8.Name = "label8";
-            label8.Size = new Size(97, 19);
-            label8.TabIndex = 2;
-            label8.Text = "Running Step";
-            // 
             // lstAlarmlar
             // 
             lstAlarmlar.Anchor = AnchorStyles.Left | AnchorStyles.Right;
@@ -580,10 +349,10 @@
             lstAlarmlar.ForeColor = Color.White;
             lstAlarmlar.FormattingEnabled = true;
             lstAlarmlar.ItemHeight = 15;
-            lstAlarmlar.Location = new Point(49, 427);
+            lstAlarmlar.Location = new Point(49, 22);
             lstAlarmlar.Margin = new Padding(3, 2, 3, 2);
             lstAlarmlar.Name = "lstAlarmlar";
-            lstAlarmlar.Size = new Size(291, 304);
+            lstAlarmlar.Size = new Size(291, 709);
             lstAlarmlar.TabIndex = 1;
             // 
             // label7
@@ -591,78 +360,102 @@
             label7.Anchor = AnchorStyles.Left | AnchorStyles.Right;
             label7.AutoSize = true;
             label7.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold);
-            label7.Location = new Point(133, 407);
+            label7.Location = new Point(135, 4);
             label7.Name = "label7";
             label7.Size = new Size(133, 19);
             label7.TabIndex = 0;
             label7.Text = "Intra-Party Alarms";
+            label7.Click += label7_Click;
+            // 
+            // label5
+            // 
+            label5.AutoSize = true;
+            label5.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label5.Location = new Point(101, 37);
+            label5.Name = "label5";
+            label5.Size = new Size(58, 15);
+            label5.TabIndex = 18;
+            label5.Text = "VACUUM";
+            // 
+            // label6
+            // 
+            label6.AutoSize = true;
+            label6.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label6.Location = new Point(341, 37);
+            label6.Name = "label6";
+            label6.Size = new Size(27, 15);
+            label6.TabIndex = 19;
+            label6.Text = "AIR";
+            // 
+            // label8
+            // 
+            label8.AutoSize = true;
+            label8.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label8.Location = new Point(572, 37);
+            label8.Name = "label8";
+            label8.Size = new Size(46, 15);
+            label8.TabIndex = 20;
+            label8.Text = "STEAM";
+            // 
+            // gaugeRpm
+            // 
+            gaugeRpm.AutoSize = true;
+            gaugeRpm.Font = new Font("Segoe UI", 48F, FontStyle.Bold);
+            gaugeRpm.Location = new Point(558, 99);
+            gaugeRpm.Name = "gaugeRpm";
+            gaugeRpm.Size = new Size(74, 86);
+            gaugeRpm.TabIndex = 23;
+            gaugeRpm.Text = "0";
+            // 
+            // humuditytxt
+            // 
+            humuditytxt.AutoSize = true;
+            humuditytxt.Font = new Font("Segoe UI", 48F, FontStyle.Bold);
+            humuditytxt.Location = new Point(317, 99);
+            humuditytxt.Name = "humuditytxt";
+            humuditytxt.Size = new Size(74, 86);
+            humuditytxt.TabIndex = 22;
+            humuditytxt.Text = "0";
+            // 
+            // lblTempValue
+            // 
+            lblTempValue.AutoSize = true;
+            lblTempValue.Font = new Font("Segoe UI", 48F, FontStyle.Bold);
+            lblTempValue.Location = new Point(100, 99);
+            lblTempValue.Name = "lblTempValue";
+            lblTempValue.Size = new Size(74, 86);
+            lblTempValue.TabIndex = 21;
+            lblTempValue.Text = "0";
             // 
             // label12
             // 
             label12.AutoSize = true;
-            label12.BackColor = Color.Transparent;
             label12.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label12.Location = new Point(25, 118);
+            label12.Location = new Point(163, 156);
             label12.Name = "label12";
-            label12.Size = new Size(14, 15);
-            label12.TabIndex = 6;
-            label12.Text = "0";
+            label12.Size = new Size(25, 15);
+            label12.TabIndex = 24;
+            label12.Text = "m3";
             // 
             // label13
             // 
             label13.AutoSize = true;
-            label13.BackColor = Color.Transparent;
             label13.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label13.Location = new Point(11, 17);
+            label13.Location = new Point(379, 156);
             label13.Name = "label13";
-            label13.Size = new Size(28, 15);
-            label13.TabIndex = 5;
-            label13.Text = "100";
+            label13.Size = new Size(25, 15);
+            label13.TabIndex = 25;
+            label13.Text = "m3";
             // 
-            // humuditytxt
+            // label14
             // 
-            humuditytxt.Dock = DockStyle.Bottom;
-            humuditytxt.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
-            humuditytxt.Location = new Point(0, 132);
-            humuditytxt.Name = "humuditytxt";
-            humuditytxt.Size = new Size(105, 22);
-            humuditytxt.TabIndex = 2;
-            humuditytxt.Text = "0 °C";
-            humuditytxt.TextAlign = ContentAlignment.MiddleCenter;
-            // 
-            // lblhumudity
-            // 
-            lblhumudity.Dock = DockStyle.Bottom;
-            lblhumudity.Font = new Font("Segoe UI", 10F);
-            lblhumudity.ForeColor = Color.FromArgb(100, 100, 100);
-            lblhumudity.Location = new Point(0, 154);
-            lblhumudity.Name = "lblhumudity";
-            lblhumudity.Size = new Size(105, 22);
-            lblhumudity.TabIndex = 1;
-            lblhumudity.Text = "Humudity";
-            lblhumudity.TextAlign = ContentAlignment.MiddleCenter;
-            // 
-            // humuditybar
-            // 
-            humuditybar.Location = new Point(39, 17);
-            humuditybar.Margin = new Padding(3, 2, 3, 2);
-            humuditybar.Name = "humuditybar";
-            humuditybar.Size = new Size(26, 113);
-            humuditybar.TabIndex = 0;
-            // 
-            // humuditypanel
-            // 
-            humuditypanel.Anchor = AnchorStyles.None;
-            humuditypanel.Controls.Add(label12);
-            humuditypanel.Controls.Add(label13);
-            humuditypanel.Controls.Add(humuditytxt);
-            humuditypanel.Controls.Add(lblhumudity);
-            humuditypanel.Controls.Add(humuditybar);
-            humuditypanel.Location = new Point(565, 28);
-            humuditypanel.Margin = new Padding(3, 2, 3, 2);
-            humuditypanel.Name = "humuditypanel";
-            humuditypanel.Size = new Size(105, 176);
-            humuditypanel.TabIndex = 4;
+            label14.AutoSize = true;
+            label14.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label14.Location = new Point(623, 156);
+            label14.Name = "label14";
+            label14.Size = new Size(22, 15);
+            label14.TabIndex = 26;
+            label14.Text = "Kg";
             // 
             // MakineDetay_Control
             // 
@@ -683,17 +476,12 @@
             pnlGaugesAndInfo.PerformLayout();
             pnlGauges.ResumeLayout(false);
             pnlGauges.PerformLayout();
-            panelTemp.ResumeLayout(false);
-            panelTemp.PerformLayout();
             pnlInfo.ResumeLayout(false);
             pnlInfo.PerformLayout();
             pnlTimeline.ResumeLayout(false);
             tblPlots.ResumeLayout(false);
             pnlAlarmsAndSteps.ResumeLayout(false);
             pnlAlarmsAndSteps.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)dgvAdimlar).EndInit();
-            humuditypanel.ResumeLayout(false);
-            humuditypanel.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -709,45 +497,32 @@
 
         // DEĞİŞEN KISIM: Tek formsPlot1 yerine tablo ve 3 grafik
         private System.Windows.Forms.TableLayoutPanel tblPlots;
-        private ScottPlot.WinForms.FormsPlot formsPlotTemp;
-        private ScottPlot.WinForms.FormsPlot formsPlotRpm;
-        private ScottPlot.WinForms.FormsPlot formsPlotWater;
 
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanelTop;
         private System.Windows.Forms.Panel pnlGaugesAndInfo;
         private System.Windows.Forms.Panel pnlInfo;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Panel pnlGauges;
-        private System.Windows.Forms.Label lblSiparisNo;
-        private System.Windows.Forms.Label label6;
-        private System.Windows.Forms.Label lblBatchNo;
-        private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label lblMusteriNo;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label lblOperator;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label lblReceteAdi;
         private System.Windows.Forms.Label label2;
-        private CircularProgressBar.CircularProgressBar gaugeRpm;
-        private System.Windows.Forms.Panel panelTemp;
-        private System.Windows.Forms.Panel progressTemp; // Tipi Panel oldu
-        private System.Windows.Forms.Label lblTempValue;
-        private System.Windows.Forms.Label lblTempTitle;
-        private UI.Controls.WaterTankGauge waterTankGauge1;
         private System.Windows.Forms.Panel pnlAlarmsAndSteps;
-        private System.Windows.Forms.DataGridView dgvAdimlar;
-        private System.Windows.Forms.Label label10;
-        private System.Windows.Forms.Label lblCalisanAdim;
-        private System.Windows.Forms.Label label8;
         private System.Windows.Forms.ListBox lstAlarmlar;
         private System.Windows.Forms.Label label7;
-        private System.Windows.Forms.Label label11;
-        private System.Windows.Forms.Label label9;
-        private Panel humuditypanel;
-        private Label label12;
-        private Label label13;
+        private ScottPlot.WinForms.FormsPlot formsPlotTemp;
+        private ScottPlot.WinForms.FormsPlot formsPlotRpm;
+        private ScottPlot.WinForms.FormsPlot formsPlotAir;
+        private Label gaugeRpm;
         private Label humuditytxt;
-        private Label lblhumudity;
-        private Panel humuditybar;
+        private Label lblTempValue;
+        private Label label8;
+        private Label label6;
+        private Label label5;
+        private Label label14;
+        private Label label13;
+        private Label label12;
     }
 }

@@ -7,7 +7,7 @@ namespace TekstilScada.Models
     /// </summary>
     public class BatchSummaryData
     {
-        public short TotalWater { get; set; }
+        public short TotalAir { get; set; }
         public short TotalElectricity { get; set; }
         public short TotalSteam { get; set; }
     }

@@ -43,8 +43,8 @@ namespace TekstilScada.UI
             txtStopTime.Text = _reportItem.EndTime.ToString("dd.MM.yyyy HH:mm:ss");
             var elektrikvalue = _reportItem.TotalElectricity;
             txtElectricity.Text = elektrikvalue.ToString();
-            var suvale = _reportItem.TotalWater;
-            txtWater.Text = suvale.ToString();
+            var suvale = _reportItem.TotalAir;
+            txtAir.Text = suvale.ToString();
             var steamvalue = _reportItem.TotalSteam;
             txtSteam.Text = steamvalue.ToString();
             txtTotalDuration.Text = _reportItem.CycleTime;

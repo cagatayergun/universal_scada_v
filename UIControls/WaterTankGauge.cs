@@ -1,4 +1,4 @@
-﻿// WaterTankGauge.cs
+﻿// AirTankGauge.cs
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -7,11 +7,11 @@ using System.Windows.Forms;
 // Namespace'i kendi projenize göre düzenleyebilirsiniz.
 namespace TekstilScada.UI.Controls
 {
-    public partial class WaterTankGauge : UserControl
+    public partial class AirTankGauge : UserControl
     {
         private int _value = 0;
         private int _maximum = 5000;
-        private string _title = "AMOUNT OF WATER";
+        private string _title = "AMOUNT OF Air";
         private string _unit = "L";
 
         public int Value
@@ -34,7 +34,7 @@ namespace TekstilScada.UI.Controls
             }
         }
 
-        public WaterTankGauge()
+        public AirTankGauge()
         {
             InitializeComponent();
             // Daha akıcı çizimler için DoubleBuffering'i etkinleştir.

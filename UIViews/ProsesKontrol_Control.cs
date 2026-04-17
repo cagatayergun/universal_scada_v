@@ -229,8 +229,8 @@ namespace TekstilScada.UI.Views
                 // Eğer makine tipi "BYMakinesi" ise butonları gizle, değilse göster.
                 bool isByMachine = selectedMachine.MachineType == "BYMakinesi";
 
-                btnReadFromPlc.Visible = !isByMachine; // BYMakinesi ise false olur (gizlenir)
-                btnSendToPlc.Visible = !isByMachine;   // BYMakinesi ise false olur (gizlenir)
+               // btnReadFromPlc.Visible = !isByMachine; // BYMakinesi ise false olur (gizlenir)
+               // btnSendToPlc.Visible = !isByMachine;   // BYMakinesi ise false olur (gizlenir)
 
                 // 3. Reçete uyumluluk kontrolü (Mevcut Kod)
                 if (_currentRecipe != null)
@@ -403,8 +403,10 @@ namespace TekstilScada.UI.Views
             _byMakinesiEditor.SplitterDistance = 40;
 
             _byMakinesiEditor.Panel1.Controls.Add(dgvRecipeSteps);
+            dgvRecipeSteps.Visible = false;
+            _byMakinesiEditor.Panel1Collapsed = true; // Alternatif olarak paneli tamamen daraltabilirsiniz
             _byMakinesiEditor.Panel2.Controls.Add(pnlStepDetails);
-
+            //pnlStepDetails.Visible = false;
             dgvRecipeSteps.Dock = DockStyle.Fill;
             dgvRecipeSteps.AllowUserToAddRows = false;
             dgvRecipeSteps.AllowUserToDeleteRows = false;
@@ -595,11 +597,26 @@ namespace TekstilScada.UI.Views
         private void PopulateStepsGridView()
         {
             if (_currentRecipe == null || _currentRecipe.Steps == null || dgvRecipeSteps == null) return;
+
             dgvRecipeSteps.Rows.Clear();
             foreach (var step in _currentRecipe.Steps)
             {
+                // "Her zaman Air seçili olsun" mantığı: 
+                // Eğer BYMakinesi ise tüm adımların 24. word'ünün 0. bitini (Air) 1 yapıyoruz.
+                step.StepDataWords[24] |= 1;
+
                 string stepTypeName = GetStepTypeName(step);
-                dgvRecipeSteps.Rows.Add(step.StepNumber, stepTypeName);
+               dgvRecipeSteps.Rows.Add(step.StepNumber, stepTypeName);
+            }
+
+            // İlk adımın otomatik seçilmesi
+            if (dgvRecipeSteps.Rows.Count > 0)
+            {
+                dgvRecipeSteps.ClearSelection();
+                dgvRecipeSteps.Rows[0].Selected = true;
+
+                // İlk adım seçili geldiğinde detayların yüklenmesi için event'i tetikle
+                DgvRecipeSteps_CellClick(dgvRecipeSteps, new DataGridViewCellEventArgs(0, 0));
             }
         }
 
@@ -607,7 +624,7 @@ namespace TekstilScada.UI.Views
         {
             var stepTypes = new List<string>();
             short controlWord = step.StepDataWords[24];
-            if ((controlWord & 1) != 0) stepTypes.Add("Water Intake");
+            if ((controlWord & 1) != 0) stepTypes.Add("Air Intake");
             if ((controlWord & 2) != 0) stepTypes.Add("Heating");
             if ((controlWord & 4) != 0) stepTypes.Add("Working");
             if ((controlWord & 8) != 0) stepTypes.Add("Dosage");
@@ -619,31 +636,19 @@ namespace TekstilScada.UI.Views
 
         private void DgvRecipeSteps_CellClick(object sender, DataGridViewCellEventArgs e)
         {
-            // Satır indeksi geçerli değilse veya gerekli nesneler yoksa metottan çık.
             if (e.RowIndex < 0 || _currentRecipe == null || pnlStepDetails == null) return;
 
             try
             {
-                // --- BU SEFERKİ KESİN ÇÖZÜM BURASI ---
-
-                // 1. Tıklanan satırdaki "Adım Numarası" hücresinin değerini alıyoruz.
-                // NOT: Eğer tablodaki adım numarası kolonunun adı farklıysa, "StepNumber" yazan
-                // yeri o kolonun adıyla değiştirmen gerekir. (Örn: "AdimNoKolonu")
                 var stepNumberCell = dgvRecipeSteps.Rows[e.RowIndex].Cells["StepNumber"].Value;
-
-                if (stepNumberCell == null) return; // Hücre boşsa hata vermemesi için kontrol.
+                if (stepNumberCell == null) return;
 
                 int stepNumberToFind = Convert.ToInt32(stepNumberCell);
-
-                // 2. Orijinal ve sırasız "_currentRecipe.Steps" listesi içinde,
-                // bu adım numarasına sahip olan adımı buluyoruz. Bu yöntem sıralamadan etkilenmez.
                 var selectedStep = _currentRecipe.Steps.FirstOrDefault(s => s.StepNumber == stepNumberToFind);
-
-                // 3. Aradığımız adım bulunamazsa (normalde olmamalı), güvenli bir şekilde metottan çıkıyoruz.
                 if (selectedStep == null) return;
 
-
-                // --- DÜZELTME BİTTİ, KODUNUN GERİ KALANI ARTIK DOĞRU ÇALIŞACAK ---
+                // Arka planda "Air" her zaman seçili kalsın
+                selectedStep.StepDataWords[24] |= 1;
 
                 pnlStepDetails.Controls.Clear();
                 pnlStepDetails.Controls.Add(lblStepDetailsTitle);
@@ -654,9 +659,15 @@ namespace TekstilScada.UI.Views
                 var mainEditor = new StepEditor_Control();
                 mainEditor.LoadStep(selectedStep, selectedMachine);
 
+                // --- YENİ: CHECKBOX'LARI GİZLEME ÇAĞRISI ---
+                if (selectedMachine?.MachineType == "BYMakinesi")
+                {
+                    HideStepTypeSelectors(mainEditor);
+                }
+                // ------------------------------------------
+
                 mainEditor.StepDataChanged += (s, ev) =>
                 {
-                    // Tıklanan görsel satırı güncellemek için e.RowIndex kullanımı burada doğrudur.
                     if (dgvRecipeSteps.Rows.Count > e.RowIndex)
                     {
                         dgvRecipeSteps.Rows[e.RowIndex].Cells["StepType"].Value = GetStepTypeName(selectedStep);
@@ -668,8 +679,7 @@ namespace TekstilScada.UI.Views
             }
             catch (Exception ex)
             {
-                // Olası bir "kolon adı bulunamadı" veya "tip dönüşümü" hatasını yakalamak için.
-                MessageBox.Show($"An error occurred while loading step details: {ex.Message}", "Error");
+                System.Diagnostics.Debug.WriteLine("Hata: " + ex.Message);
             }
         }
 
@@ -1357,6 +1367,36 @@ namespace TekstilScada.UI.Views
             catch (Exception ex)
             {
                 MessageBox.Show($"An error occurred while pasting the recipe: {ex.Message}", "Error");
+            }
+        }
+        /// <summary>
+        /// Editör içerisindeki adım tipi seçim kutularını (CheckBox/RadioButton) gizler.
+        /// </summary>
+        private void HideStepTypeSelectors(Control parent)
+        {
+            // Gizlenmesi istenen anahtar kelimeler
+            var forbiddenTexts = new List<string>
+    {
+        "Air Intake", "Heating", "Working", "Dosage",
+        "Unloading", "Squeezing", "Operator Call"
+    };
+
+            foreach (Control ctrl in parent.Controls)
+            {
+                // Eğer kontrol bir CheckBox ise ve metni listemizde varsa gizle
+                if (ctrl is CheckBox || ctrl is RadioButton)
+                {
+                    if (forbiddenTexts.Any(t => ctrl.Text.Contains(t)))
+                    {
+                        ctrl.Visible = false;
+                    }
+                }
+
+                // Eğer kontroller bir panel veya GroupBox içindeyse, onların içine de bak
+                if (ctrl.HasChildren)
+                {
+                    HideStepTypeSelectors(ctrl);
+                }
             }
         }
     }

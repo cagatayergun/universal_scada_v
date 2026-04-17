@@ -30,10 +30,10 @@ namespace TekstilScada.Repositories
                         SlaveId INT,
                         
                         -- Su Sayacı
-                        WaterEnabled BOOLEAN DEFAULT 1,
-                        WaterAddress INT,
-                        WaterDataType VARCHAR(20),
-                        WaterMultiplier DOUBLE DEFAULT 1.0,
+                        AirEnabled BOOLEAN DEFAULT 1,
+                        AirAddress INT,
+                        AirDataType VARCHAR(20),
+                        AirMultiplier DOUBLE DEFAULT 1.0,
 
                         -- Elektrik Sayacı
                         ElecEnabled BOOLEAN DEFAULT 1,
@@ -58,7 +58,7 @@ namespace TekstilScada.Repositories
                         Id BIGINT AUTO_INCREMENT PRIMARY KEY,
                         LineId INT,
                         LogTime DATETIME,
-                        WaterCounter DOUBLE,
+                        AirCounter DOUBLE,
                         ElecCounter DOUBLE,
                         SteamCounter DOUBLE,
                         AirCounter DOUBLE,
@@ -81,13 +81,13 @@ namespace TekstilScada.Repositories
                     string sql = @"
                 INSERT INTO utility_lines (
                     LineName, IpAddress, Port, SlaveId,
-                    WaterEnabled, WaterAddress, WaterDataType, WaterMultiplier,
+                    AirEnabled, AirAddress, AirDataType, AirMultiplier,
                     ElecEnabled, ElecAddress, ElecDataType, ElecMultiplier,
                     SteamEnabled, SteamAddress, SteamDataType, SteamMultiplier,
                     AirEnabled, AirAddress, AirDataType, AirMultiplier
                 ) VALUES (
                     @LineName, @IpAddress, @Port, @SlaveId,
-                    @WaterEnabled, @WaterAddress, @WaterDataType, @WaterMultiplier,
+                    @AirEnabled, @AirAddress, @AirDataType, @AirMultiplier,
                     @ElecEnabled, @ElecAddress, @ElecDataType, @ElecMultiplier,
                     @SteamEnabled, @SteamAddress, @SteamDataType, @SteamMultiplier,
                     @AirEnabled, @AirAddress, @AirDataType, @AirMultiplier
@@ -103,7 +103,7 @@ namespace TekstilScada.Repositories
                     string sql = @"
                 UPDATE utility_lines SET 
                     LineName=@LineName, IpAddress=@IpAddress, Port=@Port, SlaveId=@SlaveId,
-                    WaterEnabled=@WaterEnabled, WaterAddress=@WaterAddress, WaterDataType=@WaterDataType, WaterMultiplier=@WaterMultiplier,
+                    AirEnabled=@AirEnabled, AirAddress=@AirAddress, AirDataType=@AirDataType, AirMultiplier=@AirMultiplier,
                     ElecEnabled=@ElecEnabled, ElecAddress=@ElecAddress, ElecDataType=@ElecDataType, ElecMultiplier=@ElecMultiplier,
                     SteamEnabled=@SteamEnabled, SteamAddress=@SteamAddress, SteamDataType=@SteamDataType, SteamMultiplier=@SteamMultiplier,
                     AirEnabled=@AirEnabled, AirAddress=@AirAddress, AirDataType=@AirDataType, AirMultiplier=@AirMultiplier
@@ -134,8 +134,8 @@ namespace TekstilScada.Repositories
                 using (var trans = conn.BeginTransaction())
                 {
                     conn.Execute(@"
-                        INSERT INTO utility_logs (LineId, LogTime, WaterCounter, ElecCounter, SteamCounter, AirCounter) 
-                        VALUES (@LineId, @LogTime, @WaterCounter, @ElecCounter, @SteamCounter, @AirCounter)",
+                        INSERT INTO utility_logs (LineId, LogTime, AirCounter, ElecCounter, SteamCounter, AirCounter) 
+                        VALUES (@LineId, @LogTime, @AirCounter, @ElecCounter, @SteamCounter, @AirCounter)",
                         logs, transaction: trans);
                     trans.Commit();
                 }
@@ -166,8 +166,8 @@ namespace TekstilScada.Repositories
                 {
                     var stats = conn.QueryFirstOrDefault<dynamic>(@"
                         SELECT 
-                            (SELECT WaterCounter FROM utility_logs WHERE LineId = @id ORDER BY LogTime DESC LIMIT 1) as CurrentWater,
-                            (SELECT WaterCounter FROM utility_logs WHERE LineId = @id AND LogTime >= DATE_SUB(NOW(), INTERVAL 24 HOUR) ORDER BY LogTime ASC LIMIT 1) as OldWater,
+                            (SELECT AirCounter FROM utility_logs WHERE LineId = @id ORDER BY LogTime DESC LIMIT 1) as CurrentAir,
+                            (SELECT AirCounter FROM utility_logs WHERE LineId = @id AND LogTime >= DATE_SUB(NOW(), INTERVAL 24 HOUR) ORDER BY LogTime ASC LIMIT 1) as OldAir,
                             (SELECT ElecCounter FROM utility_logs WHERE LineId = @id ORDER BY LogTime DESC LIMIT 1) as CurrentElec,
                             (SELECT ElecCounter FROM utility_logs WHERE LineId = @id AND LogTime >= DATE_SUB(NOW(), INTERVAL 24 HOUR) ORDER BY LogTime ASC LIMIT 1) as OldElec,
                             (SELECT SteamCounter FROM utility_logs WHERE LineId = @id ORDER BY LogTime DESC LIMIT 1) as CurrentSteam,
@@ -182,10 +182,10 @@ namespace TekstilScada.Repositories
                         {
                             LineId = line.Id,
                             LineName = line.LineName,
-                            DailyWaterUsage = Math.Max(0, (double)(stats.CurrentWater ?? 0) - (double)(stats.OldWater ?? 0)),
+                            DailyAirUsage = Math.Max(0, (double)(stats.CurrentAir ?? 0) - (double)(stats.OldAir ?? 0)),
                             DailyElecUsage = Math.Max(0, (double)(stats.CurrentElec ?? 0) - (double)(stats.OldElec ?? 0)),
                             DailySteamUsage = Math.Max(0, (double)(stats.CurrentSteam ?? 0) - (double)(stats.OldSteam ?? 0)),
-                            DailyAirUsage = Math.Max(0, (double)(stats.CurrentAir ?? 0) - (double)(stats.OldAir ?? 0))
+                      //      DailyAirUsage = Math.Max(0, (double)(stats.CurrentAir ?? 0) - (double)(stats.OldAir ?? 0))
                         };
                         result.Add(dto);
                     }

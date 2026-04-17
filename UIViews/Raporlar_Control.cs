@@ -35,13 +35,13 @@ namespace TekstilScada.UI.Views
             _actionLogReport_Control = new ActionLogReport_Control();
            
             _genelUretimRaporu.Dock = DockStyle.Fill;
-            tabPageGenelUretim.Controls.Add(_genelUretimRaporu);
+            //tabPageGenelUretim.Controls.Add(_genelUretimRaporu);
 
             _alarmReport.Dock = DockStyle.Fill;
             tabPageAlarmReport.Controls.Add(_alarmReport);
 
             _productionReport.Dock = DockStyle.Fill;
-            tabPageProductionReport.Controls.Add(_productionReport);
+           // tabPageProductionReport.Controls.Add(_productionReport);
 
             _oeeReport.Dock = DockStyle.Fill;
             //tabPageOeeReport.Controls.Add(_oeeReport);
@@ -50,7 +50,7 @@ namespace TekstilScada.UI.Views
             tabPageTrendAnalysis.Controls.Add(_trendAnaliz);
 
             _recipeOptimization.Dock = DockStyle.Fill;
-            tabPageRecipeOptimization.Controls.Add(_recipeOptimization);
+           // tabPageRecipeOptimization.Controls.Add(_recipeOptimization);
 
             _manualUsageReport.Dock = DockStyle.Fill;
             tabPageManualReport.Controls.Add(_manualUsageReport);
@@ -65,12 +65,12 @@ namespace TekstilScada.UI.Views
         }
         private void ApplyLocalization()
         {
-            tabPageProductionReport.Text = Resources.üretimraporu;
+           // tabPageProductionReport.Text = Resources.üretimraporu;
             tabPageAlarmReport.Text = Resources.alarmrapor;
-            tabPageGenelUretim.Text = Resources.geneltüketim;
+          //  tabPageGenelUretim.Text = Resources.geneltüketim;
             tabPageManualReport.Text = Resources.manuelrapor;
             //tabPageOeeReport.Text = Resources.OeeReport;
-            tabPageRecipeOptimization.Text = Resources.RecipeOptimization;
+           // tabPageRecipeOptimization.Text = Resources.RecipeOptimization;
             tabPageTrendAnalysis.Text = Resources.TrendAnalysis;
         }
 

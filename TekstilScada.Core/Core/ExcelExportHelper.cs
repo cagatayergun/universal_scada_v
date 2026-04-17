@@ -45,7 +45,7 @@ namespace TekstilScada.Core.Core
                     worksheet.Cell(currentRow, 6).Value = item.EndTime;
                     worksheet.Cell(currentRow, 7).Value = item.CycleTime;
                     worksheet.Cell(currentRow, 8).Value = item.TotalSteam;
-                    worksheet.Cell(currentRow, 9).Value = item.TotalWater;
+                    worksheet.Cell(currentRow, 9).Value = item.TotalAir;
                     worksheet.Cell(currentRow, 10).Value = item.TotalElectricity;
                 }
 
@@ -263,7 +263,7 @@ namespace TekstilScada.Core.Core
             {
                 return type switch
                 {
-                    "TotalWater" => "Su (Litre)",
+                    "TotalAir" => "Su (Litre)",
                     "TotalElectricity" => "Elektrik (kW)",
                     "TotalSteam" => "Buhar (kg)",
                     _ => "Tüketim Değeri"
@@ -298,7 +298,7 @@ namespace TekstilScada.Core.Core
                     // Seçilen tüketim tipine göre değeri al
                     double consumptionValue = selectedConsumptionType switch
                     {
-                        "TotalWater" => item.TotalWater,
+                        "TotalAir" => item.TotalAir,
                         "TotalElectricity" => item.TotalElectricity,
                         "TotalSteam" => item.TotalSteam,
                         _ => 0
@@ -368,7 +368,7 @@ namespace TekstilScada.Core.Core
             public DateTime Timestamp { get; set; }
             public double Temperature { get; set; }
             public double Rpm { get; set; }
-            public double WaterLevel { get; set; }
+            public double AirLevel { get; set; }
         }
 
         public class ProductionStepDetailDto : ProductionStepDetail

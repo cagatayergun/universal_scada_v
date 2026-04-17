@@ -52,9 +52,9 @@ namespace TekstilScada.UI.Controls
             // YENİ: Makine Tipi "Kurutma" ise ilgili kontrolleri gizle
             if (this.MachineType == "Kurutma Makinesi")
             {
-                lblProcessing.Visible = false;
-                progressBar.Visible = false;
-                lblPercentage.Visible = false;
+               // lblProcessing.Visible = false;
+               // progressBar.Visible = false;
+                //lblPercentage.Visible = false;
             }
 
             // Kaynaklardan orijinal ikonları bir kereliğine yükle
@@ -170,11 +170,11 @@ namespace TekstilScada.UI.Controls
             lblOperatorValue.Text = status.OperatorIsmi;
             if (status.manuel_status)
             {
-                lblStepValue.Text = $"Working - Manuel";
+                //lblStepValue.Text = $"Working - Manuel";
             }
             else
             {
-                lblStepValue.Text = status.AktifAdimAdi;
+               // lblStepValue.Text = status.AktifAdimAdi;
             }
             lblMachineNameValue.Text = status.MachineName;
             lblMachineIdValue.Text = this.MachineUserDefinedId;
@@ -186,16 +186,16 @@ namespace TekstilScada.UI.Controls
                 if (picPause.Visible) picPause.Image = _originalPauseIcon;
                 picPlay.Visible = status.IsInRecipeMode && !status.IsPaused && status.manuel_status;
                 
-                if (progressBar.Value > 0)
-                {
-                    _lastValidProgress = progressBar.Value;
-                }
+               // if (progressBar.Value > 0)
+               // {
+               //     /_lastValidProgress = progressBar.Value;
+               // }
 
                 // Kurutma değilse progress güncelle (Görünür olmadığı için Kurutmada çalışsa da sorun olmaz ama temiz kod için kontrol eklenebilir)
                 if (this.MachineType != "Kurutma")
                 {
-                    progressBar.Value = _lastValidProgress;
-                    lblPercentage.Text = $"{_lastValidProgress} %";
+                   // progressBar.Value = _lastValidProgress;
+                    //lblPercentage.Text = $"{_lastValidProgress} %";
                 }
             }
             else
@@ -210,8 +210,8 @@ namespace TekstilScada.UI.Controls
                 if (this.MachineType != "Kurutma")
                 {
                     _lastValidProgress = Math.Max(0, Math.Min(100, (int)status.ProsesYuzdesi));
-                    progressBar.Value = _lastValidProgress;
-                    lblPercentage.Text = $"{_lastValidProgress} %";
+                   // progressBar.Value = _lastValidProgress;
+                   // lblPercentage.Text = $"{_lastValidProgress} %";
                 }
             }
             
@@ -223,14 +223,14 @@ namespace TekstilScada.UI.Controls
             string noConnectionText = "---";
             lblRecipeNameValue.Text = noConnectionText;
             lblOperatorValue.Text = noConnectionText;
-            lblStepValue.Text = noConnectionText;
+           // lblStepValue.Text = noConnectionText;
             lblMachineNameValue.Text = this.MachineName;
             lblMachineIdValue.Text = this.MachineUserDefinedId;
             
             if (this.MachineType != "Kurutma")
             {
-                progressBar.Value = 0;
-                lblPercentage.Text = "0 %";
+               // progressBar.Value = 0;
+                //lblPercentage.Text = "0 %";
             }
 
             picPlay.Visible = false;

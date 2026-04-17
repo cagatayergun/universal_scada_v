@@ -42,12 +42,12 @@ namespace TekstilScada.UI.Views
             tabPageAlarmSettings.Controls.Add(_alarmSettings);
 
             _plcOperatorSettings.Dock = DockStyle.Fill;
-            tabPagePlcOperators.Controls.Add(_plcOperatorSettings);
+            //tabPagePlcOperators.Controls.Add(_plcOperatorSettings);
             _costSettings.Dock = DockStyle.Fill; // YENİ
                                                  //  tabPageCostSettings.Controls.Add(_costSettings); // YENİ
                                                  // YENİ: Tasarımcı kontrolünü yeni sekmeye ekle
             _utilitySettings.Dock = DockStyle.Fill;
-            tabPageUtilitySettings.Controls.Add(_utilitySettings);
+           // tabPageUtilitySettings.Controls.Add(_utilitySettings);
             _recipeStepDesigner.Dock = DockStyle.Fill;
             tabPageRecipeDesigner.Controls.Add(_recipeStepDesigner);
             
@@ -110,10 +110,10 @@ namespace TekstilScada.UI.Views
             tabPageUserSettings.Text = Resources.UserManagement;
             tabPageAlarmSettings.Text = Resources.AlarmSettings;
             //tabPageCostSettings.Text = Resources.cost;
-            tabPagePlcOperators.Text = Resources.PlcOperatorManagement;
+          //  tabPagePlcOperators.Text = Resources.PlcOperatorManagement;
            tabPageRecipeDesigner.Text = Resources.recipedesigner;
             //btnSave.Text = Resources.Save;
-          tabPageUtilitySettings.Text = "Line Usage Settings";
+        //  tabPageUtilitySettings.Text = "Line Usage Settings";
 
         }
     }

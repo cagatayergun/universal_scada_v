@@ -46,7 +46,7 @@ public class TrendDataPoint
     public DateTime Timestamp { get; set; }
     public double Temperature { get; set; }
     public double Rpm { get; set; }
-    public double WaterLevel { get; set; }
+    public double AirLevel { get; set; }
 }
 
 public class ProductionStepDetailDto : ProductionStepDetail
@@ -752,7 +752,7 @@ namespace TekstilScada.Services
                 Timestamp = p.Timestamp,
                 Temperature = (double)p.Temperature,
                 Rpm = (double)p.Rpm,
-                WaterLevel = (double)p.WaterLevel
+                AirLevel = (double)p.AirLevel
             }).ToList();
 
             return new ProductionDetailDto

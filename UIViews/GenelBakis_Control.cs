@@ -329,9 +329,9 @@ namespace TekstilScada.UI.Views
                         {
                             LineName = "", // İsim zaten kartta var, değiştirmeye gerek yok
                             DailyElecUsage = log.ElecCounter,
-                            DailyWaterUsage = log.WaterCounter,
+                            DailyAirUsage = log.AirCounter,
                             DailySteamUsage = log.SteamCounter,
-                            DailyAirUsage = log.AirCounter
+                           // DailyAirUsage = log.AirCounter
                         };
                         card.SetData(dto);
                     }
@@ -453,7 +453,7 @@ namespace TekstilScada.UI.Views
                     return new
                     {
                         ElecData = _dashboardRepository.GetHourlyFactoryConsumption(today),
-                        WaterData = _dashboardRepository.GetHourlyFactoryConsumption(today),
+                        AirData = _dashboardRepository.GetHourlyFactoryConsumption(today),
                         SteamData = _dashboardRepository.GetHourlyFactoryConsumption(today),
                         TopAlarms = _alarmRepository.GetTopAlarmsByFrequency(now.AddDays(-1), now),
                         OeeData = _dashboardRepository.GetHourlyAverageOee(today)
@@ -474,19 +474,19 @@ namespace TekstilScada.UI.Views
                 formsPlotHourly.Plot.Axes.AutoScale();
                 formsPlotHourly.Refresh();
 
-                formsPlotHourlyWater.Plot.Clear();
-                if (result.WaterData != null && result.WaterData.Rows.Count > 0)
+                formsPlotHourlyAir.Plot.Clear();
+                if (result.AirData != null && result.AirData.Rows.Count > 0)
                 {
-                    double[] hours = result.WaterData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
-                    double[] consumption = result.WaterData.AsEnumerable().Select(row => row.IsNull("ToplamSu") ? 0.0 : Convert.ToDouble(row["ToplamSu"]) / 1000.0).ToArray();
+                    double[] hours = result.AirData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
+                    double[] consumption = result.AirData.AsEnumerable().Select(row => row.IsNull("ToplamSu") ? 0.0 : Convert.ToDouble(row["ToplamSu"]) / 1000.0).ToArray();
 
-                    var barPlot = formsPlotHourlyWater.Plot.Add.Scatter(hours, consumption);
+                    var barPlot = formsPlotHourlyAir.Plot.Add.Scatter(hours, consumption);
                     barPlot.Color = ScottPlot.Colors.CornflowerBlue;
                     barPlot.MarkerSize = 0;
-                    formsPlotHourlyWater.Plot.Axes.Left.Label.Text = "m³";
+                    formsPlotHourlyAir.Plot.Axes.Left.Label.Text = "m³";
                 }
-                formsPlotHourlyWater.Plot.Axes.AutoScale();
-                formsPlotHourlyWater.Refresh();
+                formsPlotHourlyAir.Plot.Axes.AutoScale();
+                formsPlotHourlyAir.Refresh();
 
                 formsPlotHourlySteam.Plot.Clear();
                 if (result.SteamData != null && result.SteamData.Rows.Count > 0)
@@ -563,9 +563,9 @@ namespace TekstilScada.UI.Views
 
         public void ApplyLocalization()
         {
-            gbHourlyConsumption.Text = "Hourly Electricity (kWh)";
+            gbHourlyConsumption.Text = "Hourly Vacuum (kWh)";
             gbTopAlarms.Text = Resources.ensikalarm;
-            gbHourlyConsumptionWater.Text = "Hourly Water (m³)";
+            gbHourlyConsumptionAir.Text = "Hourly Air (m³)";
             gbHourlyConsumptionSteam.Text = "Hourly Steam (m³)";
             gbHourlyOee.Text = "24 Hourly OEE";
         }

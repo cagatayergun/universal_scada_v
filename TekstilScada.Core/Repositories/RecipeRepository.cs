@@ -228,7 +228,7 @@ namespace TekstilScada.Repositories
                 b.StartTime,
                 b.EndTime,
                 TIMEDIFF(b.EndTime, b.StartTime) as CycleTime,
-                b.TotalWater,
+                b.TotalAir,
                 b.TotalElectricity,
                 b.TotalSteam
             FROM production_batches AS b
@@ -255,7 +255,7 @@ namespace TekstilScada.Repositories
                                         : reader.GetTimeSpan(reader.GetOrdinal("CycleTime")).ToString(@"hh\:mm\:ss"),
 
                             // GÜNCELLENDİ: Tüketim verileri artık okunuyor.
-                            TotalWater = reader.IsDBNull(reader.GetOrdinal("TotalWater")) ? 0 : reader.GetInt32("TotalWater"),
+                            TotalAir = reader.IsDBNull(reader.GetOrdinal("TotalAir")) ? 0 : reader.GetInt32("TotalAir"),
                             TotalElectricity = reader.IsDBNull(reader.GetOrdinal("TotalElectricity")) ? 0 : reader.GetInt32("TotalElectricity"),
                             TotalSteam = reader.IsDBNull(reader.GetOrdinal("TotalSteam")) ? 0 : reader.GetInt32("TotalSteam")
                         });

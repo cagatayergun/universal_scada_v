@@ -48,7 +48,7 @@ namespace TekstilScada.UIControls
             if (_isConnected)
             {
                 lblElecVal.Text = $"{data.DailyElecUsage:N1}\nkWh";
-                lblWaterVal.Text = $"{data.DailyWaterUsage:N1}\nm³";
+                lblAirVal.Text = $"{data.DailyAirUsage:N1}\nm³";
                 lblSteamVal.Text = $"{data.DailySteamUsage:N1}\nkg";
                 lblAirVal.Text = $"{data.DailyAirUsage:N1}\nm³";
             }
@@ -57,7 +57,7 @@ namespace TekstilScada.UIControls
         private void ResetValues()
         {
             lblElecVal.Text = "0.0\nkWh";
-            lblWaterVal.Text = "0.0\nm³";
+            lblAirVal.Text = "0.0\nm³";
             lblSteamVal.Text = "0.0\nkg";
             lblAirVal.Text = "0.0\nm³";
         }

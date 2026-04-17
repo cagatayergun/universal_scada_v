@@ -249,11 +249,11 @@
   <data name="MachineSelect" xml:space="preserve">
     <value>Select Machine</value>
   </data>
-  <data name="MainTankCleanWater" xml:space="preserve">
-    <value>Main Tank Clean Water Intake</value>
+  <data name="MainTankCleanAir" xml:space="preserve">
+    <value>Main Tank Clean Air Intake</value>
   </data>
-  <data name="MainTankWater" xml:space="preserve">
-    <value>Main Tank Mach. Water Intake</value>
+  <data name="MainTankAir" xml:space="preserve">
+    <value>Main Tank Mach. Air Intake</value>
   </data>
   <data name="MixingTime" xml:space="preserve">
     <value>Chemical Mixing Time:</value>
@@ -339,8 +339,8 @@
   <data name="Severity" xml:space="preserve">
     <value>Severity:</value>
   </data>
-  <data name="SoftWater" xml:space="preserve">
-    <value>Soft Water</value>
+  <data name="SoftAir" xml:space="preserve">
+    <value>Soft Air</value>
   </data>
   <data name="Squeezing" xml:space="preserve">
     <value>SQUEEZING</value>
@@ -363,11 +363,11 @@
   <data name="Tank1Dosage" xml:space="preserve">
     <value>1. Tank Dosage</value>
   </data>
-  <data name="Tank1Water" xml:space="preserve">
-    <value>1. Tank Water Intake</value>
+  <data name="Tank1Air" xml:space="preserve">
+    <value>1. Tank Air Intake</value>
   </data>
-  <data name="TankWaterAmount" xml:space="preserve">
-    <value>Tank Water Amount:</value>
+  <data name="TankAirAmount" xml:space="preserve">
+    <value>Tank Air Amount:</value>
   </data>
   <data name="Temperature" xml:space="preserve">
     <value>Temperature (°C)</value>
@@ -399,8 +399,8 @@
   <data name="Warning" xml:space="preserve">
     <value>Warning</value>
   </data>
-  <data name="WaterIntake" xml:space="preserve">
-    <value>WATER INTAKE</value>
+  <data name="AirIntake" xml:space="preserve">
+    <value>Air INTAKE</value>
   </data>
   <data name="CriticalError" xml:space="preserve">
     <value>Critical Error</value>
@@ -414,14 +414,14 @@
   <data name="NoAccess" xml:space="preserve">
     <value>You do not have permission to access this area.</value>
   </data>
-  <data name="ColdWater" xml:space="preserve">
-    <value>Cold Water</value>
+  <data name="ColdAir" xml:space="preserve">
+    <value>Cold Air</value>
   </data>
   <data name="DrumStop" xml:space="preserve">
     <value>Stop Drum</value>
   </data>
-  <data name="HotWater" xml:space="preserve">
-    <value>Hot Water</value>
+  <data name="HotAir" xml:space="preserve">
+    <value>Hot Air</value>
   </data>
   <data name="Cikiseminmisin" xml:space="preserve">
     <value>Are you sure you want to log out?</value>
@@ -532,13 +532,13 @@
     <value>Average Cycle Time</value>
   </data>
   <data name="ortalamaelektriktuketimi" xml:space="preserve">
-    <value>Hourly Electricity Consumption</value>
+    <value>Hourly Vacuum Consumption</value>
   </data>
   <data name="ortalamasutuketimi" xml:space="preserve">
-    <value>Hourly Water Consumption</value>
+    <value>Hourly Air Consumption</value>
   </data>
   <data name="suseviyesi" xml:space="preserve">
-    <value>Water Level</value>
+    <value>Air Level</value>
   </data>
   <data name="üretimraporu" xml:space="preserve">
     <value>Production Report</value>
@@ -604,7 +604,7 @@
     <value>Waiting</value>
   </data>
   <data name="Saatlikelektrik" xml:space="preserve">
-    <value>Hourly Electricity Consumption
+    <value>Hourly Vacuum Consumption
 </value>
   </data>
   <data name="ensikalarm" xml:space="preserve">
@@ -710,7 +710,7 @@
     <value>Electric</value>
   </data>
   <data name="su" xml:space="preserve">
-    <value>Water</value>
+    <value>Air</value>
   </data>
   <data name="buhar" xml:space="preserve">
     <value>Steam</value>
@@ -723,7 +723,7 @@
 </value>
   </data>
   <data name="sualma" xml:space="preserve">
-    <value>Take Water</value>
+    <value>Take Air</value>
   </data>
   <data name="isitma" xml:space="preserve">
     <value>Heating</value>

@@ -226,7 +226,7 @@ namespace TekstilScada.UI.Views
             if (dgvManualUsage.Columns["ToplamManuelSure"] != null)
                 dgvManualUsage.Columns["ToplamManuelSure"].HeaderText = "Total Manual Time";
             if (dgvManualUsage.Columns["ToplamSuTuketimi_Litre"] != null)
-                dgvManualUsage.Columns["ToplamSuTuketimi_Litre"].HeaderText = "Total Water (m³)";
+                dgvManualUsage.Columns["ToplamSuTuketimi_Litre"].HeaderText = "Total Air (m³)";
 
             if (dgvManualUsage.Columns["ToplamElektrikTuketimi_kW"] != null)
                 dgvManualUsage.Columns["ToplamElektrikTuketimi_kW"].HeaderText = "Total Electricity (kWh)";

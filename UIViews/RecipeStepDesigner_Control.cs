@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
@@ -19,19 +20,26 @@ namespace TekstilScada.UI.Views
     {
         // --- ENUMLAR ---
         private enum HitTest { None, Body, TopLeft, TopRight, BottomLeft, BottomRight }
-        public enum CustomButtonStyle { Kabartma, Solid } // Türkçe seçenekler için enum
+        public enum CustomButtonStyle { Kabartma, Solid }
 
         // --- SABİTLER ---
         private const int GridSize = 20;
         private const int HandleSize = 8;
 
         // --- DEĞİŞKENLER ---
-        private Control _activeControl;
+        private List<Control> _selectedControls = new List<Control>();
+        private Control _interactionControl;
         private Point _dragStartPoint;
-        private Rectangle _startBounds;
+        private Dictionary<Control, Rectangle> _startBoundsDict = new Dictionary<Control, Rectangle>();
+
         private HitTest _currentHitTest = HitTest.None;
         private bool _isDraggingOrResizing = false;
+
+        private bool _isLassoSelecting = false;
+        private Rectangle _selectionRect;
+
         private string _clipboardJson = null;
+        private Stack<string> _undoStack = new Stack<string>();
 
         private readonly RecipeConfigurationRepository _configRepo = new RecipeConfigurationRepository();
         private ContextMenuStrip _contextMenu;
@@ -59,11 +67,11 @@ namespace TekstilScada.UI.Views
             pnlDesignSurface.MouseMove += PnlDesignSurface_MouseMove;
             pnlDesignSurface.MouseUp += PnlDesignSurface_MouseUp;
 
-            tsbNew.Click += (s, e) => ClearLayout();
+            tsbNew.Click += (s, e) => { SaveUndoState(); ClearLayout(); };
             tsbSave.Click += BtnSaveLayout_Click;
-            tsbCopy.Click += (s, e) => CopyControl();
-            tsbPaste.Click += (s, e) => PasteControl();
-            tsbDelete.Click += (s, e) => DeleteActiveControl();
+            tsbCopy.Click += (s, e) => CopyControls();
+            tsbPaste.Click += (s, e) => PasteControls();
+            tsbDelete.Click += (s, e) => DeleteSelectedControls();
 
             BindToolboxEvents();
 
@@ -77,18 +85,45 @@ namespace TekstilScada.UI.Views
 
             var itemFront = new ToolStripMenuItem("En Öne Getir");
             itemFront.Image = SystemIcons.Shield.ToBitmap();
-            itemFront.Click += (s, e) => { _activeControl?.BringToFront(); pnlDesignSurface.Invalidate(); };
+            itemFront.Click += (s, e) =>
+            {
+                SaveUndoState();
+                foreach (var ctrl in _selectedControls) ctrl.BringToFront();
+                pnlDesignSurface.Invalidate();
+            };
             _contextMenu.Items.Add(itemFront);
 
             var itemBack = new ToolStripMenuItem("En Arkaya Gönder");
-            itemBack.Click += (s, e) => { _activeControl?.SendToBack(); pnlDesignSurface.Invalidate(); };
+            itemBack.Click += (s, e) =>
+            {
+                SaveUndoState();
+                foreach (var ctrl in _selectedControls) ctrl.SendToBack();
+                pnlDesignSurface.Invalidate();
+            };
             _contextMenu.Items.Add(itemBack);
+
+            _contextMenu.Items.Add(new ToolStripSeparator());
+
+            var itemCut = new ToolStripMenuItem("Kes");
+            itemCut.ShortcutKeys = Keys.Control | Keys.X;
+            itemCut.Click += (s, e) => CutControls();
+            _contextMenu.Items.Add(itemCut);
+
+            var itemCopy = new ToolStripMenuItem("Kopyala");
+            itemCopy.ShortcutKeys = Keys.Control | Keys.C;
+            itemCopy.Click += (s, e) => CopyControls();
+            _contextMenu.Items.Add(itemCopy);
+
+            var itemPaste = new ToolStripMenuItem("Yapıştır");
+            itemPaste.ShortcutKeys = Keys.Control | Keys.V;
+            itemPaste.Click += (s, e) => PasteControls();
+            _contextMenu.Items.Add(itemPaste);
 
             _contextMenu.Items.Add(new ToolStripSeparator());
 
             var itemDel = new ToolStripMenuItem("Sil");
             itemDel.ShortcutKeys = Keys.Delete;
-            itemDel.Click += (s, e) => DeleteActiveControl();
+            itemDel.Click += (s, e) => DeleteSelectedControls();
             _contextMenu.Items.Add(itemDel);
         }
 
@@ -119,6 +154,33 @@ namespace TekstilScada.UI.Views
             tsCmbStepType.ComboBox.ValueMember = "Id";
         }
 
+        // --- UNDO / REDO ---
+        private void SaveUndoState()
+        {
+            var list = new List<ControlMetadata>();
+            foreach (Control c in pnlDesignSurface.Controls) list.Add(CreateMetadataFromControl(c));
+            _undoStack.Push(JsonSerializer.Serialize(list));
+        }
+
+        private void PerformUndo()
+        {
+            if (_undoStack.Count > 0)
+            {
+                string state = _undoStack.Pop();
+                pnlDesignSurface.Controls.Clear();
+                _selectedControls.Clear();
+
+                try
+                {
+                    var list = JsonSerializer.Deserialize<List<ControlMetadata>>(state);
+                    foreach (var item in list) CreateControlFromJson(item, false, false);
+                }
+                catch { }
+
+                UpdateSelectionUI();
+            }
+        }
+
         // --- ÇİZİM ---
         private void PnlDesignSurface_Paint(object sender, PaintEventArgs e)
         {
@@ -129,7 +191,8 @@ namespace TekstilScada.UI.Views
 
             foreach (Control ctrl in pnlDesignSurface.Controls)
             {
-                if (ctrl == _activeControl) continue;
+                if (_selectedControls.Contains(ctrl)) continue;
+
                 using (Pen pen = new Pen(Color.FromArgb(220, 220, 220)))
                 {
                     pen.DashStyle = DashStyle.Dot;
@@ -138,14 +201,26 @@ namespace TekstilScada.UI.Views
                 }
             }
 
-            if (_activeControl != null)
+            foreach (var ctrl in _selectedControls)
             {
-                Rectangle rect = _activeControl.Bounds;
+                Rectangle rect = ctrl.Bounds;
                 using (Pen pen = new Pen(Color.FromArgb(0, 122, 204), 1))
                 {
                     g.DrawRectangle(pen, rect.X - 1, rect.Y - 1, rect.Width + 1, rect.Height + 1);
                 }
                 DrawHandles(g, rect);
+            }
+
+            if (_isLassoSelecting)
+            {
+                using (Pen pen = new Pen(Color.DodgerBlue, 1) { DashStyle = DashStyle.Dash })
+                {
+                    g.DrawRectangle(pen, _selectionRect);
+                }
+                using (SolidBrush brush = new SolidBrush(Color.FromArgb(50, Color.DodgerBlue)))
+                {
+                    g.FillRectangle(brush, _selectionRect);
+                }
             }
         }
 
@@ -179,65 +254,117 @@ namespace TekstilScada.UI.Views
         {
             if (e.Button == MouseButtons.Left)
             {
-                if (_activeControl != null)
+                _interactionControl = GetControlAtHitTest(e.Location, out _currentHitTest);
+
+                if (_interactionControl != null && _currentHitTest != HitTest.None && _currentHitTest != HitTest.Body)
                 {
-                    _currentHitTest = CheckHitTest(e.Location);
-                    if (_currentHitTest != HitTest.None && _currentHitTest != HitTest.Body)
-                    {
-                        _isDraggingOrResizing = true;
-                        _dragStartPoint = e.Location;
-                        _startBounds = _activeControl.Bounds;
-                        return;
-                    }
+                    SaveUndoState();
+                    _isDraggingOrResizing = true;
+                    _dragStartPoint = e.Location;
+                    CaptureStartBounds();
+                    return;
                 }
+
                 SelectControl(null);
+                _isLassoSelecting = true;
+                _dragStartPoint = e.Location;
+                _selectionRect = new Rectangle(e.Location, new Size(0, 0));
+                pnlDesignSurface.Invalidate();
             }
+        }
+
+        private Control GetControlAtHitTest(Point p, out HitTest hit)
+        {
+            foreach (var ctrl in _selectedControls)
+            {
+                Rectangle r = ctrl.Bounds;
+                if (IsOverHandle(r.Left, r.Top, p)) { hit = HitTest.TopLeft; return ctrl; }
+                if (IsOverHandle(r.Right, r.Top, p)) { hit = HitTest.TopRight; return ctrl; }
+                if (IsOverHandle(r.Left, r.Bottom, p)) { hit = HitTest.BottomLeft; return ctrl; }
+                if (IsOverHandle(r.Right, r.Bottom, p)) { hit = HitTest.BottomRight; return ctrl; }
+            }
+            hit = HitTest.None;
+            return null;
         }
 
         private void Control_MouseDown(object sender, MouseEventArgs e)
         {
             Control clickedCtrl = sender as Control;
+            bool isCtrlPressed = ModifierKeys == Keys.Control;
+
             if (e.Button == MouseButtons.Left)
             {
-                SelectControl(clickedCtrl);
-                _activeControl.BringToFront();
+                SelectControl(clickedCtrl, isCtrlPressed);
                 _currentHitTest = HitTest.Body;
+                _interactionControl = clickedCtrl;
+
+                SaveUndoState();
                 _isDraggingOrResizing = true;
                 _dragStartPoint = Cursor.Position;
-                _startBounds = _activeControl.Bounds;
+                CaptureStartBounds();
+
+                foreach (var ctrl in _selectedControls) ctrl.BringToFront();
             }
             else if (e.Button == MouseButtons.Right)
             {
-                SelectControl(clickedCtrl);
+                if (!_selectedControls.Contains(clickedCtrl))
+                {
+                    SelectControl(clickedCtrl, false);
+                }
                 _contextMenu.Show(Cursor.Position);
+            }
+        }
+
+        private void CaptureStartBounds()
+        {
+            _startBoundsDict.Clear();
+            foreach (var ctrl in _selectedControls)
+            {
+                _startBoundsDict[ctrl] = ctrl.Bounds;
             }
         }
 
         private void PnlDesignSurface_MouseMove(object sender, MouseEventArgs e)
         {
-            if (!_isDraggingOrResizing)
+            if (_isLassoSelecting)
             {
-                var hit = (_activeControl != null) ? CheckHitTest(e.Location) : HitTest.None;
+                _selectionRect = new Rectangle(
+                    Math.Min(_dragStartPoint.X, e.X),
+                    Math.Min(_dragStartPoint.Y, e.Y),
+                    Math.Abs(e.X - _dragStartPoint.X),
+                    Math.Abs(e.Y - _dragStartPoint.Y));
+                pnlDesignSurface.Invalidate();
+            }
+            else if (!_isDraggingOrResizing)
+            {
+                HitTest hit;
+                GetControlAtHitTest(e.Location, out hit);
                 SetCursor(hit);
             }
-            else if (_activeControl != null && _currentHitTest != HitTest.Body)
+            else if (_interactionControl != null && _currentHitTest != HitTest.Body)
             {
                 int dx = e.X - _dragStartPoint.X;
                 int dy = e.Y - _dragStartPoint.Y;
-                Rectangle newBounds = _startBounds;
 
-                if (_currentHitTest == HitTest.BottomRight) { newBounds.Width += dx; newBounds.Height += dy; }
-                else if (_currentHitTest == HitTest.BottomLeft) { newBounds.X += dx; newBounds.Width -= dx; newBounds.Height += dy; }
-                else if (_currentHitTest == HitTest.TopRight) { newBounds.Y += dy; newBounds.Width += dx; newBounds.Height -= dy; }
-                else if (_currentHitTest == HitTest.TopLeft) { newBounds.X += dx; newBounds.Y += dy; newBounds.Width -= dx; newBounds.Height -= dy; }
+                foreach (var ctrl in _selectedControls)
+                {
+                    if (!_startBoundsDict.ContainsKey(ctrl)) continue;
+                    Rectangle newBounds = _startBoundsDict[ctrl];
 
-                newBounds.Width = Math.Max(GridSize, Snap(newBounds.Width));
-                newBounds.Height = Math.Max(GridSize, Snap(newBounds.Height));
+                    if (_currentHitTest == HitTest.BottomRight) { newBounds.Width += dx; newBounds.Height += dy; }
+                    else if (_currentHitTest == HitTest.BottomLeft) { newBounds.X += dx; newBounds.Width -= dx; newBounds.Height += dy; }
+                    else if (_currentHitTest == HitTest.TopRight) { newBounds.Y += dy; newBounds.Width += dx; newBounds.Height -= dy; }
+                    else if (_currentHitTest == HitTest.TopLeft) { newBounds.X += dx; newBounds.Y += dy; newBounds.Width -= dx; newBounds.Height -= dy; }
 
-                if (_currentHitTest.ToString().Contains("Left")) newBounds.X = Snap(newBounds.X);
-                if (_currentHitTest.ToString().Contains("Top")) newBounds.Y = Snap(newBounds.Y);
+                    newBounds.Width = Math.Max(GridSize, Snap(newBounds.Width));
+                    newBounds.Height = Math.Max(GridSize, Snap(newBounds.Height));
 
-                _activeControl.Bounds = newBounds;
+                    if (_currentHitTest.ToString().Contains("Left")) newBounds.X = Snap(newBounds.X);
+                    if (_currentHitTest.ToString().Contains("Top")) newBounds.Y = Snap(newBounds.Y);
+
+                    ctrl.Bounds = newBounds;
+                }
+
                 UpdateStatus();
                 pnlDesignSurface.Invalidate();
             }
@@ -245,39 +372,55 @@ namespace TekstilScada.UI.Views
 
         private void Control_MouseMove(object sender, MouseEventArgs e)
         {
-            if (_isDraggingOrResizing && _currentHitTest == HitTest.Body && _activeControl != null)
+            if (_isDraggingOrResizing && _currentHitTest == HitTest.Body)
             {
                 int dx = Cursor.Position.X - _dragStartPoint.X;
                 int dy = Cursor.Position.Y - _dragStartPoint.Y;
-                int newX = Snap(_startBounds.X + dx);
-                int newY = Snap(_startBounds.Y + dy);
-                _activeControl.Location = new Point(newX, newY);
+
+                foreach (var ctrl in _selectedControls)
+                {
+                    if (!_startBoundsDict.ContainsKey(ctrl)) continue;
+                    var startB = _startBoundsDict[ctrl];
+                    int newX = Snap(startB.X + dx);
+                    int newY = Snap(startB.Y + dy);
+                    ctrl.Location = new Point(newX, newY);
+                }
+
                 UpdateStatus();
                 pnlDesignSurface.Invalidate();
             }
         }
 
-        private void PnlDesignSurface_MouseUp(object sender, MouseEventArgs e) => FinishOp();
+        private void PnlDesignSurface_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (_isLassoSelecting)
+            {
+                _isLassoSelecting = false;
+                bool isCtrlPressed = ModifierKeys == Keys.Control;
+                if (!isCtrlPressed) _selectedControls.Clear();
+
+                foreach (Control ctrl in pnlDesignSurface.Controls)
+                {
+                    if (_selectionRect.IntersectsWith(ctrl.Bounds))
+                    {
+                        if (!_selectedControls.Contains(ctrl))
+                            _selectedControls.Add(ctrl);
+                    }
+                }
+                UpdateSelectionUI();
+            }
+            FinishOp();
+        }
+
         private void Control_MouseUp(object sender, MouseEventArgs e) => FinishOp();
 
         private void FinishOp()
         {
             _isDraggingOrResizing = false;
             _currentHitTest = HitTest.None;
+            _interactionControl = null;
             propertyGrid.Refresh();
             pnlDesignSurface.Invalidate();
-        }
-
-        private HitTest CheckHitTest(Point p)
-        {
-            if (_activeControl == null) return HitTest.None;
-            Rectangle r = _activeControl.Bounds;
-            if (IsOverHandle(r.Left, r.Top, p)) return HitTest.TopLeft;
-            if (IsOverHandle(r.Right, r.Top, p)) return HitTest.TopRight;
-            if (IsOverHandle(r.Left, r.Bottom, p)) return HitTest.BottomLeft;
-            if (IsOverHandle(r.Right, r.Bottom, p)) return HitTest.BottomRight;
-            if (r.Contains(p)) return HitTest.Body;
-            return HitTest.None;
         }
 
         private bool IsOverHandle(int x, int y, Point p) => new Rectangle(x - HandleSize / 2, y - HandleSize / 2, HandleSize, HandleSize).Contains(p);
@@ -292,21 +435,54 @@ namespace TekstilScada.UI.Views
 
         private int Snap(int val) => (int)(Math.Round((double)val / GridSize) * GridSize);
 
-        private void SelectControl(Control control)
+        private void SelectControl(Control control, bool append = false)
         {
-            _activeControl = control;
+            if (append)
+            {
+                if (control != null)
+                {
+                    if (_selectedControls.Contains(control)) _selectedControls.Remove(control);
+                    else _selectedControls.Add(control);
+                }
+            }
+            else
+            {
+                _selectedControls.Clear();
+                if (control != null) _selectedControls.Add(control);
+            }
+
+            UpdateSelectionUI();
+        }
+
+        private void UpdateSelectionUI()
+        {
             pnlDesignSurface.Invalidate();
-            propertyGrid.SelectedObject = control != null ? new ControlPropertyWrapper(control) : null;
+
+            if (_selectedControls.Count > 0)
+            {
+                propertyGrid.SelectedObjects = _selectedControls.Select(c => new ControlPropertyWrapper(c)).ToArray();
+            }
+            else
+            {
+                propertyGrid.SelectedObjects = null;
+            }
             UpdateStatus();
         }
 
         private void UpdateStatus()
         {
-            if (_activeControl != null)
+            if (_selectedControls.Count == 1)
             {
-                lblStatusReady.Text = $"Seçili: {_activeControl.Name}";
-                lblStatusPosition.Text = $"Konum: {_activeControl.Left}, {_activeControl.Top}";
-                lblStatusSize.Text = $"Boyut: {_activeControl.Width} x {_activeControl.Height}";
+                var act = _selectedControls[0];
+                lblStatusReady.Text = $"Seçili: {act.Name}";
+                lblStatusPosition.Text = $"Konum: {act.Left}, {act.Top}";
+                lblStatusSize.Text = $"Boyut: {act.Width} x {act.Height}";
+            }
+            else if (_selectedControls.Count > 1)
+            {
+                lblStatusReady.Text = $"Seçili: {_selectedControls.Count} nesne";
+                lblStatusPosition.Text = "";
+                lblStatusSize.Text = "";
             }
             else
             {
@@ -316,56 +492,91 @@ namespace TekstilScada.UI.Views
             }
         }
 
-        private void CopyControl()
+        private void CopyControls()
         {
-            if (_activeControl == null) return;
-            var metadata = CreateMetadataFromControl(_activeControl);
-            _clipboardJson = JsonSerializer.Serialize(metadata);
+            if (_selectedControls.Count == 0) return;
+            var list = new List<ControlMetadata>();
+            foreach (var ctrl in _selectedControls)
+            {
+                list.Add(CreateMetadataFromControl(ctrl));
+            }
+            _clipboardJson = JsonSerializer.Serialize(list);
         }
 
-        private void PasteControl()
+        private void CutControls()
+        {
+            CopyControls();
+            DeleteSelectedControls();
+        }
+
+        private void PasteControls()
         {
             if (string.IsNullOrEmpty(_clipboardJson)) return;
+            SaveUndoState();
             try
             {
-                var metadata = JsonSerializer.Deserialize<ControlMetadata>(_clipboardJson);
-                metadata.Name += "_" + DateTime.Now.Ticks.ToString().Substring(10);
-                CreateControlFromJson(metadata, true);
+                var list = JsonSerializer.Deserialize<List<ControlMetadata>>(_clipboardJson);
+                _selectedControls.Clear();
+
+                foreach (var metadata in list)
+                {
+                    metadata.Name += "_" + DateTime.Now.Ticks.ToString().Substring(10);
+                    CreateControlFromJson(metadata, true, true);
+                }
+                UpdateSelectionUI();
             }
             catch { }
         }
 
-        private void DeleteActiveControl()
+        private void DeleteSelectedControls()
         {
-            if (_activeControl != null)
+            if (_selectedControls.Count > 0)
             {
-                pnlDesignSurface.Controls.Remove(_activeControl);
-                SelectControl(null);
+                SaveUndoState();
+                foreach (var ctrl in _selectedControls.ToList())
+                {
+                    pnlDesignSurface.Controls.Remove(ctrl);
+                }
+                _selectedControls.Clear();
+                UpdateSelectionUI();
             }
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
-            if (keyData == (Keys.Control | Keys.C)) { CopyControl(); return true; }
-            if (keyData == (Keys.Control | Keys.V)) { PasteControl(); return true; }
-            if (keyData == (Keys.Control | Keys.D)) { CopyControl(); PasteControl(); return true; }
-            if (keyData == Keys.Delete) { DeleteActiveControl(); return true; }
+            if (keyData == (Keys.Control | Keys.C)) { CopyControls(); return true; }
+            if (keyData == (Keys.Control | Keys.X)) { CutControls(); return true; }
+            if (keyData == (Keys.Control | Keys.V)) { PasteControls(); return true; }
+            if (keyData == (Keys.Control | Keys.Z)) { PerformUndo(); return true; }
+            if (keyData == (Keys.Control | Keys.D)) { CopyControls(); PasteControls(); return true; }
+            if (keyData == Keys.Delete) { DeleteSelectedControls(); return true; }
+            if (keyData == (Keys.Control | Keys.A))
+            {
+                _selectedControls = pnlDesignSurface.Controls.Cast<Control>().ToList();
+                UpdateSelectionUI();
+                return true;
+            }
 
-            if (_activeControl != null)
+            if (_selectedControls.Count > 0)
             {
                 int step = (keyData & Keys.Shift) == Keys.Shift ? GridSize : 1;
+                bool moved = false;
+
                 switch (keyData & Keys.KeyCode)
                 {
-                    case Keys.Left: _activeControl.Left -= step; break;
-                    case Keys.Right: _activeControl.Left += step; break;
-                    case Keys.Up: _activeControl.Top -= step; break;
-                    case Keys.Down: _activeControl.Top += step; break;
-                    default: return base.ProcessCmdKey(ref msg, keyData);
+                    case Keys.Left: foreach (var c in _selectedControls) c.Left -= step; moved = true; break;
+                    case Keys.Right: foreach (var c in _selectedControls) c.Left += step; moved = true; break;
+                    case Keys.Up: foreach (var c in _selectedControls) c.Top -= step; moved = true; break;
+                    case Keys.Down: foreach (var c in _selectedControls) c.Top += step; moved = true; break;
                 }
-                UpdateStatus();
-                pnlDesignSurface.Invalidate();
-                propertyGrid.Refresh();
-                return true;
+
+                if (moved)
+                {
+                    UpdateStatus();
+                    pnlDesignSurface.Invalidate();
+                    propertyGrid.Refresh();
+                    return true;
+                }
             }
             return base.ProcessCmdKey(ref msg, keyData);
         }
@@ -382,6 +593,7 @@ namespace TekstilScada.UI.Views
 
         private void PnlDesignSurface_DragDrop(object sender, DragEventArgs e)
         {
+            SaveUndoState();
             string typeName = (string)e.Data.GetData(DataFormats.Text);
             var meta = new ControlMetadata
             {
@@ -393,7 +605,10 @@ namespace TekstilScada.UI.Views
             };
             Point p = pnlDesignSurface.PointToClient(new Point(e.X, e.Y));
             meta.Location = $"{Snap(p.X)},{Snap(p.Y)}";
-            CreateControlFromJson(meta);
+
+            _selectedControls.Clear();
+            CreateControlFromJson(meta, false, true);
+            UpdateSelectionUI();
         }
 
         // --- JSON / LOAD / SAVE ---
@@ -401,6 +616,17 @@ namespace TekstilScada.UI.Views
         private ControlMetadata CreateMetadataFromControl(Control ctrl)
         {
             var wrapper = new ControlPropertyWrapper(ctrl);
+
+            // Verilerin doğru serileşebilmesi için Wrapper içindeki koleksiyonu okuyoruz
+            var mappedStates = wrapper.DurumAyarlari.Select(x => new MultiStateSetting
+            {
+                Value = x.Value,
+                Text = x.Text,
+                BackColor = ColorTranslator.ToHtml(x.BackColor),
+                ForeColor = ColorTranslator.ToHtml(x.ForeColor),
+                ImageBase64 = ImageToBase64(x.Image)
+            }).ToList();
+
             var meta = new ControlMetadata
             {
                 ControlType = ctrl.GetType().AssemblyQualifiedName,
@@ -414,12 +640,17 @@ namespace TekstilScada.UI.Views
                 ForeColor = ColorTranslator.ToHtml(ctrl.ForeColor),
                 FontSize = ctrl.Font.Size,
                 FontBold = ctrl.Font.Bold,
-                // --- YENİ EKLENEN ÖZELLİKLER KAYDEDİLİYOR ---
                 IsToggleButton = wrapper.IsToggleButton,
                 PressedText = wrapper.PressedText,
                 PressedBackColor = ColorTranslator.ToHtml(wrapper.PressedBackColor),
                 PressedForeColor = ColorTranslator.ToHtml(wrapper.PressedForeColor),
-                ButtonStyle = wrapper.ButtonStyle.ToString() // Enum'ı string'e çevir
+                ButtonStyle = wrapper.ButtonStyle.ToString(),
+                ShowNumericArrows = wrapper.ShowNumericArrows,
+
+                // Çoklu Durumları da buraya ekliyoruz
+                IsMultiStateButton = wrapper.IsMultiStateButton,
+                MaxStateValue = wrapper.MaxStateValue,
+                MultiStates = mappedStates
             };
 
             if (ctrl is Label lbl) meta.ContentAlignment = lbl.TextAlign.ToString();
@@ -436,7 +667,7 @@ namespace TekstilScada.UI.Views
             return meta;
         }
 
-        private void CreateControlFromJson(ControlMetadata data, bool applyOffset = false)
+        private void CreateControlFromJson(ControlMetadata data, bool applyOffset = false, bool selectAfter = false)
         {
             Type type = Type.GetType(data.ControlType);
             if (type == null) return;
@@ -452,12 +683,31 @@ namespace TekstilScada.UI.Views
             float fontSize = data.FontSize > 0 ? data.FontSize : 9.75f;
             ctrl.Font = new Font("Segoe UI", fontSize, data.FontBold ? FontStyle.Bold : FontStyle.Regular);
 
-            // --- YENİ EKLENEN ÖZELLİKLER YÜKLENİYOR ---
             wrapper.IsToggleButton = data.IsToggleButton;
             wrapper.PressedText = data.PressedText;
             if (!string.IsNullOrEmpty(data.PressedBackColor)) wrapper.PressedBackColor = ColorTranslator.FromHtml(data.PressedBackColor);
             if (!string.IsNullOrEmpty(data.PressedForeColor)) wrapper.PressedForeColor = ColorTranslator.FromHtml(data.PressedForeColor);
             if (Enum.TryParse(data.ButtonStyle, out CustomButtonStyle style)) wrapper.ButtonStyle = style;
+
+            // Çoklu Durumları Yükle
+            wrapper.IsMultiStateButton = data.IsMultiStateButton;
+            wrapper.MaxStateValue = data.MaxStateValue;
+
+            if (data.MultiStates != null)
+            {
+                wrapper.DurumAyarlari.Clear();
+                foreach (var state in data.MultiStates)
+                {
+                    wrapper.DurumAyarlari.Add(new MultiStateUIItem
+                    {
+                        Value = state.Value,
+                        Text = state.Text,
+                        BackColor = string.IsNullOrEmpty(state.BackColor) ? Color.LightGray : ColorTranslator.FromHtml(state.BackColor),
+                        ForeColor = string.IsNullOrEmpty(state.ForeColor) ? Color.Black : ColorTranslator.FromHtml(state.ForeColor),
+                        Image = Base64ToImage(state.ImageBase64)
+                    });
+                }
+            }
 
             if (ctrl is Label lbl && Enum.TryParse(data.ContentAlignment, out ContentAlignment caLbl)) lbl.TextAlign = caLbl;
             else if (ctrl is Button btn && Enum.TryParse(data.ContentAlignment, out ContentAlignment caBtn)) btn.TextAlign = caBtn;
@@ -479,11 +729,29 @@ namespace TekstilScada.UI.Views
                 numControl.Maximum = data.Maximum;
                 numControl.Minimum = data.Minimum;
                 numControl.DecimalPlaces = data.DecimalPlaces;
+
+                // YENİ EKLENEN KISIM: Oklar ve Boşluk Yönetimi
+                if (numControl.Controls.Count > 1)
+                {
+                    numControl.Controls[0].Visible = data.ShowNumericArrows;
+                    TextBox innerTxt = numControl.Controls[1] as TextBox;
+
+                    if (innerTxt != null)
+                    {
+                        if (!data.ShowNumericArrows)
+                        {
+                            // Oklar yoksa metin kutusunu sağa kadar tam uzat
+                            innerTxt.Width = numControl.Width;
+                        }
+                    }
+                }
+                wrapper.ShowNumericArrows = data.ShowNumericArrows;
             }
 
             AttachEvents(ctrl);
             pnlDesignSurface.Controls.Add(ctrl);
-            if (applyOffset) SelectControl(ctrl);
+
+            if (selectAfter) _selectedControls.Add(ctrl);
         }
 
         private void AttachEvents(Control ctrl)
@@ -501,6 +769,8 @@ namespace TekstilScada.UI.Views
 
             string machineSubType = tsCmbMachineType.SelectedItem.ToString();
             string json = _configRepo.GetLayoutJson(machineSubType, stepTypeId);
+
+            _undoStack.Clear(); // Yeni mizanpaj yüklendiğinde Undo sıfırlanır
             ClearLayout();
 
             if (!string.IsNullOrEmpty(json))
@@ -508,7 +778,7 @@ namespace TekstilScada.UI.Views
                 try
                 {
                     var list = JsonSerializer.Deserialize<List<ControlMetadata>>(json);
-                    foreach (var item in list) CreateControlFromJson(item);
+                    foreach (var item in list) CreateControlFromJson(item, false, false);
                 }
                 catch (Exception ex) { MessageBox.Show($"Hata: {ex.Message}"); }
             }
@@ -536,17 +806,70 @@ namespace TekstilScada.UI.Views
         private void ClearLayout()
         {
             pnlDesignSurface.Controls.Clear();
-            SelectControl(null);
-            pnlDesignSurface.Invalidate();
+            _selectedControls.Clear();
+            UpdateSelectionUI();
         }
 
-        // --- PROPERTY WRAPPER (GÜNCELLENDİ) ---
+        // --- GÖRSEL YARDIMCI METOTLAR ---
+        public static string ImageToBase64(Image image)
+        {
+            if (image == null) return null;
+            using (MemoryStream ms = new MemoryStream())
+            {
+                // Standart resim formatına çevir (PNG)
+                image.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                return Convert.ToBase64String(ms.ToArray());
+            }
+        }
+
+        public static Image Base64ToImage(string base64String)
+        {
+            if (string.IsNullOrEmpty(base64String)) return null;
+            try
+            {
+                byte[] imageBytes = Convert.FromBase64String(base64String);
+                using (MemoryStream ms = new MemoryStream(imageBytes))
+                {
+                    return Image.FromStream(ms);
+                }
+            }
+            catch { return null; }
+        }
+
+        // --- ÇOKLU DURUM (MULTI-STATE) LİSTE YÖNETİMİ İÇİN YARDIMCI SINIF ---
+        [TypeConverter(typeof(ExpandableObjectConverter))]
+        public class MultiStateUIItem
+        {
+            [DisplayName("1. Durum Değeri")]
+            public int Value { get; set; }
+
+            [DisplayName("2. Metin")]
+            public string Text { get; set; }
+
+            [DisplayName("3. Arka Plan Rengi")]
+            public Color BackColor { get; set; } = Color.LightGray;
+
+            [DisplayName("4. Yazı Rengi")]
+            public Color ForeColor { get; set; } = Color.Black;
+
+            [DisplayName("5. Resim (İsteğe Bağlı)")]
+            [Description("Buton durumuna göre değişecek olan resmi seçin.")]
+            public Image Image { get; set; }
+
+            public override string ToString() => $"Durum: {Value}";
+        }
+
+        // --- PROPERTY WRAPPER ---
         public class ControlPropertyWrapper
         {
             private Control _c; private PlcMapping _m;
-            // Buton özelliklerini geçici tutmak için (Control nesnesi üzerinde bu özellikler yok çünkü)
-            // Bu verileri Tag içinde saklayacağız.
             private ControlMetadata _extraData;
+
+            // PropertyGrid içindeki (Collection) editöründen anlık veri okumak için
+            [Category("Çoklu Durum (Word) Ayarları")]
+            [DisplayName("Durum Listesi (Resim/Renk)")]
+            [Description("Butonun alacağı değerlere (0,1,2..) göre resim, metin ve renkleri buraya ekleyin.")]
+            public BindingList<MultiStateUIItem> DurumAyarlari { get; private set; }
 
             public ControlPropertyWrapper(Control c)
             {
@@ -554,24 +877,8 @@ namespace TekstilScada.UI.Views
                 _m = c.Tag as PlcMapping;
                 if (_m == null)
                 {
-                    // Tag dolu ama Mapping değilse, belki daha önce extraData koyduk?
-                    // Basitlik için: Tag her zaman bir nesne tutsun. 
-                    // Ancak mevcut yapıda Tag = PlcMapping idi. 
-                    // Bunu bozmamak için ControlMetadata'yı burada sadece wrapper seviyesinde tutamayız, kaybolur.
-                    // Çözüm: ControlMetadata özelliklerini "Tag" içindeki bir sözlükte veya ControlMetadata'nın kendisini Tag'e gömerek saklamak.
-                    // Ama PlcMapping kritik. O yüzden şöyle yapalım:
-                    // PlcMapping'i genişletelim veya Tag'i object[] yapalım.
-                    // En kolayı: ControlMetadata verilerini "geçici" olarak bu wrapper'da tutup, kaydederken okumak.
-                    // FAKAT: Wrapper her seçimde yeniden oluşuyor. O yüzden veriyi Control üzerinde saklamalıyız.
-                    // Control.Tag özelliğini genişletilmiş bir sınıfa çeviriyoruz.
                     _m = new PlcMapping();
                 }
-
-                // Hack: ControlMetadata özelliklerini saklamak için Tag özelliğini bir "Container" gibi kullanalım.
-                // Veya şimdilik bu özellikleri sadece PropertyGrid'de gösterip JSON'a yazarken,
-                // Control'ün "AccessibleDescription" gibi kullanılmayan bir özelliğini depo olarak kullanalım.
-                // VEYA: En temiz yöntem, Control.Tag'i bir "DesignerData" sınıfına çevirmektir.
-                // Ama var olan kodu kırmamak için: _extraData'yı "AccessibleDescription" içine JSON string olarak gömelim.
 
                 if (!string.IsNullOrEmpty(_c.AccessibleDescription))
                 {
@@ -580,12 +887,44 @@ namespace TekstilScada.UI.Views
                 }
                 else _extraData = new ControlMetadata();
 
-                c.Tag = _m; // PlcMapping'i koru
+                c.Tag = _m;
+
+                // Binding listesini oluştur
+                DurumAyarlari = new BindingList<MultiStateUIItem>();
+
+                // --- YENİ EKLENEN KISIM: Kaydedilmiş verileri listeye geri yükle ---
+                if (_extraData.MultiStates != null)
+                {
+                    foreach (var state in _extraData.MultiStates)
+                    {
+                        DurumAyarlari.Add(new MultiStateUIItem
+                        {
+                            Value = state.Value,
+                            Text = state.Text,
+                            BackColor = string.IsNullOrEmpty(state.BackColor) ? Color.LightGray : ColorTranslator.FromHtml(state.BackColor),
+                            ForeColor = string.IsNullOrEmpty(state.ForeColor) ? Color.Black : ColorTranslator.FromHtml(state.ForeColor),
+                            Image = Base64ToImage(state.ImageBase64)
+                        });
+                    }
+                }
+                // --------------------------------------------------------------------
+
+                // Değişikliklerde arka plandaki JSON metnini güncellemeyi tetikle
+                DurumAyarlari.ListChanged += (s, e) => SaveExtraData();
             }
 
             private void SaveExtraData()
             {
-                // Ekstra verileri kontrolün AccessibleDescription özelliğine gömüyoruz
+                // Kaydederken UI modellerini gerçek Modele aktarıyoruz
+                _extraData.MultiStates = DurumAyarlari.Select(x => new MultiStateSetting
+                {
+                    Value = x.Value,
+                    Text = x.Text,
+                    BackColor = ColorTranslator.ToHtml(x.BackColor),
+                    ForeColor = ColorTranslator.ToHtml(x.ForeColor),
+                    ImageBase64 = ImageToBase64(x.Image)
+                }).ToList();
+
                 _c.AccessibleDescription = JsonSerializer.Serialize(_extraData);
             }
 
@@ -593,8 +932,68 @@ namespace TekstilScada.UI.Views
             [Category("Tasarım")][DisplayName("Metin")] public string Text { get => _c.Text; set => _c.Text = value; }
             [Category("Tasarım")][DisplayName("Konum")] public Point Location { get => _c.Location; set => _c.Location = value; }
             [Category("Tasarım")][DisplayName("Boyut")] public Size Size { get => _c.Size; set => _c.Size = value; }
+            [Category("Değer")]
+            [DisplayName("Okları Göster (Sayı)")]
+            [Description("Sayı girişindeki yukarı/aşağı oklarını gösterir veya gizler.")]
+            public bool ShowNumericArrows
+            {
+                get
+                {
+                    if (_c is NumericUpDown && _extraData != null)
+                        return _extraData.ShowNumericArrows;
+                    return true;
+                }
+                set
+                {
+                    if (_extraData != null)
+                    {
+                        _extraData.ShowNumericArrows = value;
+                        SaveExtraData();
+                    }
+                    if (_c is NumericUpDown num && num.Controls.Count > 1)
+                    {
+                        // Ok butonunu (Controls[0]) gizle veya göster
+                        num.Controls[0].Visible = value;
 
-            // --- YENİ BUTON ÖZELLİKLERİ ---
+                        // İç metin kutusunun (Controls[1]) boyutunu ayarla
+                        TextBox innerTxt = num.Controls[1] as TextBox;
+                        if (innerTxt != null)
+                        {
+                            if (value)
+                            {
+                                // Oklar açıksa, metin kutusunun genişliğini normale döndür (oklara yer aç)
+                                innerTxt.Width = num.Width - num.Controls[0].Width - 2;
+                            }
+                            else
+                            {
+                                // Oklar KAPALIYSA, metin kutusunu sınırları kaplayacak kadar tamamen genişlet
+                                innerTxt.Width = num.Width;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- YENİ EKLENEN ÇOKLU DURUM (MULTI-STATE) ÖZELLİKLERİ ---
+            [Category("Çoklu Durum (Word) Ayarları")]
+            [DisplayName("Çoklu Durum Butonu mu?")]
+            [Description("Eğer işaretlenirse, bu buton tıklandığında Word adresi 'Maksimum Sınır'a kadar sıralı olarak artar.")]
+            public bool IsMultiStateButton
+            {
+                get => _extraData.IsMultiStateButton;
+                set { _extraData.IsMultiStateButton = value; SaveExtraData(); }
+            }
+
+            [Category("Çoklu Durum (Word) Ayarları")]
+            [DisplayName("Maksimum Durum Sınırı")]
+            [Description("Buton değeri bu rakamı aşınca 0'a döner (Örn: 3 yazarsanız döngü 0-1-2-3 olur)")]
+            public int MaxStateValue
+            {
+                get => _extraData.MaxStateValue;
+                set { _extraData.MaxStateValue = value; SaveExtraData(); }
+            }
+
+            // --- BUTON ÖZELLİKLERİ ---
             [Category("Buton Ayarları")]
             [DisplayName("Kalıcı Buton (Toggle)")]
             [Description("İşaretlenirse buton tıklandığında basılı kalır.")]
@@ -640,8 +1039,8 @@ namespace TekstilScada.UI.Views
                 get => string.IsNullOrEmpty(_extraData.PressedForeColor) ? Color.White : ColorTranslator.FromHtml(_extraData.PressedForeColor);
                 set { _extraData.PressedForeColor = ColorTranslator.ToHtml(value); SaveExtraData(); }
             }
-            // ------------------------------
 
+            // ------------------------------
             [Category("Görünüm")]
             [DisplayName("Metin Hizalama (Etiket/Buton)")]
             public ContentAlignment TextAlign

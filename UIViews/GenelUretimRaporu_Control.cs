@@ -170,9 +170,9 @@ namespace TekstilScada.UI.Views
                     _reportData = _productionRepository.GetGeneralProductionReport(dtpStartTime.Value, dtpEndTime.Value, selectedMachineNames);
 
                     // --- KURUTMA MAKİNESİ İÇİN SU TÜKETİMİNİ SIFIRLA ---
-                    // "MachineName" kolonunu kontrol edip "Kurutma" geçenlerin "TotalWater" değerini 0 yapıyoruz.
+                    // "MachineName" kolonunu kontrol edip "Kurutma" geçenlerin "TotalAir" değerini 0 yapıyoruz.
                     // Bu işlem birim dönüşümünden ÖNCE yapılmalıdır.
-                    if (_reportData != null && _reportData.Columns.Contains("MachineName") && _reportData.Columns.Contains("TotalWater"))
+                    if (_reportData != null && _reportData.Columns.Contains("MachineName") && _reportData.Columns.Contains("TotalAir"))
                     {
                         // Seçilen makineler arasında "Kurutma" tipinde olanları bul
                         // İsimden kontrol etmek yerine Machine objesinden kontrol etmek daha güvenlidir
@@ -189,7 +189,7 @@ namespace TekstilScada.UI.Views
                             // Eğer makine ismi kurutma makineleri listesinde varsa veya isminde "Kurutma" geçiyorsa
                             if (dryingMachineNames.Contains(machineName) || machineName.IndexOf("Kurutma", StringComparison.OrdinalIgnoreCase) >= 0)
                             {
-                                row["TotalWater"] = 0m;
+                                row["TotalAir"] = 0m;
                             }
                         }
                     }
@@ -263,7 +263,7 @@ namespace TekstilScada.UI.Views
             }
 
             // Dönüşümleri Uygula
-            ConvertColumnToDecimalAndDivide("TotalWater", 1000m);       // Litre -> m3
+            ConvertColumnToDecimalAndDivide("TotalAir", 1000m);       // Litre -> m3
             ConvertColumnToDecimalAndDivide("TotalElectricity", 1000m); // Watt -> kWh
             ConvertColumnToDecimalAndDivide("TotalSteam", 1);       // Litre -> m3
         }
@@ -285,10 +285,10 @@ namespace TekstilScada.UI.Views
                 dgvReport.Columns["EndTime"].DefaultCellStyle.Format = "dd.MM.yyyy HH:mm";
             }
 
-            if (dgvReport.Columns.Contains("TotalWater"))
+            if (dgvReport.Columns.Contains("TotalAir"))
             {
-                dgvReport.Columns["TotalWater"].HeaderText = "Total Water (m³)";
-                dgvReport.Columns["TotalWater"].DefaultCellStyle.Format = "N3";
+                dgvReport.Columns["TotalAir"].HeaderText = "Total Air (m³)";
+                dgvReport.Columns["TotalAir"].DefaultCellStyle.Format = "N3";
             }
 
             if (dgvReport.Columns.Contains("TotalElectricity"))
@@ -336,13 +336,13 @@ namespace TekstilScada.UI.Views
         {
             if (dgvReport.DataSource == null || dgvReport.Columns.Count == 0) return;
 
-            if (dgvReport.Columns.Contains("TotalWater")) dgvReport.Columns["TotalWater"].Visible = false;
+            if (dgvReport.Columns.Contains("TotalAir")) dgvReport.Columns["TotalAir"].Visible = false;
             if (dgvReport.Columns.Contains("TotalElectricity")) dgvReport.Columns["TotalElectricity"].Visible = false;
             if (dgvReport.Columns.Contains("TotalSteam")) dgvReport.Columns["TotalSteam"].Visible = false;
 
-            if (radioSu.Checked && dgvReport.Columns.Contains("TotalWater"))
+            if (radioSu.Checked && dgvReport.Columns.Contains("TotalAir"))
             {
-                dgvReport.Columns["TotalWater"].Visible = true;
+                dgvReport.Columns["TotalAir"].Visible = true;
             }
             if (radioElektrik.Checked && dgvReport.Columns.Contains("TotalElectricity"))
             {

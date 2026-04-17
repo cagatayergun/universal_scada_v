@@ -57,7 +57,7 @@ namespace TekstilScada.UIViews
             flowLayoutPanelSensors.Controls.Clear();
             _sensorMap.Clear();
 
-            AddSensorGroup("Water", "Su Sayacı Ayarları", Color.AliceBlue);
+            AddSensorGroup("Air", "Su Sayacı Ayarları", Color.AliceBlue);
             AddSensorGroup("Elec", "Elektrik Sayacı Ayarları", Color.MistyRose);
             AddSensorGroup("Steam", "Buhar Sayacı Ayarları", Color.LemonChiffon);
             AddSensorGroup("Air", "Hava Sayacı Ayarları", Color.MintCream);
@@ -132,7 +132,7 @@ namespace TekstilScada.UIViews
             txtSlaveId.Value = line.SlaveId;
 
             // Sensör Ayarları (Refleksiyon yerine manuel atama daha güvenli ve hızlıdır)
-            SetSensorValues("Water", line.WaterEnabled, line.WaterAddress, line.WaterDataType, line.WaterMultiplier);
+            SetSensorValues("Air", line.AirEnabled, line.AirAddress, line.AirDataType, line.AirMultiplier);
             SetSensorValues("Elec", line.ElecEnabled, line.ElecAddress, line.ElecDataType, line.ElecMultiplier);
             SetSensorValues("Steam", line.SteamEnabled, line.SteamAddress, line.SteamDataType, line.SteamMultiplier);
             SetSensorValues("Air", line.AirEnabled, line.AirAddress, line.AirDataType, line.AirMultiplier);
@@ -207,8 +207,8 @@ namespace TekstilScada.UIViews
             _currentLine.Port = (int)txtPort.Value;
             _currentLine.SlaveId = (int)txtSlaveId.Value;
 
-            GetSensorValues("Water", out bool wEn, out int wAddr, out string wType, out double wMult);
-            _currentLine.WaterEnabled = wEn; _currentLine.WaterAddress = wAddr; _currentLine.WaterDataType = wType; _currentLine.WaterMultiplier = wMult;
+            GetSensorValues("Air", out bool wEn, out int wAddr, out string wType, out double wMult);
+            _currentLine.AirEnabled = wEn; _currentLine.AirAddress = wAddr; _currentLine.AirDataType = wType; _currentLine.AirMultiplier = wMult;
 
             GetSensorValues("Elec", out bool eEn, out int eAddr, out string eType, out double eMult);
             _currentLine.ElecEnabled = eEn; _currentLine.ElecAddress = eAddr; _currentLine.ElecDataType = eType; _currentLine.ElecMultiplier = eMult;

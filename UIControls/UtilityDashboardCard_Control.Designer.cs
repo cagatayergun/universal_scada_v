@@ -20,7 +20,7 @@
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.lblAirVal = new System.Windows.Forms.Label();
             this.lblSteamVal = new System.Windows.Forms.Label();
-            this.lblWaterVal = new System.Windows.Forms.Label();
+            this.lblAirVal = new System.Windows.Forms.Label();
             this.label4 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
@@ -73,7 +73,7 @@
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.tableLayoutPanel1.Controls.Add(this.lblAirVal, 3, 1);
             this.tableLayoutPanel1.Controls.Add(this.lblSteamVal, 2, 1);
-            this.tableLayoutPanel1.Controls.Add(this.lblWaterVal, 1, 1);
+            this.tableLayoutPanel1.Controls.Add(this.lblAirVal, 1, 1);
             this.tableLayoutPanel1.Controls.Add(this.label4, 3, 0);
             this.tableLayoutPanel1.Controls.Add(this.label3, 2, 0);
             this.tableLayoutPanel1.Controls.Add(this.label2, 1, 0);
@@ -114,18 +114,18 @@
             this.lblSteamVal.Text = "-\r\nkg";
             this.lblSteamVal.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
-            // lblWaterVal
+            // lblAirVal
             // 
-            this.lblWaterVal.AutoSize = true;
-            this.lblWaterVal.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lblWaterVal.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            this.lblWaterVal.ForeColor = System.Drawing.Color.RoyalBlue;
-            this.lblWaterVal.Location = new System.Drawing.Point(82, 27);
-            this.lblWaterVal.Name = "lblWaterVal";
-            this.lblWaterVal.Size = new System.Drawing.Size(73, 41);
-            this.lblWaterVal.TabIndex = 5;
-            this.lblWaterVal.Text = "-\r\nm³";
-            this.lblWaterVal.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.lblAirVal.AutoSize = true;
+            this.lblAirVal.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lblAirVal.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblAirVal.ForeColor = System.Drawing.Color.RoyalBlue;
+            this.lblAirVal.Location = new System.Drawing.Point(82, 27);
+            this.lblAirVal.Name = "lblAirVal";
+            this.lblAirVal.Size = new System.Drawing.Size(73, 41);
+            this.lblAirVal.TabIndex = 5;
+            this.lblAirVal.Text = "-\r\nm³";
+            this.lblAirVal.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // label4
             // 
@@ -222,7 +222,7 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label lblAirVal;
         private System.Windows.Forms.Label lblSteamVal;
-        private System.Windows.Forms.Label lblWaterVal;
+      //  private System.Windows.Forms.Label lblAirVal;
         private System.Windows.Forms.Label lblElecVal;
     }
 }

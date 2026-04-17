@@ -547,7 +547,7 @@
     <value>ORDER NO</value>
   </data>
   <data name="SuSeviyesiLabel" xml:space="preserve">
-    <value>WATER LEVEL</value>
+    <value>Air LEVEL</value>
   </data>
   <data name="AktifAdimLabel" xml:space="preserve">
     <value>ACTIVE STEP</value>
@@ -574,7 +574,7 @@
     <value>Alarm History</value>
   </data>
   <data name="TrendAnaliziTab" xml:space="preserve">
-    <value>Trend Analysis (Temp/Water/Speed)</value>
+    <value>Trend Analysis (Temp/Air/Speed)</value>
   </data>
   <data name="AktifAlarmDurumu" xml:space="preserve">
     <value>Active Alarm Status</value>
@@ -622,7 +622,7 @@
     <value>Live Process Trend Analysis</value>
   </data>
   <data name="AdimTipi_SuAlma" xml:space="preserve">
-    <value>Water Intake</value>
+    <value>Air Intake</value>
   </data>
   <data name="AdimTipi_Isitma" xml:space="preserve">
     <value>Heating</value>
@@ -1171,7 +1171,7 @@
     <value>No past production records found for the selected recipe.</value>
   </data>
   <data name="OrtalamaSu" xml:space="preserve">
-    <value>AVG WATER</value>
+    <value>AVG Air</value>
   </data>
   <data name="OrtalamaElektrik" xml:space="preserve">
     <value>AVG ELECTRICITY</value>
@@ -1201,10 +1201,10 @@
     <value>Electricity (kW)</value>
   </data>
   <data name="SuLitre" xml:space="preserve">
-    <value>Water (Liter)</value>
+    <value>Air (Liter)</value>
   </data>
   <data name="SuLitre3" xml:space="preserve">
-    <value>Water (m³)</value>
+    <value>Air (m³)</value>
   </data>
   <data name="BuharKg" xml:space="preserve">
     <value>Steam (kg)</value>
@@ -1252,7 +1252,7 @@
     <value>Heating</value>
   </data>
   <data name="Su Alma" xml:space="preserve">
-    <value>Take Water</value>
+    <value>Take Air</value>
   </data>
   <data name="Boşaltma" xml:space="preserve">
     <value>Drain</value>

@@ -27,9 +27,12 @@ namespace TekstilScada.Models
         public string? PressedForeColor { get; set; }          // Basılıyken yazı rengi
         public string? ButtonStyle { get; set; } = "Standard"; // Standard (Kabartma) veya Flat (Solid)
         // ----------------------------------------------------
-
+        public bool ShowNumericArrows { get; set; } = true;
         public decimal Maximum { get; set; } = 1000;
         public decimal Minimum { get; set; } = 0;
+        public bool IsMultiStateButton { get; set; } = false;
+        public int MaxStateValue { get; set; } = 0;
+        public List<MultiStateSetting> MultiStates { get; set; } = new List<MultiStateSetting>();
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int DecimalPlaces { get; set; }
@@ -51,10 +54,18 @@ namespace TekstilScada.Models
         public int BitIndex { get; set; }
         public int StringWordLength { get; set; }
     }
-
+    public class MultiStateSetting
+    {
+        public int Value { get; set; }
+        public string Text { get; set; }
+        public string BackColor { get; set; }
+        public string ForeColor { get; set; }
+        public string ImageBase64 { get; set; }
+    }
     public class StepTypeDtoDesign
     {
         public int Id { get; set; }
         public string StepName { get; set; }
     }
+
 }

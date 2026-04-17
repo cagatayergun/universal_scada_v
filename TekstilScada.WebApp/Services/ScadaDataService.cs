@@ -17,7 +17,7 @@ using TekstilScada.Services;
 using static TekstilScada.Repositories.AlarmRepository;
 
 // --- DTO Sınıfları (Global) ---
-public class TrendDataPoint { public DateTime Timestamp { get; set; } public double Temperature { get; set; } public double Rpm { get; set; } public double WaterLevel { get; set; } }
+public class TrendDataPoint { public DateTime Timestamp { get; set; } public double Temperature { get; set; } public double Rpm { get; set; } public double AirLevel { get; set; } }
 public class ProductionStepDetailDto : TekstilScada.Models.ProductionStepDetail { public double TheoreticalDurationSeconds { get; set; } = 0; public double Temperature { get; set; } = 0; public string StepDescription => StepName; }
 public class AlarmDetailDto
 {
@@ -46,7 +46,7 @@ public class ActionLogFilters { public DateTime StartTime { get; set; } public D
 public class HourlyConsumptionData { public double Saat { get; set; } public double ToplamElektrik { get; set; } public double ToplamSu { get; set; } public double ToplamBuhar { get; set; } }
 public class HourlyOeeData { public double Saat { get; set; } public double AverageOEE { get; set; } }
 public class ReportFilters1 { public DateTime StartTime { get; set; } public DateTime EndTime { get; set; } public int? MachineId { get; set; } public string? BatchNo { get; set; } }
-public class JsReadyTrendDataPoint { public DateTime Timestamp { get; set; } public double TimestampOADate { get; set; } public double Temperature { get; set; } public double Rpm { get; set; } public double WaterLevel { get; set; } }
+public class JsReadyTrendDataPoint { public DateTime Timestamp { get; set; } public double TimestampOADate { get; set; } public double Temperature { get; set; } public double Rpm { get; set; } public double AirLevel { get; set; } }
 public class StepTypeDto { public int Id { get; set; } public string Name { get; set; } }
 public class SaveLayoutRequest { public string LayoutName { get; set; } public string MachineSubType { get; set; } public int StepTypeId { get; set; } public string LayoutJson { get; set; } }
 public class GeneralConsumptionExportDto { public List<ProductionReportItem>? Items { get; set; } public string? ConsumptionType { get; set; } }

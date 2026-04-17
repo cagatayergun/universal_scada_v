@@ -35,12 +35,12 @@ namespace TekstilScada.UI.Controls
             lblMachineName.ForeColor = Color.Black;
             lblRecipeName.ForeColor = Color.Black;
             lblBatchId.ForeColor = Color.Black;
-            lblTemperature.ForeColor = Color.Red;
-            gaugeRpm.ForeColor = Color.Black;
-            lblPercentage.ForeColor = Color.Black;
-            lblHumidity.ForeColor = Color.Blue;
-            lblhumudity.ForeColor = Color.Black;
-            label2.ForeColor = Color.Black;
+         // lblTemperature.ForeColor = Color.Red;
+           // gaugeRpm.ForeColor = Color.Black;
+         //   lblPercentage.ForeColor = Color.Black;
+         //   lblHumidity.ForeColor = Color.Blue;
+        //    lblhumudity.ForeColor = Color.Black;
+        //    label2.ForeColor = Color.Black;
             SetRpmGaugeLimitAsync();
         }
         private async void SetRpmGaugeLimitAsync()
@@ -91,14 +91,7 @@ namespace TekstilScada.UI.Controls
                             // 5. Değeri ata (1.33 katı ile)
                             int newMax = (int)(rpmControl.Maximum);
 
-                            if (gaugeRpm.InvokeRequired)
-                            {
-                                gaugeRpm.Invoke(new Action(() => gaugeRpm.Maximum = newMax));
-                            }
-                            else
-                            {
-                                gaugeRpm.Maximum = newMax;
-                            }
+                           //
                         }
                     }
                 }
@@ -122,39 +115,19 @@ namespace TekstilScada.UI.Controls
 
             try
             {
-                gaugeRpm.Value = status.AnlikDevirRpm;
-                gaugeRpm.Text = status.AnlikDevirRpm.ToString();
+               // gaugeRpm.Value = status.AnlikDevirRpm;
+               // gaugeRpm.Text = status.AnlikDevirRpm.ToString();
             }
             catch (Exception ex) { }
             // --- YENİ: Kurutma Makinesi Kontrolü ---
             bool isDrying = _machine.MachineType == "Kurutma Makinesi";
-            if (!isDrying)
-            {
-                lblTemperature.Text = $"{status.AnlikSicaklik / 10.0m}°C";
-            }
-            else
-            {
-                lblTemperature.Text = $"{status.AnlikSicaklik / 100.0m:F1}°C";
-            }
-                // Kurutma makinesi ise barı gizle, nemi göster
-                progressBar.Visible = !isDrying;
-            lblPercentage.Visible = !isDrying;
-            lblProcessing.Visible = !isDrying;
-            lblHumidity.Visible = isDrying;
-            lblhumudity.Visible = isDrying;
-            if (isDrying)
-            {
-                // Not: Modelde Nem alanını ekleyince burayı status.AnlikNem yaparsınız.
-                // Şimdilik mevcut yapıyı koruyoruz.
-                lblHumidity.Text = $"{status.AnlikSuSeviyesi} %";
-            }
-            // ---------------------------------------
+            //---------------------
 
             if (status.HasActiveAlarm)
             {
-                if (progressBar.Value > 0) _lastValidProgress = progressBar.Value;
-                progressBar.Value = _lastValidProgress;
-                lblPercentage.Text = $"{_lastValidProgress} %";
+               // if (progressBar.Value > 0) _lastValidProgress = progressBar.Value;
+               // progressBar.Value = _lastValidProgress;
+               // lblPercentage.Text = $"{_lastValidProgress} %";
 
                 pnlStatusIndicator.BackColor = _colorAlarm;
                 lblStatus.Text = $"ALARM #{status.ActiveAlarmNumber}";
@@ -163,8 +136,8 @@ namespace TekstilScada.UI.Controls
             else
             {
                 _lastValidProgress = Math.Max(0, Math.Min(100, (int)status.ProsesYuzdesi));
-                progressBar.Value = _lastValidProgress;
-                lblPercentage.Text = $"{_lastValidProgress} %";
+             //   progressBar.Value = _lastValidProgress;
+             //   lblPercentage.Text = $"{_lastValidProgress} %";
                 if (status.manuel_status)
                 {
                     pnlStatusIndicator.BackColor = _colorRunning;

@@ -249,10 +249,10 @@
   <data name="MachineSelect" xml:space="preserve">
     <value>Makine Seç</value>
   </data>
-  <data name="MainTankCleanWater" xml:space="preserve">
+  <data name="MainTankCleanAir" xml:space="preserve">
     <value>Ana Tank Temiz Su Al</value>
   </data>
-  <data name="MainTankWater" xml:space="preserve">
+  <data name="MainTankAir" xml:space="preserve">
     <value>Ana Tank Mak. Su Al</value>
   </data>
   <data name="MixingTime" xml:space="preserve">
@@ -339,7 +339,7 @@
   <data name="Severity" xml:space="preserve">
     <value>Önem Derecesi:</value>
   </data>
-  <data name="SoftWater" xml:space="preserve">
+  <data name="SoftAir" xml:space="preserve">
     <value>Yumuşak Su</value>
   </data>
   <data name="Squeezing" xml:space="preserve">
@@ -363,10 +363,10 @@
   <data name="Tank1Dosage" xml:space="preserve">
     <value>1. Tank Dozaj</value>
   </data>
-  <data name="Tank1Water" xml:space="preserve">
+  <data name="Tank1Air" xml:space="preserve">
     <value>1. Tank Su Al</value>
   </data>
-  <data name="TankWaterAmount" xml:space="preserve">
+  <data name="TankAirAmount" xml:space="preserve">
     <value>Tank Alınan Su:</value>
   </data>
   <data name="Temperature" xml:space="preserve">
@@ -399,7 +399,7 @@
   <data name="Warning" xml:space="preserve">
     <value>Uyarı</value>
   </data>
-  <data name="WaterIntake" xml:space="preserve">
+  <data name="AirIntake" xml:space="preserve">
     <value>SU ALMA</value>
   </data>
   <data name="CriticalError" xml:space="preserve">
@@ -414,13 +414,13 @@
   <data name="NoAccess" xml:space="preserve">
     <value>Bu alana erişim yetkiniz bulunmamaktadır.</value>
   </data>
-  <data name="ColdWater" xml:space="preserve">
+  <data name="ColdAir" xml:space="preserve">
     <value>Soğuk Su</value>
   </data>
   <data name="DrumStop" xml:space="preserve">
     <value>Tambur Dur</value>
   </data>
-  <data name="HotWater" xml:space="preserve">
+  <data name="HotAir" xml:space="preserve">
     <value>Sıcak Su</value>
   </data>
   <data name="Cikiseminmisin" xml:space="preserve">

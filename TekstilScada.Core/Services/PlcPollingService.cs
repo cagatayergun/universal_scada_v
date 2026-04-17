@@ -927,7 +927,7 @@ namespace TekstilScada.Services
         private string GetStepTypeName(short controlWord)
         {
             var stepTypes = new List<string>();
-            if ((controlWord & 1) != 0) stepTypes.Add("Take Water");
+            if ((controlWord & 1) != 0) stepTypes.Add("Take Air");
             if ((controlWord & 2) != 0) stepTypes.Add("Heating");
             if ((controlWord & 4) != 0) stepTypes.Add("Working");
             if ((controlWord & 8) != 0) stepTypes.Add("Dosing");

@@ -797,7 +797,7 @@ html, body {
 
     #oeeChartContainer,
     #electricChartContainer,
-    #waterChartContainer,
+    #AirChartContainer,
     #steamChartContainer,
     #topAlarmsChartContainer {
         max-height: 160px;

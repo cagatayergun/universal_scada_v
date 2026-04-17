@@ -397,7 +397,7 @@ namespace TekstilScada.UI
             if (step.StepDataWords.Length > 24)
             {
                 short controlWord = step.StepDataWords[24];
-                if ((controlWord & 1) != 0) stepTypes.Add("Take Water");
+                if ((controlWord & 1) != 0) stepTypes.Add("Take Air");
                 if ((controlWord & 2) != 0) stepTypes.Add("Heating");
                 if ((controlWord & 4) != 0) stepTypes.Add("Working");
                 if ((controlWord & 8) != 0) stepTypes.Add("Dosing");

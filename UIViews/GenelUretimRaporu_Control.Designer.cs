@@ -94,7 +94,7 @@
             this.radioSu.Name = "radioSu";
             this.radioSu.Size = new System.Drawing.Size(67, 19);
             this.radioSu.TabIndex = 1;
-            this.radioSu.Text = "Water";
+            this.radioSu.Text = "Air";
             this.radioSu.UseVisualStyleBackColor = true;
             this.radioSu.CheckedChanged += new System.EventHandler(this.radioConsumption_CheckedChanged);
             // 

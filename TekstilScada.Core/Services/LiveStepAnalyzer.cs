@@ -267,7 +267,7 @@ namespace TekstilScada.Core.Services
             if (controlWord == 0) return "Undefined Step";
             var stepTypes = new List<string>();
             // TODO: Bu stringler localization servisinden çekilmeli
-            if ((controlWord & 1) != 0) stepTypes.Add("Take Water");
+            if ((controlWord & 1) != 0) stepTypes.Add("Take Air");
             if ((controlWord & 2) != 0) stepTypes.Add("Heating");
             if ((controlWord & 4) != 0) stepTypes.Add("Working");
             if ((controlWord & 8) != 0) stepTypes.Add("Dosing");

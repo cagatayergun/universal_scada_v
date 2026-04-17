@@ -15,24 +15,18 @@
         private void InitializeComponent()
         {
             tabControlReports = new TabControl();
-            tabPageProductionReport = new TabPage();
             tabPageAlarmReport = new TabPage();
             tabPageTrendAnalysis = new TabPage();
-            tabPageRecipeOptimization = new TabPage();
             tabPageManualReport = new TabPage();
-            tabPageGenelUretim = new TabPage();
             tabPageActionLog = new TabPage();
             tabControlReports.SuspendLayout();
             SuspendLayout();
             // 
             // tabControlReports
             // 
-            tabControlReports.Controls.Add(tabPageProductionReport);
             tabControlReports.Controls.Add(tabPageAlarmReport);
             tabControlReports.Controls.Add(tabPageTrendAnalysis);
-            tabControlReports.Controls.Add(tabPageRecipeOptimization);
             tabControlReports.Controls.Add(tabPageManualReport);
-            tabControlReports.Controls.Add(tabPageGenelUretim);
             tabControlReports.Controls.Add(tabPageActionLog);
             tabControlReports.Dock = DockStyle.Fill;
             tabControlReports.Location = new Point(0, 0);
@@ -41,17 +35,6 @@
             tabControlReports.SelectedIndex = 0;
             tabControlReports.Size = new Size(700, 450);
             tabControlReports.TabIndex = 0;
-            // 
-            // tabPageProductionReport
-            // 
-            tabPageProductionReport.Location = new Point(4, 24);
-            tabPageProductionReport.Margin = new Padding(3, 2, 3, 2);
-            tabPageProductionReport.Name = "tabPageProductionReport";
-            tabPageProductionReport.Padding = new Padding(3, 2, 3, 2);
-            tabPageProductionReport.Size = new Size(692, 422);
-            tabPageProductionReport.TabIndex = 1;
-            tabPageProductionReport.Text = "Production Report";
-            tabPageProductionReport.UseVisualStyleBackColor = true;
             // 
             // tabPageAlarmReport
             // 
@@ -73,16 +56,6 @@
             tabPageTrendAnalysis.TabIndex = 3;
             tabPageTrendAnalysis.Text = "Trend Analysis";
             // 
-            // tabPageRecipeOptimization
-            // 
-            tabPageRecipeOptimization.Location = new Point(4, 24);
-            tabPageRecipeOptimization.Margin = new Padding(3, 2, 3, 2);
-            tabPageRecipeOptimization.Name = "tabPageRecipeOptimization";
-            tabPageRecipeOptimization.Size = new Size(692, 422);
-            tabPageRecipeOptimization.TabIndex = 4;
-            tabPageRecipeOptimization.Text = "Prescription Consumption Analysis";
-            tabPageRecipeOptimization.UseVisualStyleBackColor = true;
-            // 
             // tabPageManualReport
             // 
             tabPageManualReport.Location = new Point(4, 24);
@@ -93,17 +66,6 @@
             tabPageManualReport.TabIndex = 5;
             tabPageManualReport.Text = "Manual Consumption";
             tabPageManualReport.UseVisualStyleBackColor = true;
-            // 
-            // tabPageGenelUretim
-            // 
-            tabPageGenelUretim.Location = new Point(4, 24);
-            tabPageGenelUretim.Margin = new Padding(3, 2, 3, 2);
-            tabPageGenelUretim.Name = "tabPageGenelUretim";
-            tabPageGenelUretim.Padding = new Padding(3, 2, 3, 2);
-            tabPageGenelUretim.Size = new Size(692, 422);
-            tabPageGenelUretim.TabIndex = 6;
-            tabPageGenelUretim.Text = "General Consumption Report";
-            tabPageGenelUretim.UseVisualStyleBackColor = true;
             // 
             // tabPageActionLog
             // 
@@ -131,10 +93,7 @@
         private System.Windows.Forms.TabPage tabPageActionLog;
         private System.Windows.Forms.TabControl tabControlReports;
         private System.Windows.Forms.TabPage tabPageAlarmReport;
-        private System.Windows.Forms.TabPage tabPageProductionReport;
         private System.Windows.Forms.TabPage tabPageTrendAnalysis;
-        private System.Windows.Forms.TabPage tabPageRecipeOptimization;
         private System.Windows.Forms.TabPage tabPageManualReport; // YENİ
-        private System.Windows.Forms.TabPage tabPageGenelUretim; // YENİ
     }
 }

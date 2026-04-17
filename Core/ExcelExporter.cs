@@ -140,9 +140,9 @@ namespace TekstilScada.Core
                             worksheet.Cell("B11").Value = headerData.TotalElectricity;
                             worksheet.Cell("B11").Style.NumberFormat.Format = "0.00";
 
-                            // 12. Water Consumption
-                            worksheet.Cell("A12").Value = "Water Consumption (m³):";
-                            worksheet.Cell("B12").Value = headerData.TotalWater;
+                            // 12. Air Consumption
+                            worksheet.Cell("A12").Value = "Air Consumption (m³):";
+                            worksheet.Cell("B12").Value = headerData.TotalAir;
                             worksheet.Cell("B12").Style.NumberFormat.Format = "0.00";
 
                             // 13. Steam Consumption

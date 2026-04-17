@@ -69,12 +69,12 @@ else
                 <div class="card-header bg-white py-1 fw-bold text-primary text-center">@(IsDryerMachine() ? "Nem (Rh)" : Loc["SuSeviyesiLabel"])</div>
                 <div class="card-body d-flex align-items-center justify-content-around">
                     <div class="v-gauge-container border-primary">
-                        @* Dinamik _maxWater kullanıldı *@
-                        <div class="v-gauge-fill bg-primary" style="height: @(GetBarPercentage((double)Status.AnlikSuSeviyesi, _maxWater))%;"></div>
+                        @* Dinamik _maxAir kullanıldı *@
+                        <div class="v-gauge-fill bg-primary" style="height: @(GetBarPercentage((double)Status.AnlikSuSeviyesi, _maxAir))%;"></div>
                     </div>
                     <div class="text-center">
                         <h2 class="text-primary fw-bold mb-0">@Status.AnlikSuSeviyesi</h2>
-                        <small class="text-muted fw-bold">@(IsDryerMachine() ? "Rh" : "Lt") / <span class="small">Max: @_maxWater</span></small>
+                        <small class="text-muted fw-bold">@(IsDryerMachine() ? "Rh" : "Lt") / <span class="small">Max: @_maxAir</span></small>
                     </div>
                 </div>
             </div>
@@ -219,9 +219,9 @@ else
     // --- DİNAMİK LİMİTLER ---
     private int _maxTemp = 150; // Varsayılan
     private int _maxRpm = 1500; // Varsayılan
-    private int _maxWater = 100; // Varsayılan
+    private int _maxAir = 100; // Varsayılan
 
-    public class TrendDataPointRich { public DateTime Timestamp { get; set; } public double Temperature { get; set; } public double Rpm { get; set; } public double WaterLevel { get; set; } }
+    public class TrendDataPointRich { public DateTime Timestamp { get; set; } public double Temperature { get; set; } public double Rpm { get; set; } public double AirLevel { get; set; } }
 
     protected override async Task OnInitializedAsync()
     {
@@ -262,17 +262,17 @@ else
             }
 
             // 3. Su Limiti (Su Alma Adımı)
-            var waterStep = stepTypes.FirstOrDefault(s => s.StepName.Contains("Su Alma") || s.StepName.Contains("Water Intake"));
-            if (waterStep != null)
+            var AirStep = stepTypes.FirstOrDefault(s => s.StepName.Contains("Su Alma") || s.StepName.Contains("Air Intake"));
+            if (AirStep != null)
             {
-                var controls = await ScadaDataService.GetLayoutAsync(machineSubType, waterStep.Id);
-                var waterControl = controls.FirstOrDefault(c =>
-                    (c.Name != null && (c.Name.Contains("numLitre", StringComparison.OrdinalIgnoreCase) || c.Name.Contains("Water", StringComparison.OrdinalIgnoreCase)))
+                var controls = await ScadaDataService.GetLayoutAsync(machineSubType, AirStep.Id);
+                var AirControl = controls.FirstOrDefault(c =>
+                    (c.Name != null && (c.Name.Contains("numLitre", StringComparison.OrdinalIgnoreCase) || c.Name.Contains("Air", StringComparison.OrdinalIgnoreCase)))
                 );
 
-                if (waterControl != null)
+                if (AirControl != null)
                 {
-                    _maxWater = (int)waterControl.Maximum;
+                    _maxAir = (int)AirControl.Maximum;
                 }
             }
 
@@ -402,7 +402,7 @@ else
                         Timestamp = d.Timestamp,
                         Temperature = isDry ? d.Temperature / 100.0 : d.Temperature / 10.0,
                         Rpm = d.Rpm,
-                        WaterLevel = d.WaterLevel
+                        AirLevel = d.AirLevel
                     }).OrderBy(x => x.Timestamp).ToList();
 
                     shouldRenderChart = (TrendData != null && TrendData.Any());
