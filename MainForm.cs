@@ -248,13 +248,13 @@ namespace TekstilScada
 
             if (isMaster)
             {
-                btnProsesKontrol.Visible = true;
+                btnProsesKontrol.Visible = false;
                 btnProsesKontrol.Enabled = true;
                 btnRaporlar.Visible = true;
                 btnRaporlar.Enabled = true;
                 btnAyarlar.Visible = true;
                 btnAyarlar.Enabled = true;
-                btnProsesIzleme.Visible = true;
+                btnProsesIzleme.Visible = false;
                 btnProsesIzleme.Enabled = true;
             }
             else
@@ -270,7 +270,7 @@ namespace TekstilScada
                 btnAyarlar.Enabled = btnAyarlar.Visible;
 
                 // Proses izleme genellikle herkese açýktýr veya en düþük yetki ister
-                btnProsesIzleme.Visible = true;
+                btnProsesIzleme.Visible = false;
                 btnProsesIzleme.Enabled = true;
             }
 
@@ -302,7 +302,7 @@ namespace TekstilScada
             // CostRepository eklendi
             _raporlarView.InitializeControl(_machineRepository, _alarmRepository, _productionRepository, _dashboardRepository, _processLogRepository, _recipeRepository, _costRepository);
 
-            _genelBakisView.InitializeControl(_pollingService, _machineRepository, _dashboardRepository, _alarmRepository, _processLogRepository, _productionRepository,_utilityRepository,_utilityPollingService);
+            _genelBakisView.InitializeControl(_pollingService, _machineRepository, plcManagers, _dashboardRepository, _alarmRepository, _processLogRepository, _productionRepository,_utilityRepository,_utilityPollingService);
 
             _ayarlarView.RefreshMachineSettingsView();
 

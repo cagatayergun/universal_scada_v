@@ -24,14 +24,15 @@ namespace TekstilScada.Services
         private ConcurrentDictionary<int, DateTime> _batchStartDebounce = new ConcurrentDictionary<int, DateTime>();
         private ConcurrentDictionary<int, DateTime> _batchEndDebounce = new ConcurrentDictionary<int, DateTime>();
 
-        // Alarmın BAŞLANGIÇ zamanını tutar
-        private ConcurrentDictionary<int, ConcurrentDictionary<int, DateTime>> _activeAlarmsTracker;
+      
 
-        // Alarmın EN SON GÖRÜLDÜĞÜ zamanı tutar (45 sn kuralı için)
-        private ConcurrentDictionary<int, ConcurrentDictionary<int, DateTime>> _alarmLastSeenTracker;
+        // --- DATA STRUCTURES & CACHE ---
+        // Alarmın BAŞLANGIÇ zamanını tutar (Aktif olan alarmlar)
+        private ConcurrentDictionary<int, ConcurrentDictionary<int, DateTime>> _activeAlarmsTracker = new();
 
-        // Toplu bitirme için 0 sinyali sayacı
-        private ConcurrentDictionary<int, DateTime?> _alarmZeroSignalTrackers = new ConcurrentDictionary<int, DateTime?>();
+        // YENİ: 2 Saniyelik Filtre (Debounce) Takipçisi
+        // machineId -> alarmId -> (HedefDurum, İlkFarkEdilmeZamanı)
+        private ConcurrentDictionary<int, ConcurrentDictionary<int, (bool TargetState, DateTime FirstSeen)>> _alarmDebounceTracker = new();
 
         // --- DEPENDENCIES ---
         private readonly AlarmRepository _alarmRepository;
@@ -105,7 +106,7 @@ namespace TekstilScada.Services
             _liveAnalyzers = new ConcurrentDictionary<int, LiveStepAnalyzer>();
             _liveAlarmCounters = new ConcurrentDictionary<int, (int, int)>();
             _pollingTasks = new List<Task>();
-            _alarmLastSeenTracker = new ConcurrentDictionary<int, ConcurrentDictionary<int, DateTime>>();
+           // _alarmLastSeenTracker = new ConcurrentDictionary<int, ConcurrentDictionary<int, DateTime>>();
             _generatedBatchIds = new ConcurrentDictionary<int, string>();
 
             _batchTotalTheoreticalTimes = new ConcurrentDictionary<int, double>();
@@ -797,70 +798,70 @@ namespace TekstilScada.Services
                 if (currentStatus.ConnectionState != ConnectionStatus.Connected) return;
 
                 var activeAlarms = _activeAlarmsTracker.GetOrAdd(machineId, new ConcurrentDictionary<int, DateTime>());
-                var lastSeenAlarms = _alarmLastSeenTracker.GetOrAdd(machineId, new ConcurrentDictionary<int, DateTime>());
+                var debounceTracker = _alarmDebounceTracker.GetOrAdd(machineId, new ConcurrentDictionary<int, (bool, DateTime)>());
 
-                int currentWordValue = currentStatus.ActiveAlarmNumber;
                 DateTime now = DateTime.Now;
 
-                // --- AŞAMA 1: GELEN VERİYİ İŞLEME ---
-                if (currentWordValue > 0)
+                // DİKKAT: PLC'den gelen ardışık word dizisinin currentStatus.ActiveAlarmWords (ushort dizisi)
+                // içine atandığını varsayıyoruz. Eğer DWord (int dizisi) ise bitIndex < 32 ve wordIndex * 32 yapılmalıdır.
+                if (currentStatus.ActiveAlarmWords != null)
                 {
-                    _alarmZeroSignalTrackers.TryRemove(machineId, out _);
-
-                    if (_alarmDefinitionsCache.TryGetValue(currentWordValue, out var alarmDef))
+                    for (int wordIndex = 0; wordIndex < currentStatus.ActiveAlarmWords.Length; wordIndex++)
                     {
-                        lastSeenAlarms[currentWordValue] = now;
+                        // 16 bitlik ushort değeri
+                        int wordValue = currentStatus.ActiveAlarmWords[wordIndex];
 
-                        if (!activeAlarms.ContainsKey(currentWordValue))
+                        for (int bitIndex = 0; bitIndex < 16; bitIndex++)
                         {
-                            activeAlarms[currentWordValue] = now;
-                            _alarmRepository.WriteAlarmHistoryEvent(machineId, alarmDef.Id, "ACTIVE");
-                            LiveEventAggregator.Instance.PublishAlarm(currentStatus.MachineName, alarmDef.AlarmText);
-                        }
-                    }
-                }
-                else
-                {
-                    if (!activeAlarms.IsEmpty)
-                    {
-                        if (!_alarmZeroSignalTrackers.TryGetValue(machineId, out DateTime? zeroStartTime) || zeroStartTime == null)
-                        {
-                            _alarmZeroSignalTrackers[machineId] = now;
-                        }
-                        else
-                        {
-                            if ((now - zeroStartTime.Value).TotalSeconds >= 3)
+                            // 1. Word 0. Bit -> 1. Alarm | 2. Word 15. Bit -> 32. Alarm
+                            int alarmId = (wordIndex * 16) + bitIndex + 1;
+
+                            // Bitin durumu 1 mi 0 mı?
+                            bool isBitHigh = (wordValue & (1 << bitIndex)) != 0;
+
+                            // Şu an bizim sistemimizde bu alarm aktif mi?
+                            bool isCurrentlyActive = activeAlarms.ContainsKey(alarmId);
+
+                            // PLC'den gelen durum, bizim bildiğimiz durumdan farklıysa filtreleme sürecini işlet
+                            if (isBitHigh != isCurrentlyActive)
                             {
-                                foreach (var kvp in activeAlarms)
+                                if (debounceTracker.TryGetValue(alarmId, out var debounceData) && debounceData.TargetState == isBitHigh)
                                 {
-                                    CloseAlarm(machineId, kvp.Key, currentStatus.MachineName);
-                                }
-                                activeAlarms.Clear();
-                                lastSeenAlarms.Clear();
-                                _alarmZeroSignalTrackers.TryRemove(machineId, out _);
-                            }
-                        }
-                    }
-                }
+                                    // Durum değişmiş ve zaten takibe alınmış. 2 saniyelik filtre süresi doldu mu?
+                                    if ((now - debounceData.FirstSeen).TotalSeconds >= 2)
+                                    {
+                                        if (isBitHigh)
+                                        {
+                                            // ALARM BAŞLADI
+                                            activeAlarms[alarmId] = now;
+                                            if (_alarmDefinitionsCache.TryGetValue(alarmId, out var alarmDef))
+                                            {
+                                                _alarmRepository.WriteAlarmHistoryEvent(machineId, alarmDef.Id, "ACTIVE");
+                                                LiveEventAggregator.Instance.PublishAlarm(currentStatus.MachineName, alarmDef.AlarmText);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            // ALARM BİTTİ
+                                            activeAlarms.TryRemove(alarmId, out _);
+                                            CloseAlarm(machineId, alarmId, currentStatus.MachineName);
+                                        }
 
-                // --- AŞAMA 2: BİREYSEL ZAMAN AŞIMI KONTROLÜ ---
-                if (!activeAlarms.IsEmpty)
-                {
-                    var activeKeys = activeAlarms.Keys.ToList();
-                    foreach (var alarmId in activeKeys)
-                    {
-                        if (lastSeenAlarms.TryGetValue(alarmId, out DateTime lastSeenTime))
-                        {
-                            if ((now - lastSeenTime).TotalSeconds > 45)
-                            {
-                                CloseAlarm(machineId, alarmId, currentStatus.MachineName);
-                                activeAlarms.TryRemove(alarmId, out _);
-                                lastSeenAlarms.TryRemove(alarmId, out _);
+                                        // İşlem tamamlandı, takipten çıkar
+                                        debounceTracker.TryRemove(alarmId, out _);
+                                    }
+                                }
+                                else
+                                {
+                                    // İlk defa değişim yakalandı veya sinyal yön değiştirdi (örn: 1 beklerken aniden 0 oldu), sayacı başlat
+                                    debounceTracker[alarmId] = (isBitHigh, now);
+                                }
                             }
-                        }
-                        else
-                        {
-                            lastSeenAlarms[alarmId] = now;
+                            else
+                            {
+                                // Sinyal bizim bildiğimiz durumla aynı (Stabil). Eğer debounce kalıntısı varsa temizle.
+                                debounceTracker.TryRemove(alarmId, out _);
+                            }
                         }
                     }
                 }
@@ -870,8 +871,10 @@ namespace TekstilScada.Services
 
                 if (currentStatus.HasActiveAlarm)
                 {
-                    int displayId = (currentWordValue > 0) ? currentWordValue : activeAlarms.Keys.LastOrDefault();
+                    // UI'da her zaman mevcut aktif alarmlardan ilkini (veya en güncelini) göster
+                    int displayId = activeAlarms.Keys.OrderBy(k => k).FirstOrDefault();
                     currentStatus.ActiveAlarmNumber = displayId;
+
                     if (_alarmDefinitionsCache.TryGetValue(displayId, out var def))
                         currentStatus.ActiveAlarmText = def.AlarmText;
                     else
@@ -883,6 +886,7 @@ namespace TekstilScada.Services
                     currentStatus.ActiveAlarmText = "";
                 }
 
+                // Değişiklik varsa SCADA ekranlarına event fırlat
                 MachineDataCache.TryGetValue(machineId, out var previousStatus);
                 if ((previousStatus?.HasActiveAlarm ?? false) != currentStatus.HasActiveAlarm ||
                     (previousStatus?.ActiveAlarmNumber ?? 0) != currentStatus.ActiveAlarmNumber)
@@ -892,7 +896,7 @@ namespace TekstilScada.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Alarm işleme hatası: {MachineId}", machineId);
+                _logger.LogError(ex, "Alarm işleme hatası (Word bazlı): {MachineId}", machineId);
             }
         }
 

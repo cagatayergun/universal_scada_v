@@ -28,7 +28,7 @@ namespace TekstilScada.UI.Views
         private ProcessLogRepository _logRepository;
         private ProductionRepository _productionRepository;
         private UtilityRepository _utilityRepository;
-
+        private Dictionary<int, IPlcManager> _plcManagers;
         private Dictionary<int, bool> _previousBatchStatuses;
         private readonly Dictionary<int, DashboardMachineCard_Control> _machineCards = new Dictionary<int, DashboardMachineCard_Control>();
         private System.Windows.Forms.Timer _uiUpdateTimer;
@@ -80,6 +80,7 @@ namespace TekstilScada.UI.Views
         public void InitializeControl(
             PlcPollingService pollingService,
             MachineRepository machineRepo,
+            Dictionary<int, IPlcManager> plcManagers,
             DashboardRepository dashboardRepo,
             AlarmRepository alarmRepo,
             ProcessLogRepository logRepo,
@@ -89,6 +90,7 @@ namespace TekstilScada.UI.Views
         {
             _pollingService = pollingService;
             _machineRepository = machineRepo;
+            _plcManagers = plcManagers;
             _dashboardRepository = dashboardRepo;
             _alarmRepository = alarmRepo;
             _logRepository = logRepo;
@@ -460,47 +462,47 @@ namespace TekstilScada.UI.Views
                     };
                 });
 
-                formsPlotHourly.Plot.Clear();
+             //   formsPlotHourly.Plot.Clear();
                 if (result.ElecData != null && result.ElecData.Rows.Count > 0)
                 {
                     double[] hours = result.ElecData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
                     double[] consumption = result.ElecData.AsEnumerable().Select(row => row.IsNull("ToplamElektrik") ? 0.0 : Convert.ToDouble(row["ToplamElektrik"]) / 1000.0).ToArray();
 
-                    var barPlot = formsPlotHourly.Plot.Add.Scatter(hours, consumption);
-                    barPlot.Color = ScottPlot.Colors.SteelBlue;
-                    barPlot.MarkerSize = 0;
-                    formsPlotHourly.Plot.Axes.Left.Label.Text = "kWh";
+                //    var barPlot = formsPlotHourly.Plot.Add.Scatter(hours, consumption);
+                 //   barPlot.Color = ScottPlot.Colors.SteelBlue;
+                 //   barPlot.MarkerSize = 0;
+                 //   formsPlotHourly.Plot.Axes.Left.Label.Text = "kWh";
                 }
-                formsPlotHourly.Plot.Axes.AutoScale();
-                formsPlotHourly.Refresh();
+               // formsPlotHourly.Plot.Axes.AutoScale();
+               // formsPlotHourly.Refresh();
 
-                formsPlotHourlyWater.Plot.Clear();
+              //  formsPlotHourlyWater.Plot.Clear();
                 if (result.WaterData != null && result.WaterData.Rows.Count > 0)
                 {
                     double[] hours = result.WaterData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
                     double[] consumption = result.WaterData.AsEnumerable().Select(row => row.IsNull("ToplamSu") ? 0.0 : Convert.ToDouble(row["ToplamSu"]) / 1000.0).ToArray();
 
-                    var barPlot = formsPlotHourlyWater.Plot.Add.Scatter(hours, consumption);
-                    barPlot.Color = ScottPlot.Colors.CornflowerBlue;
-                    barPlot.MarkerSize = 0;
-                    formsPlotHourlyWater.Plot.Axes.Left.Label.Text = "m³";
+              //      var barPlot = formsPlotHourlyWater.Plot.Add.Scatter(hours, consumption);
+                //    barPlot.Color = ScottPlot.Colors.CornflowerBlue;
+                //    barPlot.MarkerSize = 0;
+               //     formsPlotHourlyWater.Plot.Axes.Left.Label.Text = "m³";
                 }
-                formsPlotHourlyWater.Plot.Axes.AutoScale();
-                formsPlotHourlyWater.Refresh();
+               // formsPlotHourlyWater.Plot.Axes.AutoScale();
+               // formsPlotHourlyWater.Refresh();
 
-                formsPlotHourlySteam.Plot.Clear();
+              //  formsPlotHourlySteam.Plot.Clear();
                 if (result.SteamData != null && result.SteamData.Rows.Count > 0)
                 {
                     double[] hours = result.SteamData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
                     double[] consumption = result.SteamData.AsEnumerable().Select(row => row.IsNull("ToplamBuhar") ? 0.0 : Convert.ToDouble(row["ToplamBuhar"]) / 1000.0).ToArray();
 
-                    var barPlot = formsPlotHourlySteam.Plot.Add.Scatter(hours, consumption);
-                    barPlot.Color = ScottPlot.Colors.DimGray;
-                    barPlot.MarkerSize = 0;
-                    formsPlotHourlySteam.Plot.Axes.Left.Label.Text = "m³";
+               //     var barPlot = formsPlotHourlySteam.Plot.Add.Scatter(hours, consumption);
+              //      barPlot.Color = ScottPlot.Colors.DimGray;
+              //      barPlot.MarkerSize = 0;
+              //      formsPlotHourlySteam.Plot.Axes.Left.Label.Text = "m³";
                 }
-                formsPlotHourlySteam.Plot.Axes.AutoScale();
-                formsPlotHourlySteam.Refresh();
+               // formsPlotHourlySteam.Plot.Axes.AutoScale();
+                //formsPlotHourlySteam.Refresh();
 
                 formsPlotTopAlarms.Plot.Clear();
                 if (result.TopAlarms != null && result.TopAlarms.Any())
@@ -563,10 +565,10 @@ namespace TekstilScada.UI.Views
 
         public void ApplyLocalization()
         {
-            gbHourlyConsumption.Text = "Hourly Electricity (kWh)";
+            //gbHourlyConsumption.Text = "Hourly Electricity (kWh)";
             gbTopAlarms.Text = Resources.ensikalarm;
-            gbHourlyConsumptionWater.Text = "Hourly Water (m³)";
-            gbHourlyConsumptionSteam.Text = "Hourly Steam (m³)";
+           // gbHourlyConsumptionWater.Text = "Hourly Water (m³)";
+           // gbHourlyConsumptionSteam.Text = "Hourly Steam (m³)";
             gbHourlyOee.Text = "24 Hourly OEE";
         }
     }

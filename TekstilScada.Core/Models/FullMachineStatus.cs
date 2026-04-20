@@ -22,7 +22,7 @@ namespace TekstilScada.Models
         public bool IsPaused { get; set; }
         public bool manuel_status { get; set; }
         public bool HasActiveAlarm { get; set; }
-        
+        public short[] ActiveAlarmWords { get; set; }
         public int ActiveAlarmNumber { get; set; }
         public string ActiveAlarmText { get; set; }
 

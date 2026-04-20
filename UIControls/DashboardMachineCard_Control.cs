@@ -1,114 +1,120 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows.Forms;
+using TekstilScada.Core;
 using TekstilScada.Models;
 using TekstilScada.Repositories;
-using System.Threading.Tasks; // EKLENDİ
-using System.Text.Json;       // EKLENDİ
+using TekstilScada.Services;
 using static TekstilScada.Repositories.ProcessLogRepository;
 
 namespace TekstilScada.UI.Controls
 {
     public partial class DashboardMachineCard_Control : UserControl
     {
+        private RecipeRepository _recipeRepository;
+        private MachineRepository _machineRepository;
+        private Dictionary<int, IPlcManager> _plcManagers;
+        private UserRepository _userRepository; // YENİ: Loglama için eklendi
+        private List<ScadaRecipe> _recipeList;
+        private ScadaRecipe _currentRecipe;
+
+        // BYMakinesi editörünü ve bileşenlerini tutmak için değişkenler
+        private SplitContainer _byMakinesiEditor;
+        private DataGridView dgvRecipeSteps;
+        private Panel pnlStepDetails;
+        private Label lblStepDetailsTitle;
+        private CostRepository _costRepository;
+        private FtpSync_Form _ftpFormInstance; // YENİ EKLENEN SATIR
+        private PlcPollingService _plcPollingService;
+        private FtpTransferService _ftpTransferService;
+        private short[] _copiedStepData = null;
+        private List<ScadaRecipe> _copiedRecipes = new List<ScadaRecipe>();
         private readonly Machine _machine;
         private readonly RecipeConfigurationRepository _configRepo = new RecipeConfigurationRepository();
-        private List<PointF> _sparklinePoints = new List<PointF>();
-        private readonly Color _colorAlarm = Color.FromArgb(231, 76, 60);
-        private readonly Color _colorRunning = Color.FromArgb(46, 204, 113);
-        private readonly Color _colorIdle = Color.FromArgb(243, 156, 18);
-        private readonly Color _colorStopped = Color.SlateGray;
+
+        // Durum Renkleri
+        private readonly Color _colorAlarm = Color.FromArgb(231, 76, 60);    // Kırmızı
+        private readonly Color _colorRunning = Color.FromArgb(46, 204, 113);  // Yeşil
+        private readonly Color _colorIdle = Color.FromArgb(243, 156, 18);     // Turuncu
+        private readonly Color _colorStopped = Color.SlateGray;               // Gri
+
         private int _lastValidProgress = 0;
 
         public DashboardMachineCard_Control(Machine machine)
         {
             InitializeComponent();
             _machine = machine;
+
+            // Başlık ayarı (Örn: Vinç No: 01)
             lblMachineName.Text = _machine.MachineName;
 
             this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
 
-            // Renk ayarları
-            lblMachineName.ForeColor = Color.Black;
-            lblRecipeName.ForeColor = Color.Black;
-            lblBatchId.ForeColor = Color.Black;
-            lblTemperature.ForeColor = Color.Red;
-            gaugeRpm.ForeColor = Color.Black;
-            lblPercentage.ForeColor = Color.Black;
-            lblHumidity.ForeColor = Color.Blue;
-            lblhumudity.ForeColor = Color.Black;
-            label2.ForeColor = Color.Black;
-            SetRpmGaugeLimitAsync();
+            // Vinç Prosesine Uygun Renk Teması
+            lblMachineName.ForeColor = Color.FromArgb(44, 62, 80);
+
+            // Yük Kapasite Limitini (SWL) Veritabanından Getir
+            SetLoadGaugeLimitAsync();
         }
-        private async void SetRpmGaugeLimitAsync()
+        public void InitializeControl(RecipeRepository recipeRepo, MachineRepository machineRepo, Dictionary<int, IPlcManager> plcManagers, PlcPollingService plcPollingService, FtpTransferService ftpTransferService, UserRepository userRepo)
+        {
+            _recipeRepository = recipeRepo;
+            _machineRepository = machineRepo;
+            _plcManagers = plcManagers;
+            _plcPollingService = plcPollingService;
+            _ftpTransferService = ftpTransferService; // YENİ: Alanı atayın
+            _userRepository = userRepo;
+        }
+        /// <summary>
+        /// Vincin güvenli çalışma yükü (SWL) limitini ayarlar.
+        /// </summary>
+        private async void SetLoadGaugeLimitAsync()
         {
             try
             {
-                // 1. Veritabanından adım tiplerini çek
-                var stepTypesTable = await Task.Run(() => _configRepo.GetStepTypes());
-                int rpmStepTypeId = -1;
+                // Vinç konfigürasyonundan maksimum kapasite parametresini çekiyoruz
+                // 'rpmStepTypeId' yerine 'loadLimitId' mantığına geçildi
+                var configTable = await Task.Run(() => _configRepo.GetStepTypes());
+                int loadLimitId = -1;
 
-                // 2. "Sıkma" (Squeezing) adımının ID'sini bul
-                foreach (System.Data.DataRow row in stepTypesTable.Rows)
+                foreach (System.Data.DataRow row in configTable.Rows)
                 {
-                    string stepName = row["StepName"].ToString();
-                    if (stepName.Contains("Sıkma") || stepName.Contains("Squeezing"))
+                    string name = row["StepName"].ToString();
+                    // "Kapasite" veya "Load Limit" kelimelerini arıyoruz
+                    if (name.Contains("Kapasite") || name.Contains("Load") || name.Contains("SWL"))
                     {
-                        rpmStepTypeId = Convert.ToInt32(row["Id"]);
+                        loadLimitId = Convert.ToInt32(row["Id"]);
                         break;
                     }
                 }
 
-                // Eğer Sıkma adımı bulunduysa
-                if (rpmStepTypeId != -1)
+                if (loadLimitId != -1)
                 {
-                    // 3. KRİTİK NOKTA: Bu kartın ait olduğu makinenin alt tipini kullanıyoruz
-                    // _machine.MachineSubType -> Örn: "Boyama", "Yıkama"
                     string layoutJson = await Task.Run(() =>
-                        _configRepo.GetLayoutJson(_machine.MachineSubType, rpmStepTypeId));
+                        _configRepo.GetLayoutJson(_machine.MachineSubType, loadLimitId));
 
                     if (!string.IsNullOrEmpty(layoutJson))
                     {
-                        var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                        var controls = System.Text.Json.JsonSerializer.Deserialize<List<ControlMetadata>>(layoutJson, options);
+                        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                        var controls = JsonSerializer.Deserialize<List<ControlMetadata>>(layoutJson, options);
 
-                        // 4. Tasarım içindeki RPM kontrolünü bul
-                        var rpmControl = controls.FirstOrDefault(c =>
-                            c.Maximum > 50 &&
-                            (
-                                (c.Name != null && (c.Name.IndexOf("numSikmaDevri", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                                    c.Name.IndexOf("Rpm", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                                    c.Name.IndexOf("Squeezing Speed", StringComparison.OrdinalIgnoreCase) >= 0)) ||
-                                (c.Text != null && c.Text.IndexOf("Devir", StringComparison.OrdinalIgnoreCase) >= 0)
-                            )
-                        );
+                        // Maksimum yük değerini içeren kontrolü bul
+                        var loadControl = controls.FirstOrDefault(c => c.Maximum > 0);
 
-                        if (rpmControl != null)
-                        {
-                            // 5. Değeri ata (1.33 katı ile)
-                            int newMax = (int)(rpmControl.Maximum);
 
-                            if (gaugeRpm.InvokeRequired)
-                            {
-                                gaugeRpm.Invoke(new Action(() => gaugeRpm.Maximum = newMax));
-                            }
-                            else
-                            {
-                                gaugeRpm.Maximum = newMax;
-                            }
-                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                // Dashboard'da çok kart olduğu için hata patlatmayalım, loglayalım
-                System.Diagnostics.Debug.WriteLine($"RPM limiti ayarlanamadı ({_machine.MachineName}): {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Yük limiti ayarlanamadı: {ex.Message}");
             }
         }
+
         public void UpdateData(FullMachineStatus status, List<ProcessDataPoint> trendData)
         {
             if (this.InvokeRequired)
@@ -117,81 +123,92 @@ namespace TekstilScada.UI.Controls
                 return;
             }
 
-            lblRecipeName.Text = $"Recipe: {status.RecipeName ?? "-"}";
-            lblBatchId.Text = $"Party: {status.BatchNumarasi ?? "-"}";
 
             try
             {
-                gaugeRpm.Value = status.AnlikDevirRpm;
-                gaugeRpm.Text = status.AnlikDevirRpm.ToString();
-            }
-            catch (Exception ex) { }
-            // --- YENİ: Kurutma Makinesi Kontrolü ---
-            bool isDrying = _machine.MachineType == "Kurutma Makinesi";
-            if (!isDrying)
-            {
-                lblTemperature.Text = $"{status.AnlikSicaklik / 10.0m}°C";
-            }
-            else
-            {
-                lblTemperature.Text = $"{status.AnlikSicaklik / 100.0m:F1}°C";
-            }
-                // Kurutma makinesi ise barı gizle, nemi göster
-                progressBar.Visible = !isDrying;
-            lblPercentage.Visible = !isDrying;
-            lblProcessing.Visible = !isDrying;
-            lblHumidity.Visible = isDrying;
-            lblhumudity.Visible = isDrying;
-            if (isDrying)
-            {
-                // Not: Modelde Nem alanını ekleyince burayı status.AnlikNem yaparsınız.
-                // Şimdilik mevcut yapıyı koruyoruz.
-                lblHumidity.Text = $"{status.AnlikSuSeviyesi} %";
-            }
-            // ---------------------------------------
 
+            }
+            catch { }
+
+            // Kanca Yüksekliği ve Kedi Pozisyonu (Mesafe birimleri)
+            // status.AnlikSicaklik -> Kanca Yüksekliği (Örn: 155 -> 15.5m)
+
+
+            // Alt Bar: Kapasite Kullanımı (%)
+            _lastValidProgress = Math.Max(0, Math.Min(100, (int)status.ProsesYuzdesi));
+
+
+            // Durum ve Alarm Yönetimi
             if (status.HasActiveAlarm)
             {
-                if (progressBar.Value > 0) _lastValidProgress = progressBar.Value;
-                progressBar.Value = _lastValidProgress;
-                lblPercentage.Text = $"{_lastValidProgress} %";
-
                 pnlStatusIndicator.BackColor = _colorAlarm;
-                lblStatus.Text = $"ALARM #{status.ActiveAlarmNumber}";
+                lblStatus.Text = $"ALARM #{status.ActiveAlarmText}";
                 lblStatus.ForeColor = _colorAlarm;
+                btnSendToPlc.ForeColor = Color.Black;
+
             }
             else
             {
-                _lastValidProgress = Math.Max(0, Math.Min(100, (int)status.ProsesYuzdesi));
-                progressBar.Value = _lastValidProgress;
-                lblPercentage.Text = $"{_lastValidProgress} %";
                 if (status.manuel_status)
                 {
                     pnlStatusIndicator.BackColor = _colorRunning;
-                    lblStatus.Text = $"Working - Manuel";
+                    lblStatus.Text = "MANUEL SÜRÜŞ";
                     lblStatus.ForeColor = _colorRunning;
+                    btnSendToPlc.ForeColor = Color.Black;
                 }
-                else
-                {
-                    if (status.IsInRecipeMode)
+                else if (status.IsInRecipeMode)
                 {
                     pnlStatusIndicator.BackColor = _colorRunning;
-                    lblStatus.Text = $"Working - Step {status.AktifAdimNo}";
+                    lblStatus.Text = $"OTOMATİK - MOD {status.AktifAdimNo}";
                     lblStatus.ForeColor = _colorRunning;
+                    btnSendToPlc.ForeColor = Color.Black;
                 }
                 else
                 {
                     pnlStatusIndicator.BackColor = _colorStopped;
-                    lblStatus.Text = "Stops";
+                    lblStatus.Text = "BEKLEMEDE";
                     lblStatus.ForeColor = _colorStopped;
-                }
+                    btnSendToPlc.ForeColor = Color.Black;
                 }
             }
-
-
-            
         }
 
-      
+        private void lblStatus_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private async void BtnSendToPlc_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                var result = await plcManager.WriteRecipeToPlcAsync(_currentRecipe, recipeSlot);
+
+                if (result.IsSuccess)
+                {
+                    // --- LOGLAMA (PLC Gönderimi) ---
+                    if (CurrentUser.User != null && _userRepository != null)
+                    {
+                        string slotInfo = recipeSlot.HasValue ? $"(Slot: {recipeSlot})" : "";
+                        _userRepository.LogAction(
+                            CurrentUser.User.Id,
+                            "RECIPE_SEND_PLC",
+                            $"Recipe '{_currentRecipe.RecipeName}' written to PLC of '{selectedMachine.MachineName}' {slotInfo} [rcp-{_currentRecipe.Id}]"
+                        );
+                    }
+                    // ------------------------------
+
+                    MessageBox.Show($"'Recipe '{_currentRecipe.RecipeName}' was successfully sent to machine '{selectedMachine.MachineName}'.", "Success");
+                }
+                else
+                {
+                    MessageBox.Show($"Error while sending prescription: {result.Message}", "Error");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An unexpected error occurred: {ex.Message}", "System Error");
+            }
+        }
     }
 }

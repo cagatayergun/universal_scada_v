@@ -145,6 +145,7 @@ namespace TekstilScada
             btnProsesIzleme.Text = "Proses İzleme";
             btnProsesIzleme.TextAlign = ContentAlignment.MiddleLeft;
             btnProsesIzleme.UseVisualStyleBackColor = false;
+            btnProsesIzleme.Visible = false;
             btnProsesIzleme.Click += btnProsesIzleme_Click;
             // 
             // btnGenelBakis

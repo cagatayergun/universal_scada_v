@@ -132,6 +132,20 @@ namespace TekstilScada.Services
                 if (alarmNoResult.IsSuccess) { status.ActiveAlarmNumber = alarmNoResult.Content; status.HasActiveAlarm = alarmNoResult.Content > 0; }
                 else { Debug.WriteLine($"[ERROR] {IpAddress} - {ALARM_NO} (Alarm No) could not be read: {alarmNoResult.Message}"); anyReadFailed = true; }
 
+                var alarmResult2 = _plcClient.ReadInt16("100", 5); // D70
+
+                if (alarmResult2.IsSuccess)
+                {
+                    // Artık alarmResult2.Content bir ushort[] (veya short[]) olduğu için hata vermeyecek
+                    status.ActiveAlarmWords = alarmResult2.Content;
+                }
+                else
+                {
+                    Debug.WriteLine($"[ERROR] {alarmResult2.Message}");
+                    anyReadFailed = true;
+                }
+
+
                 var suSeviyesiResult = _plcClient.ReadInt16(CURRENT_WATER_LEVEL);
                 if (suSeviyesiResult.IsSuccess) status.AnlikSuSeviyesi = suSeviyesiResult.Content;
                 else { Debug.WriteLine($"[ERROR] {IpAddress} - {CURRENT_WATER_LEVEL} (Current Water Level) could not be read: {suSeviyesiResult.Message}"); anyReadFailed = true; }
@@ -266,9 +280,13 @@ namespace TekstilScada.Services
             // PLC'den cevap beklerken işlemci boşa çıkar ve diğer işlere bakar.
             return await Task.Run(() => ReadLiveStatusData());
         }
-        public Task<OperateResult> AcknowledgeAlarm()
+        public async Task<OperateResult> AcknowledgeAlarm()
         {
-            throw new NotImplementedException("Alarm acknowledgment is not yet implemented for BYMakinesi.");
+            // Task.Run içindeki işlemi bekler ve sonucu 'result' değişkenine atar.
+            var result = await Task.Run(() => _plcClient.Write("80", 1));
+
+            // Beklenen OperateResult değerini geriye döndürür.
+            return result;
         }
 
         public async Task<OperateResult> WriteRecipeToPlcAsync(ScadaRecipe recipe, int? recipeSlot = null)
