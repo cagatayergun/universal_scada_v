@@ -41,18 +41,48 @@ namespace TekstilScada.Repositories
 
                         foreach (var step in recipe.Steps)
                         {
-                            string stepQuery = "INSERT INTO recipe_steps (RecipeId, StepNumber, Word0, Word1, Word2, Word3, Word4, Word5, Word6, Word7, Word8, Word9, Word10, Word11, Word12, Word13, Word14, Word15, Word16, Word17, Word18, Word19, Word20, Word24) " +
-                                               "VALUES (@RecipeId, @StepNumber, @Word0, @Word1, @Word2, @Word3, @Word4, @Word5, @Word6, @Word7, @Word8, @Word9, @Word10, @Word11, @Word12, @Word13, @Word14, @Word15, @Word16, @Word17, @Word18, @Word19, @Word20, @Word24);";
+                            // 130 Word kapasitesi için 7 parça (chunk) gerekir (7 x 20 = 140)
+                            int chunkCount = step.StepDataWords.Length >= 130 ? 7 : 1;
 
-                            var stepCmd = new MySqlCommand(stepQuery, connection, transaction);
-                            stepCmd.Parameters.AddWithValue("@RecipeId", recipe.Id);
-                            stepCmd.Parameters.AddWithValue("@StepNumber", step.StepNumber);
-                            for (int i = 0; i <= 24; i++)
+                            for (int chunk = 0; chunk < chunkCount; chunk++)
                             {
-                                if (i >= 21 && i <= 23) continue; // String alanları atla
-                                stepCmd.Parameters.AddWithValue($"@Word{i}", step.StepDataWords[i]);
+                                string stepQuery = "INSERT INTO recipe_steps (RecipeId, StepNumber, Word0, Word1, Word2, Word3, Word4, Word5, Word6, Word7, Word8, Word9, Word10, Word11, Word12, Word13, Word14, Word15, Word16, Word17, Word18, Word19, Word20, Word24) " +
+                                                   "VALUES (@RecipeId, @StepNumber, @Word0, @Word1, @Word2, @Word3, @Word4, @Word5, @Word6, @Word7, @Word8, @Word9, @Word10, @Word11, @Word12, @Word13, @Word14, @Word15, @Word16, @Word17, @Word18, @Word19, @Word20, @Word24);";
+
+                                var stepCmd = new MySqlCommand(stepQuery, connection, transaction);
+                                stepCmd.Parameters.AddWithValue("@RecipeId", recipe.Id);
+
+                                int dbStepNumber = chunkCount > 1 ? (chunk + 1) : step.StepNumber;
+                                stepCmd.Parameters.AddWithValue("@StepNumber", dbStepNumber);
+
+                                if (chunkCount == 7) // YENİ: 130 Word için 7 parçalı sistem
+                                {
+                                    int offset = chunk * 20;
+                                    for (int i = 0; i < 20; i++)
+                                    {
+                                        // Dizi 130 elemanlı olduğu için 7. parçada 120-139 arasını arayacak.
+                                        // 130'u aşan indexlerde hata almamak için 0 (Sıfır) basıyoruz.
+                                        short val = (offset + i < step.StepDataWords.Length) ? step.StepDataWords[offset + i] : (short)0;
+                                        stepCmd.Parameters.AddWithValue($"@Word{i}", val);
+                                    }
+
+                                    // SQL Sütun sayısının eşleşmesi için (Görseldeki hatanın çözümü)
+                                    stepCmd.Parameters.AddWithValue("@Word20", 0);
+                                    stepCmd.Parameters.AddWithValue("@Word24", 0);
+                                }
+                                else
+                                {
+                                    // ESKİ SİSTEM (Kurutma makineleri vs.)
+                                    for (int i = 0; i <= 24; i++)
+                                    {
+                                        if (i >= 21 && i <= 23) continue;
+                                        short val = (i < step.StepDataWords.Length) ? step.StepDataWords[i] : (short)0;
+                                        stepCmd.Parameters.AddWithValue($"@Word{i}", val);
+                                    }
+                                }
+
+                                stepCmd.ExecuteNonQuery();
                             }
-                            stepCmd.ExecuteNonQuery();
                         }
                         transaction.Commit();
                     }
@@ -89,20 +119,51 @@ namespace TekstilScada.Repositories
                         deleteCmd.ExecuteNonQuery();
 
                         // 3. Yeni/güncellenmiş adımları ekle
+                        // 3. Yeni/güncellenmiş adımları ekle
                         foreach (var step in recipe.Steps)
                         {
-                            // Adım ekleme sorgusu (AddRecipe ile aynı)
-                            string stepQuery = "INSERT INTO recipe_steps (RecipeId, StepNumber, Word0, Word1, Word2, Word3, Word4, Word5, Word6, Word7, Word8, Word9, Word10, Word11, Word12, Word13, Word14, Word15, Word16, Word17, Word18, Word19, Word20, Word24) " +
-                                              "VALUES (@RecipeId, @StepNumber, @Word0, @Word1, @Word2, @Word3, @Word4, @Word5, @Word6, @Word7, @Word8, @Word9, @Word10, @Word11, @Word12, @Word13, @Word14, @Word15, @Word16, @Word17, @Word18, @Word19, @Word20, @Word24);";
-                            var stepCmd = new MySqlCommand(stepQuery, connection, transaction);
-                            stepCmd.Parameters.AddWithValue("@RecipeId", recipe.Id);
-                            stepCmd.Parameters.AddWithValue("@StepNumber", step.StepNumber);
-                            for (int i = 0; i <= 24; i++)
+                            // HATA BURADAYDI: 5 yerine 7 olmalı! (130 Word için 7 x 20 = 140)
+                            int chunkCount = step.StepDataWords.Length >= 130 ? 7 : 1;
+
+                            for (int chunk = 0; chunk < chunkCount; chunk++)
                             {
-                                if (i >= 21 && i <= 23) continue;
-                                stepCmd.Parameters.AddWithValue($"@Word{i}", step.StepDataWords[i]);
+                                string stepQuery = "INSERT INTO recipe_steps (RecipeId, StepNumber, Word0, Word1, Word2, Word3, Word4, Word5, Word6, Word7, Word8, Word9, Word10, Word11, Word12, Word13, Word14, Word15, Word16, Word17, Word18, Word19, Word20, Word24) " +
+                                                   "VALUES (@RecipeId, @StepNumber, @Word0, @Word1, @Word2, @Word3, @Word4, @Word5, @Word6, @Word7, @Word8, @Word9, @Word10, @Word11, @Word12, @Word13, @Word14, @Word15, @Word16, @Word17, @Word18, @Word19, @Word20, @Word24);";
+
+                                var stepCmd = new MySqlCommand(stepQuery, connection, transaction);
+                                stepCmd.Parameters.AddWithValue("@RecipeId", recipe.Id);
+
+                                // BY Makinesi ise veritabanına Step 1, 2, 3, 4, 5, 6, 7 olarak kaydet
+                                int dbStepNumber = chunkCount > 1 ? (chunk + 1) : step.StepNumber;
+                                stepCmd.Parameters.AddWithValue("@StepNumber", dbStepNumber);
+
+                                if (chunkCount == 7) // BURASI DA 5'TEN 7'YE DÜZELTİLDİ
+                                {
+                                    int offset = chunk * 20;
+                                    for (int i = 0; i < 20; i++)
+                                    {
+                                        // Dizi sınırını aşmamak için güvenlik kontrolü (Görsel hatayı ve çökmeyi önler)
+                                        short val = (offset + i < step.StepDataWords.Length) ? step.StepDataWords[offset + i] : (short)0;
+                                        stepCmd.Parameters.AddWithValue($"@Word{i}", val);
+                                    }
+
+                                    stepCmd.Parameters.AddWithValue("@Word20", 0);
+                                    stepCmd.Parameters.AddWithValue("@Word24", 0);
+                                }
+                                else
+                                {
+                                    // ESKİ SİSTEM (Kurutma makineleri vs. için aynen kalıyor)
+                                    for (int i = 0; i <= 24; i++)
+                                    {
+                                        if (i >= 21 && i <= 23) continue;
+                                        short val = (i < step.StepDataWords.Length) ? step.StepDataWords[i] : (short)0;
+                                        stepCmd.Parameters.AddWithValue($"@Word{i}", val);
+                                    }
+                                }
+
+                                stepCmd.ExecuteNonQuery();
                             }
-                            stepCmd.ExecuteNonQuery();
+                        
                         }
                         transaction.Commit();
                     }
@@ -196,19 +257,47 @@ namespace TekstilScada.Repositories
 
                     using (var reader = stepsCmd.ExecuteReader())
                     {
+                        // Veritabanındaki adımları geçici olarak okuyalım
+                        var dbSteps = new List<ScadaRecipeStep>();
                         while (reader.Read())
                         {
-                            var step = new ScadaRecipeStep
-                            {
-                                Id = reader.GetInt32("Id"),
-                                StepNumber = reader.GetInt32("StepNumber")
-                            };
+                            var step = new ScadaRecipeStep { Id = reader.GetInt32("Id"), StepNumber = reader.GetInt32("StepNumber") };
                             for (int i = 0; i <= 24; i++)
                             {
                                 if (i >= 21 && i <= 23) continue;
                                 step.StepDataWords[i] = reader.GetInt16($"Word{i}");
                             }
-                            recipe.Steps.Add(step);
+                            dbSteps.Add(step);
+                        }
+
+                        // EĞER 5 ADIM GELDİYSE -> Bu bizim 20'şerli böldüğümüz 100 Word'lük BY Makinesi reçetesidir!
+                        // GetRecipeById içindeki Adım yükleme bloğunu (if(dbSteps.Count == ...)) şu şekilde değiştirin:
+
+                        // EĞER 7 ADIM GELDİYSE -> Bu bizim 20'şerli böldüğümüz 130 Word'lük BY Makinesi reçetesidir!
+                        if (dbSteps.Count == 7)
+                        {
+                            var singleStep = new ScadaRecipeStep { StepNumber = 1, StepDataWords = new short[130] };
+
+                            // 7 parçayı sırayla 130'luk dizinin içine yerleştir
+                            for (int chunk = 0; chunk < 7; chunk++)
+                            {
+                                var dbStep = dbSteps[chunk];
+                                int offset = chunk * 20;
+
+                                // 130'luk dizinin sınırını aşmamak için kopyalanacak uzunluğu belirliyoruz
+                                // Son chunk'ta (120-139 arası) sadece 10 eleman kopyalayacak.
+                                int copyLen = Math.Min(20, 130 - offset);
+                                if (copyLen > 0)
+                                {
+                                    Array.Copy(dbStep.StepDataWords, 0, singleStep.StepDataWords, offset, copyLen);
+                                }
+                            }
+
+                            recipe.Steps.Add(singleStep);
+                        }
+                        else
+                        {
+                            recipe.Steps.AddRange(dbSteps);
                         }
                     }
                 }

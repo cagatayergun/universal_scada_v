@@ -153,9 +153,31 @@ namespace TekstilScada.Services
                 else { Debug.WriteLine($"[ERROR] {IpAddress} - {OPERATOR_NAME} (Operator Name) could not be read: {operatorResult.Message}"); anyReadFailed = true; }
 
                 var recipeNameResult = ReadStringFromWords(RECIPE_NAME, 5);
-                if (recipeNameResult.IsSuccess) status.RecipeName = recipeNameResult.Content;
-                else { Debug.WriteLine($"[ERROR] {IpAddress} - {RECIPE_NAME} (Recipe Name) could not be read: {recipeNameResult.Message}"); anyReadFailed = true; }
+                if (recipeNameResult.IsSuccess)
+                {
+                    // 1. PLC'den gelen raw (ham) metni al
+                    string rawName = recipeNameResult.Content;
 
+                    // 2. Uzunluğun çift sayı olduğundan emin ol (Değilse sonuna boşluk ekle)
+                    if (rawName.Length % 2 != 0) rawName += " ";
+
+                    // 3. Karakterleri (Byte'ları) ikili olarak Swap yap (AB -> BA)
+                    char[] chars = rawName.ToCharArray();
+                    for (int i = 0; i < chars.Length - 1; i += 2)
+                    {
+                        char temp = chars[i];
+                        chars[i] = chars[i + 1];
+                        chars[i + 1] = temp;
+                    }
+
+                    // 4. Swap yapılmış metni boşluklardan temizleyip modele ata
+                    status.RecipeName = new string(chars).Trim('\0', ' ');
+                }
+                else
+                {
+                    Debug.WriteLine($"[ERROR] {IpAddress} - {RECIPE_NAME} (Recipe Name) could not be read: {recipeNameResult.Message}");
+                    anyReadFailed = true;
+                }
                 var siparisNoResult = ReadStringFromWords(ORDER_NO, 5);
                 if (siparisNoResult.IsSuccess) status.SiparisNumarasi = siparisNoResult.Content;
                 else { Debug.WriteLine($"[ERROR] {IpAddress} - {ORDER_NO} (Order No) could not be read: {siparisNoResult.Message}"); anyReadFailed = true; }
@@ -273,50 +295,58 @@ namespace TekstilScada.Services
 
         public async Task<OperateResult> WriteRecipeToPlcAsync(ScadaRecipe recipe, int? recipeSlot = null)
         {
-            // var recipe_write = 1;
-            var recipe_write = await Task.Run(() => _plcClient.Write("3209", 1));
-            if (recipe_write.IsSuccess)
-
-                if (recipe.Steps.Count != 98) return new OperateResult("Recipe must have 98 steps.");
-
-            short[] fullRecipeData = new short[2450];
-            foreach (var step in recipe.Steps)
+            short writeonay1 = 1;
+            short writeonay2 = 0;
+            //var writeonay = await Task.Run(() => _plcClient.Write("3813", writeonay1));
+            var recipe_write = await Task.Run(() => _plcClient.Write("3209", writeonay1));
+            if (!recipe_write.IsSuccess)
             {
-                int offset = (step.StepNumber - 1) * 25;
-                if (offset + step.StepDataWords.Length <= fullRecipeData.Length)
-                {
-                    Array.Copy(step.StepDataWords, 0, fullRecipeData, offset, step.StepDataWords.Length);
-                }
+                return new OperateResult("PLC reçete moduna geçirilemedi.");
             }
+            await Task.Delay(20);
+            if (recipe.Steps.Count == 0) return new OperateResult("Reçete boş (Adım yok).");
 
-            ushort chunkSize = 100;
+            short[] fullRecipeData = new short[130];
+
+            // 100 Word'lük verimizi hafızadaki ilk adımdan çekiyoruz
+            var firstStep = recipe.Steps[0];
+            int copyLength = Math.Min(firstStep.StepDataWords.Length, 130);
+            Array.Copy(firstStep.StepDataWords, 0, fullRecipeData, 0, copyLength);
+
+            // KRİTİK DEĞİŞİKLİK: Modbus sınırına takılmamak için 100 Word'ü 50'şerli 2 paket halinde gönderiyoruz
+            ushort chunkSize = 65;
             for (int i = 0; i < fullRecipeData.Length; i += chunkSize)
             {
-                // CHANGE: Modbus address calculation
-                string currentAddress = (100 + i).ToString(); // D100
-                ushort readLength = (ushort)Math.Min(chunkSize, fullRecipeData.Length - i);
+                string currentAddress = (100 + i).ToString(); // D100, D150 olarak ilerler
+                ushort writeLength = (ushort)Math.Min(chunkSize, fullRecipeData.Length - i);
 
-                var writeResult = await Task.Run(() => _plcClient.Write(currentAddress, fullRecipeData.Skip(i).Take(readLength).ToArray()));
+                // Verinin o anki 50'lik dilimini (chunk) al
+                short[] chunkData = fullRecipeData.Skip(i).Take(writeLength).ToArray();
+
+                var writeResult = await Task.Run(() => _plcClient.Write(currentAddress, chunkData));
                 if (!writeResult.IsSuccess)
                 {
-                    return new OperateResult($"Recipe write error. Address: {currentAddress}, Error: {writeResult.Message}");
+                    return new OperateResult($"Reçete PLC'ye yazılamadı. Adres: {currentAddress}, Hata: {writeResult.Message}");
                 }
+
+                // Cihazın veriyi sindirmesi için kısa bir bekleme (Opsiyonel ama çok sağlıklıdır)
+                await Task.Delay(20);
             }
 
+            // Reçete ismini yazma kısmı
             byte[] recipeNameBytes = Encoding.ASCII.GetBytes(recipe.RecipeName.PadRight(10, ' ').Substring(0, 10));
-            // CHANGE: Modbus address is used
-            var nameWriteResult = await Task.Run(() => _plcClient.Write("2550", recipeNameBytes));
+            var nameWriteResult = await Task.Run(() => _plcClient.Write("231", recipeNameBytes));
             if (!nameWriteResult.IsSuccess)
             {
-                return new OperateResult($"Recipe name write error: {nameWriteResult.Message}");
+                return new OperateResult($"Reçete adı yazılamadı: {nameWriteResult.Message}");
             }
-
+           // var recipe_write1 = await Task.Run(() => _plcClient.Write("3209", writeonay2));
             return OperateResult.CreateSuccessResult();
         }
 
         public async Task<OperateResult<short[]>> ReadRecipeFromPlcAsync()
         {
-            short[] fullRecipeData = new short[2450];
+            short[] fullRecipeData = new short[130];
             ushort chunkSize = 60;
 
             for (int i = 0; i < fullRecipeData.Length; i += chunkSize)
@@ -353,10 +383,10 @@ namespace TekstilScada.Services
                 Steps = new List<ScadaRecipeStep>()
             };
 
-            const int wordsPerStep = 25; // Assumption of 25 words per step
+            const int wordsPerStep = 130; // Assumption of 25 words per step
             int totalSteps = recipeData.Length / wordsPerStep;
 
-            for (int i = 0; i < totalSteps; i++)
+            for (int i = 0; i < 1; i++)
             {
                 var stepWords = new short[wordsPerStep];
                 Array.Copy(recipeData, i * wordsPerStep, stepWords, 0, wordsPerStep);

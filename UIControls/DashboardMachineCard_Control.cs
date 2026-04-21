@@ -130,7 +130,7 @@ namespace TekstilScada.UI.Controls
                // lblPercentage.Text = $"{_lastValidProgress} %";
 
                 pnlStatusIndicator.BackColor = _colorAlarm;
-                lblStatus.Text = $"ALARM #{status.ActiveAlarmNumber}";
+                lblStatus.Text = $"ALARM #{status.ActiveAlarmText}";
                 lblStatus.ForeColor = _colorAlarm;
             }
             else

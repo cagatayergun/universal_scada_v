@@ -26,6 +26,15 @@
             tableLayoutPanelTop = new TableLayoutPanel();
             pnlGaugesAndInfo = new Panel();
             pnlGauges = new Panel();
+            label14 = new Label();
+            label13 = new Label();
+            label12 = new Label();
+            gaugeRpm = new Label();
+            humuditytxt = new Label();
+            lblTempValue = new Label();
+            label102 = new Label();
+            label101 = new Label();
+            label100 = new Label();
             pnlInfo = new Panel();
             lblMusteriNo = new Label();
             label4 = new Label();
@@ -42,15 +51,6 @@
             pnlAlarmsAndSteps = new Panel();
             lstAlarmlar = new ListBox();
             label7 = new Label();
-            label5 = new Label();
-            label6 = new Label();
-            label8 = new Label();
-            gaugeRpm = new Label();
-            humuditytxt = new Label();
-            lblTempValue = new Label();
-            label12 = new Label();
-            label13 = new Label();
-            label14 = new Label();
             pnlTop.SuspendLayout();
             pnlMainContent.SuspendLayout();
             tableLayoutPanelMain.SuspendLayout();
@@ -172,14 +172,104 @@
             pnlGauges.Controls.Add(gaugeRpm);
             pnlGauges.Controls.Add(humuditytxt);
             pnlGauges.Controls.Add(lblTempValue);
-            pnlGauges.Controls.Add(label8);
-            pnlGauges.Controls.Add(label6);
-            pnlGauges.Controls.Add(label5);
+            pnlGauges.Controls.Add(label102);
+            pnlGauges.Controls.Add(label101);
+            pnlGauges.Controls.Add(label100);
             pnlGauges.Location = new Point(203, 0);
             pnlGauges.Margin = new Padding(3, 2, 3, 2);
             pnlGauges.Name = "pnlGauges";
             pnlGauges.Size = new Size(760, 231);
             pnlGauges.TabIndex = 1;
+            // 
+            // label14
+            // 
+            label14.AutoSize = true;
+            label14.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label14.Location = new Point(623, 156);
+            label14.Name = "label14";
+            label14.Size = new Size(22, 15);
+            label14.TabIndex = 26;
+            label14.Text = "Kg";
+            // 
+            // label13
+            // 
+            label13.AutoSize = true;
+            label13.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label13.Location = new Point(379, 156);
+            label13.Name = "label13";
+            label13.Size = new Size(25, 15);
+            label13.TabIndex = 25;
+            label13.Text = "m3";
+            // 
+            // label12
+            // 
+            label12.AutoSize = true;
+            label12.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label12.Location = new Point(163, 156);
+            label12.Name = "label12";
+            label12.Size = new Size(25, 15);
+            label12.TabIndex = 24;
+            label12.Text = "m3";
+            // 
+            // gaugeRpm
+            // 
+            gaugeRpm.AutoSize = true;
+            gaugeRpm.Font = new Font("Segoe UI", 48F, FontStyle.Bold);
+            gaugeRpm.Location = new Point(558, 99);
+            gaugeRpm.Name = "gaugeRpm";
+            gaugeRpm.Size = new Size(74, 86);
+            gaugeRpm.TabIndex = 23;
+            gaugeRpm.Text = "0";
+            // 
+            // humuditytxt
+            // 
+            humuditytxt.AutoSize = true;
+            humuditytxt.Font = new Font("Segoe UI", 48F, FontStyle.Bold);
+            humuditytxt.Location = new Point(317, 99);
+            humuditytxt.Name = "humuditytxt";
+            humuditytxt.Size = new Size(74, 86);
+            humuditytxt.TabIndex = 22;
+            humuditytxt.Text = "0";
+            // 
+            // lblTempValue
+            // 
+            lblTempValue.AutoSize = true;
+            lblTempValue.Font = new Font("Segoe UI", 48F, FontStyle.Bold);
+            lblTempValue.Location = new Point(100, 99);
+            lblTempValue.Name = "lblTempValue";
+            lblTempValue.Size = new Size(74, 86);
+            lblTempValue.TabIndex = 21;
+            lblTempValue.Text = "0";
+            // 
+            // label102
+            // 
+            label102.AutoSize = true;
+            label102.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label102.Location = new Point(572, 37);
+            label102.Name = "label102";
+            label102.Size = new Size(46, 15);
+            label102.TabIndex = 20;
+            label102.Text = "STEAM";
+            // 
+            // label101
+            // 
+            label101.AutoSize = true;
+            label101.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label101.Location = new Point(341, 37);
+            label101.Name = "label101";
+            label101.Size = new Size(27, 15);
+            label101.TabIndex = 19;
+            label101.Text = "AIR";
+            // 
+            // label100
+            // 
+            label100.AutoSize = true;
+            label100.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label100.Location = new Point(101, 37);
+            label100.Name = "label100";
+            label100.Size = new Size(58, 15);
+            label100.TabIndex = 18;
+            label100.Text = "VACUUM";
             // 
             // pnlInfo
             // 
@@ -367,96 +457,6 @@
             label7.Text = "Intra-Party Alarms";
             label7.Click += label7_Click;
             // 
-            // label5
-            // 
-            label5.AutoSize = true;
-            label5.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label5.Location = new Point(101, 37);
-            label5.Name = "label5";
-            label5.Size = new Size(58, 15);
-            label5.TabIndex = 18;
-            label5.Text = "VACUUM";
-            // 
-            // label6
-            // 
-            label6.AutoSize = true;
-            label6.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label6.Location = new Point(341, 37);
-            label6.Name = "label6";
-            label6.Size = new Size(27, 15);
-            label6.TabIndex = 19;
-            label6.Text = "AIR";
-            // 
-            // label8
-            // 
-            label8.AutoSize = true;
-            label8.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label8.Location = new Point(572, 37);
-            label8.Name = "label8";
-            label8.Size = new Size(46, 15);
-            label8.TabIndex = 20;
-            label8.Text = "STEAM";
-            // 
-            // gaugeRpm
-            // 
-            gaugeRpm.AutoSize = true;
-            gaugeRpm.Font = new Font("Segoe UI", 48F, FontStyle.Bold);
-            gaugeRpm.Location = new Point(558, 99);
-            gaugeRpm.Name = "gaugeRpm";
-            gaugeRpm.Size = new Size(74, 86);
-            gaugeRpm.TabIndex = 23;
-            gaugeRpm.Text = "0";
-            // 
-            // humuditytxt
-            // 
-            humuditytxt.AutoSize = true;
-            humuditytxt.Font = new Font("Segoe UI", 48F, FontStyle.Bold);
-            humuditytxt.Location = new Point(317, 99);
-            humuditytxt.Name = "humuditytxt";
-            humuditytxt.Size = new Size(74, 86);
-            humuditytxt.TabIndex = 22;
-            humuditytxt.Text = "0";
-            // 
-            // lblTempValue
-            // 
-            lblTempValue.AutoSize = true;
-            lblTempValue.Font = new Font("Segoe UI", 48F, FontStyle.Bold);
-            lblTempValue.Location = new Point(100, 99);
-            lblTempValue.Name = "lblTempValue";
-            lblTempValue.Size = new Size(74, 86);
-            lblTempValue.TabIndex = 21;
-            lblTempValue.Text = "0";
-            // 
-            // label12
-            // 
-            label12.AutoSize = true;
-            label12.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label12.Location = new Point(163, 156);
-            label12.Name = "label12";
-            label12.Size = new Size(25, 15);
-            label12.TabIndex = 24;
-            label12.Text = "m3";
-            // 
-            // label13
-            // 
-            label13.AutoSize = true;
-            label13.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label13.Location = new Point(379, 156);
-            label13.Name = "label13";
-            label13.Size = new Size(25, 15);
-            label13.TabIndex = 25;
-            label13.Text = "m3";
-            // 
-            // label14
-            // 
-            label14.AutoSize = true;
-            label14.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label14.Location = new Point(623, 156);
-            label14.Name = "label14";
-            label14.Size = new Size(22, 15);
-            label14.TabIndex = 26;
-            label14.Text = "Kg";
-            // 
             // MakineDetay_Control
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -518,9 +518,9 @@
         private Label gaugeRpm;
         private Label humuditytxt;
         private Label lblTempValue;
-        private Label label8;
-        private Label label6;
-        private Label label5;
+        private Label label102;
+        private Label label101;
+        private Label label100;
         private Label label14;
         private Label label13;
         private Label label12;

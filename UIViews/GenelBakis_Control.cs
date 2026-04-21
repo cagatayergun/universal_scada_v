@@ -469,7 +469,7 @@ namespace TekstilScada.UI.Views
                     var barPlot = formsPlotHourly.Plot.Add.Scatter(hours, consumption);
                     barPlot.Color = ScottPlot.Colors.SteelBlue;
                     barPlot.MarkerSize = 0;
-                    formsPlotHourly.Plot.Axes.Left.Label.Text = "kWh";
+                    formsPlotHourly.Plot.Axes.Left.Label.Text = "m³";
                 }
                 formsPlotHourly.Plot.Axes.AutoScale();
                 formsPlotHourly.Refresh();
@@ -563,7 +563,7 @@ namespace TekstilScada.UI.Views
 
         public void ApplyLocalization()
         {
-            gbHourlyConsumption.Text = "Hourly Vacuum (kWh)";
+            gbHourlyConsumption.Text = "Hourly Vacuum (m³)";
             gbTopAlarms.Text = Resources.ensikalarm;
             gbHourlyConsumptionAir.Text = "Hourly Air (m³)";
             gbHourlyConsumptionSteam.Text = "Hourly Steam (m³)";

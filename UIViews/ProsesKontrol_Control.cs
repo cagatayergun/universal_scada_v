@@ -175,14 +175,26 @@ namespace TekstilScada.UI.Views
             };
 
             // 4. Adım sayısını belirle (Kurutma için ana tipi kontrol etmeye devam ediyoruz)
-            int stepCount = (selectedMachine.MachineType == "Kurutma Makinesi") ? 1 : 98;
-
             _currentRecipe.Steps.Clear();
-            for (int i = 1; i <= stepCount; i++)
+
+            if (selectedMachine.MachineType == "BYMakinesi")
             {
-                var newStep = new ScadaRecipeStep { StepNumber = i };
-                newStep.StepDataWords = new short[25];
+                // BY Makinesi İçin: Tek Adım, 100 Word
+                var newStep = new ScadaRecipeStep { StepNumber = 1 };
+                newStep.StepDataWords = new short[130];
+              //  newStep.StepDataWords[24] |= 1; // 24. Word 1. biti = Su Alma/Air Intake (Varsayılan)
                 _currentRecipe.Steps.Add(newStep);
+            }
+            else
+            {
+                // Diğer makineler (Örn: Kurutma)
+                int stepCount = (selectedMachine.MachineType == "Kurutma Makinesi") ? 1 : 98;
+                for (int i = 1; i <= stepCount; i++)
+                {
+                    var newStep = new ScadaRecipeStep { StepNumber = i };
+                    newStep.StepDataWords = new short[130];
+                    _currentRecipe.Steps.Add(newStep);
+                }
             }
 
             // 5. Arayüzü Güncelle
@@ -218,8 +230,8 @@ namespace TekstilScada.UI.Views
             {
                 bool isByMachine = selectedMachine.MachineType == "BYMakinesi";
 
-                btnReadFromPlc.Visible = !isByMachine;
-                btnSendToPlc.Visible = !isByMachine;
+              //  btnReadFromPlc.Visible = !isByMachine;
+              //  btnSendToPlc.Visible = !isByMachine;
 
                 // 3. Reçete uyumluluk kontrolü
                 if (_currentRecipe != null)
@@ -467,11 +479,11 @@ namespace TekstilScada.UI.Views
             {
                 // Bir önceki adımın verisini kopyala
                 // Array.Copy kullanıyoruz ki referanslar karışmasın (Deep Copy)
-                Array.Copy(_currentRecipe.Steps[i - 1].StepDataWords, _currentRecipe.Steps[i].StepDataWords, 25);
+                Array.Copy(_currentRecipe.Steps[i - 1].StepDataWords, _currentRecipe.Steps[i].StepDataWords, 130);
             }
 
             // Seçili adımı temizle (Boş yeni adım)
-            Array.Clear(_currentRecipe.Steps[selectedIndex].StepDataWords, 0, 25);
+            Array.Clear(_currentRecipe.Steps[selectedIndex].StepDataWords, 0, 130);
 
             // Tabloyu yenile
             PopulateStepsGridView();
@@ -495,11 +507,11 @@ namespace TekstilScada.UI.Views
             for (int i = selectedIndex; i < totalSteps - 1; i++)
             {
                 // Bir sonraki adımın verisini buraya kopyala
-                Array.Copy(_currentRecipe.Steps[i + 1].StepDataWords, _currentRecipe.Steps[i].StepDataWords, 25);
+                Array.Copy(_currentRecipe.Steps[i + 1].StepDataWords, _currentRecipe.Steps[i].StepDataWords, 130);
             }
 
             // Son adımı temizle (Veriler yukarı kaydığı için sonuncu boşalmalı)
-            Array.Clear(_currentRecipe.Steps[totalSteps - 1].StepDataWords, 0, 25);
+            Array.Clear(_currentRecipe.Steps[totalSteps - 1].StepDataWords, 0, 130);
 
             // Tabloyu yenile
             PopulateStepsGridView();
@@ -511,38 +523,36 @@ namespace TekstilScada.UI.Views
 
             int selectedIndex = dgvRecipeSteps.CurrentRow.Index;
 
-            // Hafızayı başlat
-            _copiedStepData = new short[25];
+            // Seçili adımın dizisini al ve tam uzunluğuna göre kopya oluştur (130 veya 25 fark etmez)
+            var stepWords = _currentRecipe.Steps[selectedIndex].StepDataWords;
+            _copiedStepData = new short[stepWords.Length];
 
-            // Seçili adımın verilerini hafızaya kopyala
-            Array.Copy(_currentRecipe.Steps[selectedIndex].StepDataWords, _copiedStepData, 25);
-
-            // Kullanıcıya bilgi ver (İsteğe bağlı, StatusBar varsa oraya yazılabilir)
-            // MessageBox.Show("Step copied to clipboard.", "Info"); 
+            // Hafızaya kopyala
+            Array.Copy(stepWords, _copiedStepData, stepWords.Length);
         }
 
         private void BtnPasteStep_Click(object sender, EventArgs e)
         {
-            if (dgvRecipeSteps.CurrentRow == null || _currentRecipe == null) return;
-
-            if (_copiedStepData == null)
+            if (dgvRecipeSteps.CurrentRow == null || _currentRecipe == null || _copiedStepData == null)
             {
-                MessageBox.Show("No step data found in clipboard. Please copy a step first.", "Warning");
+                MessageBox.Show("Önce bir adım kopyalamalısınız.", "Uyarı");
                 return;
             }
 
             int selectedIndex = dgvRecipeSteps.CurrentRow.Index;
+            var targetWords = _currentRecipe.Steps[selectedIndex].StepDataWords;
+
+            // Kopyalanan veri ile hedefin uzunluğunu kıyasla (Çökmeyi engellemek için minimumu al)
+            int copyLen = Math.Min(_copiedStepData.Length, targetWords.Length);
 
             // Hafızadaki veriyi seçili adıma yapıştır
-            Array.Copy(_copiedStepData, _currentRecipe.Steps[selectedIndex].StepDataWords, 25);
+            Array.Copy(_copiedStepData, targetWords, copyLen);
 
-            // Tabloyu yenile (Adım tipi değişmiş olabilir)
-            // Sadece ilgili satırı güncellemek performans için daha iyidir:
+            // Tabloyu yenile
             string newStepName = GetStepTypeName(_currentRecipe.Steps[selectedIndex]);
             dgvRecipeSteps.Rows[selectedIndex].Cells["StepType"].Value = newStepName;
 
-            // Eğer o an detay paneli açıksa onu da güncellemek gerekir
-            // Basitçe o satıra tekrar tıklanmış gibi tetikleyebiliriz:
+            // Detay panelini yenile
             DgvRecipeSteps_CellClick(dgvRecipeSteps, new DataGridViewCellEventArgs(0, selectedIndex));
         }
         private void SetupStepsGridView()
@@ -588,7 +598,7 @@ namespace TekstilScada.UI.Views
             {
                 // "Her zaman Air seçili olsun" mantığı: 
                 // Eğer BYMakinesi ise tüm adımların 24. word'ünün 0. bitini (Air) 1 yapıyoruz.
-                step.StepDataWords[24] |= 1;
+                //step.StepDataWords[24] |= 1;
 
                 string stepTypeName = GetStepTypeName(step);
                dgvRecipeSteps.Rows.Add(step.StepNumber, stepTypeName);
@@ -633,7 +643,7 @@ namespace TekstilScada.UI.Views
                 if (selectedStep == null) return;
 
                 // Arka planda "Air" her zaman seçili kalsın
-                selectedStep.StepDataWords[24] |= 1;
+               // selectedStep.StepDataWords[24] |= 1;
 
                 pnlStepDetails.Controls.Clear();
                 pnlStepDetails.Controls.Add(lblStepDetailsTitle);
@@ -722,62 +732,7 @@ namespace TekstilScada.UI.Views
 
             try
             {
-                // --- YENİ MANTIK: MAKİNE TİPİNE GÖRE İŞLEM SEÇİMİ ---
-                if (selectedMachine.MachineType == "BYMakinesi")
-                {
-                    // 1. FTP bilgileri kontrolü
-                    if (string.IsNullOrEmpty(selectedMachine.FtpUsername) || string.IsNullOrEmpty(selectedMachine.IpAddress))
-                    {
-                        MessageBox.Show("FTP information (IP Address, Username) is missing for this machine. Please enter the information from the Settings > Machine Management screen.", "Missing Information", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
-                    }
-
-                    // 2. Yeni numaratik giriş panelini kullanarak kullanıcıdan numara al
-                    string recipeNumberStr = ShowFtpRecipeNumberDialog();
-                    if (string.IsNullOrEmpty(recipeNumberStr))
-                    {
-                        return; // Kullanıcı iptal etti
-                    }
-
-                    if (!int.TryParse(recipeNumberStr, out int recipeNumber) || recipeNumber < 1 || recipeNumber > 99)
-                    {
-                        MessageBox.Show("Invalid prescription number. Please enter a number between 1-99.", "Error");
-                        return;
-                    }
-
-                    // 3. Dosya adını otomatik olarak XPR0000.csv formatına çevir
-                    string remoteFileName = string.Format("XPR{0:D5}.csv", recipeNumber);
-
-                    // İçerideki try-catch FTP işlemleri için
-                    try
-                    {
-                        // 4. Reçeteyi CSV'ye çevir
-                        string csvContent = RecipeCsvConverter.ToCsv(_currentRecipe);
-
-                        // 5. FTP servisi ile dosyayı gönder
-                        var ftpService = new FtpService(selectedMachine.IpAddress, selectedMachine.FtpUsername, selectedMachine.FtpPassword);
-                        await ftpService.UploadFileAsync($"/{remoteFileName}", csvContent);
-
-                        // --- LOGLAMA (FTP Gönderimi) ---
-                        if (CurrentUser.User != null && _userRepository != null)
-                        {
-                            _userRepository.LogAction(
-                                CurrentUser.User.Id,
-                                "RECIPE_SEND_FTP",
-                                $"Recipe '{_currentRecipe.RecipeName}' sent to '{selectedMachine.MachineName}' as '{remoteFileName}' [rcp-{_currentRecipe.Id}]"
-                            );
-                        }
-                        // ------------------------------
-
-                        MessageBox.Show($"'Recipe '{_currentRecipe.RecipeName}' was successfully sent to machine '{selectedMachine.MachineName}' with name '{remoteFileName}'.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Error sending recipe via FTP: {ex.Message}", "FTP Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }
-                else // Kurutma Makinesi gibi diğer makineler için eski, doğrudan PLC'ye yazma yöntemi devam eder
-                {
+                
                     if (_plcManagers == null || !_plcManagers.TryGetValue(selectedMachine.Id, out var plcManager))
                     {
                         MessageBox.Show($"'{selectedMachine.MachineName}' No active PLC connection found for .", "Connection Error");
@@ -785,7 +740,7 @@ namespace TekstilScada.UI.Views
                     }
 
                     int? recipeSlot = null;
-                    if (selectedMachine.MachineType == "Kurutma Makinesi")
+                    if (selectedMachine.MachineType == "BYMakinesi")
                     {
                         // Güncellenmiş ShowInputDialog metodunu kullanıyoruz (isNumeric = true)
                         string input = ShowInputDialog("Please enter the recipe number to be registered in the PLC (1-20):", true);
@@ -834,7 +789,7 @@ namespace TekstilScada.UI.Views
                         MessageBox.Show($"An unexpected error occurred: {ex.Message}", "System Error");
                     }
                 }
-            }
+            
             catch (Exception ex)
             {
                 MessageBox.Show($"An error occurred while sending: {ex.Message}", "Error");
@@ -990,17 +945,17 @@ namespace TekstilScada.UI.Views
                     recipeFromPlc.TargetMachineType = targetType;
 
                     // Reçete Adımlarını Oluştur (BY Makinesi için 98 adım)
-                    for (int i = 0; i < 98; i++)
+                    for (int i = 0; i < 1; i++)
                     {
                         var step = new ScadaRecipeStep
                         {
                             StepNumber = i + 1,
-                            StepDataWords = new short[25]
+                            StepDataWords = new short[130]
                         };
 
-                        if (result.Content != null && result.Content.Length >= (i * 25) + 25)
+                        if (result.Content != null && result.Content.Length >= (i * 130) + 130)
                         {
-                            Array.Copy(result.Content, i * 25, step.StepDataWords, 0, 25);
+                            Array.Copy(result.Content, i * 130, step.StepDataWords, 0, 130);
                         }
                         recipeFromPlc.Steps.Add(step);
                     }
@@ -1325,10 +1280,10 @@ namespace TekstilScada.UI.Views
                         var newStep = new ScadaRecipeStep
                         {
                             StepNumber = step.StepNumber,
-                            StepDataWords = new short[25] // 25'lik dizi olduğu varsayılıyor
+                            StepDataWords = new short[step.StepDataWords.Length] // 100 veya 25 otomatik alır
                         };
                         // Diziyi kopyala
-                        Array.Copy(step.StepDataWords, newStep.StepDataWords, 25);
+                        Array.Copy(step.StepDataWords, newStep.StepDataWords, step.StepDataWords.Length);
                         newRecipe.Steps.Add(newStep);
                     }
 

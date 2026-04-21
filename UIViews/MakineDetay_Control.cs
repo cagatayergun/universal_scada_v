@@ -300,8 +300,7 @@ namespace TekstilScada.UI.Views
             label2.Text = Resources.RecipeName;
             label3.Text = Resources.Operator;
             label4.Text = Resources.CustomerNo;
-            label5.Text = Resources.BatchNo;
-            label6.Text = Resources.OrderNo;
+           
             //lblTempTitle.Text = Resources.Temperature;
             lstAlarmlar.Text = Resources.baglantibekleniyro;
         }
@@ -366,14 +365,14 @@ namespace TekstilScada.UI.Views
                     {
                         decimal anlikSicaklikDecimal = status.AnlikSicaklik / 10.0m;
                       //  progressTemp.Tag = anlikSicaklikDecimal;
-                        lblTempValue.Text = $"{anlikSicaklikDecimal:F1}";
+                        lblTempValue.Text = $"{anlikSicaklikDecimal}";
 
                     }
                     else
                     {
                         decimal anlikSicaklikDecimal = status.AnlikSicaklik / 10.0m;
                   //      progressTemp.Tag = anlikSicaklikDecimal;
-                        lblTempValue.Text = $"{anlikSicaklikDecimal:F1}";
+                        lblTempValue.Text = $"{anlikSicaklikDecimal}";
                     }
 
                     decimal AnlikSuSeviyesi = status.AnlikSuSeviyesi;

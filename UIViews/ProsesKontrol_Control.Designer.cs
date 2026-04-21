@@ -30,6 +30,12 @@ namespace TekstilScada.UI.Views
             yenile = new Button();
             btnDeleteRecipe = new Button();
             btnNewRecipe = new Button();
+            pnlSort = new Panel();
+            radioSortDate = new RadioButton();
+            radioSortName = new RadioButton();
+            pnlSearch = new Panel();
+            txtSearchRecipe = new TextBox();
+            lblSearch = new Label();
             label1 = new Label();
             pnlEditorArea = new Panel();
             panel2 = new Panel();
@@ -45,19 +51,13 @@ namespace TekstilScada.UI.Views
             pnlCost = new Panel();
             lblTotalCost = new Label();
             lblCostTitle = new Label();
-            pnlSearch = new Panel();
-            txtSearchRecipe = new TextBox();
-            lblSearch = new Label();
-            pnlSort = new Panel();
-            radioSortName = new RadioButton();
-            radioSortDate = new RadioButton();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
-            pnlSearch.SuspendLayout();
-            pnlSort.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
             splitContainer1.SuspendLayout();
             panel1.SuspendLayout();
+            pnlSort.SuspendLayout();
+            pnlSearch.SuspendLayout();
             panel2.SuspendLayout();
             pnlCost.SuspendLayout();
             SuspendLayout();
@@ -72,7 +72,6 @@ namespace TekstilScada.UI.Views
             // splitContainer1.Panel1
             // 
             splitContainer1.Panel1.Controls.Add(lstRecipes);
-            // YENİ: Geçmiş listesini ekliyoruz (lstRecipes'in altında yer alacak şekilde Docking ayarlayacağız)
             splitContainer1.Panel1.Controls.Add(lstRecipeHistory);
             splitContainer1.Panel1.Controls.Add(panel1);
             splitContainer1.Panel1.Controls.Add(pnlSort);
@@ -90,26 +89,25 @@ namespace TekstilScada.UI.Views
             // lstRecipes
             // 
             lstRecipes.Dock = DockStyle.Fill;
-            lstRecipes.BringToFront();
             lstRecipes.FormattingEnabled = true;
             lstRecipes.ItemHeight = 15;
             lstRecipes.Location = new Point(0, 102);
             lstRecipes.Margin = new Padding(3, 2, 3, 2);
             lstRecipes.Name = "lstRecipes";
             lstRecipes.SelectionMode = SelectionMode.MultiExtended;
-            lstRecipes.Size = new Size(169, 208);
+            lstRecipes.Size = new Size(169, 214);
             lstRecipes.TabIndex = 1;
             // 
-            // lstRecipeHistory (YENİ LİSTE KUTUSU)
+            // lstRecipeHistory
             // 
+            lstRecipeHistory.BackColor = Color.WhiteSmoke;
             lstRecipeHistory.Dock = DockStyle.Bottom;
             lstRecipeHistory.FormattingEnabled = true;
-            lstRecipeHistory.ItemHeight = 12;
-            lstRecipeHistory.Location = new Point(0, 310);
+            lstRecipeHistory.ItemHeight = 15;
+            lstRecipeHistory.Location = new Point(0, 316);
             lstRecipeHistory.Name = "lstRecipeHistory";
-            lstRecipeHistory.Size = new Size(169, 100);
+            lstRecipeHistory.Size = new Size(169, 94);
             lstRecipeHistory.TabIndex = 5;
-            lstRecipeHistory.BackColor = Color.WhiteSmoke;
             // 
             // panel1
             // 
@@ -135,70 +133,6 @@ namespace TekstilScada.UI.Views
             yenile.UseVisualStyleBackColor = true;
             yenile.Click += yenile_Click;
             // 
-            // pnlSearch
-            // 
-            pnlSearch.Controls.Add(txtSearchRecipe);
-            pnlSearch.Controls.Add(lblSearch);
-            pnlSearch.Dock = DockStyle.Top;
-            pnlSearch.Location = new Point(0, 22);
-            pnlSearch.Name = "pnlSearch";
-            pnlSearch.Padding = new Padding(5);
-            pnlSearch.Size = new Size(169, 50);
-            pnlSearch.TabIndex = 3;
-            // 
-            // lblSearch
-            // 
-            lblSearch.AutoSize = true;
-            lblSearch.Dock = DockStyle.Top;
-            lblSearch.Location = new Point(5, 5);
-            lblSearch.Name = "lblSearch";
-            lblSearch.Size = new Size(45, 15);
-            lblSearch.TabIndex = 0;
-            lblSearch.Text = "Search:";
-            // 
-            // txtSearchRecipe
-            // 
-            txtSearchRecipe.Dock = DockStyle.Top;
-            txtSearchRecipe.Location = new Point(5, 20);
-            txtSearchRecipe.Name = "txtSearchRecipe";
-            txtSearchRecipe.Size = new Size(159, 23);
-            txtSearchRecipe.TabIndex = 1;
-            txtSearchRecipe.TextChanged += txtSearchRecipe_TextChanged;
-            // 
-            // pnlSort
-            // 
-            pnlSort.Controls.Add(radioSortDate);
-            pnlSort.Controls.Add(radioSortName);
-            pnlSort.Dock = DockStyle.Top;
-            pnlSort.Location = new Point(0, 72);
-            pnlSort.Name = "pnlSort";
-            pnlSort.Size = new Size(169, 30);
-            pnlSort.TabIndex = 4;
-            // 
-            // radioSortName
-            // 
-            radioSortName.AutoSize = true;
-            radioSortName.Checked = true;
-            radioSortName.Location = new Point(5, 5);
-            radioSortName.Name = "radioSortName";
-            radioSortName.Size = new Size(53, 19);
-            radioSortName.TabIndex = 0;
-            radioSortName.TabStop = true;
-            radioSortName.Text = "A-Z";
-            radioSortName.UseVisualStyleBackColor = true;
-            radioSortName.CheckedChanged += SortOption_CheckedChanged;
-            // 
-            // radioSortDate
-            // 
-            radioSortDate.AutoSize = true;
-            radioSortDate.Location = new Point(70, 5);
-            radioSortDate.Name = "radioSortDate";
-            radioSortDate.Size = new Size(73, 19);
-            radioSortDate.TabIndex = 1;
-            radioSortDate.Text = "Newest";
-            radioSortDate.UseVisualStyleBackColor = true;
-            radioSortDate.CheckedChanged += SortOption_CheckedChanged;
-            // 
             // btnDeleteRecipe
             // 
             btnDeleteRecipe.Dock = DockStyle.Left;
@@ -220,6 +154,70 @@ namespace TekstilScada.UI.Views
             btnNewRecipe.TabIndex = 0;
             btnNewRecipe.Text = "New";
             btnNewRecipe.UseVisualStyleBackColor = true;
+            // 
+            // pnlSort
+            // 
+            pnlSort.Controls.Add(radioSortDate);
+            pnlSort.Controls.Add(radioSortName);
+            pnlSort.Dock = DockStyle.Top;
+            pnlSort.Location = new Point(0, 72);
+            pnlSort.Name = "pnlSort";
+            pnlSort.Size = new Size(169, 30);
+            pnlSort.TabIndex = 4;
+            // 
+            // radioSortDate
+            // 
+            radioSortDate.AutoSize = true;
+            radioSortDate.Location = new Point(70, 5);
+            radioSortDate.Name = "radioSortDate";
+            radioSortDate.Size = new Size(64, 19);
+            radioSortDate.TabIndex = 1;
+            radioSortDate.Text = "Newest";
+            radioSortDate.UseVisualStyleBackColor = true;
+            radioSortDate.CheckedChanged += SortOption_CheckedChanged;
+            // 
+            // radioSortName
+            // 
+            radioSortName.AutoSize = true;
+            radioSortName.Checked = true;
+            radioSortName.Location = new Point(5, 5);
+            radioSortName.Name = "radioSortName";
+            radioSortName.Size = new Size(45, 19);
+            radioSortName.TabIndex = 0;
+            radioSortName.TabStop = true;
+            radioSortName.Text = "A-Z";
+            radioSortName.UseVisualStyleBackColor = true;
+            radioSortName.CheckedChanged += SortOption_CheckedChanged;
+            // 
+            // pnlSearch
+            // 
+            pnlSearch.Controls.Add(txtSearchRecipe);
+            pnlSearch.Controls.Add(lblSearch);
+            pnlSearch.Dock = DockStyle.Top;
+            pnlSearch.Location = new Point(0, 22);
+            pnlSearch.Name = "pnlSearch";
+            pnlSearch.Padding = new Padding(5);
+            pnlSearch.Size = new Size(169, 50);
+            pnlSearch.TabIndex = 3;
+            // 
+            // txtSearchRecipe
+            // 
+            txtSearchRecipe.Dock = DockStyle.Top;
+            txtSearchRecipe.Location = new Point(5, 20);
+            txtSearchRecipe.Name = "txtSearchRecipe";
+            txtSearchRecipe.Size = new Size(159, 23);
+            txtSearchRecipe.TabIndex = 1;
+            txtSearchRecipe.TextChanged += txtSearchRecipe_TextChanged;
+            // 
+            // lblSearch
+            // 
+            lblSearch.AutoSize = true;
+            lblSearch.Dock = DockStyle.Top;
+            lblSearch.Location = new Point(5, 5);
+            lblSearch.Name = "lblSearch";
+            lblSearch.Size = new Size(45, 15);
+            lblSearch.TabIndex = 0;
+            lblSearch.Text = "Search:";
             // 
             // label1
             // 
@@ -272,6 +270,7 @@ namespace TekstilScada.UI.Views
             btnFtpSync.TabIndex = 7;
             btnFtpSync.Text = "REMOTE MACHINE OPERATIONS";
             btnFtpSync.UseVisualStyleBackColor = false;
+            btnFtpSync.Visible = false;
             // 
             // cmbTargetMachine
             // 
@@ -402,6 +401,10 @@ namespace TekstilScada.UI.Views
             ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
             splitContainer1.ResumeLayout(false);
             panel1.ResumeLayout(false);
+            pnlSort.ResumeLayout(false);
+            pnlSort.PerformLayout();
+            pnlSearch.ResumeLayout(false);
+            pnlSearch.PerformLayout();
             panel2.ResumeLayout(false);
             panel2.PerformLayout();
             pnlCost.ResumeLayout(false);

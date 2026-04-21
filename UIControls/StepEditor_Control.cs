@@ -77,14 +77,14 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
         private void UpdateCheckboxesFromStepData()
         {
             if (_step == null) return;
-            short controlWord = _step.StepDataWords[24];
-            chkSuAlma.Checked = (controlWord & 1) != 0;
-            chkIsitma.Checked = (controlWord & 2) != 0;
-            chkCalisma.Checked = (controlWord & 4) != 0;
-            chkDozaj.Checked = (controlWord & 8) != 0;
-            chkBosaltma.Checked = (controlWord & 16) != 0;
-            chkSikma.Checked = (controlWord & 32) != 0;
-            chknumune.Checked = (controlWord & 1024) != 0;
+           // short controlWord = _step.StepDataWords[24];
+            chkSuAlma.Checked =  true;
+           // chkIsitma.Checked = (controlWord & 2) != 0;
+            //chkCalisma.Checked = (controlWord & 4) != 0;
+            //chkDozaj.Checked = (controlWord & 8) != 0;
+            //chkBosaltma.Checked = (controlWord & 16) != 0;
+            //chkSikma.Checked = (controlWord & 32) != 0;
+            //chknumune.Checked = (controlWord & 1024) != 0;
         }
 
         private void OnStepTypeChanged(object sender, EventArgs e)
@@ -139,16 +139,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
 
         private void UpdateStepDataFromCheckboxes()
         {
-            if (_step == null) return;
-            short controlWord = 0;
-            if (chkSuAlma.Checked) controlWord |= 1;
-            if (chkIsitma.Checked) controlWord |= 2;
-            if (chkCalisma.Checked) controlWord |= 4;
-            if (chkDozaj.Checked) controlWord |= 8;
-            if (chkBosaltma.Checked) controlWord |= 16;
-            if (chkSikma.Checked) controlWord |= 32;
-            if (chknumune.Checked) controlWord |= 1024;
-            _step.StepDataWords[24] = controlWord;
+       
         }
 
         private void UpdateEditorPanels()
@@ -439,6 +430,15 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             // --- ESKİ TOGGLE (KALICI BUTON) MANTIĞI BURADAN DEVAM EDİYOR ---
             if (meta.IsToggleButton)
             {
+                // --- EKLENEN GÜVENLİK KONTROLÜ ---
+                // Eğer dizimiz boşsa veya aranan Word indexi dizinin boyutundan büyük/eşitse işlemi durdur.
+                if (_step.StepDataWords == null || tagData.WordIndex >= _step.StepDataWords.Length)
+                {
+                    MessageBox.Show($"Bu buton geçersiz bir adrese ayarlanmış!\nAranan Word: {tagData.WordIndex}\nMevcut Reçete Kapasitesi: {_step.StepDataWords?.Length ?? 0}", "Adres Hatası", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return; // Metottan çık ve çökmeyi engelle
+                }
+                // ---------------------------------
+
                 short currentWord = _step.StepDataWords[tagData.WordIndex];
                 int bitMask = 1 << tagData.BitIndex;
                 bool isCurrentlyPressed = (currentWord & bitMask) != 0;
