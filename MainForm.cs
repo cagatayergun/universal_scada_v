@@ -1,10 +1,11 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection; // YENÝ EKLENDÝ: Kapsam ve DI yönetimi için
 using System;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using System.Collections.Generic;
-using System.Threading.Tasks; // Task kullanýmý için gerekli
+using System.Threading.Tasks;
 using TekstilScada.Core;
 using TekstilScada.Localization;
 using TekstilScada.Models;
@@ -13,7 +14,6 @@ using TekstilScada.Repositories;
 using TekstilScada.Services;
 using TekstilScada.UI;
 using TekstilScada.UI.Controls;
-
 using TekstilScada.UI.Views;
 
 namespace TekstilScada
@@ -32,12 +32,15 @@ namespace TekstilScada
         private readonly CostRepository _costRepository;
         private readonly UserRepository _userRepository;
         private AutoBackupService _backupService;
+
         // SignalR Gateway için gerekli ek Repository'ler
         private readonly RecipeConfigurationRepository _recipeConfigRepository;
         private readonly PlcOperatorRepository _plcOperatorRepository;
+
         // --- YENÝ EKLENDÝ: UTILITY (SENSÖR) REPOSITORY & SERVICE ---
         private readonly UtilityRepository _utilityRepository;
         private readonly UtilityPollingService _utilityPollingService;
+
         // --- GATEWAY SERVÝSÝ (YENÝ) ---
         private SignalRGatewayService _gatewayService;
 
@@ -53,30 +56,54 @@ namespace TekstilScada
         private VncViewer_Form _activeVncViewerForm = null;
         private readonly UserSettings_Control _user_setting;
 
-        // ESKÝ: private VncProxyServer _vncServer;
+        // OPTÝMÝZASYON: UI darboðazýný (Kilitlenmeyi) önleyecek Alarm Timer'ý
+        private System.Windows.Forms.Timer _alarmUpdateTimer;
 
         // YENÝ: Makine ID'sine göre çalýþan sunucularý tutar
         private Dictionary<int, VncProxyServer> _activeVncServers = new Dictionary<int, VncProxyServer>();
         string apiKey = LicenseManager.GenerateHardwareKey();
+
         public MainForm()
         {
             InitializeComponent();
 
-            // 1. ADIM: Tüm nesneler burada oluþturulur.
-            _machineRepository = new MachineRepository();
-            _recipeRepository = new RecipeRepository();
-            _processLogRepository = new ProcessLogRepository();
-            _alarmRepository = new AlarmRepository();
-            _productionRepository = new ProductionRepository();
-            _costRepository = new CostRepository();
-            _userRepository = new UserRepository();
+            // =========================================================================
+            // 1. ADIM: WINFORMS ÝÇÝN LOKAL DEPENDENCY INJECTION (DI) KURULUMU
+            // Arka planda çalýþan Thread'lerin (PlcPollingService) MySQL baðlantý havuzunu 
+            // týkamasýný önlemek için Repository'leri Transient (Geçici) olarak kaydediyoruz.
+            // =========================================================================
+            var services = new ServiceCollection();
 
-            // Gateway için gerekli ek repo'larý oluþturuyoruz
-            _recipeConfigRepository = new RecipeConfigurationRepository();
-            _plcOperatorRepository = new PlcOperatorRepository();
+            services.AddTransient<MachineRepository>();
+            services.AddTransient<RecipeRepository>();
+            services.AddTransient<ProcessLogRepository>();
+            services.AddTransient<AlarmRepository>();
+            services.AddTransient<ProductionRepository>();
+            services.AddTransient<CostRepository>();
+            services.AddTransient<UserRepository>();
+            services.AddTransient<RecipeConfigurationRepository>();
+            services.AddTransient<PlcOperatorRepository>();
+
+            var serviceProvider = services.BuildServiceProvider();
+            var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+
+            // =========================================================================
+            // 2. ADIM: NESNELERÝN OLUÞTURULMASI (DI Provider Üzerinden)
+            // =========================================================================
+            _machineRepository = serviceProvider.GetRequiredService<MachineRepository>();
+            _recipeRepository = serviceProvider.GetRequiredService<RecipeRepository>();
+            _processLogRepository = serviceProvider.GetRequiredService<ProcessLogRepository>();
+            _alarmRepository = serviceProvider.GetRequiredService<AlarmRepository>();
+            _productionRepository = serviceProvider.GetRequiredService<ProductionRepository>();
+            _costRepository = serviceProvider.GetRequiredService<CostRepository>();
+            _userRepository = serviceProvider.GetRequiredService<UserRepository>();
+
+            _recipeConfigRepository = serviceProvider.GetRequiredService<RecipeConfigurationRepository>();
+            _plcOperatorRepository = serviceProvider.GetRequiredService<PlcOperatorRepository>();
 
             _dashboardRepository = new DashboardRepository(_recipeRepository);
-            // --- YENÝ EKLENDÝ: UTILITY NESNELERÝNÝ OLUÞTURMA ---
+
+            // --- UTILITY NESNELERÝNÝ OLUÞTURMA ---
             try
             {
                 // 1. Repository oluþtur
@@ -95,22 +122,29 @@ namespace TekstilScada
             {
                 MessageBox.Show($"Sensör servisi baþlatýlamadý: {ex.Message}");
             }
-            // PLC Servisi
+
+            // =========================================================================
+            // 3. ADIM: PLC SERVÝSÝ VE FTP SERVÝSÝ
+            // PlcPollingService'e scopeFactory parametresini yolluyoruz
+            // =========================================================================
             _pollingService = new PlcPollingService(
                 _alarmRepository,
                 _processLogRepository,
                 _productionRepository,
                 _recipeRepository,
                 _machineRepository,
-                new NullLogger<PlcPollingService>()
+                new NullLogger<PlcPollingService>(),
+                scopeFactory
             );
 
             // FTP Servisi
             _ftpTransferService = new FtpTransferService(_pollingService);
 
-            // 2. ADIM: View (Arayüz) Kontrolleri
+            // =========================================================================
+            // 4. ADIM: ARAYÜZ (VIEWS) KONTROLLERÝ VE ABONELÝKLER
+            // =========================================================================
             _prosesIzlemeView = new ProsesÝzleme_Control();
-            _prosesKontrolView = new ProsesKontrol_Control(); // Gerekirse parametre ekleyin
+            _prosesKontrolView = new ProsesKontrol_Control();
             _ayarlarView = new Ayarlar_Control();
             _makineDetayView = new MakineDetay_Control();
             _raporlarView = new Raporlar_Control();
@@ -118,15 +152,17 @@ namespace TekstilScada
             _genelBakisView = new GenelBakis_Control();
             _user_setting = new UserSettings_Control();
 
+            // OPTÝMÝZASYON: UI kilitlenmesini engellemek için Alarm Timer'ý ayarlanýyor
+            _alarmUpdateTimer = new System.Windows.Forms.Timer();
+            _alarmUpdateTimer.Interval = 1000; // Saniyede sadece 1 kere çalýþýr
+            _alarmUpdateTimer.Tick += AlarmUpdateTimer_Tick;
+
             // Olay Abonelikleri
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
             _ayarlarView.MachineListChanged += OnMachineListChanged;
-            _pollingService.OnActiveAlarmStateChanged += OnActiveAlarmStateChanged;
             _prosesIzlemeView.MachineDetailsRequested += OnMachineDetailsRequested;
             _prosesIzlemeView.MachineVncRequested += OnMachineVncRequested;
             _makineDetayView.BackRequested += OnBackRequested;
-
-            
         }
 
         // 'async' keyword'ü eklendi çünkü Gateway'i await ile baþlatacaðýz
@@ -175,8 +211,8 @@ namespace TekstilScada
             ReloadSystem(_genelBakisView);
             LanguageManager.SetLanguage("en-US");
 
-            
-          
+            // Alarm Timer'ý Baþlat (UI'ý Yormadan Alarmlarý Çeker)
+            _alarmUpdateTimer.Start();
 
             string hardwareKey = LicenseManager.GenerateHardwareKey();
 
@@ -187,19 +223,16 @@ namespace TekstilScada
                 return;
             }
 
-            //($"Fabrika API Key: {hardwareKey}");
-
             // 2. Gateway Servisini Baþlat
             try
             {
-               string hubUrl = "https://api.malkanteknolojionline.com.tr/scadaHub"; // API Adresiniz
-               // string hubUrl = "http://localhost:7039/scadaHub"; // API Adresiniz
+                string hubUrl = "https://api.malkanteknolojionline.com.tr/scadaHub"; // API Adresiniz
+                // string hubUrl = "http://localhost:7039/scadaHub"; // API Adresiniz
                 string jwtToken = null; // Gateway için token þu an null kalabilir
 
                 _gatewayService = new SignalRGatewayService(
                     hubUrl,
                     jwtToken,
-                    // hardwareKey, <--- BURADAKÝ FAZLALIK PARAMETREYÝ SÝLÝN (Service yapýnýza göre 3. sýrada yok)
                     _machineRepository,
                     _recipeRepository,
                     _userRepository,
@@ -212,10 +245,10 @@ namespace TekstilScada
                     _plcOperatorRepository,
                     _pollingService,
                     _ftpTransferService,
-                    hardwareKey // <--- DOÐRU YER: En sonda (Service yapýnýzla uyumlu)
+                    hardwareKey
                 );
+
                 // VNC Sunucusunu Baþlat
-               
                 _gatewayService.OnRemoteCommandReceived += CloudSyncService_OnRemoteCommandReceived;
 
                 await _gatewayService.StartAsync();
@@ -224,16 +257,7 @@ namespace TekstilScada
             {
                 MessageBox.Show($"Gateway Hatasý: {ex.Message}", "Baðlantý", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
-            // Cloud Sync Baþlatma (Eski sistem, eðer kullanýyorsanýz kalsýn)
-            try
-            {
-                // --- TEST ÝÇÝN GEÇÝCÝ KOD ---
-                // Program açýlýnca 1 ID'li makine için yayýný zorla baþlatýyoruz.
-                // IP adresini ve þifreyi kendi PLC ayarýnýza göre düzeltin.
 
-              
-            }
-            catch { }
             // Yedekleme servisini baþlat
             _backupService = new AutoBackupService();
             _backupService.Start();
@@ -242,8 +266,6 @@ namespace TekstilScada
         private void ApplyPermissions()
         {
             // === ANA MENÜ YETKÝLENDÝRME ===
-            // Not: List<int> { 1 } gibi roller veritabanýnýzdaki Role ID'lerine karþýlýk gelmeli.
-
             bool isMaster = PermissionService.HasAnyPermission(new List<int> { 1000 }); // Master Admin
 
             if (isMaster)
@@ -260,16 +282,15 @@ namespace TekstilScada
             else
             {
                 // Normal Yetkilendirme
-                btnProsesKontrol.Visible = PermissionService.HasAnyPermission(new List<int> { 1 }); // Operatör?
+                btnProsesKontrol.Visible = PermissionService.HasAnyPermission(new List<int> { 1 });
                 btnProsesKontrol.Enabled = btnProsesKontrol.Visible;
 
-                btnRaporlar.Visible = PermissionService.HasAnyPermission(new List<int> { 2 }); // Raporcu?
+                btnRaporlar.Visible = PermissionService.HasAnyPermission(new List<int> { 2 });
                 btnRaporlar.Enabled = btnRaporlar.Visible;
 
-                btnAyarlar.Visible = PermissionService.HasAnyPermission(new List<int> { 3 }); // Yönetici?
+                btnAyarlar.Visible = PermissionService.HasAnyPermission(new List<int> { 3 });
                 btnAyarlar.Enabled = btnAyarlar.Visible;
 
-                // Proses izleme genellikle herkese açýktýr veya en düþük yetki ister
                 btnProsesIzleme.Visible = true;
                 btnProsesIzleme.Enabled = true;
             }
@@ -299,10 +320,8 @@ namespace TekstilScada
             _prosesKontrolView.InitializeControl(_recipeRepository, _machineRepository, plcManagers, _pollingService, _ftpTransferService, _userRepository);
             _ayarlarView.InitializeControl(_machineRepository, plcManagers);
 
-            // CostRepository eklendi
             _raporlarView.InitializeControl(_machineRepository, _alarmRepository, _productionRepository, _dashboardRepository, _processLogRepository, _recipeRepository, _costRepository);
-
-            _genelBakisView.InitializeControl(_pollingService, _machineRepository, _dashboardRepository, _alarmRepository, _processLogRepository, _productionRepository,_utilityRepository,_utilityPollingService);
+            _genelBakisView.InitializeControl(_pollingService, _machineRepository, _dashboardRepository, _alarmRepository, _processLogRepository, _productionRepository, _utilityRepository, _utilityPollingService);
 
             _ayarlarView.RefreshMachineSettingsView();
 
@@ -350,8 +369,7 @@ namespace TekstilScada
                 }
                 catch (Exception logEx)
                 {
-                    // Sessiz kalabilir veya debug yazabiliriz
-                    //($"Log Error: {logEx.Message}");
+                    // Sessiz kal
                 }
             }
             else
@@ -453,13 +471,13 @@ namespace TekstilScada
             }
         }
 
-        private void OnActiveAlarmStateChanged(int machineId, FullMachineStatus status)
+        // OPTÝMÝZASYON: Event (this.Invoke) Yerine Windows Form Timer kullanýlarak UI Thread serbest býrakýldý.
+        private void AlarmUpdateTimer_Tick(object sender, EventArgs e)
         {
             if (!this.IsHandleCreated || this.IsDisposed) return;
-            this.Invoke(new Action(() =>
-            {
-                if (this.IsDisposed) return;
 
+            try
+            {
                 var activeAlarms = _pollingService.MachineDataCache.Values.Where(s => s.HasActiveAlarm).ToList();
 
                 if (activeAlarms.Any())
@@ -483,7 +501,11 @@ namespace TekstilScada
                     lblStatusLiveEvents.BackColor = SystemColors.Control;
                     lblStatusLiveEvents.ForeColor = SystemColors.ControlText;
                 }
-            }));
+            }
+            catch (Exception)
+            {
+                // UI akýþýný engellememek için hatayý yut
+            }
         }
 
         private void lblStatusLiveEvents_Click(object sender, EventArgs e)
@@ -496,12 +518,20 @@ namespace TekstilScada
         {
             LanguageManager.LanguageChanged -= LanguageManager_LanguageChanged;
             _pollingService.Stop();
-            // --- YENÝ EKLENDÝ: UTILITY SERVÝSÝNÝ DURDUR ---
+
+            // Timer Temizliði
+            if (_alarmUpdateTimer != null)
+            {
+                _alarmUpdateTimer.Stop();
+                _alarmUpdateTimer.Dispose();
+            }
+
+            // --- UTILITY SERVÝSÝNÝ DURDUR ---
             if (_utilityPollingService != null)
             {
                 _utilityPollingService.Stop();
             }
-            // ----------------------------------------------
+
             if (_activeVncViewerForm != null && !_activeVncViewerForm.IsDisposed)
             {
                 try { _activeVncViewerForm.Close(); } catch { }
@@ -509,14 +539,8 @@ namespace TekstilScada
 
             if (_gatewayService != null)
             {
-                // Gateway servisine StopAsync metodu eklediðinizi varsayýyoruz
-                // await _gatewayService.StopAsync(); 
-
-                // Veya en azýndan event aboneliðini kaldýrýn
                 _gatewayService.OnRemoteCommandReceived -= CloudSyncService_OnRemoteCommandReceived;
             }
-            // ------------------------------------------
-
 
             foreach (var server in _activeVncServers.Values)
             {
@@ -542,18 +566,15 @@ namespace TekstilScada
                     string ip = parts[0];
                     string pass = parts.Length > 1 ? parts[1] : "";
 
-                    // Bu makine için zaten çalýþan bir VNC varsa önce onu durdur
                     if (_activeVncServers.ContainsKey(machineId))
                     {
                         _activeVncServers[machineId].StopStream();
                         _activeVncServers.Remove(machineId);
                     }
 
-                    // Yeni bir VNC sunucu örneði oluþtur ve baþlat
                     var newVnc = new VncProxyServer(_gatewayService);
                     newVnc.StartStream(machineId, ip, pass);
 
-                    // Listeye ekle
                     _activeVncServers.Add(machineId, newVnc);
                 }
                 // STOP_VNC KOMUTU
@@ -568,7 +589,6 @@ namespace TekstilScada
                 // CLICK KOMUTU
                 else if (command == "CLICK")
                 {
-                    // Ýlgili makinenin sunucusunu bul ve týklat
                     if (_activeVncServers.TryGetValue(machineId, out var server))
                     {
                         var parts = parameters.Split(';');

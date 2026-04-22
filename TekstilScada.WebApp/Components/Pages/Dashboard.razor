@@ -104,7 +104,7 @@
     private int IdleMachines = 0;
     private int offlineMachines = 0;
     private int manualMachines = 0;
-
+    private bool _isDisposed = false;
     private readonly List<string> DarkColors = new List<string>
     {
         "#2c3e50", "#2ecc71", "#e74c3c", "#9b59b6", "#3498db",
@@ -200,8 +200,12 @@
             HourlyOeeData = await ScadaService.GetHourlyOeeAsync() ?? new();
             TopAlarms = await ScadaService.GetTopAlarmsAsync() ?? new();
 
-            _shouldRenderCharts = true;
-            await InvokeAsync(StateHasChanged);
+            // SADECE COMPONENT HALA AÇIKSA UI'I GÜNCELLE
+            if (!_isDisposed)
+            {
+                _shouldRenderCharts = true;
+                await InvokeAsync(StateHasChanged);
+            }
         }
         catch (Exception ex)
         {
@@ -243,12 +247,35 @@
 
         // 2. İstatistikler
         TotalMachines = allStatuses.Count;
-        RunningMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.IsInRecipeMode && !s.HasActiveAlarm);
-        AlarmMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.HasActiveAlarm);
-        IdleMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && !s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
-        offlineMachines = allStatuses.Count(s => s.ConnectionState != ConnectionStatus.Connected);
-        manualMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
+        RunningMachines = 0;
+        AlarmMachines = 0;
+        IdleMachines = 0;
+        offlineMachines = 0;
+        manualMachines = 0;
 
+        foreach (var s in allStatuses)
+        {
+            if (s.ConnectionState != ConnectionStatus.Connected)
+            {
+                offlineMachines++;
+            }
+            else if (s.HasActiveAlarm)
+            {
+                AlarmMachines++;
+            }
+            else if (s.IsInRecipeMode)
+            {
+                RunningMachines++;
+            }
+            else if (s.manuel_status)
+            {
+                manualMachines++;
+            }
+            else
+            {
+                IdleMachines++;
+            }
+        }
         if (TotalMachines == 0)
         {
             GroupedMachines = new List<IGrouping<string, FullMachineStatus>>();
@@ -294,6 +321,7 @@
 
     public void Dispose()
     {
+        _isDisposed = true; // Component'in kapandığını işaretle
         if (ScadaService != null)
         {
             ScadaService.OnDataUpdated -= HandleDataUpdate;

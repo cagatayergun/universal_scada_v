@@ -50,7 +50,7 @@
                 {
                     <img id="vncStreamImage"
                          src="data:image/jpeg;base64,@imageData"
-                         style="max-width: 100%; max-height: 600px; object-fit: contain; cursor: crosshair;"
+                         style="max-width: 100%; max-height: 600px; object-fit: contain; cursor: @(isTouchEnabled ? "crosshair" : "default");"
                          @onmousedown="HandleImageClick"
                          @ontouchstart="HandleTouchClick"
                          draggable="false" />
@@ -66,9 +66,19 @@
             </div>
         }
     </DialogContent>
-    <DialogActions>
+    @*  <DialogActions>
+         Tıklama Kontrolünü Aç/Kapat Switch'i (Erişim reddedilmediyse gösterilir) 
+        @if (!isAccessDenied)
+        {
+            <MudSwitch @bind-Value="isTouchEnabled" Color="Color.Success" Class="mr-auto">
+                <MudText Typo="Typo.body2">
+                    @(isTouchEnabled ? "Kontrol Aktif" : "Kontrol Kapalı (Sadece İzleme)")
+                </MudText>
+            </MudSwitch>
+        }
         <MudButton OnClick="CloseConnection" Color="Color.Error" Variant="Variant.Filled">Kapat</MudButton>
     </DialogActions>
+    *@
 </MudDialog>
 
 @code {
@@ -82,6 +92,10 @@
     private string myUserName = "Operator"; // Giriş yapan kullanıcının gerçek adını AuthState'den alabilirsiniz
     private HubConnection? hubConnection;
     private string? imageData;
+
+    // TIKLAMA / KONTROL YETKİSİ
+    // Başlangıçta güvenlik amacıyla false (Sadece İzleme) yapıyoruz. İsterseniz true yapabilirsiniz.
+    private bool isTouchEnabled = false;
 
     // Bağlantı Yönetimi
     private System.Threading.Timer? _heartbeatTimer;
@@ -170,6 +184,9 @@
 
     private async Task HandleImageClick(MouseEventArgs e)
     {
+        // EĞER KONTROL KAPALIYSA İŞLEM YAPMA (Geri Dön)
+        if (!isTouchEnabled) return;
+
         if (hubConnection is not null && hubConnection.State == HubConnectionState.Connected)
         {
             try
@@ -179,7 +196,6 @@
 
                 if (coords != null)
                 {
-                   
                     await hubConnection.InvokeAsync("SendCommandToLocal", ScadaService.CurrentFactoryId, MachineId, "CLICK", $"{coords.X};{coords.Y}");
                 }
             }
@@ -189,6 +205,9 @@
 
     private async Task HandleTouchClick(TouchEventArgs e)
     {
+        // EĞER KONTROL KAPALIYSA İŞLEM YAPMA (Geri Dön)
+        if (!isTouchEnabled) return;
+
         if (e.Touches.Length > 0 && hubConnection is not null && hubConnection.State == HubConnectionState.Connected)
         {
             try

@@ -92,7 +92,7 @@
                         <ToolBarContent>
                             <MudText Typo="Typo.h6">@Loc["UretimSonuclariBaslik"]</MudText>
                             <MudSpacer />
-                            <MudTextField @bind-Value="_searchString" Placeholder="@Loc["TablodaAraPlaceholder"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" Immediate="true"></MudTextField>
+                            <MudTextField @bind-Value="_searchString" Placeholder="@Loc["TablodaAraPlaceholder"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" Immediate="true" DebounceInterval="500"></MudTextField>
                         </ToolBarContent>
                         <Columns>
                             <PropertyColumn Property="x => x.MachineName" Title="@Loc["MakineLabel"]" Groupable="true" CellStyle="white-space: normal; min-width: 100px;" />
@@ -370,7 +370,7 @@
                         <ToolBarContent>
                             <MudText Typo="Typo.h6">@Loc["DetayliTuketimRaporuBaslik"] (@GetConsumptionUnitName(selectedConsumptionType))</MudText>
                             <MudSpacer />
-                            <MudTextField @bind-Value="_searchStringGeneral" Placeholder="@Loc["AraGenelPlaceholder"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" Immediate="true"></MudTextField>
+                            <MudTextField @bind-Value="_searchStringGeneral" Placeholder="@Loc["AraGenelPlaceholder"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" Immediate="true" DebounceInterval="500"></MudTextField>
                         </ToolBarContent>
                         <Columns>
                             <PropertyColumn Property="x => x.MachineName" Title="@Loc["MakineLabel"]" Groupable="true" />
@@ -405,6 +405,7 @@
                             </MudItem>
                             <MudItem xs="12" md="4">
                                 <MudTextField @bind-Value="actionLogFilters.Details" Label="@Loc["IslemDetayiArama"]" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.TextSnippet" />
+                                
                             </MudItem>
                             <MudItem xs="12" md="2" Class="d-flex justify-end gap-2">
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.ManageSearch" OnClick="GenerateActionLogsReport" Disabled="@isLoading" FullWidth="true">
@@ -423,7 +424,7 @@
                         <ToolBarContent>
                             <MudText Typo="Typo.h6">@Loc["KullaniciHareketleriBaslik"]</MudText>
                             <MudSpacer />
-                            <MudTextField @bind-Value="_searchStringAction" Placeholder="@Loc["KayitlardaAraPlaceholder"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" Immediate="true"></MudTextField>
+                            <MudTextField @bind-Value="_searchStringAction" Placeholder="@Loc["KayitlardaAraPlaceholder"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" Immediate="true" DebounceInterval="500"></MudTextField>
                         </ToolBarContent>
                         <Columns>
                             <PropertyColumn Property="x => x.Timestamp" Title="@Loc["Zaman"]" Format="dd.MM.yy HH:mm:ss" Sortable="true" />
@@ -597,33 +598,10 @@
     private async Task CallPlotlyJS()
     {
         if (trendDataPoints == null || !trendDataPoints.Any()) return;
-
         try
         {
-            const int TARGET_POINT_COUNT = 500;
-            List<TrendProcessDataPoint> pointsToDraw;
-
-            if (trendDataPoints.Count <= TARGET_POINT_COUNT)
-            {
-                pointsToDraw = trendDataPoints;
-            }
-            else
-            {
-                int groupSize = (int)Math.Ceiling((double)trendDataPoints.Count / TARGET_POINT_COUNT);
-                pointsToDraw = trendDataPoints
-                    .Select((x, i) => new { Index = i, Value = x })
-                    .GroupBy(x => x.Index / groupSize)
-                    .Select(g => new TrendProcessDataPoint
-                    {
-                        Timestamp = g.First().Value.Timestamp,
-                        Temperature = g.Average(p => p.Value.Temperature),
-                        Rpm = (int)g.Average(p => p.Value.Rpm),
-                        WaterLevel = g.Average(p => p.Value.WaterLevel)
-                    })
-                    .ToList();
-            }
-
-            await JSRuntime.InvokeVoidAsync("plotSyncedTrendCharts", pointsToDraw, "chartTemperature", "chartRpm", "chartLevel");
+            // Artık hesaplama yapmıyoruz, arka planda hazırlandı. Sadece JS'e basıyoruz.
+            await JSRuntime.InvokeVoidAsync("plotSyncedTrendCharts", trendDataPoints, "chartTemperature", "chartRpm", "chartLevel");
         }
         catch (Exception ex)
         {
@@ -696,51 +674,77 @@
 
             if (rawData != null)
             {
-                // JSON işlemlerini arka plana atıyoruz
-                trendDataPoints = await Task.Run(() =>
+                // Tüm JSON dönüştürme, istatistik hesaplama ve GÖRSEL SEYRELTME işlemlerini arka plana atıyoruz (UI Donmaz!)
+                var processedResult = await Task.Run(() =>
                 {
+                    List<TrendProcessDataPoint> fullData;
+
+                    // 1. JSON Parse İşlemi
                     if (rawData.Count > 0 && rawData[0] is JsonElement)
-                        return rawData.Select(x => ((JsonElement)x).Deserialize<TrendProcessDataPoint>()).ToList();
+                        fullData = rawData.Select(x => ((JsonElement)x).Deserialize<TrendProcessDataPoint>()).ToList();
                     else
                     {
                         var jsonString = JsonSerializer.Serialize(rawData);
-                        return JsonSerializer.Deserialize<List<TrendProcessDataPoint>>(jsonString);
+                        fullData = JsonSerializer.Deserialize<List<TrendProcessDataPoint>>(jsonString);
                     }
+
+                    if (fullData == null || !fullData.Any()) return null;
+
+                    // 2. İstatistikleri HAM veri üzerinden (doğru sonuç için) hesapla
+                    var temps = fullData.Select(x => x.Temperature / 10.0m).ToList();
+                    var rpms = fullData.Select(x => x.Rpm).ToList();
+                    var levels = fullData.Select(x => x.WaterLevel).ToList();
+
+                    var stats = new TrendStats
+                    {
+                        MinTemp = temps.DefaultIfEmpty(0).Min(),
+                        MaxTemp = temps.DefaultIfEmpty(0).Max(),
+                        AvgTemp = temps.DefaultIfEmpty(0).Average(),
+                        MinRpm = rpms.DefaultIfEmpty(0).Min(),
+                        MaxRpm = rpms.DefaultIfEmpty(0).Max(),
+                        AvgRpm = rpms.DefaultIfEmpty(0).Average(),
+                        MinLevel = levels.DefaultIfEmpty(0).Min(),
+                        MaxLevel = levels.DefaultIfEmpty(0).Max(),
+                        AvgLevel = levels.DefaultIfEmpty(0).Average()
+                    };
+
+                    // 3. Grafiğe çizilecek veriyi SEYRELT (Downsampling)
+                    const int TARGET_POINT_COUNT = 500;
+                    List<TrendProcessDataPoint> pointsToDraw = fullData;
+
+                    if (fullData.Count > TARGET_POINT_COUNT)
+                    {
+                        int groupSize = (int)Math.Ceiling((double)fullData.Count / TARGET_POINT_COUNT);
+                        pointsToDraw = fullData
+                            .Select((x, i) => new { Index = i, Value = x })
+                            .GroupBy(x => x.Index / groupSize)
+                            .Select(g => new TrendProcessDataPoint
+                            {
+                                Timestamp = g.First().Value.Timestamp,
+                                Temperature = g.Average(p => p.Value.Temperature),
+                                Rpm = (int)g.Average(p => p.Value.Rpm),
+                                WaterLevel = g.Average(p => p.Value.WaterLevel)
+                            })
+                            .ToList();
+                    }
+
+                    // UI'a sadece özetlenmiş veriyi ve istatistikleri gönderiyoruz
+                    return new { Stats = stats, PointsToDraw = pointsToDraw };
                 });
 
-                if (trendDataPoints != null && trendDataPoints.Any())
+                if (processedResult != null)
                 {
-                    // Ağır hesaplamaları UI'ı kilitlememek için arka planda yaptırıyoruz
-                    trendStats = await Task.Run(() =>
-                    {
-                        var temps = trendDataPoints.Select(x => x.Temperature / 10.0m).ToList();
-                        var rpms = trendDataPoints.Select(x => x.Rpm).ToList();
-                        var levels = trendDataPoints.Select(x => x.WaterLevel).ToList();
-
-                        return new TrendStats
-                        {
-                            MinTemp = temps.DefaultIfEmpty(0).Min(),
-                            MaxTemp = temps.DefaultIfEmpty(0).Max(),
-                            AvgTemp = temps.DefaultIfEmpty(0).Average(),
-                            MinRpm = rpms.DefaultIfEmpty(0).Min(),
-                            MaxRpm = rpms.DefaultIfEmpty(0).Max(),
-                            AvgRpm = rpms.DefaultIfEmpty(0).Average(),
-                            MinLevel = levels.DefaultIfEmpty(0).Min(),
-                            MaxLevel = levels.DefaultIfEmpty(0).Max(),
-                            AvgLevel = levels.DefaultIfEmpty(0).Average()
-                        };
-                    });
-
+                    trendStats = processedResult.Stats;
+                    trendDataPoints = processedResult.PointsToDraw; // Artık RAM'de sadece 500 nokta tutulacak!
                     shouldRenderChart = true;
                 }
             }
         }
-        catch (Exception ex)
-        {
-            //Console.WriteLine($"Trend Hatası: {ex.Message}");
-        }
-        finally { isLoading = false; }
+        catch (Exception ex) { /* Loglama yapılabilir */ }
+        finally { isLoading = false; StateHasChanged(); }
     }
+
+   
     private void ChangeTab(string tabName)
     {
         activeTab = tabName;
@@ -767,7 +771,9 @@
 
         try
         {
-            // 1. Tüm API isteklerini aynı anda (paralel) başlatıyoruz
+            // İşleme başlamadan makine listesini O(1) arama hızına sahip Dictionary'ye alıyoruz
+            var machineDict = machines?.ToDictionary(m => m.Id, m => m) ?? new Dictionary<int, Machine>();
+
             var fetchTasks = _selectedManualMachineIds.Select(async mId =>
             {
                 var effectiveFilters = new ReportFilters { StartTime = manualFilters.StartTime.Date, EndTime = GetEndOfDay(manualFilters.EndTime), MachineId = mId };
@@ -775,19 +781,18 @@
 
                 if (summary != null)
                 {
-                    var machineInfo = machines?.FirstOrDefault(m => m.Id == mId);
-                    // İş mantığı: Kurutma makinesi ise suyu sıfırla
-                    if (machineInfo != null && machineInfo.MachineType == "Kurutma Makinesi")
+                    // Dictionary üzerinden bekleme yapmadan thread-safe şekilde eşleştir
+                    if (machineDict.TryGetValue(mId, out var machineInfo) && machineInfo.MachineType == "Kurutma Makinesi")
+                    {
                         summary.ToplamSuTuketimi_Litre = 0;
+                    }
                 }
                 return summary;
             });
 
-            // 2. Tüm paralel isteklerin bitmesini tek seferde bekliyoruz
             var results = await Task.WhenAll(fetchTasks);
-
-            // 3. Null olmayan sonuçları listeye ekliyoruz
             manualConsumptionReports = results.Where(r => r != null).ToList();
+        
         }
         catch (Exception ex)
         {

@@ -64,7 +64,7 @@ else
     private bool showDetailModal = false;
     private int selectedMachineId = 0;
     private bool isLoading = true;
-
+    private bool _isDisposed = false;
     // Veri Listesi
     private List<FullMachineStatus> AllMachines = new();
 
@@ -87,29 +87,21 @@ else
     private async Task LoadInitialData()
     {
         isLoading = true;
-        StateHasChanged(); // Yükleniyor spinner'ını göster
+        StateHasChanged();
 
         try
         {
-            // A. Önce Makine Tanımlarını (İsim, Tip vb.) al
-            // Bu, 'MachineDetailsCache'i doldurur.
             await ScadaService.GetMachinesAsync();
-
-            // B. Sonra Canlı Verileri (Snapshot) al
-            // Bu metodu Hub'a eklemiştik, veritabanından değil Gateway cache'inden hızlıca gelir.
-            // Eğer fabrika ID 0 ise (seçili değilse) işlem yapma.
-            var liveStatuses = await ScadaService.GetLiveMachineStatusByFactoryId(0); // 0 = Current Selected Factory
+            var liveStatuses = await ScadaService.GetLiveMachineStatusByFactoryId(0);
 
             if (liveStatuses != null && liveStatuses.Any())
             {
-                // Cache'i güncelle
                 foreach (var status in liveStatuses)
                 {
                     ScadaService.MachineData[status.MachineId] = status;
                 }
             }
 
-            // Listeyi güncelle
             UpdateMachineData();
         }
         catch (Exception ex)
@@ -119,15 +111,24 @@ else
         finally
         {
             isLoading = false;
-            StateHasChanged();
+            // EĞER SAYFA HALA AÇIKSA ARAYÜZÜ GÜNCELLE
+            if (!_isDisposed)
+            {
+                StateHasChanged();
+            }
         }
     }
 
     // ScadaService tetiklediğinde çalışır (Canlı Veri Geldiğinde)
     private void HandleDataUpdate()
     {
+        // Sayfa kapandıysa hiç Invoke işlemine girip CPU'yu yorma
+        if (_isDisposed) return;
+
         InvokeAsync(() =>
         {
+            if (_isDisposed) return; // Çift güvenlik kontrolü
+
             UpdateMachineData();
             StateHasChanged();
         });
@@ -135,26 +136,32 @@ else
 
     private void UpdateMachineData()
     {
-        // Service üzerindeki Dictionary'den listeye çevir
-        if (ScadaService.MachineData.Any())
+        // 1. Veritabanından gelen TÜM makineleri (Cache) referans alıyoruz.
+        // 2. Canlı verisi olanları güncelliyor, olmayanları "Offline" olarak listeye ekliyoruz.
+        // Bu sayede bağlantısı kopan makineler ekrandan aniden kaybolmaz.
+
+        AllMachines = ScadaService.MachineDetailsCache.Values.Select(m =>
         {
-            AllMachines = ScadaService.MachineData.Values.ToList();
-        }
-        else
-        {
-            // Eğer canlı veri henüz yoksa ama makine tanımları varsa,
-            // boş kartlar oluştur ki ekranda "Makine Yok" yazmasın.
-            if (ScadaService.MachineDetailsCache.Any())
+            // O(1) hızında Dictionary araması
+            if (ScadaService.MachineData.TryGetValue(m.Id, out var liveStatus))
             {
-                AllMachines = ScadaService.MachineDetailsCache.Values.Select(m => new FullMachineStatus
-                {
-                    MachineId = m.Id,
-                    MachineName = m.MachineName,
-                    MakineTipi = m.MachineSubType,
-                    // Diğer değerler varsayılan (0 veya boş)
-                }).ToList();
+                // Eğer canlı veride makine tipi boş geldiyse, tanımdan (Cache) doldur
+                if (string.IsNullOrEmpty(liveStatus.MakineTipi))
+                    liveStatus.MakineTipi = m.MachineSubType;
+
+                return liveStatus;
             }
-        }
+
+            // O an canlı verisi (SignalR vb.) yoksa varsayılan Offline kart oluştur
+            return new FullMachineStatus
+            {
+                MachineId = m.Id,
+                MachineName = m.MachineName,
+                MakineTipi = string.IsNullOrEmpty(m.MachineSubType) ? "Undefined" : m.MachineSubType,
+                ConnectionState = ConnectionStatus.Disconnected,
+                manuel_status = false
+            };
+        }).ToList();
     }
 
     private async Task ForceRefresh()
@@ -181,6 +188,7 @@ else
 
     public void Dispose()
     {
+        _isDisposed = true; // Sayfanın kapandığını sisteme bildir
         if (ScadaService != null)
         {
             ScadaService.OnDataUpdated -= HandleDataUpdate;
