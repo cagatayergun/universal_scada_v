@@ -219,7 +219,13 @@ namespace TekstilScada.UI.Views
 
         private void BuildMachineCards()
         {
-            if (_machineRepository == null || _pollingService == null) return;
+            if (_machineRepository == null || _pollingService == null || _alarmRepository == null) return;
+
+            // --- YENİ EKLENEN: Alarmları Veritabanından Bir Kez Çekiyoruz ---
+            // AlarmRepository içindeki GetAllAlarmDefinitions() metodunu kullanarak verileri çekip Sözlüğe (Dictionary) çeviriyoruz.
+            var allAlarmDefs = _alarmRepository.GetAllAlarmDefinitions();
+            var alarmDict = allAlarmDefs.ToDictionary(a => a.AlarmNumber, a => a.AlarmText);
+            // -----------------------------------------------------------------
 
             flpMachineGroups.SuspendLayout();
             _machineCards.Clear();
@@ -273,6 +279,15 @@ namespace TekstilScada.UI.Views
                 foreach (var machine in sortedMachines)
                 {
                     var card = new DashboardMachineCard_Control(machine);
+
+                    // --- YENİ EKLENEN: Veritabanından çektiğimiz alarmları karta aktarıyoruz ---
+                    card.AlarmDefinitions = alarmDict;
+                    // ---------------------------------------------------------------------------
+
+                    // Kart oluşturulduktan sonra PLC yöneticilerini ve diğer servisleri karta iletiyoruz.
+                    // GenelBakis_Control içinde bulunmayan servisler (RecipeRepository, FtpTransfer, UserRepository) için şimdilik null geçiyoruz.
+                    card.InitializeControl(null, _machineRepository, _plcManagers, _pollingService, null, null);
+
                     card.Tag = machine.Id;
                     _machineCards.Add(machine.Id, card);
                     innerPanel.Controls.Add(card);

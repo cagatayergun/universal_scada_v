@@ -24,7 +24,7 @@ namespace TekstilScada.UI.Controls
             pnlStatusIndicator.Location = new Point(0, 0);
             pnlStatusIndicator.Margin = new Padding(4, 3, 4, 3);
             pnlStatusIndicator.Name = "pnlStatusIndicator";
-            pnlStatusIndicator.Size = new Size(12, 150);
+            pnlStatusIndicator.Size = new Size(12, 224);
             pnlStatusIndicator.TabIndex = 0;
             // 
             // lblMachineName
@@ -70,7 +70,7 @@ namespace TekstilScada.UI.Controls
             btnSendToPlc.TabIndex = 20;
             btnSendToPlc.Text = "SÜRÜCÜ ALARM\r\nRESET";
             btnSendToPlc.UseVisualStyleBackColor = true;
-           
+            btnSendToPlc.Click += BtnSendToPlc_Click;
             // 
             // DashboardMachineCard_Control
             // 
@@ -85,7 +85,7 @@ namespace TekstilScada.UI.Controls
             Controls.Add(pnlStatusIndicator);
             Margin = new Padding(9);
             Name = "DashboardMachineCard_Control";
-            Size = new Size(418, 150);
+            Size = new Size(418, 224);
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
             ResumeLayout(false);
             PerformLayout();

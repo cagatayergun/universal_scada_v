@@ -25,7 +25,7 @@ namespace TekstilScada.Services
         private const string RECIPE_MODE = "0"; // Kx30D -> D30.0 -> coil
         private const string MANUAL_MODE = "3"; // Kx30D -> D30.0 -> coil
         private const string PAUSE_STATUS = "1"; // MX1015 -> M1015
-        private const string ALARM_NO = "3001"; // D3604
+        private const string ALARM_NO = "3500"; // D3604
         private const string CURRENT_WATER_LEVEL = "3002"; // K200 -> D200
         private const string CURRENT_RPM = "3003"; // D6007
         private const string CURRENT_TEMPERATURE = "3004"; // D4980
@@ -131,8 +131,8 @@ namespace TekstilScada.Services
                 var alarmNoResult = _plcClient.ReadInt16(ALARM_NO);
                 if (alarmNoResult.IsSuccess) { status.ActiveAlarmNumber = alarmNoResult.Content; status.HasActiveAlarm = alarmNoResult.Content > 0; }
                 else { Debug.WriteLine($"[ERROR] {IpAddress} - {ALARM_NO} (Alarm No) could not be read: {alarmNoResult.Message}"); anyReadFailed = true; }
-
-                var alarmResult2 = _plcClient.ReadInt16("100", 5); // D70
+                ushort writeonay3 = 5;
+                var alarmResult2 = _plcClient.ReadInt16("3500", writeonay3); 
 
                 if (alarmResult2.IsSuccess)
                 {
@@ -282,8 +282,9 @@ namespace TekstilScada.Services
         }
         public async Task<OperateResult> AcknowledgeAlarm()
         {
+            short writeonay1 = 1;
             // Task.Run içindeki işlemi bekler ve sonucu 'result' değişkenine atar.
-            var result = await Task.Run(() => _plcClient.Write("80", 1));
+            var result = await Task.Run(() => _plcClient.Write("80", writeonay1));
 
             // Beklenen OperateResult değerini geriye döndürür.
             return result;

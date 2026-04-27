@@ -77,6 +77,10 @@
 
 	<ItemGroup>
 	  <None Remove="appsettings.json" />
+	  <None Remove="deneme_panel.bak0" />
+	  <None Remove="deneme_panel.bak1" />
+	  <None Remove="deneme_panel.bak2" />
+	  <None Remove="deneme_panel.xpd" />
 	</ItemGroup>
 
 	<ItemGroup>
