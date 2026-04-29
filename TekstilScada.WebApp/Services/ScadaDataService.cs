@@ -85,6 +85,7 @@ namespace TekstilScada.WebApp.Services
 
         public ConcurrentDictionary<int, FullMachineStatus> MachineData { get; private set; } = new();
         public ConcurrentDictionary<int, Machine> MachineDetailsCache { get; private set; } = new();
+        public Dictionary<int, string> AlarmDefinitions { get; set; } = new Dictionary<int, string>();
         private string _accessToken = string.Empty;
 
         public ScadaDataService(HttpClient httpClient, ILocalStorageService localStorage, IConfiguration config)
@@ -194,8 +195,34 @@ namespace TekstilScada.WebApp.Services
             var onlineIds = await GetOnlineFactoryIdsAsync();
             if (!onlineIds.Contains(factoryId)) throw new Exception("Fabrika çevrimdışı.");
 
-            MachineData.Clear(); MachineDetailsCache.Clear();
-            CurrentFactoryName = factoryName; _currentSelectedFactoryId = factoryId;
+            MachineData.Clear();
+            MachineDetailsCache.Clear();
+            CurrentFactoryName = factoryName;
+            _currentSelectedFactoryId = factoryId;
+
+            // =================================================================
+            // YENİ EKLENEN KISIM: Fabrika seçildiğinde o fabrikanın alarmlarını yükle
+            // =================================================================
+            try
+            {
+                var alarms = await GetAlarmsAsync(factoryId);
+                AlarmDefinitions.Clear(); // Eski fabrikanın alarmlarını temizle
+
+                if (alarms != null)
+                {
+                    foreach (var a in alarms)
+                    {
+                        // DİKKAT: Anahtar olarak Id DEĞİL, AlarmNumber kullanıyoruz!
+                        AlarmDefinitions[a.AlarmNumber] = a.AlarmText;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Alarmlar yüklenirken hata oluştu: {ex.Message}");
+            }
+            // =================================================================
+
             OnDataUpdated?.Invoke();
             await _hubConnection.InvokeAsync("SubscribeToFactories", new List<int> { factoryId });
             OnFactoryChanged?.Invoke();
@@ -474,6 +501,25 @@ namespace TekstilScada.WebApp.Services
         public async Task<PagedResult<AlarmReportItem>> GetAlarmReportPagedAsync(ReportFilters f, int pageNumber, int pageSize)
         {
             return await InvokeSafeAsync("GetAlarmReportPaged", 0, new PagedResult<AlarmReportItem>(), f, pageNumber, pageSize);
+        }
+        public async Task ResetMachineAlarmAsync(int machineId)
+        {
+            try
+            {
+                if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected)
+                {
+                    // Calls the SendAlarmReset method we added to ScadaHub
+                    await _hubConnection.SendAsync("SendAlarmReset", machineId);
+                }
+                else
+                {
+                    Console.WriteLine("Warning: Hub connection is lost. Cannot send reset command.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending reset command: {ex.Message}");
+            }
         }
     }
 }

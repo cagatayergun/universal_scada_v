@@ -26,13 +26,12 @@
     }
     else
     {
+        @* --- 1. SADECE 4 KPI KUTUSU BIRAKILDI --- *@
         <div class="kpi-cards-row">
             <KpiCard Title="@Loc["ToplamMakine"]" Value="@TotalMachines.ToString()" CssClass="kpi-info" />
             <KpiCard Title="@Loc["Offlinestatus"]" Value="@offlineMachines.ToString()" CssClass="kpi-offline" />
-            <KpiCard Title="@Loc["AktifMakine"]" Value="@RunningMachines.ToString()" CssClass="kpi-success" />
+            <KpiCard Title="ONLINE MAKİNE" Value="@OnlineMachines.ToString()" CssClass="kpi-success" />
             <KpiCard Title="@Loc["AlarmdakiMakine"]" Value="@AlarmMachines.ToString()" CssClass="kpi-danger" />
-            <KpiCard Title="@Loc["Manuelmod"]" Value="@manualMachines.ToString()" CssClass="kpi-manuel" />
-            <KpiCard Title="@Loc["BekleyenMakine"]" Value="@IdleMachines.ToString()" CssClass="kpi-warning" />
         </div>
 
         <div class="main-content-area">
@@ -54,9 +53,10 @@
                             <div class="group-inner-panel" style="display: flex; flex-wrap: wrap; gap: 10px;">
                                 @foreach (var machineStatus in group)
                                 {
+                                    @* --- 2. TIKLAMA (MouseClick) OLAYI KALDIRILDI --- *@
                                     <DashboardMachineCard MachineStatus="machineStatus"
                                                           @key="machineStatus.MachineId"
-                                                          MouseClick="() => NavigateToDetail(machineStatus.MachineId)" />
+                                                          OnResetClicked="HandleResetAlarm" />
                                 }
                             </div>
                         </div>
@@ -64,17 +64,8 @@
                 }
             </div>
 
-            @* Sidebar Charts *@
+            @* --- 3. SADECE ALARM GRAFİĞİ BIRAKILDI --- *@
             <div class="sidebar-charts-column pl-2" style="min-width: 300px;">
-                <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
-                    <div id="electricChartContainer" style="width:100%; height:250px;"></div>
-                </MudPaper>
-                <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
-                    <div id="waterChartContainer" style="width:100%; height:250px;"></div>
-                </MudPaper>
-                <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
-                    <div id="steamChartContainer" style="width:100%; height:250px;"></div>
-                </MudPaper>
                 <MudPaper Class="chart-box pa-2 mb-2" Elevation="2" Style="background-color: #1e1e2d;">
                     <div id="topAlarmsChartContainer" style="width:100%; height:250px;"></div>
                 </MudPaper>
@@ -92,18 +83,16 @@
     private bool _shouldRenderCharts = false;
     private CultureInfo _userCulture;
 
-    // Sidebar verileri
+    // Sidebar verileri (JS tarafı hata vermesin diye boş listeler tutuluyor)
     private List<HourlyConsumptionData> HourlyConsumptionData = new();
     private List<HourlyOeeData> HourlyOeeData = new();
     private List<TopAlarmData> TopAlarms = new();
 
-    // KPI Alanları
+    // 4 KPI Alanı
     private int TotalMachines = 0;
-    private int RunningMachines = 0;
-    private int AlarmMachines = 0;
-    private int IdleMachines = 0;
     private int offlineMachines = 0;
-    private int manualMachines = 0;
+    private int OnlineMachines = 0;
+    private int AlarmMachines = 0;
 
     private readonly List<string> DarkColors = new List<string>
     {
@@ -118,11 +107,7 @@
         try
         {
             _userCulture = CultureInfo.CurrentUICulture;
-
-            // 1. Canlı Veri Akışına Abone Ol
             ScadaService.OnDataUpdated += HandleDataUpdate;
-
-            // 2. İlk Verileri Hemen Yükle (Beklemeden)
             await LoadInitialData();
         }
         catch (Exception ex)
@@ -134,11 +119,8 @@
 
     private async Task LoadInitialData()
     {
-        // ADIM 1: Sadece makine tanımlarını (ID, İsim, Tip) API'den çek.
-        // Bu veri küçüktür ve hemen gelir.
         var dbMachines = await ScadaService.GetMachinesAsync();
 
-        // ADIM 2: Canlı veri sözlüğü henüz boşsa, bu makineleri "Offline" olarak göster
         if (!ScadaService.MachineData.Any())
         {
             foreach (var m in dbMachines)
@@ -153,13 +135,10 @@
             }
         }
 
-        // Kartları hemen çiz (Offline/Gri olarak)
         _isLoading = false;
         UpdateDashboardData();
         StateHasChanged();
 
-        // ADIM 3: Arka planda Gateway'den o anki canlı durumu (Snapshot) al
-        // Bu işlem bitene kadar kullanıcı kartları görmeye devam eder
         _ = Task.Run(async () =>
         {
             var liveStatuses = await ScadaService.GetLiveMachineStatusByFactoryId(0);
@@ -176,7 +155,6 @@
             }
         });
 
-        // ADIM 4: Grafik verilerini en son, sayfa açıldıktan sonra yükle
         _ = LoadSidebarDataAsync();
     }
 
@@ -187,12 +165,13 @@
             _shouldRenderCharts = false;
             try
             {
+                // JavaScript hata vermesin diye diğer grafikleri boş gönderiyoruz, sadece alarmları dolduruyoruz.
                 await JSRuntime.InvokeVoidAsync("plotDashboardCharts",
                     HourlyOeeData, HourlyConsumptionData, TopAlarms);
             }
             catch (Exception)
             {
-                // JS hatalarını yut (Navigasyon sırasında oluşabilir)
+                // JS hatalarını yut
             }
         }
     }
@@ -201,12 +180,9 @@
     {
         try
         {
-            // Verileri çek
-            HourlyConsumptionData = await ScadaService.GetHourlyConsumptionAsync() ?? new();
-            HourlyOeeData = await ScadaService.GetHourlyOeeAsync() ?? new();
+            // Sadece Alarm verisini çekiyoruz
             TopAlarms = await ScadaService.GetTopAlarmsAsync() ?? new();
 
-            // Veriler geldi, render bayrağını kaldır ve UI'ı zorla güncelle
             _shouldRenderCharts = true;
             await InvokeAsync(StateHasChanged);
         }
@@ -216,7 +192,6 @@
         }
     }
 
-    // ScadaService tarafından tetiklenen metod (Push)
     private void HandleDataUpdate()
     {
         InvokeAsync(() =>
@@ -228,22 +203,16 @@
 
     private void UpdateDashboardData()
     {
-        // --- 1. VERİ BİRLEŞTİRME (Kritik Katman) ---
-        // Sadece canlı veriye (MachineData) bakarsak, henüz verisi gelmeyen makineler 'yok' sayılır.
-        // Bunun yerine veritabanındaki sabit listeye (MachineDetailsCache) bakıyoruz.
         var allStatuses = ScadaService.MachineDetailsCache.Values.Select(m =>
         {
-            // Eğer bu makine için Gateway'den canlı veri gelmişse onu kullan
             if (ScadaService.MachineData.TryGetValue(m.Id, out var liveStatus))
             {
-                // Tipi boş gelmişse veritabanındaki tanımı koru
                 if (string.IsNullOrEmpty(liveStatus.MakineTipi))
                     liveStatus.MakineTipi = m.MachineSubType;
 
                 return liveStatus;
             }
 
-            // Canlı veri henüz yoksa, kartın boş görünmemesi için 'Disconnected' bir durum oluştur
             return new FullMachineStatus
             {
                 MachineId = m.Id,
@@ -256,13 +225,11 @@
             };
         }).ToList();
 
-        // --- 2. İSTATİSTİKLER (KPI Hesaplama) ---
+        // --- 4. YENİ KPI HESAPLAMALARI ---
         TotalMachines = allStatuses.Count;
-        RunningMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.IsInRecipeMode && !s.HasActiveAlarm);
-        AlarmMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.HasActiveAlarm);
-        IdleMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && !s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
         offlineMachines = allStatuses.Count(s => s.ConnectionState != ConnectionStatus.Connected);
-        manualMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
+        OnlineMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected);
+        AlarmMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.HasActiveAlarm);
 
         if (TotalMachines == 0)
         {
@@ -270,23 +237,18 @@
             return;
         }
 
-        // --- 3. SIRALAMA (Kullanıcı Deneyimi İçin) ---
-        // Önce bağlantısı olanları, sonra çalışanları, sonra alarmlıları başa getiriyoruz
         var sortedMachines = allStatuses
-            .OrderByDescending(m => m.ConnectionState == ConnectionStatus.Connected) // Bağlı olanlar yukarı
-            .ThenByDescending(m => m.IsInRecipeMode) // Çalışanlar yukarı
-            .ThenByDescending(m => m.HasActiveAlarm) // Alarmlar yukarı
+            .OrderByDescending(m => m.ConnectionState == ConnectionStatus.Connected)
+            .ThenByDescending(m => m.IsInRecipeMode)
+            .ThenByDescending(m => m.HasActiveAlarm)
             .ThenBy(m => m.MachineName);
 
-        // --- 4. GRUPLAMA ---
         GroupedMachines = sortedMachines
             .GroupBy(m => string.IsNullOrEmpty(m.MakineTipi) ? "Tanımsız" : m.MakineTipi)
-            .OrderByDescending(g => g.Any(m => m.IsInRecipeMode)) // İçinde çalışan olan grupları yukarı al
+            .OrderByDescending(g => g.Any(m => m.IsInRecipeMode))
             .ThenBy(g => g.Key)
             .ToList();
 
-        // --- 5. GRUP RENKLERİ ---
-        // Yeni bir grup eklenirse veya grup sayısı değişirse renkleri tazele
         if (GroupColors.Count != GroupedMachines.Count)
         {
             _colorIndex = 0;
@@ -299,11 +261,6 @@
         }
     }
 
-    private void NavigateToDetail(int machineId)
-    {
-        NavManager.NavigateTo($"/proseskontrol/{machineId}");
-    }
-
     private string GetGroupColor(string groupKey)
     {
         return GroupColors.TryGetValue(groupKey, out var color) ? color : "#6c757d";
@@ -311,10 +268,21 @@
 
     public void Dispose()
     {
-        // ScadaService aboneliğini bırak
         if (ScadaService != null)
         {
             ScadaService.OnDataUpdated -= HandleDataUpdate;
+        }
+    }
+    
+    private async Task HandleResetAlarm(int machineId)
+    {
+        try
+        {
+            await ScadaService.ResetMachineAlarmAsync(machineId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Reset hatası: {ex.Message}");
         }
     }
 }

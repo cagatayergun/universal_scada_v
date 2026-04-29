@@ -110,7 +110,7 @@
         try
         {
             var token = await LocalStorage.GetItemAsync<string>("authToken");
-            var hubUrl = "https://api.malkanteknolojionline.com.tr/scadaHub";
+            var hubUrl = "https://heronapi.malkanteknolojionline.com.tr/scadaHub";
 
             hubConnection = new HubConnectionBuilder()
                 .WithUrl(hubUrl, options => { options.AccessTokenProvider = () => Task.FromResult(token); })

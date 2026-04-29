@@ -246,7 +246,35 @@ namespace TekstilScada.Services
                     try { _userRepo.LogAction(entry.UserId, entry.ActionType, entry.Details); } catch { }
                 });
             });
+            _connection.On<int>("ReceiveAlarmReset", async (machineId) =>
+            {
+                try
+                {
+                    // Use _plcService to get the active PLC managers
+                    var managers = _plcService.GetPlcManagers();
 
+                    if (managers != null && managers.TryGetValue(machineId, out var plcManager))
+                    {
+                        Console.WriteLine($"[GATEWAY] Received Alarm Reset for Machine {machineId}. Sending to PLC...");
+
+                        // Assuming IPlcManager has an AcknowledgeAlarm method
+                        var result = await plcManager.AcknowledgeAlarm();
+
+                        if (result.IsSuccess)
+                            Console.WriteLine($"[GATEWAY] Machine {machineId} alarm reset successfully.");
+                        else
+                            Console.WriteLine($"[GATEWAY] Machine {machineId} Reset Error: {result.Message}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[GATEWAY] ERROR: No active PLC manager found for Machine {machineId}!");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[GATEWAY] Exception during reset: {ex.Message}");
+                }
+            });
             // --- KOMUT ALMA ---
             _connection.On<int, string, string>("ReceiveCommand", (machineId, command, parameters) =>
             {
@@ -802,4 +830,5 @@ namespace TekstilScada.Services
         }
 
     }
+
 }

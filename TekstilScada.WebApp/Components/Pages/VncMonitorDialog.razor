@@ -131,7 +131,7 @@
         {
             var token = await LocalStorage.GetItemAsync<string>("authToken");
             // Production ortamında BaseUrl'i appsettings'den veya ScadaService'den almak daha iyidir
-            var hubUrl = "https://api.malkanteknolojionline.com.tr/scadaHub";
+            var hubUrl = "https://heronapi.malkanteknolojionline.com.tr/scadaHub";
 
             hubConnection = new HubConnectionBuilder()
                 .WithUrl(hubUrl, options =>

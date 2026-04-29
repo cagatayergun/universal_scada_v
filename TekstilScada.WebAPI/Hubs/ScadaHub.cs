@@ -242,7 +242,13 @@ namespace TekstilScada.WebAPI.Hubs
             foreach (var fid in authorizedIds)
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"Factory_{fid}");
         }
-
+        // Add this inside your ScadaHub class
+        public async Task SendAlarmReset(int machineId)
+        {
+            // This sends a "ReceiveAlarmReset" message to all connected clients (specifically the Gateway)
+            // with the target machineId.
+            await Clients.All.SendAsync("ReceiveAlarmReset", machineId);
+        }
         // --- 5. CANLI VERİ YAYINI ---
         public async Task BroadcastFromLocal(FullMachineStatus status)
         {

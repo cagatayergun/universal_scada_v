@@ -382,7 +382,7 @@
     <value>Soğutma Süresi (dk):</value>
   </data>
   <data name="GirisYapBaslik" xml:space="preserve">
-    <value>Giriş Yap</value>
+    <value>Heron Giriş Yap</value>
   </data>
   <data name="KullaniciAdiLabel" xml:space="preserve">
     <value>Kullanıcı Adı</value>

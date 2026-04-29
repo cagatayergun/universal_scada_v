@@ -177,8 +177,8 @@ namespace TekstilScada.UI.Views
                 _kpiOfflineMachines = new KpiCard_Control();
                 _kpiRunningMachines = new KpiCard_Control();
                 _kpiAlarmMachines = new KpiCard_Control();
-                _kpiManualMachines = new KpiCard_Control();
-                _kpiIdleMachines = new KpiCard_Control();
+                //_kpiManualMachines = new KpiCard_Control();
+               // _kpiIdleMachines = new KpiCard_Control();
             }
 
             flpTopKpis.Controls.Clear();
@@ -186,8 +186,8 @@ namespace TekstilScada.UI.Views
             flpTopKpis.Controls.Add(_kpiOfflineMachines);
             flpTopKpis.Controls.Add(_kpiRunningMachines);
             flpTopKpis.Controls.Add(_kpiAlarmMachines);
-            flpTopKpis.Controls.Add(_kpiManualMachines);
-            flpTopKpis.Controls.Add(_kpiIdleMachines);
+          //  flpTopKpis.Controls.Add(_kpiManualMachines);
+          //  flpTopKpis.Controls.Add(_kpiIdleMachines);
         }
 
         private void BuildUtilityStrip()
@@ -437,10 +437,10 @@ namespace TekstilScada.UI.Views
 
             int totalMachines = allStatuses.Count;
             int offlineMachines = allStatuses.Count(s => s.ConnectionState != ConnectionStatus.Connected);
-            int runningMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.IsInRecipeMode && !s.HasActiveAlarm);
+            int runningMachines = totalMachines- offlineMachines;
             int alarmMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.HasActiveAlarm);
-            int manualMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
-            int idleMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && !s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
+           // int manualMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
+          //  int idleMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && !s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
 
             if (this.InvokeRequired)
             {
@@ -449,11 +449,11 @@ namespace TekstilScada.UI.Views
             }
 
             _kpiTotalMachines.SetData($"{Resources.AllMachines}", totalMachines.ToString(), Color.FromArgb(41, 128, 185));
-            _kpiOfflineMachines.SetData("Offline Status", offlineMachines.ToString(), Color.FromArgb(149, 165, 166));
-            _kpiRunningMachines.SetData($"{Resources.aktifüretim}", runningMachines.ToString(), Color.FromArgb(46, 204, 113));
+            _kpiOfflineMachines.SetData("Offline Makineler", offlineMachines.ToString(), Color.FromArgb(149, 165, 166));
+            _kpiRunningMachines.SetData("Online Makineler", runningMachines.ToString(), Color.FromArgb(46, 204, 113));
             _kpiAlarmMachines.SetData($"{Resources.alarmdurum}", alarmMachines.ToString(), Color.FromArgb(231, 76, 60));
-            _kpiManualMachines.SetData("Manuel Mode", manualMachines.ToString(), Color.FromArgb(155, 89, 182));
-            _kpiIdleMachines.SetData($"{Resources.bosbekleyen}", idleMachines.ToString(), Color.FromArgb(243, 156, 18));
+          //  _kpiManualMachines.SetData("Manuel Mode", manualMachines.ToString(), Color.FromArgb(155, 89, 182));
+          //  _kpiIdleMachines.SetData($"{Resources.bosbekleyen}", idleMachines.ToString(), Color.FromArgb(243, 156, 18));
         }
 
         private async void UpdateSidebarCharts()

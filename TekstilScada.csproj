@@ -28,6 +28,7 @@
 	  <Compile Remove="Img\**" />
 	  <Compile Remove="publish_api_fix\**" />
 	  <Compile Remove="publish_webapp\**" />
+	  <Compile Remove="publish_webapp_heron\**" />
 	  <Compile Remove="TekstilScada.Api\**" />
 	  <Compile Remove="TekstilScada.Core1\**" />
 	  <Compile Remove="TekstilScada.Core\**" />
@@ -44,6 +45,7 @@
 	  <EmbeddedResource Remove="Img\**" />
 	  <EmbeddedResource Remove="publish_api_fix\**" />
 	  <EmbeddedResource Remove="publish_webapp\**" />
+	  <EmbeddedResource Remove="publish_webapp_heron\**" />
 	  <EmbeddedResource Remove="TekstilScada.Api\**" />
 	  <EmbeddedResource Remove="TekstilScada.Core1\**" />
 	  <EmbeddedResource Remove="TekstilScada.Core\**" />
@@ -60,6 +62,7 @@
 	  <None Remove="Img\**" />
 	  <None Remove="publish_api_fix\**" />
 	  <None Remove="publish_webapp\**" />
+	  <None Remove="publish_webapp_heron\**" />
 	  <None Remove="TekstilScada.Api\**" />
 	  <None Remove="TekstilScada.Core1\**" />
 	  <None Remove="TekstilScada.Core\**" />

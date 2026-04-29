@@ -23,7 +23,7 @@ namespace TekstilScada.WebAPI.Repositories
                 {
                     connection.Open();
                     string query = @"SELECT Id, CompanyId, Username, FullName, Role, AllowedFactoryIds 
-                                     FROM CentralUsers 
+                                     FROM centralusers 
                                      WHERE Username = @User AND PasswordHash = @Pass AND IsActive = 1";
 
                     using (var cmd = new MySqlCommand(query, connection))
@@ -56,13 +56,13 @@ namespace TekstilScada.WebAPI.Repositories
             return null;
         }
 
-        public List<Company> GetAllCompanies()
+        public List<Company> GetAllcompanies()
         {
             var list = new List<Company>();
             using (var conn = new MySqlConnection(_connectionString))
             {
                 conn.Open();
-                var cmd = new MySqlCommand("SELECT * FROM Companies", conn);
+                var cmd = new MySqlCommand("SELECT * FROM companies", conn);
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
@@ -88,11 +88,11 @@ namespace TekstilScada.WebAPI.Repositories
                 if (company.Id == 0)
                 {
                     // DÜZELTME: CreatedAt kaldırıldı
-                    query = "INSERT INTO Companies (CompanyName, IsActive) VALUES (@Name, @Active)";
+                    query = "INSERT INTO companies (CompanyName, IsActive) VALUES (@Name, @Active)";
                 }
                 else
                 {
-                    query = "UPDATE Companies SET CompanyName = @Name, IsActive = @Active WHERE Id = @Id";
+                    query = "UPDATE companies SET CompanyName = @Name, IsActive = @Active WHERE Id = @Id";
                 }
 
                 using (var cmd = new MySqlCommand(query, conn))
@@ -115,15 +115,15 @@ namespace TekstilScada.WebAPI.Repositories
                 {
                     try
                     {
-                        var cmd1 = new MySqlCommand("DELETE FROM CentralUsers WHERE CompanyId = @Id", conn, transaction);
+                        var cmd1 = new MySqlCommand("DELETE FROM centralusers WHERE CompanyId = @Id", conn, transaction);
                         cmd1.Parameters.AddWithValue("@Id", companyId);
                         cmd1.ExecuteNonQuery();
 
-                        var cmd2 = new MySqlCommand("DELETE FROM Factories WHERE CompanyId = @Id", conn, transaction);
+                        var cmd2 = new MySqlCommand("DELETE FROM factories WHERE CompanyId = @Id", conn, transaction);
                         cmd2.Parameters.AddWithValue("@Id", companyId);
                         cmd2.ExecuteNonQuery();
 
-                        var cmd3 = new MySqlCommand("DELETE FROM Companies WHERE Id = @Id", conn, transaction);
+                        var cmd3 = new MySqlCommand("DELETE FROM companies WHERE Id = @Id", conn, transaction);
                         cmd3.Parameters.AddWithValue("@Id", companyId);
                         cmd3.ExecuteNonQuery();
 
@@ -145,7 +145,7 @@ namespace TekstilScada.WebAPI.Repositories
             using (var conn = new MySqlConnection(_connectionString))
             {
                 conn.Open();
-                string sql = "SELECT Id, CompanyId, Username, FullName, Role, AllowedFactoryIds FROM CentralUsers WHERE CompanyId = @CId";
+                string sql = "SELECT Id, CompanyId, Username, FullName, Role, AllowedFactoryIds FROM centralusers WHERE CompanyId = @CId";
 
                 using (var cmd = new MySqlCommand(sql, conn))
                 {
@@ -176,10 +176,10 @@ namespace TekstilScada.WebAPI.Repositories
             {
                 conn.Open();
 
-                string query = @"INSERT INTO CentralUsers 
+                string query = @"INSERT INTO centralusers 
                         (CompanyId, Username, PasswordHash, FullName, Role, AllowedFactoryIds, IsActive) 
                         VALUES 
-                        (@CId, @User, @Pass, @Name, @Role, @Factories, 1)";
+                        (@CId, @User, @Pass, @Name, @Role, @factories, 1)";
 
                 using (var cmd = new MySqlCommand(query, conn))
                 {
@@ -188,7 +188,7 @@ namespace TekstilScada.WebAPI.Repositories
                     cmd.Parameters.AddWithValue("@Pass", password);
                     cmd.Parameters.AddWithValue("@Name", user.FullName ?? "");
                     cmd.Parameters.AddWithValue("@Role", user.Role);
-                    cmd.Parameters.AddWithValue("@Factories", user.AllowedFactoryIds ?? "");
+                    cmd.Parameters.AddWithValue("@factories", user.AllowedFactoryIds ?? "");
 
                     try
                     {
@@ -208,7 +208,7 @@ namespace TekstilScada.WebAPI.Repositories
             using (var conn = new MySqlConnection(_connectionString))
             {
                 conn.Open();
-                var cmd = new MySqlCommand("DELETE FROM CentralUsers WHERE Id = @Id", conn);
+                var cmd = new MySqlCommand("DELETE FROM centralusers WHERE Id = @Id", conn);
                 cmd.Parameters.AddWithValue("@Id", userId);
                 return cmd.ExecuteNonQuery() > 0;
             }
@@ -223,14 +223,14 @@ namespace TekstilScada.WebAPI.Repositories
                 // Şifre boşsa güncelleme, doluysa güncelle
                 if (!string.IsNullOrEmpty(password))
                 {
-                    query = @"UPDATE CentralUsers 
-                              SET Username=@User, PasswordHash=@Pass, FullName=@Name, AllowedFactoryIds=@Factories 
+                    query = @"UPDATE centralusers 
+                              SET Username=@User, PasswordHash=@Pass, FullName=@Name, AllowedFactoryIds=@factories 
                               WHERE Id=@Id";
                 }
                 else
                 {
-                    query = @"UPDATE CentralUsers 
-                              SET Username=@User, FullName=@Name, AllowedFactoryIds=@Factories 
+                    query = @"UPDATE centralusers 
+                              SET Username=@User, FullName=@Name, AllowedFactoryIds=@factories 
                               WHERE Id=@Id";
                 }
 
@@ -239,7 +239,7 @@ namespace TekstilScada.WebAPI.Repositories
                     cmd.Parameters.AddWithValue("@Id", user.Id);
                     cmd.Parameters.AddWithValue("@User", user.Username);
                     cmd.Parameters.AddWithValue("@Name", user.FullName ?? "");
-                    cmd.Parameters.AddWithValue("@Factories", user.AllowedFactoryIds ?? "");
+                    cmd.Parameters.AddWithValue("@factories", user.AllowedFactoryIds ?? "");
 
                     if (!string.IsNullOrEmpty(password))
                     {

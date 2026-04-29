@@ -192,7 +192,7 @@ namespace TekstilScada
             // 2. Gateway Servisini Baþlat
             try
             {
-               string hubUrl = "https://api.malkanteknolojionline.com.tr/scadaHub"; // API Adresiniz
+               string hubUrl = "http://heronapi.malkanteknolojionline.com.tr/scadaHub"; // API Adresiniz
                // string hubUrl = "http://localhost:7039/scadaHub"; // API Adresiniz
                 string jwtToken = null; // Gateway için token þu an null kalabilir
 

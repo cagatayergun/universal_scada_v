@@ -29,7 +29,7 @@ namespace TekstilScada.WebAPI.Controllers
         [Authorize(Roles = "SystemAdmin")]
         public IActionResult GetCompanies()
         {
-            var list = _authRepo.GetAllCompanies();
+            var list = _authRepo.GetAllcompanies();
             return Ok(list);
         }
 
@@ -63,7 +63,7 @@ namespace TekstilScada.WebAPI.Controllers
         [Authorize(Roles = "SystemAdmin")]
         public IActionResult GetFactories(int companyId)
         {
-            var list = _factoryRepo.GetFactoriesByCompanyId(companyId);
+            var list = _factoryRepo.GetfactoriesByCompanyId(companyId);
             return Ok(list);
         }
 
@@ -133,7 +133,7 @@ namespace TekstilScada.WebAPI.Controllers
             if (role == "CompanyAdmin")
             {
                 // Yönetici ise hepsini görsün
-                var list = _factoryRepo.GetFactoriesByCompanyId(companyId);
+                var list = _factoryRepo.GetfactoriesByCompanyId(companyId);
                 return Ok(list);
             }
             else
@@ -146,7 +146,7 @@ namespace TekstilScada.WebAPI.Controllers
                 }
 
                 // Filtreli getir
-                var list = _factoryRepo.GetFactoriesByIds(allowedIds, companyId);
+                var list = _factoryRepo.GetfactoriesByIds(allowedIds, companyId);
                 return Ok(list);
             }
         }

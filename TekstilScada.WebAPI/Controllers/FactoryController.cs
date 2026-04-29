@@ -34,7 +34,7 @@ namespace TekstilScada.WebAPI.Controllers
                 if (serviceKey == "UniversalScadaServiceKey_2024")
                 {
                     System.Diagnostics.Debug.WriteLine("[API] Özel Servis Anahtarı ile giriş yapıldı. Güvenlik atlanıyor.");
-                    var allFactories = _factoryRepo.GetAllFactories();
+                    var allFactories = _factoryRepo.GetAllfactories();
                     return Ok(allFactories);
                 }
                 // ------------------------------------------
@@ -52,7 +52,7 @@ namespace TekstilScada.WebAPI.Controllers
 
                 if (allowedIdsString == "ALL")
                 {
-                    return Ok(_factoryRepo.GetAllFactories());
+                    return Ok(_factoryRepo.GetAllfactories());
                 }
 
                 if (string.IsNullOrEmpty(allowedIdsString) || string.IsNullOrEmpty(companyIdString))
@@ -61,7 +61,7 @@ namespace TekstilScada.WebAPI.Controllers
                 }
 
                 int companyId = int.Parse(companyIdString);
-                var factories = _factoryRepo.GetFactoriesByIds(allowedIdsString, companyId);
+                var factories = _factoryRepo.GetfactoriesByIds(allowedIdsString, companyId);
 
                 return Ok(factories);
             }

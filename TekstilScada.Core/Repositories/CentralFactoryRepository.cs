@@ -14,7 +14,7 @@ namespace TekstilScada.WebAPI.Repositories
         {
             _connectionString = configuration.GetConnectionString("CentralConnection");
         }
-        public List<CentralFactory> GetAllFactories()
+        public List<CentralFactory> GetAllfactories()
         {
             var list = new List<CentralFactory>();
             using (var connection = new MySqlConnection(_connectionString))
@@ -22,7 +22,7 @@ namespace TekstilScada.WebAPI.Repositories
                 connection.Open();
 
                 // GÜVENLİK DUVARI KALDIRILDI: Şirket ID'sine bakmaksızın HEPSİNİ çeker.
-                string query = "SELECT * FROM Factories WHERE IsActive = 1";
+                string query = "SELECT * FROM factories WHERE IsActive = 1";
 
                 using (var cmd = new MySqlCommand(query, connection))
                 {
@@ -50,7 +50,7 @@ namespace TekstilScada.WebAPI.Repositories
                 try
                 {
                     connection.Open();
-                    string query = "SELECT Id, CompanyId, FactoryName, HardwareKey FROM Factories WHERE HardwareKey = @Key AND IsActive = 1";
+                    string query = "SELECT Id, CompanyId, FactoryName, HardwareKey FROM factories WHERE HardwareKey = @Key AND IsActive = 1";
 
                     using (var cmd = new MySqlCommand(query, connection))
                     {
@@ -79,7 +79,7 @@ namespace TekstilScada.WebAPI.Repositories
             return null;
         }
 
-        public List<CentralFactory> GetFactoriesByIds(string allowedIds, int companyId)
+        public List<CentralFactory> GetfactoriesByIds(string allowedIds, int companyId)
         {
             var list = new List<CentralFactory>();
             using (var connection = new MySqlConnection(_connectionString))
@@ -91,7 +91,7 @@ namespace TekstilScada.WebAPI.Repositories
                 if (allowedIds == "ALL")
                 {
                     // SADECE GİRİŞ YAPAN ŞİRKETİN VERİLERİ
-                    query = "SELECT * FROM Factories WHERE CompanyId = @CompId AND IsActive = 1";
+                    query = "SELECT * FROM factories WHERE CompanyId = @CompId AND IsActive = 1";
                 }
                 // DURUM 2: Belirli ID'ler varsa ("1,5" gibi)
                 else
@@ -101,7 +101,7 @@ namespace TekstilScada.WebAPI.Repositories
                     // 🛑 İŞTE ÇÖZÜM BURASI 🛑
                     // "AND CompanyId = @CompId" ifadesi OLMAZSA, rakip firmanın fabrikası gelir.
                     // Bu sorgu şunu der: "Fabrika ID'si listede olsa bile, SAHİBİ BEN DEĞİLSEM GETİRME."
-                    query = $"SELECT * FROM Factories WHERE CompanyId = @CompId AND IsActive = 1 AND Id IN ({allowedIds})";
+                    query = $"SELECT * FROM factories WHERE CompanyId = @CompId AND IsActive = 1 AND Id IN ({allowedIds})";
                 }
 
                 using (var cmd = new MySqlCommand(query, connection))
@@ -128,13 +128,13 @@ namespace TekstilScada.WebAPI.Repositories
             return list;
         }
 
-        public List<CentralFactory> GetFactoriesByCompanyId(int companyId)
+        public List<CentralFactory> GetfactoriesByCompanyId(int companyId)
         {
             var list = new List<CentralFactory>();
             using (var conn = new MySqlConnection(_connectionString))
             {
                 conn.Open();
-                var cmd = new MySqlCommand("SELECT * FROM Factories WHERE CompanyId = @CId", conn);
+                var cmd = new MySqlCommand("SELECT * FROM factories WHERE CompanyId = @CId", conn);
                 cmd.Parameters.AddWithValue("@CId", companyId);
 
                 using (var reader = cmd.ExecuteReader())
@@ -160,7 +160,7 @@ namespace TekstilScada.WebAPI.Repositories
             {
                 conn.Open();
                 // DÜZELTME: CreatedAt kaldırıldı
-                string query = "INSERT INTO Factories (CompanyId, FactoryName, HardwareKey, IsActive) VALUES (@CId, @Name, @Key, 1)";
+                string query = "INSERT INTO factories (CompanyId, FactoryName, HardwareKey, IsActive) VALUES (@CId, @Name, @Key, 1)";
 
                 using (var cmd = new MySqlCommand(query, conn))
                 {
@@ -178,7 +178,7 @@ namespace TekstilScada.WebAPI.Repositories
             using (var conn = new MySqlConnection(_connectionString))
             {
                 conn.Open();
-                var cmd = new MySqlCommand("DELETE FROM Factories WHERE Id = @Id", conn);
+                var cmd = new MySqlCommand("DELETE FROM factories WHERE Id = @Id", conn);
                 cmd.Parameters.AddWithValue("@Id", factoryId);
                 return cmd.ExecuteNonQuery() > 0;
             }
