@@ -101,7 +101,8 @@ namespace TekstilScada.UI.Controls
             status_19.Text = "MAYNA-1";
             status_20.Text = "MAYNA-2";
             status_21.Text = "MAYNA-3";
-
+            label1.ForeColor = Color.FromArgb(44, 62, 80);
+            label2.ForeColor = Color.FromArgb(44, 62, 80);
         }
         public void InitializeControl(RecipeRepository recipeRepo, MachineRepository machineRepo, Dictionary<int, IPlcManager> plcManagers, PlcPollingService plcPollingService, FtpTransferService ftpTransferService, UserRepository userRepo)
         {

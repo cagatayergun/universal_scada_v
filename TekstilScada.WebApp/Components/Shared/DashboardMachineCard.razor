@@ -8,8 +8,10 @@
 @inject IStringLocalizer<SharedResource> Loc
 @inject ScadaDataService ScadaService
 
+
+
 <MudPaper Outlined="true" Class="d-flex pa-0 machine-card-hover" Style="@GetCardStyle()" @onclick="OnClickCallback">
-    <div class="pa-4 w-100 d-flex flex-column" style="height: 224px; max-width: 418px; position: relative;">
+    <div class="pa-4 w-100 d-flex flex-column" style="min-height: 400px; max-width: 450px; position: relative;">
         
         @* --- ÜST: Makine Adı --- *@
         <MudText Typo="Typo.h6" Style="font-weight: 700; color: #2c3e50;">
@@ -18,7 +20,6 @@
 
         @* --- ORTA: Reset Butonu ve Makine Resmi --- *@
         <div class="d-flex align-center justify-space-between mt-4 mb-2">
-            
             <div @onclick:stopPropagation="true">
                 <MudButton Variant="Variant.Filled"
                            Style="background-color: #e0e0e0; color: black; font-weight: bold; font-size: 1.1rem; line-height: 1.2; height: 54px; width: 220px;"
@@ -27,43 +28,106 @@
                     SÜRÜCÜ ALARM<br />RESET
                 </MudButton>
             </div>
-
-            <MudImage Src="/images/vinc_resmi.png"
-                      Alt="Makine Resmi"
-                      Width="83"
-                      Height="54"
-                      ObjectFit="ObjectFit.Fill"
-                      Class="border border-solid" />
+            <MudImage Src="/images/vinc_resmi.png" Width="83" Height="54" ObjectFit="ObjectFit.Fill" />
         </div>
 
-        @* --- ALT: Durum Metni ve Dinamik Alarm Listesi --- *@
-        <div class="d-flex justify-space-between align-start mt-auto" style="height: 100px; position: relative;">
-            
-            @* Arial Black Durum Metni *@
-            <MudText Style="@($"font-family: 'Arial Black', sans-serif; font-weight: bold; font-size: 1.1rem; text-transform: uppercase; color: {GetStatusColorHex()}; margin-top: 10px;")">
-                @GetStatusText()
-            </MudText>
+        @* --- DURUM METNİ --- *@
+        <MudText Style="@($"font-family: 'Arial Black', sans-serif; font-weight: bold; font-size: 1.1rem; color: {GetStatusColorHex()};")">
+            @GetStatusText()
+        </MudText>
 
-            @* Alarm Listesi (WinForms mantığı ile hesaplanır) *@
-            @if (MachineStatus.HasActiveAlarm && IsConnected)
-            {
-                var alarmlar = GetActiveAlarms();
-                if (alarmlar.Any())
+        @* --- ALARM LİSTESİ (Varsa) --- *@
+        @if (MachineStatus.HasActiveAlarm && IsConnected)
+        {
+            <div class="mt-2 pa-2" style="background-color: #fdf2f2; border-radius: 4px; max-height: 80px; overflow-y: auto;">
+                @foreach (var alarm in GetActiveAlarms())
                 {
-                    <MudPaper Elevation="0" Class="pa-1" Style="background-color: transparent; width: 195px; height: 90px; overflow-y: auto;">
-                        <MudList T="string" Dense="true" DisablePadding="true">
-                            @foreach (var alarm in alarmlar)
-                            {
-                                <MudListItem T="string">
-                                    <MudText Typo="Typo.caption" Style="color: #e74c3c; font-weight: bold;">@alarm</MudText>
-                                </MudListItem>
-                            }
-                        </MudList>
-                    </MudPaper>
+                    <MudText Typo="Typo.caption" Class="d-block" Style="color: #e74c3c; font-weight: bold;">• @alarm</MudText>
                 }
-            }
+            </div>
+        }
+
+        @* --- BIT LAMP BÖLÜMÜ (Özel Dikey Sıralama) --- *@
+        <div class="mt-auto pt-2 border-t border-solid" style="border-color: #eee;">
+    
+            @* --- SWITCH GRUBU (1-12) --- *@
+            <div class="mb-3">
+                <MudText Typo="Typo.caption" Style="font-weight: bold; color: #555; text-transform: uppercase; letter-spacing: 1px;">SWITCH</MudText>
+                <div class="d-flex justify-space-between mt-1">
+                    @for (int col = 0; col < 3; col++) // 3 Ana Kolon (Köprü, Kedi, Mayna)
+                    {
+                        <div class="d-flex flex-column" style="width: 32%;">
+                            @for (int row = 0; row < 4; row++) // Her kolonda 4 satır
+                            {
+                                var bitIndex = (col * 4) + row; // 0..3, 4..7, 8..11 (0 tabanlı index)
+                                var isActive = IsBitActive(bitIndex);
+                                <div class="d-flex align-center mb-1">
+                                    <div class="bit-lamp-circle @(isActive ? "active" : "inactive")"></div>
+                                    <MudText Style="@($"font-size: 0.62rem; font-weight: 800; margin-left: 4px; color: {(isActive ? "#000" : "#999")}; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;")">
+                                        @GetBitName(bitIndex)
+                                    </MudText>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @* --- BUTONLAR GRUBU (13-21) --- *@
+            <div class="pt-2 border-t border-dotted" style="border-color: #ddd;">
+                <MudText Typo="Typo.caption" Style="font-weight: bold; color: #555; text-transform: uppercase; letter-spacing: 1px;">BUTONLAR</MudText>
+                <div class="d-flex justify-space-between mt-1">
+                    @for (int col = 0; col < 3; col++) // 3 Ana Kolon
+                    {
+                        <div class="d-flex flex-column" style="width: 32%;">
+                            @for (int row = 0; row < 3; row++) // Her kolonda 3 satır (12'den başlayarak)
+                            {
+                                var bitIndex = 12 + (col * 3) + row; // 12..14, 15..17, 18..20 (0 tabanlı index)
+                                var isActive = IsBitActive(bitIndex);
+                                <div class="d-flex align-center mb-1">
+                                    <div class="bit-lamp-square @(isActive ? "active" : "inactive")"></div>
+                                    <MudText Style="@($"font-size: 0.62rem; font-weight: 800; margin-left: 4px; color: {(isActive ? "#000" : "#999")}; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;")">
+                                        @GetBitName(bitIndex)
+                                    </MudText>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
         </div>
 
+        <style>
+                    /* Yuvarlak Lambalar */
+                    .bit-lamp-circle {
+                        width: 12px;
+                        height: 12px;
+                        min-width: 12px;
+                        border-radius: 50%;
+                        border: 1px solid rgba(0,0,0,0.15);
+                        transition: all 0.3s ease;
+                    }
+
+                    /* Kare Lambalar */
+                    .bit-lamp-square {
+                        width: 10px;
+                        height: 10px;
+                        min-width: 10px;
+                        border-radius: 1px;
+                        border: 1px solid rgba(0,0,0,0.15);
+                        transition: all 0.3s ease;
+                    }
+
+                    .active {
+                        background-color: #2ecc71 !important;
+                        box-shadow: 0 0 6px rgba(46, 204, 113, 0.6);
+                    }
+
+                    .inactive {
+                        background-color: #d1d1d1 !important;
+                        box-shadow: inset 0 0 2px rgba(0,0,0,0.1);
+                    }
+        </style>
     </div>
 </MudPaper>
 
@@ -87,7 +151,11 @@
     [Parameter] public EventCallback<int> OnResetClicked { get; set; }
 
     private bool IsConnected => MachineStatus?.ConnectionState == ConnectionStatus.Connected;
-
+    private readonly string[] BitNames = {
+        "KÖPRÜ-1", "KÖPRÜ-2", "KÖPRÜ-3", "KÖPRÜ-4", "KEDİ-1", "KEDİ-2", "KEDİ-3", "KEDİ-4",
+        "MAYNA-1", "MAYNA-2", "MAYNA-3", "MAYNA-4", "KÖPRÜ-1", "KÖPRÜ-2", "KÖPRÜ-3",
+        "KEDİ-1", "KEDİ-2", "KEDİ-3", "MAYNA-1", "MAYNA-2", "MAYNA-3"
+    };
     private async Task OnClickCallback()
     {
         if (MouseClick.HasDelegate)
@@ -95,7 +163,22 @@
             await MouseClick.InvokeAsync();
         }
     }
+    private bool IsBitActive(int globalIndex)
+    {
+        if (MachineStatus == null) return false;
+        
+        if (globalIndex < 16) // StatusWord 1 (0-15)
+        {
+            return (MachineStatus.status_word & (1 << globalIndex)) != 0;
+        }
+        else // StatusWord 2 (16-20)
+        {
+            int bitPos = globalIndex - 16;
+            return (MachineStatus.status_word_2 & (1 << bitPos)) != 0;
+        }
+    }
 
+    private string GetBitName(int index) => index < BitNames.Length ? BitNames[index] : $"BIT {index + 1}";
     private async Task BtnSendToPlc_Click()
     {
         if (OnResetClicked.HasDelegate && IsConnected)

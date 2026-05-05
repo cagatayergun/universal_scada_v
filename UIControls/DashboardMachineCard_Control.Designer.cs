@@ -56,7 +56,13 @@ namespace TekstilScada.UI.Controls
             status_20 = new Label();
             pnlBitLampStatus_19 = new Panel();
             status_19 = new Label();
+            pictureBox2 = new PictureBox();
+            label1 = new Label();
+            label2 = new Label();
+            pictureBox3 = new PictureBox();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBox3).BeginInit();
             SuspendLayout();
             // 
             // pnlStatusIndicator
@@ -84,7 +90,7 @@ namespace TekstilScada.UI.Controls
             // 
             lblStatus.AutoSize = true;
             lblStatus.Font = new Font("Arial Black", 9.75F, FontStyle.Bold, GraphicsUnit.Point, 162);
-            lblStatus.Location = new Point(28, 235);
+            lblStatus.Location = new Point(22, 243);
             lblStatus.Margin = new Padding(4, 0, 4, 0);
             lblStatus.Name = "lblStatus";
             lblStatus.Size = new Size(96, 18);
@@ -117,7 +123,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_1
             // 
             pnlBitLampStatus_1.BackColor = Color.Gray;
-            pnlBitLampStatus_1.Location = new Point(28, 40);
+            pnlBitLampStatus_1.Location = new Point(28, 60);
             pnlBitLampStatus_1.Name = "pnlBitLampStatus_1";
             pnlBitLampStatus_1.Size = new Size(18, 18);
             pnlBitLampStatus_1.TabIndex = 23;
@@ -125,8 +131,9 @@ namespace TekstilScada.UI.Controls
             // status_1
             // 
             status_1.AutoSize = true;
+            status_1.BackColor = Color.WhiteSmoke;
             status_1.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_1.Location = new Point(50, 42);
+            status_1.Location = new Point(50, 62);
             status_1.Name = "status_1";
             status_1.Size = new Size(100, 15);
             status_1.TabIndex = 24;
@@ -135,7 +142,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_2
             // 
             pnlBitLampStatus_2.BackColor = Color.Gray;
-            pnlBitLampStatus_2.Location = new Point(28, 61);
+            pnlBitLampStatus_2.Location = new Point(28, 81);
             pnlBitLampStatus_2.Name = "pnlBitLampStatus_2";
             pnlBitLampStatus_2.Size = new Size(18, 18);
             pnlBitLampStatus_2.TabIndex = 25;
@@ -143,8 +150,9 @@ namespace TekstilScada.UI.Controls
             // status_2
             // 
             status_2.AutoSize = true;
+            status_2.BackColor = Color.WhiteSmoke;
             status_2.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_2.Location = new Point(50, 63);
+            status_2.Location = new Point(50, 83);
             status_2.Name = "status_2";
             status_2.Size = new Size(100, 15);
             status_2.TabIndex = 26;
@@ -153,7 +161,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_6
             // 
             pnlBitLampStatus_6.BackColor = Color.Gray;
-            pnlBitLampStatus_6.Location = new Point(154, 62);
+            pnlBitLampStatus_6.Location = new Point(154, 82);
             pnlBitLampStatus_6.Name = "pnlBitLampStatus_6";
             pnlBitLampStatus_6.Size = new Size(18, 18);
             pnlBitLampStatus_6.TabIndex = 29;
@@ -161,8 +169,9 @@ namespace TekstilScada.UI.Controls
             // status_6
             // 
             status_6.AutoSize = true;
+            status_6.BackColor = Color.WhiteSmoke;
             status_6.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_6.Location = new Point(176, 64);
+            status_6.Location = new Point(176, 84);
             status_6.Name = "status_6";
             status_6.Size = new Size(100, 15);
             status_6.TabIndex = 30;
@@ -171,7 +180,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_5
             // 
             pnlBitLampStatus_5.BackColor = Color.Gray;
-            pnlBitLampStatus_5.Location = new Point(154, 41);
+            pnlBitLampStatus_5.Location = new Point(154, 61);
             pnlBitLampStatus_5.Name = "pnlBitLampStatus_5";
             pnlBitLampStatus_5.Size = new Size(18, 18);
             pnlBitLampStatus_5.TabIndex = 27;
@@ -179,8 +188,9 @@ namespace TekstilScada.UI.Controls
             // status_5
             // 
             status_5.AutoSize = true;
+            status_5.BackColor = Color.WhiteSmoke;
             status_5.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_5.Location = new Point(176, 43);
+            status_5.Location = new Point(176, 63);
             status_5.Name = "status_5";
             status_5.Size = new Size(100, 15);
             status_5.TabIndex = 28;
@@ -189,8 +199,9 @@ namespace TekstilScada.UI.Controls
             // status_3
             // 
             status_3.AutoSize = true;
+            status_3.BackColor = Color.WhiteSmoke;
             status_3.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_3.Location = new Point(50, 85);
+            status_3.Location = new Point(50, 105);
             status_3.Name = "status_3";
             status_3.Size = new Size(100, 15);
             status_3.TabIndex = 28;
@@ -199,7 +210,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_3
             // 
             pnlBitLampStatus_3.BackColor = Color.Gray;
-            pnlBitLampStatus_3.Location = new Point(28, 83);
+            pnlBitLampStatus_3.Location = new Point(28, 103);
             pnlBitLampStatus_3.Name = "pnlBitLampStatus_3";
             pnlBitLampStatus_3.Size = new Size(18, 18);
             pnlBitLampStatus_3.TabIndex = 27;
@@ -207,8 +218,9 @@ namespace TekstilScada.UI.Controls
             // status_4
             // 
             status_4.AutoSize = true;
+            status_4.BackColor = Color.WhiteSmoke;
             status_4.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_4.Location = new Point(50, 106);
+            status_4.Location = new Point(50, 126);
             status_4.Name = "status_4";
             status_4.Size = new Size(100, 15);
             status_4.TabIndex = 30;
@@ -217,7 +229,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_4
             // 
             pnlBitLampStatus_4.BackColor = Color.Gray;
-            pnlBitLampStatus_4.Location = new Point(28, 104);
+            pnlBitLampStatus_4.Location = new Point(28, 124);
             pnlBitLampStatus_4.Name = "pnlBitLampStatus_4";
             pnlBitLampStatus_4.Size = new Size(18, 18);
             pnlBitLampStatus_4.TabIndex = 29;
@@ -225,7 +237,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_8
             // 
             pnlBitLampStatus_8.BackColor = Color.Gray;
-            pnlBitLampStatus_8.Location = new Point(154, 104);
+            pnlBitLampStatus_8.Location = new Point(154, 124);
             pnlBitLampStatus_8.Name = "pnlBitLampStatus_8";
             pnlBitLampStatus_8.Size = new Size(18, 18);
             pnlBitLampStatus_8.TabIndex = 33;
@@ -233,8 +245,9 @@ namespace TekstilScada.UI.Controls
             // status_8
             // 
             status_8.AutoSize = true;
+            status_8.BackColor = Color.WhiteSmoke;
             status_8.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_8.Location = new Point(176, 106);
+            status_8.Location = new Point(176, 126);
             status_8.Name = "status_8";
             status_8.Size = new Size(100, 15);
             status_8.TabIndex = 34;
@@ -243,7 +256,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_7
             // 
             pnlBitLampStatus_7.BackColor = Color.Gray;
-            pnlBitLampStatus_7.Location = new Point(154, 83);
+            pnlBitLampStatus_7.Location = new Point(154, 103);
             pnlBitLampStatus_7.Name = "pnlBitLampStatus_7";
             pnlBitLampStatus_7.Size = new Size(18, 18);
             pnlBitLampStatus_7.TabIndex = 31;
@@ -251,8 +264,9 @@ namespace TekstilScada.UI.Controls
             // status_7
             // 
             status_7.AutoSize = true;
+            status_7.BackColor = Color.WhiteSmoke;
             status_7.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_7.Location = new Point(176, 85);
+            status_7.Location = new Point(176, 105);
             status_7.Name = "status_7";
             status_7.Size = new Size(100, 15);
             status_7.TabIndex = 32;
@@ -261,7 +275,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_12
             // 
             pnlBitLampStatus_12.BackColor = Color.Gray;
-            pnlBitLampStatus_12.Location = new Point(280, 103);
+            pnlBitLampStatus_12.Location = new Point(280, 123);
             pnlBitLampStatus_12.Name = "pnlBitLampStatus_12";
             pnlBitLampStatus_12.Size = new Size(18, 18);
             pnlBitLampStatus_12.TabIndex = 41;
@@ -269,8 +283,9 @@ namespace TekstilScada.UI.Controls
             // status_12
             // 
             status_12.AutoSize = true;
+            status_12.BackColor = Color.WhiteSmoke;
             status_12.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_12.Location = new Point(302, 105);
+            status_12.Location = new Point(302, 125);
             status_12.Name = "status_12";
             status_12.Size = new Size(100, 15);
             status_12.TabIndex = 42;
@@ -279,7 +294,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_11
             // 
             pnlBitLampStatus_11.BackColor = Color.Gray;
-            pnlBitLampStatus_11.Location = new Point(280, 82);
+            pnlBitLampStatus_11.Location = new Point(280, 102);
             pnlBitLampStatus_11.Name = "pnlBitLampStatus_11";
             pnlBitLampStatus_11.Size = new Size(18, 18);
             pnlBitLampStatus_11.TabIndex = 39;
@@ -287,8 +302,9 @@ namespace TekstilScada.UI.Controls
             // status_11
             // 
             status_11.AutoSize = true;
+            status_11.BackColor = Color.WhiteSmoke;
             status_11.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_11.Location = new Point(302, 84);
+            status_11.Location = new Point(302, 104);
             status_11.Name = "status_11";
             status_11.Size = new Size(100, 15);
             status_11.TabIndex = 40;
@@ -297,7 +313,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_10
             // 
             pnlBitLampStatus_10.BackColor = Color.Gray;
-            pnlBitLampStatus_10.Location = new Point(280, 61);
+            pnlBitLampStatus_10.Location = new Point(280, 81);
             pnlBitLampStatus_10.Name = "pnlBitLampStatus_10";
             pnlBitLampStatus_10.Size = new Size(18, 18);
             pnlBitLampStatus_10.TabIndex = 37;
@@ -305,8 +321,9 @@ namespace TekstilScada.UI.Controls
             // status_10
             // 
             status_10.AutoSize = true;
+            status_10.BackColor = Color.WhiteSmoke;
             status_10.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_10.Location = new Point(302, 63);
+            status_10.Location = new Point(302, 83);
             status_10.Name = "status_10";
             status_10.Size = new Size(100, 15);
             status_10.TabIndex = 38;
@@ -315,7 +332,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_9
             // 
             pnlBitLampStatus_9.BackColor = Color.Gray;
-            pnlBitLampStatus_9.Location = new Point(280, 40);
+            pnlBitLampStatus_9.Location = new Point(280, 60);
             pnlBitLampStatus_9.Name = "pnlBitLampStatus_9";
             pnlBitLampStatus_9.Size = new Size(18, 18);
             pnlBitLampStatus_9.TabIndex = 35;
@@ -323,8 +340,9 @@ namespace TekstilScada.UI.Controls
             // status_9
             // 
             status_9.AutoSize = true;
+            status_9.BackColor = Color.WhiteSmoke;
             status_9.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_9.Location = new Point(302, 42);
+            status_9.Location = new Point(302, 62);
             status_9.Name = "status_9";
             status_9.Size = new Size(100, 15);
             status_9.TabIndex = 36;
@@ -333,7 +351,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_15
             // 
             pnlBitLampStatus_15.BackColor = Color.Gray;
-            pnlBitLampStatus_15.Location = new Point(28, 189);
+            pnlBitLampStatus_15.Location = new Point(28, 214);
             pnlBitLampStatus_15.Name = "pnlBitLampStatus_15";
             pnlBitLampStatus_15.Size = new Size(18, 18);
             pnlBitLampStatus_15.TabIndex = 47;
@@ -341,8 +359,9 @@ namespace TekstilScada.UI.Controls
             // status_15
             // 
             status_15.AutoSize = true;
+            status_15.BackColor = Color.WhiteSmoke;
             status_15.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_15.Location = new Point(50, 191);
+            status_15.Location = new Point(50, 216);
             status_15.Name = "status_15";
             status_15.Size = new Size(100, 15);
             status_15.TabIndex = 48;
@@ -351,7 +370,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_14
             // 
             pnlBitLampStatus_14.BackColor = Color.Gray;
-            pnlBitLampStatus_14.Location = new Point(28, 168);
+            pnlBitLampStatus_14.Location = new Point(28, 193);
             pnlBitLampStatus_14.Name = "pnlBitLampStatus_14";
             pnlBitLampStatus_14.Size = new Size(18, 18);
             pnlBitLampStatus_14.TabIndex = 45;
@@ -359,8 +378,9 @@ namespace TekstilScada.UI.Controls
             // status_14
             // 
             status_14.AutoSize = true;
+            status_14.BackColor = Color.WhiteSmoke;
             status_14.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_14.Location = new Point(50, 170);
+            status_14.Location = new Point(50, 195);
             status_14.Name = "status_14";
             status_14.Size = new Size(100, 15);
             status_14.TabIndex = 46;
@@ -369,7 +389,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_13
             // 
             pnlBitLampStatus_13.BackColor = Color.Gray;
-            pnlBitLampStatus_13.Location = new Point(28, 147);
+            pnlBitLampStatus_13.Location = new Point(28, 172);
             pnlBitLampStatus_13.Name = "pnlBitLampStatus_13";
             pnlBitLampStatus_13.Size = new Size(18, 18);
             pnlBitLampStatus_13.TabIndex = 43;
@@ -377,8 +397,9 @@ namespace TekstilScada.UI.Controls
             // status_13
             // 
             status_13.AutoSize = true;
+            status_13.BackColor = Color.WhiteSmoke;
             status_13.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_13.Location = new Point(50, 149);
+            status_13.Location = new Point(50, 174);
             status_13.Name = "status_13";
             status_13.Size = new Size(100, 15);
             status_13.TabIndex = 44;
@@ -387,7 +408,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_18
             // 
             pnlBitLampStatus_18.BackColor = Color.Gray;
-            pnlBitLampStatus_18.Location = new Point(154, 189);
+            pnlBitLampStatus_18.Location = new Point(154, 214);
             pnlBitLampStatus_18.Name = "pnlBitLampStatus_18";
             pnlBitLampStatus_18.Size = new Size(18, 18);
             pnlBitLampStatus_18.TabIndex = 53;
@@ -395,8 +416,9 @@ namespace TekstilScada.UI.Controls
             // status_18
             // 
             status_18.AutoSize = true;
+            status_18.BackColor = Color.WhiteSmoke;
             status_18.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_18.Location = new Point(176, 191);
+            status_18.Location = new Point(176, 216);
             status_18.Name = "status_18";
             status_18.Size = new Size(100, 15);
             status_18.TabIndex = 54;
@@ -405,7 +427,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_17
             // 
             pnlBitLampStatus_17.BackColor = Color.Gray;
-            pnlBitLampStatus_17.Location = new Point(154, 168);
+            pnlBitLampStatus_17.Location = new Point(154, 193);
             pnlBitLampStatus_17.Name = "pnlBitLampStatus_17";
             pnlBitLampStatus_17.Size = new Size(18, 18);
             pnlBitLampStatus_17.TabIndex = 51;
@@ -413,8 +435,9 @@ namespace TekstilScada.UI.Controls
             // status_17
             // 
             status_17.AutoSize = true;
+            status_17.BackColor = Color.WhiteSmoke;
             status_17.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_17.Location = new Point(176, 170);
+            status_17.Location = new Point(176, 195);
             status_17.Name = "status_17";
             status_17.Size = new Size(100, 15);
             status_17.TabIndex = 52;
@@ -423,7 +446,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_16
             // 
             pnlBitLampStatus_16.BackColor = Color.Gray;
-            pnlBitLampStatus_16.Location = new Point(154, 147);
+            pnlBitLampStatus_16.Location = new Point(154, 172);
             pnlBitLampStatus_16.Name = "pnlBitLampStatus_16";
             pnlBitLampStatus_16.Size = new Size(18, 18);
             pnlBitLampStatus_16.TabIndex = 49;
@@ -431,8 +454,9 @@ namespace TekstilScada.UI.Controls
             // status_16
             // 
             status_16.AutoSize = true;
+            status_16.BackColor = Color.WhiteSmoke;
             status_16.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_16.Location = new Point(176, 149);
+            status_16.Location = new Point(176, 174);
             status_16.Name = "status_16";
             status_16.Size = new Size(100, 15);
             status_16.TabIndex = 50;
@@ -441,7 +465,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_21
             // 
             pnlBitLampStatus_21.BackColor = Color.Gray;
-            pnlBitLampStatus_21.Location = new Point(280, 189);
+            pnlBitLampStatus_21.Location = new Point(280, 214);
             pnlBitLampStatus_21.Name = "pnlBitLampStatus_21";
             pnlBitLampStatus_21.Size = new Size(18, 18);
             pnlBitLampStatus_21.TabIndex = 59;
@@ -449,8 +473,9 @@ namespace TekstilScada.UI.Controls
             // status_21
             // 
             status_21.AutoSize = true;
+            status_21.BackColor = Color.WhiteSmoke;
             status_21.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_21.Location = new Point(302, 191);
+            status_21.Location = new Point(302, 216);
             status_21.Name = "status_21";
             status_21.Size = new Size(100, 15);
             status_21.TabIndex = 60;
@@ -459,7 +484,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_20
             // 
             pnlBitLampStatus_20.BackColor = Color.Gray;
-            pnlBitLampStatus_20.Location = new Point(280, 168);
+            pnlBitLampStatus_20.Location = new Point(280, 193);
             pnlBitLampStatus_20.Name = "pnlBitLampStatus_20";
             pnlBitLampStatus_20.Size = new Size(18, 18);
             pnlBitLampStatus_20.TabIndex = 57;
@@ -467,8 +492,9 @@ namespace TekstilScada.UI.Controls
             // status_20
             // 
             status_20.AutoSize = true;
+            status_20.BackColor = Color.WhiteSmoke;
             status_20.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_20.Location = new Point(302, 170);
+            status_20.Location = new Point(302, 195);
             status_20.Name = "status_20";
             status_20.Size = new Size(100, 15);
             status_20.TabIndex = 58;
@@ -477,7 +503,7 @@ namespace TekstilScada.UI.Controls
             // pnlBitLampStatus_19
             // 
             pnlBitLampStatus_19.BackColor = Color.Gray;
-            pnlBitLampStatus_19.Location = new Point(280, 147);
+            pnlBitLampStatus_19.Location = new Point(280, 172);
             pnlBitLampStatus_19.Name = "pnlBitLampStatus_19";
             pnlBitLampStatus_19.Size = new Size(18, 18);
             pnlBitLampStatus_19.TabIndex = 55;
@@ -485,12 +511,57 @@ namespace TekstilScada.UI.Controls
             // status_19
             // 
             status_19.AutoSize = true;
+            status_19.BackColor = Color.WhiteSmoke;
             status_19.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            status_19.Location = new Point(302, 149);
+            status_19.Location = new Point(302, 174);
             status_19.Name = "status_19";
             status_19.Size = new Size(100, 15);
             status_19.TabIndex = 56;
             status_19.Text = "PLC BAĞLANTISI";
+            // 
+            // pictureBox2
+            // 
+            pictureBox2.BackColor = Color.WhiteSmoke;
+            pictureBox2.BorderStyle = BorderStyle.FixedSingle;
+            pictureBox2.Location = new Point(19, 39);
+            pictureBox2.Name = "pictureBox2";
+            pictureBox2.Size = new Size(393, 110);
+            pictureBox2.TabIndex = 61;
+            pictureBox2.TabStop = false;
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.BackColor = Color.WhiteSmoke;
+            label1.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            label1.Location = new Point(20, 40);
+            label1.Margin = new Padding(4, 0, 4, 0);
+            label1.Name = "label1";
+            label1.Size = new Size(71, 21);
+            label1.TabIndex = 62;
+            label1.Text = "SWTICH";
+            // 
+            // label2
+            // 
+            label2.AutoSize = true;
+            label2.BackColor = Color.WhiteSmoke;
+            label2.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            label2.Location = new Point(20, 152);
+            label2.Margin = new Padding(4, 0, 4, 0);
+            label2.Name = "label2";
+            label2.Size = new Size(65, 21);
+            label2.TabIndex = 64;
+            label2.Text = "BUTON";
+            // 
+            // pictureBox3
+            // 
+            pictureBox3.BackColor = Color.WhiteSmoke;
+            pictureBox3.BorderStyle = BorderStyle.FixedSingle;
+            pictureBox3.Location = new Point(19, 151);
+            pictureBox3.Name = "pictureBox3";
+            pictureBox3.Size = new Size(393, 90);
+            pictureBox3.TabIndex = 63;
+            pictureBox3.TabStop = false;
             // 
             // DashboardMachineCard_Control
             // 
@@ -498,6 +569,8 @@ namespace TekstilScada.UI.Controls
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.WhiteSmoke;
             BorderStyle = BorderStyle.FixedSingle;
+            Controls.Add(label2);
+            Controls.Add(label1);
             Controls.Add(pnlBitLampStatus_21);
             Controls.Add(status_21);
             Controls.Add(pnlBitLampStatus_20);
@@ -545,10 +618,14 @@ namespace TekstilScada.UI.Controls
             Controls.Add(lblStatus);
             Controls.Add(lblMachineName);
             Controls.Add(pnlStatusIndicator);
+            Controls.Add(pictureBox2);
+            Controls.Add(pictureBox3);
             Margin = new Padding(9);
             Name = "DashboardMachineCard_Control";
             Size = new Size(424, 367);
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBox2).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBox3).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -601,5 +678,9 @@ namespace TekstilScada.UI.Controls
         private Label status_20;
         private Panel pnlBitLampStatus_19;
         private Label status_19;
+        private PictureBox pictureBox2;
+        private Label label1;
+        private Label label2;
+        private PictureBox pictureBox3;
     }
 }
