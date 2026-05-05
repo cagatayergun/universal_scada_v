@@ -12,6 +12,7 @@ using TekstilScada.WebAPI.Repositories;
 using static TekstilScada.Core.Core.ExcelExportHelper;
 
 // --- DTO Sınıfları (Aynen Korunuyor) ---
+
 public class ReportFilters
 {
     public DateTime StartTime { get; set; }
