@@ -44,7 +44,9 @@ namespace TekstilScada.UI.Controls
         private readonly Color _colorRunning = Color.FromArgb(46, 204, 113);  // Yeşil
         private readonly Color _colorIdle = Color.FromArgb(243, 156, 18);     // Turuncu
         private readonly Color _colorStopped = Color.SlateGray;               // Gri
-
+                                                                              // Sınıfın üst kısmındaki değişkenlere ekleyin
+        private List<Panel> _bitLamps = new List<Panel>();
+        private List<Label> _lampLabels = new List<Label>(); // Eğer TextBox yerine Label kullandıysanız
         private int _lastValidProgress = 0;
 
         public DashboardMachineCard_Control(Machine machine)
@@ -55,8 +57,8 @@ namespace TekstilScada.UI.Controls
             // --- ALARM LİSTESİ OLUŞTURMA BAŞLANGICI ---
             _lstAlarms = new ListBox
             {
-                Location = new Point(130, 105), // lblStatus'un sağına hizaladık
-                Size = new Size(195, 100),       // Küçük bir liste boyutu
+                Location = new Point(28, 260), // lblStatus'un sağına hizaladık
+                Size = new Size(350, 90),       // Küçük bir liste boyutu
                 Font = new Font("Segoe UI", 8F, FontStyle.Regular),
                 ForeColor = _colorAlarm,
                 Visible = false                 // Sadece alarm varken görünecek
@@ -69,6 +71,37 @@ namespace TekstilScada.UI.Controls
             lblMachineName.ForeColor = Color.FromArgb(44, 62, 80);
 
             SetLoadGaugeLimitAsync();
+            // Constructor (DashboardMachineCard_Control) içine ekleyin
+            for (int i = 1; i <= 21; i++)
+            {
+                var lamp = this.Controls.Find($"pnlBitLampStatus_{i}", true).FirstOrDefault() as Panel;
+                var label = this.Controls.Find($"status_{i}", true).FirstOrDefault() as Label; // Tasarımda TextBox ise 'as TextBox' yapın
+
+                if (lamp != null) _bitLamps.Add(lamp);
+                if (label != null) _lampLabels.Add(label);
+            }
+            status_1.Text="KÖPRÜ-1";
+            status_2.Text = "KÖPRÜ-2";
+            status_3.Text = "KÖPRÜ-3";
+            status_4.Text = "KÖPRÜ-4";
+            status_5.Text = "KEDİ-1";
+            status_6.Text = "KEDİ-2";
+            status_7.Text = "KEDİ-3";
+            status_8.Text = "KEDİ-4";
+            status_9.Text = "MAYNA-1";
+            status_10.Text = "MAYNA-2";
+            status_11.Text = "MAYNA-3";
+            status_12.Text = "MAYNA-4";
+            status_13.Text = "KÖPRÜ-1";
+            status_14.Text = "KÖPRÜ-2";
+            status_15.Text = "KÖPRÜ-3";
+            status_16.Text = "KEDİ-1";
+            status_17.Text = "KEDİ-2";
+            status_18.Text = "KEDİ-3";
+            status_19.Text = "MAYNA-1";
+            status_20.Text = "MAYNA-2";
+            status_21.Text = "MAYNA-3";
+
         }
         public void InitializeControl(RecipeRepository recipeRepo, MachineRepository machineRepo, Dictionary<int, IPlcManager> plcManagers, PlcPollingService plcPollingService, FtpTransferService ftpTransferService, UserRepository userRepo)
         {
@@ -135,6 +168,8 @@ namespace TekstilScada.UI.Controls
 
             try
             {
+                UpdateStatusWord(status.status_word);
+                UpdateStatusWord2(status.status_word_2);
                 // 1. BAĞLANTI KONTROLÜ (PLC Koptuysa arayüzü grileştir ve uyar)
                 if (status.ConnectionState != ConnectionStatus.Connected)
                 {
@@ -275,7 +310,55 @@ namespace TekstilScada.UI.Controls
                 System.Diagnostics.Debug.WriteLine($"DashboardMachineCard_Control UpdateData Hatası: {ex.Message}");
             }
         }
+        // Yardımcı Metot:
+        private void UpdateStatusWord(int statusWord)
+        {
+            for (int i = 0; i < 16; i++)
+            {
+                // i. bitin 1 olup olmadığını kontrol et (1, 2, 4, 8... şeklinde gider)
+                bool isBitSet = (statusWord & (1 << i)) != 0;
 
+                if (i < _bitLamps.Count)
+                {
+                    // Bit 1 ise Yeşil, 0 ise Gri (Pasif)
+                    _bitLamps[i].BackColor = isBitSet ? Color.LimeGreen : Color.LightGray;
+                }
+
+                if (i < _lampLabels.Count)
+                {
+                    // İsteğe bağlı: Sadece aktif olanların ismini koyulaştır veya rengini değiştir
+                    _lampLabels[i].ForeColor = isBitSet ? Color.Black : Color.Gray;
+
+                    // Eğer TextBox kullandıysanız ve sadece aktifken görünmesini istiyorsanız:
+                    // _lampLabels[i].Visible = isBitSet; 
+                }
+            }
+            
+        }
+        private void UpdateStatusWord2(int statusWord)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                // i. bitin 1 olup olmadığını kontrol et (1, 2, 4, 8... şeklinde gider)
+                bool isBitSet = (statusWord & (1 << i)) != 0;
+
+                if (i < _bitLamps.Count)
+                {
+                    // Bit 1 ise Yeşil, 0 ise Gri (Pasif)
+                    _bitLamps[i+16].BackColor = isBitSet ? Color.LimeGreen : Color.LightGray;
+                }
+
+                if (i < _lampLabels.Count)
+                {
+                    // İsteğe bağlı: Sadece aktif olanların ismini koyulaştır veya rengini değiştir
+                    _lampLabels[i+16].ForeColor = isBitSet ? Color.Black : Color.Gray;
+
+                    // Eğer TextBox kullandıysanız ve sadece aktifken görünmesini istiyorsanız:
+                    // _lampLabels[i].Visible = isBitSet; 
+                }
+            }
+
+        }
         private void lblStatus_Click(object sender, EventArgs e)
         {
 

@@ -39,6 +39,9 @@ namespace TekstilScada.Models
             public int nameok_status { get; set; }     // D7764
         // Aktif Adım Bilgileri
         public short AktifAdimNo { get; set; }
+        
+               public short status_word { get; set; }
+        public short status_word_2 { get; set; }
         public string AktifAdimAdi { get; set; }
         public short AktifAdimTipiWordu { get; set; } // YENİ: D94'ten gelen anlık adım tipi word'ü
         public short SuMiktari { get; set; }

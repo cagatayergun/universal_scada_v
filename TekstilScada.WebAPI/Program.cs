@@ -20,7 +20,7 @@ builder.Services.AddScoped<TekstilScada.WebAPI.Repositories.CentralAuthRepositor
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+builder.Services.AddHttpClient<TekstilScada.API.Services.TelegramService>();
 // ============================================================
 // PERFORMANS: Sýkýþtýrma Servisini Ekle (YENÝ)
 // ============================================================

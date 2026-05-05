@@ -49,6 +49,9 @@ namespace TekstilScada.Services
         private const string ACTIVE_STEP_TYPE_WORD = "3085"; // D94
         private const string RECIPE_DATA_ADDRESS = "3086"; // D100
         private const string OPERATOR_TEMPLATE_ADDRESS = "3087"; // D7500
+        private const string STATUS_WORD = "50"; // D7500
+        private const string STATUS_WORD_2 = "51"; // D7500
+       
         #endregion
 
         public BYMakinesiManager(string ipAddress, int port)
@@ -249,7 +252,12 @@ namespace TekstilScada.Services
                 var manuel_stat = _plcClient.ReadCoil(MANUAL_MODE); // k30c
                 if (!manuel_stat.IsSuccess) return OperateResult.CreateFailedResult<FullMachineStatus>(manuel_stat);
                 status.manuel_status = manuel_stat.Content;
-
+                var STATUS_A = _plcClient.ReadInt16(STATUS_WORD); 
+                if (!STATUS_A.IsSuccess) return OperateResult.CreateFailedResult<FullMachineStatus>(STATUS_A);
+                status.status_word = STATUS_A.Content;
+                var STATUS_B = _plcClient.ReadInt16(STATUS_WORD_2);
+                if (!STATUS_B.IsSuccess) return OperateResult.CreateFailedResult<FullMachineStatus>(STATUS_B);
+                status.status_word_2 = STATUS_B.Content;
 
                 if (adimNoResult.IsSuccess)
                 {
