@@ -3,11 +3,15 @@
 @using TekstilScada.WebApp.Components.Shared
 @using Microsoft.AspNetCore.Components.Authorization
 @using TekstilScada.Models
+
 @inject ScadaDataService ScadaService
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 @inject CustomAuthStateProvider AuthProvider
 @inject AuthenticationStateProvider AuthStateProvider
+@* YENİ EKLENEN: LocalStorage servisi *@
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+
 @layout TekstilScada.WebApp.Components.Layout.EmptyLayout
 
 <div class="absolute-top-right pa-4">
@@ -37,7 +41,6 @@
         <MudGrid Justify="Justify.Center" Class="mt-4">
             @foreach (var factory in factories)
             {
-                // Fabrika online listesinde var mı?
                 bool isOnline = onlineFactoryIds.Contains(factory.Id);
 
                 <MudItem xs="12" sm="6" md="4">
@@ -47,15 +50,15 @@
 
                         <MudCardHeader>
                             <CardHeaderAvatar>
-                                <MudAvatar Color="@(isOnline? Color.Success: Color.Dark)" Variant="Variant.Filled">
+                                <MudAvatar Color="@(isOnline ? Color.Success : Color.Dark)" Variant="Variant.Filled">
                                     <MudIcon Icon="@Icons.Material.Filled.Factory" />
                                 </MudAvatar>
                             </CardHeaderAvatar>
                             <CardHeaderContent>
-                                <MudText Typo="Typo.h6" Color="@(isOnline? Color.Default: Color.Dark)">
+                                <MudText Typo="Typo.h6" Color="@(isOnline ? Color.Default : Color.Dark)">
                                     @factory.FactoryName
                                 </MudText>
-                                <MudText Typo="Typo.caption" Color="@(isOnline? Color.Success: Color.Error)">
+                                <MudText Typo="Typo.caption" Color="@(isOnline ? Color.Success : Color.Error)">
                                     @(isOnline ? "Çevrimiçi" : "Bağlantı Yok")
                                 </MudText>
                             </CardHeaderContent>
@@ -98,14 +101,15 @@
 
 @code {
     private bool isLoading = true;
-
-    // DÜZELTME: ScadaDataService.CentralFactoryDto yerine direkt CentralFactoryDto
     private List<CentralFactoryDto> factories = new();
     private List<int> onlineFactoryIds = new();
 
+    // YENİ EKLENEN: URL'den gelen ?change=true parametresini yakalar
+    [SupplyParameterFromQuery(Name = "change")]
+    public bool IsChangeRequest { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
-        // 1. Güvenlik Kontrolü
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
@@ -125,6 +129,32 @@
             await ScadaService.InitializeAsync();
             factories = await ScadaService.GetMyFactoriesAsync();
             onlineFactoryIds = await ScadaService.GetOnlineFactoryIdsAsync();
+
+            // === GÜNCELLENEN OTOMATİK GİRİŞ MANTIĞI ===
+            if (IsChangeRequest)
+            {
+                // Kullanıcı menüden "Fabrika Değiştir" diyerek geldiyse:
+                // Hafızayı sıfırla ve otomatik girişi atla (Ekranda listeyi görsün)
+                await LocalStorage.RemoveItemAsync("lastFactoryId");
+                ScadaService.ExitFactory();
+            }
+            else
+            {
+                // Normal bir şekilde siteye yeni giriş yaptıysa hafızayı kontrol et
+                var lastFactoryIdStr = await LocalStorage.GetItemAsStringAsync("lastFactoryId");
+                if (!string.IsNullOrEmpty(lastFactoryIdStr) && int.TryParse(lastFactoryIdStr, out int lastFactoryId))
+                {
+                    var targetFactory = factories.FirstOrDefault(f => f.Id == lastFactoryId);
+                    
+                    // Eğer fabrika listede varsa VE çevrimiçiyse otomatik yönlendir
+                    if (targetFactory != null && onlineFactoryIds.Contains(lastFactoryId))
+                    {
+                        await ScadaService.SelectFactoryAndSubscribeAsync(targetFactory.Id, targetFactory.FactoryName);
+                        Navigation.NavigateTo("/");
+                        return; // Sayfanın geri kalanını yüklemeden çık
+                    }
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -147,7 +177,10 @@
         try
         {
             isLoading = true;
-            // Fabrikayı seç ve abone ol
+            
+            // Seçilen fabrikayı hafızaya kaydet
+            await LocalStorage.SetItemAsStringAsync("lastFactoryId", factory.Id.ToString());
+            
             await ScadaService.SelectFactoryAndSubscribeAsync(factory.Id, factory.FactoryName);
             Navigation.NavigateTo("/");
         }
@@ -161,6 +194,9 @@
 
     private async Task HandleLogout()
     {
+        // Çıkış yapıldığında son girilen fabrika bilgisini temizle
+        await LocalStorage.RemoveItemAsync("lastFactoryId");
+        
         await AuthProvider.LogoutAsync();
         ScadaService.ExitFactory();
         Navigation.NavigateTo("/login", forceLoad: true);

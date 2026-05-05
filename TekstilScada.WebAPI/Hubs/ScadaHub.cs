@@ -178,10 +178,15 @@ namespace TekstilScada.WebAPI.Hubs
 
         // Alarm listesinin son değişme zamanı (5 sn bekleme süresi için)
         private static readonly ConcurrentDictionary<int, DateTime> _machineStateChangeTime = new();
-        public ScadaHub(CentralFactoryRepository factoryRepo, TelegramService telegramService)
+        // YENİ EKLENENLER: Arka plan izni ve Spam kilidi
+        private readonly IHubContext<ScadaHub> _hubContext;
+        private static readonly ConcurrentDictionary<int, bool> _isFetchingAlarms = new();
+
+        public ScadaHub(CentralFactoryRepository factoryRepo, TelegramService telegramService, IHubContext<ScadaHub> hubContext)
         {
             _factoryRepo = factoryRepo;
             _telegramService = telegramService;
+            _hubContext = hubContext; // Eklendi
         }
 
         // --- 1. GATEWAY KAYDI ---
@@ -192,31 +197,12 @@ namespace TekstilScada.WebAPI.Hubs
 
             _factoryIps[factory.Id] = gatewayIp;
             _gatewayConnections[Context.ConnectionId] = factory.Id;
-
-            // Fabrika adını hafızaya al
             _factoryNames[factory.Id] = factory.FactoryName ?? $"Fabrika {factory.Id}";
 
             await Groups.AddToGroupAsync(Context.ConnectionId, $"Factory_{factory.Id}");
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(3000); // Gateway'in tam bağlanması için 3 saniye bekle
-                try
-                {
-                    var alarms = await InvokeOnGateway<List<AlarmDefinition>>(factory.Id, "GetAllAlarmDefinitions", 30);
-                    if (alarms != null)
-                    {
-                        var cache = _factoryAlarmsCache.GetOrAdd(factory.Id, _ => new ConcurrentDictionary<int, string>());
-                        foreach (var a in alarms)
-                        {
-                            cache[a.AlarmNumber] = a.AlarmText;
-                        }
 
-                        // EKLENECEK SATIR: Register sırasında başarıyla çekildiyse yüklendi olarak işaretle
-                        _factoryAlarmsLoaded[factory.Id] = true;
-                    }
-                }
-                catch { /* Hata olursa sistemi durdurmaması için yutuyoruz */ }
-            });
+            // Arka planda alarm tanımlarını çek
+            _ = Task.Run(async () => await EnsureAlarmDefinitionsLoaded(factory.Id, true));
         }
 
         // --- 2. CANLI DURUM SORGUSU ---
@@ -245,7 +231,7 @@ namespace TekstilScada.WebAPI.Hubs
 
             try
             {
-                await Clients.Client(targetConnectionId).SendAsync("HandleRequest", requestId, targetMethod, args);
+                await _hubContext.Clients.Client(targetConnectionId).SendAsync("HandleRequest", requestId, targetMethod, args);
                 var result = await tcs.Task;
                 if (result == null) return default;
                 return DeserializeResult<T>(result);
@@ -301,121 +287,126 @@ namespace TekstilScada.WebAPI.Hubs
             // with the target machineId.
             await Clients.All.SendAsync("ReceiveAlarmReset", machineId);
         }
-        private async Task EnsureAlarmDefinitionsLoaded(int factoryId)
+        private async Task EnsureAlarmDefinitionsLoaded(int factoryId, bool forceRefresh = false)
         {
-            // Eğer sözlük zaten yüklendiyse, Gateway'i her saniye boşuna meşgul etme
-            if (_factoryAlarmsLoaded.TryGetValue(factoryId, out bool isLoaded) && isLoaded)
+            if (!forceRefresh && _factoryAlarmsLoaded.TryGetValue(factoryId, out bool isLoaded) && isLoaded)
                 return;
 
-            var dict = _factoryAlarmsCache.GetOrAdd(factoryId, _ => new ConcurrentDictionary<int, string>());
+            // YENİ EKLENEN: SPAM KİLİDİ (Eğer o an çekim işlemi sürüyorsa 2. isteği atma!)
+            if (_isFetchingAlarms.TryGetValue(factoryId, out bool fetching) && fetching)
+                return;
 
-            if (dict.IsEmpty)
+            _isFetchingAlarms[factoryId] = true; // Kilidi kapat
+
+            try
             {
-                try
-                {
-                    // Gateway'den (DB'den) alarm listesini çekiyoruz
-                    var alarms = await GetAlarms(factoryId);
-                    if (alarms != null && alarms.Any())
-                    {
-                        foreach (var a in alarms)
-                        {
-                            dict[a.AlarmNumber] = a.AlarmText;
-                        }
+                string? targetConnectionId = _gatewayConnections.FirstOrDefault(x => x.Value == factoryId).Key;
+                if (string.IsNullOrEmpty(targetConnectionId)) return;
 
-                        // Başarıyla yüklendiğini işaretle
-                        _factoryAlarmsLoaded[factoryId] = true;
-                        Console.WriteLine($"[Hub] {factoryId} nolu fabrika için {alarms.Count} alarm tanımı hafızaya alındı.");
-                    }
-                }
-                catch (Exception ex)
+                var alarms = await SendRequestToGateway<List<AlarmDefinition>>(targetConnectionId, 30, "GetAllAlarmDefinitions");
+
+                if (alarms != null)
                 {
-                    Console.WriteLine($"[Hub] Alarm listesi çekilirken hata: {ex.Message}");
+                    var cache = _factoryAlarmsCache.GetOrAdd(factoryId, _ => new ConcurrentDictionary<int, string>());
+                    foreach (var a in alarms) cache[a.AlarmNumber] = a.AlarmText;
+                    _factoryAlarmsLoaded[factoryId] = true;
                 }
             }
-            else
+            catch (Exception ex) { Console.WriteLine($"[Hub] Alarm Yükleme Hatası: {ex.Message}"); }
+            finally
             {
-                _factoryAlarmsLoaded[factoryId] = true;
+                _isFetchingAlarms[factoryId] = false; // İşlem bitince kilidi geri aç
             }
         }
         // --- 5. CANLI VERİ YAYINI (GARANTİLİ SÖZLÜK VE TOPLU LİSTE) ---
         public async Task BroadcastFromLocal(FullMachineStatus status)
         {
-            if (_gatewayConnections.TryGetValue(Context.ConnectionId, out int factoryId))
+            if (!_gatewayConnections.TryGetValue(Context.ConnectionId, out int factoryId)) return;
+
+            // Web arayüzünü güncelle
+            await Clients.Group($"Factory_{factoryId}").SendAsync("ReceiveMachineUpdate", factoryId, status);
+
+            // 1. Alarm sözlüğünü hazırla ve yükle
+            await EnsureAlarmDefinitionsLoaded(factoryId);
+            var dict = _factoryAlarmsCache.GetOrAdd(factoryId, _ => new ConcurrentDictionary<int, string>());
+
+            // 2. Aktif alarm numaralarını bit bazlı çözümle
+            HashSet<int> activeAlarmNumbers = new HashSet<int>();
+            if (status.HasActiveAlarm)
             {
-                // 1. Web arayüzünü her zaman güncel tut (Beklemeden gönder)
-                await Clients.Group($"Factory_{factoryId}").SendAsync("ReceiveMachineUpdate", factoryId, status);
-
-                // --- TELEGRAM MANTIĞI BAŞLANGICI ---
-
-                // Önce sözlüğü garantiye alalım (Önerdiğiniz metodun Hub versiyonu)
-                await EnsureAlarmDefinitionsLoaded(factoryId);
-
-                var dict = _factoryAlarmsCache.GetValueOrDefault(factoryId);
-
-                // A. Aktif Alarm Numaralarını Bul (Bit bazlı çözümleme)
-                HashSet<int> activeAlarmNumbers = new HashSet<int>();
-                if (status.HasActiveAlarm)
+                if (status.ActiveAlarmWords != null && status.ActiveAlarmWords.Length > 0)
                 {
-                    if (status.ActiveAlarmWords != null && status.ActiveAlarmWords.Length > 0)
+                    for (int wordIndex = 0; wordIndex < status.ActiveAlarmWords.Length; wordIndex++)
                     {
-                        for (int wordIndex = 0; wordIndex < status.ActiveAlarmWords.Length; wordIndex++)
+                        short currentWord = status.ActiveAlarmWords[wordIndex];
+                        for (int bitIndex = 0; bitIndex < 16; bitIndex++)
                         {
-                            short currentWord = status.ActiveAlarmWords[wordIndex];
-                            for (int bitIndex = 0; bitIndex < 16; bitIndex++)
-                            {
-                                if ((currentWord & (1 << bitIndex)) != 0)
-                                    activeAlarmNumbers.Add((wordIndex * 16) + bitIndex + 1);
-                            }
+                            if ((currentWord & (1 << bitIndex)) != 0)
+                                activeAlarmNumbers.Add((wordIndex * 16) + bitIndex + 1);
                         }
                     }
-                    else if (status.ActiveAlarmNumber > 0) activeAlarmNumbers.Add(status.ActiveAlarmNumber);
                 }
+                else if (status.ActiveAlarmNumber > 0) activeAlarmNumbers.Add(status.ActiveAlarmNumber);
+            }
 
-                // B. Durum Değişikliğini Takip Et (Spam engelleme)
-                var lastReported = _machineReportedAlarms.GetOrAdd(status.MachineId, _ => new HashSet<int>());
+            // 3. Değişiklik kontrolü (Spam engelleme)
+            var lastReported = _machineReportedAlarms.GetOrAdd(status.MachineId, _ => new HashSet<int>());
 
-                if (!lastReported.SetEquals(activeAlarmNumbers))
+            if (!lastReported.SetEquals(activeAlarmNumbers))
+            {
+                if (activeAlarmNumbers.Count > 0)
                 {
-                    if (activeAlarmNumbers.Count > 0)
-                    {
-                        List<string> messageLines = new List<string>();
-                        foreach (var no in activeAlarmNumbers)
-                        {
-                            // 1. ÖNCELİK: Veritabanından çektiğimiz hafızadaki sözlükte ara
-                            if (dict != null && dict.TryGetValue(no, out var alarmText) && !string.IsNullOrWhiteSpace(alarmText))
-                            {
-                                messageLines.Add($"• {alarmText} (Kod: {no})");
-                            }
-                            // 2. ALTERNATİF: Sözlükte yoksa, ancak PLC bu alarmı ilk aktif alarm olarak text ile gönderdiyse
-                            else if (no == status.ActiveAlarmNumber && !string.IsNullOrWhiteSpace(status.ActiveAlarmText))
-                            {
-                                messageLines.Add($"• {status.ActiveAlarmText} (Kod: {no})");
+                    List<string> alarmLines = new List<string>();
+                    bool hasUndefined = false;
 
-                                // Madem PLC'den texti geldi, bunu hafızaya da kaydedelim ki bir dahakine doğrudan sözlükten bulsun
-                                if (dict != null) dict[no] = status.ActiveAlarmText;
-                            }
-                            // 3. SON ÇARE: Hiçbir şekilde alarm metni bulunamadıysa
-                            else
-                            {
-                                messageLines.Add($"• Tanımsız Alarm (Kod: {no})");
-                            }
+                    foreach (var no in activeAlarmNumbers)
+                    {
+                        // ÖĞRENME: PLC o an bu alarmın metnini gönderiyorsa hafızaya kaydet
+                        if (no == status.ActiveAlarmNumber && !string.IsNullOrWhiteSpace(status.ActiveAlarmText))
+                        {
+                            dict[no] = status.ActiveAlarmText;
                         }
 
+                        // GÖSTERME: Hafızada (Cache) veya az önce öğrendiğimiz metni kullan
+                        if (dict.TryGetValue(no, out var alarmText) && !string.IsNullOrWhiteSpace(alarmText))
+                        {
+                            alarmLines.Add($"* {alarmText}");
+                        }
+                        else
+                        {
+                            hasUndefined = true; // DB'den yüklemeyi tetiklemesi için true yap
+                        }
+                    }
+
+                    // Tanımsız alarm varsa Gateway'e (DB'ye) tekrar sor
+                    if (hasUndefined) _ = Task.Run(() => EnsureAlarmDefinitionsLoaded(factoryId, true));
+
+                    // SADECE tanımlı alarmımız varsa Telegram'a mesaj at
+                    if (alarmLines.Count > 0)
+                    {
+                        string factoryName = _factoryNames.TryGetValue(factoryId, out var fName) ? fName : "Fabrika";
+                        string listOnly = string.Join("\n", alarmLines);
+
+                        await _telegramService.SendAlarmListAsync(factoryName, status.MachineName, listOnly);
+
+                        // Mesaj başarıyla atıldıysa son durumu hafızaya kaydet
+                        _machineReportedAlarms[status.MachineId] = new HashSet<int>(activeAlarmNumbers);
+                    }
+                }
+                else
+                {
+                    // === ALARMLAR BİTTİĞİNDE (0 ALARM) ÇALIŞACAK KISIM ===
+                    // Sadece daha önce bir alarm bildirdiysek "Normale Döndü" mesajı at (Boş yere spam atmasın)
+                    if (lastReported.Count > 0)
+                    {
                         string factoryName = _factoryNames.TryGetValue(factoryId, out var fName) ? fName : "Fabrika";
 
-                        // Zamanı sunucu saatine göre (Anlık) ayarla
-                        string timeNow = DateTime.Now.ToString("HH:mm:ss");
-                        string message = $"🚨 <b>ALARM BİLDİRİMİ</b>\n🕒 Saat: {timeNow}\n\n" + string.Join("\n", messageLines);
-
-                        await _telegramService.SendAlarmListAsync(factoryName, status.MachineName, message);
-                    }
-                    else
-                    {
-                        await _telegramService.SendAlarmListAsync("Sistem", status.MachineName, "✅ <b>Tüm alarmlar giderildi.</b>");
+                        // "✅" göndermek, TelegramService'teki "🟢 MAKİNE NORMALE DÖNDÜ" başlığını tetikler
+                        await _telegramService.SendAlarmListAsync(factoryName, status.MachineName, "✅");
                     }
 
-                    // Hafızayı güncelle
-                    _machineReportedAlarms[status.MachineId] = new HashSet<int>(activeAlarmNumbers);
+                    // Alarm kalmadığı için hafızayı boşalt
+                    _machineReportedAlarms[status.MachineId] = new HashSet<int>();
                 }
             }
         }

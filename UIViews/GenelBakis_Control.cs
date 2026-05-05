@@ -253,7 +253,7 @@ namespace TekstilScada.UI.Views
                 {
                     Text = group.Key,
                     Width = flpMachineGroups.ClientSize.Width * 2 - 50,
-                    Height = 265,
+                    Height = 450,
                     Font = new System.Drawing.Font("Segoe UI", 12F, FontStyle.Bold),
                     ForeColor = Color.White,
                     BackColor = _darkColors[_colorIndex % _darkColors.Count],

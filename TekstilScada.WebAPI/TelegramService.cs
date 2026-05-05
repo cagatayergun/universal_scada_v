@@ -26,15 +26,21 @@ namespace TekstilScada.API.Services
             if (string.IsNullOrEmpty(_botToken) || string.IsNullOrEmpty(_chatId))
                 return;
 
-            // Eğer mesajda temizlenme ikonu varsa başlığı yeşil yap, yoksa kırmızı yap
-            string header = combinedAlarmsText.Contains("✅")
+            // Eğer gelen metin sadece yeşil ikon ise veya temizlendi mesajı içeriyorsa başlığı değiştir
+            bool isCleared = combinedAlarmsText.Trim() == "✅";
+
+            string header = isCleared
                 ? "🟢 <b>MAKİNE NORMALE DÖNDÜ</b>"
                 : "🚨 <b>GÜNCEL ALARM LİSTESİ</b>";
+
+            string body = isCleared
+                ? "✅ <b>Tüm alarmlar giderildi. Sistem normale döndü.</b>"
+                : combinedAlarmsText;
 
             string message = $"{header}\n\n" +
                              $"🏭 <b>Fabrika:</b> {factoryName}\n" +
                              $"⚙️ <b>Makine:</b> {machineName}\n\n" +
-                             $"{combinedAlarmsText}\n\n" +
+                             $"{body}\n\n" +
                              $"🕒 <b>Zaman:</b> {System.DateTime.Now:dd.MM.yyyy HH:mm:ss}";
 
             string url = $"https://api.telegram.org/bot{_botToken}/sendMessage?chat_id={_chatId}&text={HttpUtility.UrlEncode(message)}&parse_mode=HTML";

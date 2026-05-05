@@ -49,8 +49,8 @@ namespace TekstilScada.Services
         private const string ACTIVE_STEP_TYPE_WORD = "3085"; // D94
         private const string RECIPE_DATA_ADDRESS = "3086"; // D100
         private const string OPERATOR_TEMPLATE_ADDRESS = "3087"; // D7500
-        private const string STATUS_WORD = "80"; // D7500
-        private const string STATUS_WORD_2 = "81"; // D7500
+        private const string STATUS_WORD = "50"; // D7500
+        private const string STATUS_WORD_2 = "51"; // D7500
        
         #endregion
 
