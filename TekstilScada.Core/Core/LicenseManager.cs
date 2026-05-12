@@ -14,25 +14,25 @@ namespace TekstilScada.Core
         public int MachineLimit { get; set; }
         public string Signature { get; set; }
         public string EncryptedConnectionString { get; set; } // NEWLY ADDED
+        public int? TrialMinutes { get; set; } // Model dakika bazlı oldu
     }
 
     public static class LicenseManager
     {
         // SECURITY NOTE: Replace the public key here with your own generated key.
         private const string PublicKeyXml = "<RSAKeyValue><Modulus>yck6I5qC/8sWOzOOiJx985LZwUCX+MIcYN5ymdsfCq8SjHhZleV7ZSN6LmChihhDQNLHZjqV7rhY/n+509NYI8aWILtDAI8j2RJNJFZcSMLEsFovEj+ZXqCVqOk/djDAbHSK/Ty3hbCpG4mIAooSqr4NF2qlNwTu1hDCj/gjX8Y2xZp9J1T3VnuKrU/U32XteZLcB2FH9kU+AeM8hkFqK7SaShaxahCFFXr3DJU6OF7ULMed1Efq0vOyp1WDurfOKH0zlbSnZ4GnhfXBN9+WXVdtzBpyYv0AUuwGm6umEnIvaeBEDgPrTSTeJGVLv3G5QMc2E13YkMMTOUMXVCSwgQ==</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>";
-
+        // Kullanılan dakikaların şifreli tutulacağı dosya
+        private const string UsageTrackerFile = "system_cache.bin";
         public static (bool IsValid, string Message, LicenseData Data) ValidateLicense()
         {
             try
             {
-                // Get the hardware key of our own machine
                 string currentHardwareKey = GenerateHardwareKey();
                 if (string.IsNullOrEmpty(currentHardwareKey))
                 {
                     return (false, "Could not retrieve hardware information.", null);
                 }
 
-                // Read the license file
                 if (!File.Exists("license.lic"))
                 {
                     return (false, "License file not found (license.lic).", null);
@@ -45,7 +45,7 @@ namespace TekstilScada.Core
                     return (false, "The license file is invalid.", null);
                 }
 
-                // Signature verification
+                // İmza doğrulama
                 string originalSignature = licenseData.Signature;
                 licenseData.Signature = null;
                 string unsignedDataJson = JsonSerializer.Serialize(licenseData);
@@ -62,14 +62,30 @@ namespace TekstilScada.Core
                     }
                 }
 
-                // Hardware key check
+                // Donanım anahtarı kontrolü
                 if (licenseData.HardwareKey != currentHardwareKey)
                 {
                     return (false, "The license is not valid for this computer.", null);
                 }
-                string connectionString = DecryptConnectionString(licenseData.EncryptedConnectionString);
 
-                // Return the license data and the decrypted connection string
+                // ========================================================
+                // YENİ: DOĞRUDAN DAKİKA KONTROLÜ
+                // ========================================================
+                if (licenseData.TrialMinutes.HasValue)
+                {
+                    int usedMinutes = GetUsedMinutes();
+
+                    // Artık 60 ile çarpmaya gerek yok, veri zaten dakika olarak geliyor
+                    int allowedMinutes = licenseData.TrialMinutes.Value;
+
+                    if (usedMinutes >= allowedMinutes)
+                    {
+                        return (false, $"Deneme kullanım süreniz ({allowedMinutes} dakika) sona erdi. Satın almak için satış temsilcisi ile irtibata geçiniz.", null);
+                    }
+                }
+                // ========================================================
+
+                string connectionString = DecryptConnectionString(licenseData.EncryptedConnectionString);
                 licenseData.EncryptedConnectionString = connectionString;
 
                 return (true, "License successfully verified.", licenseData);
@@ -78,7 +94,61 @@ namespace TekstilScada.Core
             {
                 return (false, $"An unexpected error occurred during license verification: {ex.Message}", null);
             }
+        }
+        public static int GetUsedMinutes()
+        {
+            if (!File.Exists(UsageTrackerFile)) return 0;
+            try
+            {
+                string encryptedStr = File.ReadAllText(UsageTrackerFile);
+                string decryptedStr = DecryptConnectionString(encryptedStr); // Aynı AES şifrelemeyi kullanıyoruz
+                if (int.TryParse(decryptedStr, out int minutes)) return minutes;
+                return 0;
+            }
+            catch { return 999999; } // Dosya ile oynanmışsa maksimum süre verip kilitleriz
+        }
+        public static void AddUsedMinute()
+        {
+            try
+            {
+                int currentMinutes = GetUsedMinutes();
+                currentMinutes += 1;
 
+                string encryptedStr = EncryptData(currentMinutes.ToString());
+
+                // KRİTİK DÜZELTME: Dosya zaten varsa ve gizliyse, üzerine yazabilmek için önce gizliliği kaldır
+                if (File.Exists(UsageTrackerFile))
+                {
+                    File.SetAttributes(UsageTrackerFile, FileAttributes.Normal);
+                }
+
+                // Şimdi güvenle üzerine yazabiliriz
+                File.WriteAllText(UsageTrackerFile, encryptedStr);
+
+                // İşlem bitince tekrar gizle
+                File.SetAttributes(UsageTrackerFile, FileAttributes.Hidden);
+            }
+            catch { }
+        }
+        private static string EncryptData(string plainText)
+        {
+            byte[] key = Encoding.UTF8.GetBytes("mysupersecretkeythatis32byteslon");
+            byte[] iv = Encoding.UTF8.GetBytes("16-byte-vector-!");
+            using (Aes aesAlg = Aes.Create())
+            {
+                aesAlg.Key = key; aesAlg.IV = iv;
+                aesAlg.Mode = CipherMode.CBC; aesAlg.Padding = PaddingMode.PKCS7;
+                ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
+                using (MemoryStream msEncrypt = new MemoryStream())
+                {
+                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+                    using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
+                    {
+                        swEncrypt.Write(plainText);
+                    }
+                    return Convert.ToBase64String(msEncrypt.ToArray());
+                }
+            }
         }
         private static string DecryptConnectionString(string encryptedData)
         {

@@ -28,6 +28,7 @@ namespace TekstilScada
 
             if (!isValid)
             {
+                MessageBox.Show(message, "Lisans Hatasý", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 // Mesaj kutusu gösterildikten sonra programdan çýkýþ yap.
                 Application.Exit();
                 return;

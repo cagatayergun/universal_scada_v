@@ -55,7 +55,7 @@ namespace TekstilScada
 
         private VncViewer_Form _activeVncViewerForm = null;
         private readonly UserSettings_Control _user_setting;
-
+        private System.Windows.Forms.Timer _trialUsageTimer;
         // OPTÝMÝZASYON: UI darboðazýný (Kilitlenmeyi) önleyecek Alarm Timer'ý
         private System.Windows.Forms.Timer _alarmUpdateTimer;
 
@@ -177,6 +177,13 @@ namespace TekstilScada
                 this.Close();
                 return;
             }
+            if (licenseData.TrialMinutes.HasValue)
+            {
+                _trialUsageTimer = new System.Windows.Forms.Timer();
+                _trialUsageTimer.Interval = 60000; // 60,000 milisaniye = 1 Dakika
+                _trialUsageTimer.Tick += TrialUsageTimer_Tick;
+                _trialUsageTimer.Start();
+            }
 
             // Makine Sayýsý Kontrolü
             var machines = _machineRepository.GetAllMachines();
@@ -262,7 +269,21 @@ namespace TekstilScada
             _backupService = new AutoBackupService();
             _backupService.Start();
         }
+        private void TrialUsageTimer_Tick(object sender, EventArgs e)
+        {
+            // 1. Kullaným süresine 1 dakika ekle ve diske kaydet
+            LicenseManager.AddUsedMinute();
 
+            // 2. Sýnýrý aþýp aþmadýðýný kontrol et
+            var check = LicenseManager.ValidateLicense();
+            if (!check.IsValid)
+            {
+                _trialUsageTimer.Stop();
+                // Süre dolduðunda ekrana uyarýyý ver ve arka plandaki iþlemleri kes
+                MessageBox.Show(check.Message, "Deneme Süresi Doldu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                Environment.Exit(0); // Programý anýnda kitle ve kapat
+            }
+        }
         private void ApplyPermissions()
         {
             // === ANA MENÜ YETKÝLENDÝRME ===
