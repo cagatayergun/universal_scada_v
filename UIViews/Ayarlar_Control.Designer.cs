@@ -22,6 +22,7 @@ namespace TekstilScada.UI.Views
             tabPagePlcOperators = new TabPage();
             tabPageRecipeDesigner = new TabPage();
             tabPageUtilitySettings = new TabPage();
+            this.tabPageDowntimeReasons = new System.Windows.Forms.TabPage();
             tabControlSettings.SuspendLayout();
             SuspendLayout();
             // 
@@ -30,9 +31,11 @@ namespace TekstilScada.UI.Views
             tabControlSettings.Controls.Add(tabPageMachineSettings);
             tabControlSettings.Controls.Add(tabPageUserSettings);
             tabControlSettings.Controls.Add(tabPageAlarmSettings);
+            this.tabControlSettings.Controls.Add(tabPageDowntimeReasons);
             tabControlSettings.Controls.Add(tabPagePlcOperators);
             tabControlSettings.Controls.Add(tabPageUtilitySettings);
             tabControlSettings.Controls.Add(tabPageRecipeDesigner);
+
             tabControlSettings.Dock = DockStyle.Fill;
             tabControlSettings.Location = new Point(0, 0);
             tabControlSettings.Margin = new Padding(3, 2, 3, 2);
@@ -72,6 +75,19 @@ namespace TekstilScada.UI.Views
             tabPageAlarmSettings.TabIndex = 2;
             tabPageAlarmSettings.Text = "Alarm Tanımlama";
             tabPageAlarmSettings.UseVisualStyleBackColor = true;
+            // tabPageDowntimeReasons ayarları:
+            // 
+            // tabPageAlarmSettings
+            // 
+            tabPageAlarmSettings.Location = new Point(4, 24);
+            tabPageAlarmSettings.Margin = new Padding(3, 2, 3, 2);
+            tabPageDowntimeReasons.Name = "tabPageDowntimeReasons";
+            tabPageAlarmSettings.Size = new Size(692, 422);
+            tabPageAlarmSettings.TabIndex = 2;
+            tabPageDowntimeReasons.Text = "Duruş Nedenleri";
+            tabPageAlarmSettings.UseVisualStyleBackColor = true;
+            
+            
             // 
             // tabPagePlcOperators
             // 
@@ -124,5 +140,6 @@ namespace TekstilScada.UI.Views
         private System.Windows.Forms.TabPage tabPagePlcOperators;
         private System.Windows.Forms.TabPage tabPageUtilitySettings;
         private System.Windows.Forms.TabPage tabPageRecipeDesigner;// YENİ
+        private System.Windows.Forms.TabPage tabPageDowntimeReasons; // YENİ
     }
 }

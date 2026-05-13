@@ -17,6 +17,7 @@
             tabControlReports = new TabControl();
             tabPageProductionReport = new TabPage();
             tabPageAlarmReport = new TabPage();
+            this.tabPageEfficiency = new System.Windows.Forms.TabPage();
             tabPageTrendAnalysis = new TabPage();
             tabPageRecipeOptimization = new TabPage();
             tabPageManualReport = new TabPage();
@@ -29,6 +30,7 @@
             // 
             tabControlReports.Controls.Add(tabPageProductionReport);
             tabControlReports.Controls.Add(tabPageAlarmReport);
+            this.tabControlReports.Controls.Add(tabPageEfficiency);
             tabControlReports.Controls.Add(tabPageTrendAnalysis);
             tabControlReports.Controls.Add(tabPageRecipeOptimization);
             tabControlReports.Controls.Add(tabPageManualReport);
@@ -62,6 +64,17 @@
             tabPageAlarmReport.Size = new Size(692, 422);
             tabPageAlarmReport.TabIndex = 0;
             tabPageAlarmReport.Text = "Past Alarms";
+            tabPageAlarmReport.UseVisualStyleBackColor = true;
+            // 
+            // tabPageEfficiencyReport
+            // 
+            tabPageAlarmReport.Location = new Point(4, 24);
+            tabPageAlarmReport.Margin = new Padding(3, 2, 3, 2);
+            tabPageAlarmReport.Name = "tabPageEfficiency";
+            tabPageAlarmReport.Padding = new Padding(3, 2, 3, 2);
+            tabPageAlarmReport.Size = new Size(692, 422);
+            tabPageAlarmReport.TabIndex = 0;
+            tabPageAlarmReport.Text = "Verimlilik Analizi";
             tabPageAlarmReport.UseVisualStyleBackColor = true;
             // 
             // tabPageTrendAnalysis
@@ -131,6 +144,7 @@
         private System.Windows.Forms.TabPage tabPageActionLog;
         private System.Windows.Forms.TabControl tabControlReports;
         private System.Windows.Forms.TabPage tabPageAlarmReport;
+        private System.Windows.Forms.TabPage tabPageEfficiency;
         private System.Windows.Forms.TabPage tabPageProductionReport;
         private System.Windows.Forms.TabPage tabPageTrendAnalysis;
         private System.Windows.Forms.TabPage tabPageRecipeOptimization;

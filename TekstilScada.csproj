@@ -86,6 +86,8 @@
 	<ItemGroup>
 		<PackageReference Include="CircularProgressBar" Version="2.8.0.16" />
 		<PackageReference Include="ClosedXML" Version="0.105.0" />
+		<PackageReference Include="LiveCharts.WinForms" Version="0.9.7.1" />
+		<PackageReference Include="LiveChartsCore.SkiaSharpView.WinForms" Version="2.0.2" />
 		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.22" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.7" />
 		<PackageReference Include="MySql.Data" Version="9.4.0" />

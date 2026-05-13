@@ -27,6 +27,7 @@
 
     @* --- DEĞİŞİKLİK: Blazor Başlatma Ayarı (Gri Ekranı Engelleme) --- *@
     <script src="_framework/blazor.web.js" autostart="false"></script>
+
     <script>
         Blazor.start({
             reconnectionHandler: {
@@ -44,6 +45,7 @@
     <script src="_content/Blazor-ApexCharts/js/apex-charts.min.js"></script>
     <script src="_content/Blazor-ApexCharts/js/blazor-apex-charts.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.31.1.min.js"></script>
+    <script src="_content/LiveChartsCore.SkiaSharpView.Blazor/liveChartsCoreBlazor.js"></script>
 
     <script>
         // --- DİL ÇEVİRİLERİNİ JS TARAFINA AKTARMA ---
@@ -140,28 +142,36 @@
         }
 
         function drawPieChart(elementId, chartData) {
-            if (!document.getElementById(elementId)) return;
-            if (!chartData || chartData.length === 0) { Plotly.purge(elementId); return; }
-            const data = [{
-                values: chartData.map(d => d.value),
-                labels: chartData.map(d => d.label),
-                type: 'pie',
-                marker: { colors: chartData.map(d => d.color) },
-                hoverinfo: 'label+percent+text',
-                text: chartData.map(d => {
-                    const v = d.value;
-                    const h = Math.floor(v / 3600).toString().padStart(2,'0');
-                    const m = Math.floor((v % 3600) / 60).toString().padStart(2,'0');
-                    return `${h}:${m}`;
-                }),
-                textinfo: 'percent', hole: .4
-            }];
-            const layout = {
-                paper_bgcolor: 'rgba(0,0,0,0)', font: { color: '#e0e0e0' },
-                height: 250, margin: { t: 10, b: 10, l: 10, r: 10 },
-                showlegend: true, legend: { font: { color: '#b0b0b0' } }
-            };
-            Plotly.newPlot(elementId, data, layout, { responsive: true, displayModeBar: false });
+        if (!document.getElementById(elementId)) return;
+        if (!chartData || chartData.length === 0) { Plotly.purge(elementId); return; }
+    
+        const data = [{
+        values: chartData.map(d => d.value),
+        labels: chartData.map(d => d.label),
+        type: 'pie',
+        marker: { colors: chartData.map(d => d.color) },
+        hoverinfo: 'label+percent+text',
+        text: chartData.map(d => {
+        const v = d.value;
+        const h = Math.floor(v / 3600).toString().padStart(2,'0');
+        const m = Math.floor((v % 3600) / 60).toString().padStart(2,'0');
+        return `${h}:${m}`;
+        }),
+        textinfo: 'percent',
+        textfont: { color: '#ffffff' }, // Pasta dilimi içindeki yüzdelik yazılar beyaz
+        hole: .4
+        }];
+    
+        const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#ffffff' }, // Genel grafik yazıları beyaz
+        height: 250,
+        margin: { t: 10, b: 10, l: 10, r: 10 },
+        showlegend: true,
+        legend: { font: { color: '#ffffff' } } // Sağ taraftaki (legend) yazılar beyaz
+        };
+    
+        Plotly.newPlot(elementId, data, layout, { responsive: true, displayModeBar: false });
         }
 
         function drawTimelineChart(elementId, chartData) {
@@ -462,6 +472,72 @@
                     }
                 });
             });
+        };
+    </script>
+    <script>
+        window.drawEfficiencyTimeline = function (data, elementId) {
+        if (!data || data.length === 0) return;
+
+        var traces = [];
+        var states = {
+        "AUTO": { color: "#10B981", name: "ÇALIŞMA (AUTO)", x: [], y: [], base: [], text: [] },
+        "WAIT": { color: "#EF4444", name: "DURUŞ (WAIT)", x: [], y: [], base: [], text: [] },
+        "IDLE": { color: "#EF4444", name: "BEKLEME (IDLE)", x: [], y: [], base: [], text: [] },
+        "MANUAL": { color: "#F59E0B", name: "MANUEL", x: [], y: [], base: [], text: [] }
+        };
+
+        data.forEach(item => {
+        // HATA ÇÖZÜMÜ: Eğer bitiş tarihi yoksa (null) bu satırı grafiğe çizme
+        if (!item.endTime) return;
+
+        var state = item.state || "IDLE";
+        if (!states[state]) state = "IDLE";
+
+        var start = new Date(item.startTime);
+        var end = new Date(item.endTime);
+        
+        // Ekstra Güvenlik: Yıl 2000'den küçükse (1970 gibi) hatalı veri kabul et ve atla
+        if (start.getFullYear() < 2000 || end.getFullYear() < 2000) return;
+
+        var durationMs = end - start;
+
+        states[state].y.push(item.machineName);
+        states[state].base.push(start.toISOString());
+        states[state].x.push(durationMs);
+
+        var reason = item.reason1 ? " - " + item.reason1 : "";
+        var tooltip = `<b>${item.machineName}</b><br>${item.state}${reason}<br>${start.toLocaleTimeString()} - ${end.toLocaleTimeString()}`;
+        states[state].text.push(tooltip);
+        });
+
+        for (var key in states) {
+        if (states[key].x.length > 0) {
+        traces.push({
+        name: states[key].name,
+        type: 'bar',
+        orientation: 'h',
+        y: states[key].y,
+        x: states[key].x,
+        base: states[key].base,
+        marker: { color: states[key].color },
+        text: states[key].text,
+        hoverinfo: 'text',
+        textposition: 'none'
+        });
+        }
+        }
+
+        var layout = {
+        barmode: 'overlay',
+        showlegend: true,
+        xaxis: { type: 'date', title: 'TIME' },
+        yaxis: { title: 'MACHINE', autorange: 'reversed' },
+        margin: { l: 120, r: 20, t: 30, b: 40 }
+        };
+
+        if (typeof Plotly !== 'undefined') {
+        Plotly.newPlot(elementId, traces, layout, { responsive: true });
+        }
         };
     </script>
 </body>

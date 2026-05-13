@@ -18,13 +18,16 @@ namespace TekstilScada.UI.Views
         private readonly ManualUsageReport_Control _manualUsageReport;
         private readonly GenelUretimRaporu_Control _genelUretimRaporu;
         private readonly ActionLogReport_Control _actionLogReport_Control;
-     
+        private readonly EfficiencyReport_Control _efficiencyReport;
         public Raporlar_Control()
         {
             InitializeComponent();
             ApplyLocalization();
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
             _alarmReport = new AlarmReport_Control();
+            _efficiencyReport = new EfficiencyReport_Control();
+            _efficiencyReport.Dock = DockStyle.Fill;
+            tabPageEfficiency.Controls.Add(_efficiencyReport); // Yeni sekmeye ekle
             _productionReport = new ProductionReport_Control();
             _oeeReport = new OeeReport_Control();
             _trendAnaliz = new TrendAnaliz_Control();
@@ -72,6 +75,7 @@ namespace TekstilScada.UI.Views
             //tabPageOeeReport.Text = Resources.OeeReport;
             tabPageRecipeOptimization.Text = Resources.RecipeOptimization;
             tabPageTrendAnalysis.Text = Resources.TrendAnalysis;
+            tabPageEfficiency.Text = "Efficiency and Status Report";
         }
 
         // GÜNCELLENDİ: CostRepository parametresini ekleyin
@@ -82,7 +86,8 @@ namespace TekstilScada.UI.Views
             DashboardRepository dashboardRepo,
             ProcessLogRepository processLogRepo,
             RecipeRepository recipeRepo,
-            CostRepository costRepo
+            CostRepository costRepo,
+    EfficiencyRepository efficiencyRepo
            ) // YENİ: CostRepository parametresi eklendi
         {
             _genelUretimRaporu.InitializeControl(machineRepo, productionRepo); // YENİ: costRepo parametresi geçildi
@@ -92,7 +97,7 @@ namespace TekstilScada.UI.Views
             _trendAnaliz.InitializeControl(machineRepo, processLogRepo);
             _recipeOptimization.InitializeControl(recipeRepo);
             _manualUsageReport.InitializeControl(machineRepo, processLogRepo);
-           
+            _efficiencyReport.InitializeControl(machineRepo, efficiencyRepo);
         }
     }
 }

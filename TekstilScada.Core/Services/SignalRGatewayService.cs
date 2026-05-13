@@ -24,7 +24,13 @@ public class HourlyConsumptionData
     public double ToplamSu { get; set; }
     public double ToplamBuhar { get; set; }
 }
-
+public class EfficiencyReportFilters
+{
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
+    public int? MachineId { get; set; }
+    public string? SubType { get; set; }
+}
 public class HourlyOeeData
 {
     public double Saat { get; set; }
@@ -124,7 +130,7 @@ namespace TekstilScada.Services
         private readonly ProcessLogRepository _processLogRepo;
         private readonly RecipeConfigurationRepository _configRepo;
         private readonly PlcOperatorRepository _plcOpRepo;
-
+        private readonly EfficiencyRepository _efficiencyRepo;
         // --- SERVICES ---
         private readonly PlcPollingService _plcService;
         private readonly FtpTransferService _ftpService;
@@ -156,6 +162,7 @@ namespace TekstilScada.Services
             string hubUrl,
             string jwtToken,
             MachineRepository machineRepo,
+            EfficiencyRepository efficiencyRepo,
             RecipeRepository recipeRepo,
             UserRepository userRepo,
             CostRepository costRepo,
@@ -169,6 +176,7 @@ namespace TekstilScada.Services
             FtpTransferService ftpService, string apiKey)
         {
             _machineRepo = machineRepo;
+            _efficiencyRepo = efficiencyRepo;
             _recipeRepo = recipeRepo;
             _userRepo = userRepo;
             _costRepo = costRepo;
@@ -445,6 +453,13 @@ namespace TekstilScada.Services
 
             // -- RAPORLAR VE DASHBOARD --
             _requestHandlers["GetProductionReport"] = async args => await RunDb(() => _productionRepo.GetProductionReport(GetArg<ReportFilters>(args, 0) ?? new ReportFilters()));
+            _requestHandlers["GetEfficiencyReport"] = async args => await RunDb(() =>
+            {
+                var rf = GetArg<EfficiencyReportFilters>(args, 0);
+                // Asenkron metodu Task.Run içinde senkronize olarak bekleyip listeye çeviriyoruz
+                return _efficiencyRepo.GetEfficiencyReportAsync(rf.StartTime, rf.EndTime, rf.MachineId, rf.SubType)
+                                      .GetAwaiter().GetResult().ToList();
+            });
             _requestHandlers["GetAlarmReport"] = async args => await RunDb(() =>
             {
                 var rf = GetArg<ReportFilters>(args, 0);

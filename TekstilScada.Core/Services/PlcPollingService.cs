@@ -91,7 +91,11 @@ namespace TekstilScada.Services
         private const int StabilizationSeconds = 5;
         private static readonly string[] _stepNameCache = new string[2048];
         private ConcurrentDictionary<int, DateTime> _batchEndDebounceTimers = new ConcurrentDictionary<int, DateTime>();
-
+        // Makinenin bir önceki çevrimdeki durumunu tutar (AUTO, MANUAL, WAIT)
+        private ConcurrentDictionary<int, string> _lastMachineState = new ConcurrentDictionary<int, string>();
+        // Mevcut aktif verimlilik kaydının ID'sini tutar (Update etmek için)
+        private ConcurrentDictionary<int, long> _activeEfficiencyLogIds = new ConcurrentDictionary<int, long>();
+        private ConcurrentDictionary<int, string> _waitingDefinitionsCache;
         public PlcPollingService(
             AlarmRepository alarmRepository,
             ProcessLogRepository processLogRepository,
@@ -108,7 +112,7 @@ namespace TekstilScada.Services
             _machinerepository = machineRepository;
             _logger = logger;
             _scopeFactory = scopeFactory;
-
+            _waitingDefinitionsCache = new ConcurrentDictionary<int, string>();
             _plcManagers = new ConcurrentDictionary<int, IPlcManager>();
             MachineDataCache = new ConcurrentDictionary<int, FullMachineStatus>();
             _reconnectAttempts = new ConcurrentDictionary<int, DateTime>();
@@ -132,7 +136,7 @@ namespace TekstilScada.Services
             _cancellationTokenSource = new CancellationTokenSource();
 
             LoadAlarmDefinitionsCache();
-
+            LoadWaitingDefinitionsCache();
             // OPTİMİZASYON: Veritabanı Yazma İşçisini (Consumer) Arka Planda Başlat
             _ = Task.Run(() => ProcessDbOperationsQueueAsync(_cancellationTokenSource.Token));
 
@@ -324,7 +328,7 @@ namespace TekstilScada.Services
                         newStatus.MakineTipi = status.MakineTipi;
                         newStatus.ConnectionState = ConnectionStatus.Connected;
                         newStatus.AktifAdimAdi = GetStepTypeName(newStatus.AktifAdimTipiWordu);
-
+                        CheckAndLogEfficiencyState(machine, newStatus);
                         // --- BATCH ID YÖNETİMİ ---
                         if (newStatus.IsInRecipeMode)
                         {
@@ -401,7 +405,117 @@ namespace TekstilScada.Services
                 _logger.LogError(ex, "Makine işlem hatası: {MachineId}", machine.Id);
             }
         }
+        private void CheckAndLogEfficiencyState(Machine machine, FullMachineStatus currentStatus)
+        {
+            // 1. Durumu Belirle
+            string currentState = "IDLE"; // Varsayılan bekleme
+            if (currentStatus.IsInRecipeMode) currentState = "AUTO";
+            else if (currentStatus.manuel_status) currentState = "MANUAL";
 
+            _lastMachineState.TryGetValue(machine.Id, out string lastState);
+
+            // 2. Eğer durum değiştiyse veya ilk defa geliyorsa
+            if (currentState != lastState)
+            {
+                _logger.LogInformation($"Makine {machine.Id} durum değiştirdi: {lastState} -> {currentState}");
+
+                // A - Eski Durumu Bitir (EndTime güncelle)
+                if (_activeEfficiencyLogIds.TryRemove(machine.Id, out long oldLogId))
+                {
+                    _dbOperationsChannel.Writer.TryWrite(async (sp) =>
+                    {
+                        var repo = sp.GetRequiredService<EfficiencyRepository>();
+                        await repo.EndLogAsync(oldLogId, DateTime.Now);
+                    });
+                }
+
+                // B - Yeni Durumu Başlat
+                var newLog = new EfficiencyLog
+                {
+                    MachineId = machine.Id,
+                    MachineSubType = machine.MachineSubType,
+                    State = currentState,
+                    StartTime = DateTime.Now,
+                    RecipeName = currentStatus.IsInRecipeMode ? currentStatus.RecipeName : null
+                };
+
+                // Eğer durum "WAIT" ise bekleme sebeplerini oku (4-5 word dediğin yer)
+                if (currentState == "IDLE" && currentStatus.WaitingReasonWords != null)
+                {
+                    // Senin yazdığın GetActiveReasons metodunu kullanarak tanımları al
+                    // Not: definitions'ı bir cache'ten almalısın
+                    var reasons = GetActiveReasons(currentStatus.WaitingReasonWords, _waitingDefinitionsCache);
+                    if (reasons.Count > 0) newLog.Reason1 = reasons[0];
+                    if (reasons.Count > 1) newLog.Reason2 = reasons[1];
+                    if (reasons.Count > 2) newLog.Reason3 = reasons[2];
+                    if (reasons.Count > 3) newLog.Reason4 = reasons[3];
+                    if (reasons.Count > 4) newLog.Reason5 = reasons[4];
+                }
+
+                // Kuyruğa yeni kayıt açma işlemini gönder
+                _dbOperationsChannel.Writer.TryWrite(async (sp) =>
+                {
+                    var repo = sp.GetRequiredService<EfficiencyRepository>();
+                    long newId = await repo.StartNewLogAsync(newLog);
+                    _activeEfficiencyLogIds[machine.Id] = newId;
+                });
+
+                _lastMachineState[machine.Id] = currentState;
+            }
+        }
+
+        // Örnek: Word içinden aktif olan ilk 5 sebebi bulma
+        public List<string> GetActiveReasons(short[] statusWords, IDictionary<int, string> definitions)
+        {
+            var activeReasons = new List<string>();
+            if (statusWords == null || definitions == null) return activeReasons;
+
+            for (int w = 0; w < statusWords.Length; w++)
+            {
+                for (int b = 0; b < 16; b++)
+                {
+                    bool isSet = (statusWords[w] & (1 << b)) != 0;
+                    if (isSet)
+                    {
+                        int bitIndex = (w * 16) + b;
+                        if (definitions.TryGetValue(bitIndex, out var reasonText))
+                        {
+                            activeReasons.Add(reasonText);
+                        }
+
+                        if (activeReasons.Count >= 5) return activeReasons;
+                    }
+                }
+            }
+            return activeReasons;
+        }
+        // PlcPollingService.cs içine eklenecek metod
+        public void LoadWaitingDefinitionsCache()
+        {
+            try
+            {
+                // 1. Veritabanından veriyi çekmek için bir scope oluştur (ServiceScopeFactory kullanarak)
+                using (var scope = _scopeFactory.CreateScope())
+                {
+                    // EfficiencyRepository'ye eriş
+                    var repo = scope.ServiceProvider.GetRequiredService<EfficiencyRepository>();
+
+                    // 2. Ham veriyi al
+                    var definitions = repo.GetDowntimeDefinitions();
+
+                    // 3. ConcurrentDictionary içine aktar (Saniyede bir yapılan okumalarda kullanılacak)
+                    _waitingDefinitionsCache = new ConcurrentDictionary<int, string>(definitions);
+
+                    _logger.LogInformation($"{definitions.Count} adet bekleme tanımı veritabanından belleğe yüklendi.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Bekleme tanımları veritabanından yüklenirken KRİTİK HATA!");
+                // Hata durumunda sistemin çökmemesi için boş bir cache oluştur
+                _waitingDefinitionsCache = new ConcurrentDictionary<int, string>();
+            }
+        }
         private void LoggingTimer_Tick(object state)
         {
             if (_cancellationTokenSource == null || _cancellationTokenSource.IsCancellationRequested) return;

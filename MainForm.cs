@@ -31,6 +31,7 @@ namespace TekstilScada
         private readonly DashboardRepository _dashboardRepository;
         private readonly CostRepository _costRepository;
         private readonly UserRepository _userRepository;
+        private readonly EfficiencyRepository _efficiencyRepository;
         private AutoBackupService _backupService;
 
         // SignalR Gateway için gerekli ek Repository'ler
@@ -83,7 +84,7 @@ namespace TekstilScada
             services.AddTransient<UserRepository>();
             services.AddTransient<RecipeConfigurationRepository>();
             services.AddTransient<PlcOperatorRepository>();
-
+            services.AddTransient<EfficiencyRepository>();
             var serviceProvider = services.BuildServiceProvider();
             var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
 
@@ -96,13 +97,18 @@ namespace TekstilScada
             _alarmRepository = serviceProvider.GetRequiredService<AlarmRepository>();
             _productionRepository = serviceProvider.GetRequiredService<ProductionRepository>();
             _costRepository = serviceProvider.GetRequiredService<CostRepository>();
+            _efficiencyRepository = serviceProvider.GetRequiredService<EfficiencyRepository>();
             _userRepository = serviceProvider.GetRequiredService<UserRepository>();
 
             _recipeConfigRepository = serviceProvider.GetRequiredService<RecipeConfigurationRepository>();
             _plcOperatorRepository = serviceProvider.GetRequiredService<PlcOperatorRepository>();
 
             _dashboardRepository = new DashboardRepository(_recipeRepository);
-
+            try
+            {
+                _efficiencyRepository.EnsureDowntimeDefinitionsTableCreated();
+            }
+            catch { /* Hata yönetimi */ }
             // --- UTILITY NESNELERÝNÝ OLUÞTURMA ---
             try
             {
@@ -233,7 +239,7 @@ namespace TekstilScada
             // 2. Gateway Servisini Baþlat
             try
             {
-                string hubUrl = "https://api.malkanteknolojionline.com.tr/scadaHub"; // API Adresiniz
+                string hubUrl = "https://api.yilmaktelemetry.com/scadaHub"; // API Adresiniz
                 // string hubUrl = "http://localhost:7039/scadaHub"; // API Adresiniz
                 string jwtToken = null; // Gateway için token þu an null kalabilir
 
@@ -241,6 +247,7 @@ namespace TekstilScada
                     hubUrl,
                     jwtToken,
                     _machineRepository,
+                    _efficiencyRepository,
                     _recipeRepository,
                     _userRepository,
                     _costRepository,
@@ -339,9 +346,19 @@ namespace TekstilScada
             // Kontrolleri Initialize Et
             _prosesIzlemeView.InitializeView(machines, _pollingService);
             _prosesKontrolView.InitializeControl(_recipeRepository, _machineRepository, plcManagers, _pollingService, _ftpTransferService, _userRepository);
-            _ayarlarView.InitializeControl(_machineRepository, plcManagers);
+            _ayarlarView.InitializeControl(_machineRepository, _efficiencyRepository, plcManagers, _pollingService);
 
-            _raporlarView.InitializeControl(_machineRepository, _alarmRepository, _productionRepository, _dashboardRepository, _processLogRepository, _recipeRepository, _costRepository);
+            // RAPORLAR GÜNCELLEME: EfficiencyRepository eklendi
+            _raporlarView.InitializeControl(
+                _machineRepository,
+                _alarmRepository,
+                _productionRepository,
+                _dashboardRepository,
+                _processLogRepository,
+                _recipeRepository,
+                _costRepository,
+                _efficiencyRepository // YENÝ
+            );
             _genelBakisView.InitializeControl(_pollingService, _machineRepository, _dashboardRepository, _alarmRepository, _processLogRepository, _productionRepository, _utilityRepository, _utilityPollingService);
 
             _ayarlarView.RefreshMachineSettingsView();

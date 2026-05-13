@@ -6,6 +6,7 @@
 @using TekstilScada.Core.Localization
 @using Microsoft.Extensions.Localization
 @using System.Text.Json
+
 @inject ScadaDataService ScadaDataService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
@@ -24,6 +25,9 @@
             </li>
             <li class="nav-item">
                 <a class="nav-link @(activeTab == "alarmlar" ? "active" : "")" href="javascript:void(0);" @onclick='() => ChangeTab("alarmlar")'>@Loc["GecmisAlarmlarTab"]</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(activeTab == "verimlilik" ? "active" : "")" href="javascript:void(0);" @onclick='() => ChangeTab("verimlilik")'>Verimlilik ve Durum</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link @(activeTab == "trend" ? "active" : "")" href="javascript:void(0);" @onclick='() => ChangeTab("trend")'>@Loc["TrendAnaliziTabRaporlar"]</a>
@@ -47,10 +51,10 @@
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="4">
-                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]" @bind-DateRange="_dateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]" @bind-DateRange="_dateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                             </MudItem>
                             <MudItem xs="12" md="4">
-                                <MudSelect T="int" Label="@Loc["MakineLabel"]" @bind-Value="selectedMachineId" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                <MudSelect T="int" Label="@Loc["MakineLabel"]" @bind-Value="selectedMachineId" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" AnchorOrigin="Origin.BottomCenter">
                                     <MudSelectItem Value="0">@Loc["TumMakineler"]</MudSelectItem>
                                     @if (machines != null)
                                     {
@@ -62,15 +66,15 @@
                                 </MudSelect>
                             </MudItem>
                             <MudItem xs="12" md="4">
-                                <MudTextField @bind-Value="filters.RecipeName" Label="@Loc["ReceteAdiAraPlaceholder"]" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" />
+                                <MudTextField @bind-Value="filters.RecipeName" Label="@Loc["ReceteAdiAraPlaceholder"]" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" />
                             </MudItem>
                             <MudItem xs="12">
                                 <MudExpansionPanel Text="@Loc["DetayliFiltrelerPanel"]" Dense="true">
                                     <MudGrid>
-                                        <MudItem xs="6" md="3"><MudTextField @bind-Value="filters.BatchNo" Label="@Loc["BatchNoLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
-                                        <MudItem xs="6" md="3"><MudTextField @bind-Value="filters.SiparisNo" Label="@Loc["SiparisNoLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
-                                        <MudItem xs="6" md="3"><MudTextField @bind-Value="filters.MusteriNo" Label="@Loc["MusteriNoLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
-                                        <MudItem xs="6" md="3"><MudTextField @bind-Value="filters.OperatorName" Label="@Loc["OperatorLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                        <MudItem xs="6" md="3"><MudTextField @bind-Value="filters.BatchNo" Label="@Loc["BatchNoLabel"]" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" /></MudItem>
+                                        <MudItem xs="6" md="3"><MudTextField @bind-Value="filters.SiparisNo" Label="@Loc["SiparisNoLabel"]" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" /></MudItem>
+                                        <MudItem xs="6" md="3"><MudTextField @bind-Value="filters.MusteriNo" Label="@Loc["MusteriNoLabel"]" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" /></MudItem>
+                                        <MudItem xs="6" md="3"><MudTextField @bind-Value="filters.OperatorName" Label="@Loc["OperatorLabel"]" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" /></MudItem>
                                     </MudGrid>
                                 </MudExpansionPanel>
                             </MudItem>
@@ -129,10 +133,10 @@
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="5">
-                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]" @bind-DateRange="_alarmDateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]" @bind-DateRange="_alarmDateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                             </MudItem>
                             <MudItem xs="12" md="3">
-                                <MudSelect T="int" Label="@Loc["MakineLabel"]" @bind-Value="selectedAlarmMachineId" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                <MudSelect T="int" Label="@Loc["MakineLabel"]" @bind-Value="selectedAlarmMachineId" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" AnchorOrigin="Origin.BottomCenter">
                                     <MudSelectItem Value="0">@Loc["TumMakineler"]</MudSelectItem>
                                     @if (machines != null)
                                     {
@@ -184,16 +188,168 @@
                     </PagerContent>
                 </MudDataGrid>
                 break;
+           case "verimlilik":
+    <!-- 1. FİLTRE PANELİ -->
+    <MudCard Class="mb-4" Elevation="3" Style="background-color: #ffffff;">
+        <MudCardContent>
+                        <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                            <!-- BAŞLANGIÇ TARİH VE SAAT -->
+                            <MudItem xs="12" sm="6" md="2">
+                                <MudDatePicker Label="Başlangıç Tarihi" @bind-Date="_effStartDate" Color="Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="1">
+                                <MudTimePicker Label="Saat" @bind-Time="_effStartTime" Color="Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
+                            </MudItem>
 
+                            <!-- BİTİŞ TARİH VE SAAT -->
+                            <MudItem xs="12" sm="6" md="2">
+                                <MudDatePicker Label="Bitiş Tarihi" @bind-Date="_effEndDate" Color="Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="1">
+                                <MudTimePicker Label="Saat" @bind-Time="_effEndTime" Color="Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
+                            </MudItem>
+
+                            <!-- MAKİNE VE TİP SEÇİMİ -->
+                            <MudItem xs="12" sm="6" md="2">
+                                <MudSelect T="int" Label="Makine" @bind-Value="selectedEfficiencyMachineId" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense">
+                                    <MudSelectItem Value="0">Tüm Makineler</MudSelectItem>
+                                    @if (machines != null)
+                                    {
+                                        foreach (var m in machines)
+                                        {
+                                            <MudSelectItem Value="@m.Id">@m.MachineName</MudSelectItem>
+                                        }
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="2">
+                                <MudSelect T="string" Label="Makine Tipi" @bind-Value="selectedEfficiencySubType" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense">
+                                    <MudSelectItem Value="@((string)null)">Tüm Tipler</MudSelectItem>
+                                    @if (machineSubTypes != null)
+                                    {
+                                        foreach (var type in machineSubTypes)
+                                        {
+                                            <MudSelectItem Value="@type">@type</MudSelectItem>
+                                        }
+                                    }
+                                </MudSelect>
+                            </MudItem>
+
+                            <!-- BUTON -->
+                            <MudItem xs="12" md="2" Class="d-flex justify-end">
+                                <MudButton Variant="Variant.Filled" Style="background-color: #2563EB; color: white; width: 100%;" StartIcon="@Icons.Material.Filled.Search" OnClick="GenerateEfficiencyReport" Disabled="@isLoading">
+                                    @(isLoading ? "..." : "Rapor Getir")
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    @if (isLoading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+    }
+    else if (efficiencyReports != null && efficiencyReports.Any())
+    {
+        var filteredData = GetFilteredEfficiencyData();
+
+        <!-- 2. KPI KARTLARI (WinForms'taki ile birebir tasarım) -->
+        <MudGrid Class="mb-4" Spacing="3">
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4 d-flex flex-column" Elevation="1" Style="border-left: 6px solid #10B981; height: 100%;">
+                    <MudText Typo="Typo.body2" Style="color: #64748b; font-weight: 600;">ÇALIŞMA (AUTO)</MudText>
+                    <MudText Typo="Typo.h5" Style="color: #0f172a; font-weight: 700; margin-top: 8px;">@FormatSeconds(totalAutoTime)</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4 d-flex flex-column" Elevation="1" Style="border-left: 6px solid #EF4444; height: 100%;">
+                    <MudText Typo="Typo.body2" Style="color: #64748b; font-weight: 600;">DURUŞ (IDLE)</MudText>
+                    <MudText Typo="Typo.h5" Style="color: #0f172a; font-weight: 700; margin-top: 8px;">@FormatSeconds(totalWaitTime)</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4 d-flex flex-column" Elevation="1" Style="border-left: 6px solid #F59E0B; height: 100%;">
+                    <MudText Typo="Typo.body2" Style="color: #64748b; font-weight: 600;">MANUEL</MudText>
+                    <MudText Typo="Typo.h5" Style="color: #0f172a; font-weight: 700; margin-top: 8px;">@FormatSeconds(totalManualTime)</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4 d-flex flex-column" Elevation="1" Style="border-left: 6px solid #2563EB; height: 100%;">
+                    <MudText Typo="Typo.body2" Style="color: #64748b; font-weight: 600;">VERİMLİLİK</MudText>
+                    <MudText Typo="Typo.h5" Style="color: #0f172a; font-weight: 700; margin-top: 8px;">%@overallEfficiency.ToString("F1")</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <!-- 3. GRAFİKLER BÖLÜMÜ (WinForms SplitTop Paneli) -->
+        <MudGrid Class="mb-4" Spacing="3">
+            <MudItem xs="12" md="8">
+                <MudPaper Class="pa-4" Elevation="2" Style="height: 380px;">
+                    <MudText Typo="Typo.subtitle1" Style="color: #334155; font-weight: bold; margin-bottom: 10px;">ZAMAN BAZLI ÜRETİM AKIŞ ANALİZİ</MudText>
+                    <!-- Trend sayfasında yaptığınız gibi Plotly JS ile Gantt/Timeline çizdirmek için container -->
+                    <div id="efficiencyTimelineChart" style="width:100%; height:300px;"></div>
+                </MudPaper>
+            </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudPaper Class="pa-4" Elevation="2" Style="height: 380px;">
+                                <MudText Typo="Typo.subtitle1" Align="Align.Center" Style="color: #334155; font-weight: bold; margin-bottom: 10px;">DURUŞ DAĞILIMI</MudText>
+
+                                <!-- LiveCharts yerine Plotly'nin çizeceği Div -->
+                                <div id="efficiencyPieChart" style="width: 100%; height: 300px; display: block;"></div>
+        
+                            </MudPaper>
+                        </MudItem>
+        </MudGrid>
+
+        <!-- 4. DATAGRID BÖLÜMÜ (WinForms SplitMain.Panel2) -->
+        <MudDataGrid T="EfficiencyLog" Items="@filteredData" Dense="true" Striped="true" Hover="true" Bordered="false" RowsPerPage="10" Style="background-color: white;">
+            <Columns>
+                <PropertyColumn Property="x => x.MachineName" Title="Makine" />
+                <TemplateColumn Title="Durum">
+                    <CellTemplate>
+                        @{
+                            string state = context.Item.State;
+                            string bgColor = state == "AUTO" ? "#10B981" : (state == "IDLE" || state == "IDLE" ? "#EF4444" : "#F59E0B");
+                        }
+                        <!-- WinForms CellFormatting Birebir Karşılığı -->
+                        <div style="background-color: @bgColor; color: white; font-weight: bold; padding: 4px 8px; border-radius: 4px; text-align: center; display: inline-block; min-width: 70px;">
+                            @state
+                        </div>
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.Reason1" Title="Alarm / Sebep" />
+                <PropertyColumn Property="x => x.StartTime" Title="Başlangıç" Format="dd.MM.yyyy HH:mm:ss" />
+                <PropertyColumn Property="x => x.EndTime" Title="Bitiş" Format="dd.MM.yyyy HH:mm:ss" />
+                <TemplateColumn Title="Süre (sn)">
+                    <CellTemplate>
+                        <div style="text-align: right; width: 100%;">
+                            @context.Item.DurationSeconds.ToString("N0")
+                        </div>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+            <PagerContent><MudDataGridPager T="EfficiencyLog" /></PagerContent>
+        </MudDataGrid>
+
+        <!-- 5. ÖZET BARI (WinForms panelSummary Birebir Karşılığı) -->
+        <MudPaper Class="pa-3 mt-4 d-flex align-center" Elevation="2" Style="background-color: #0f172a; color: white; height: 42px;">
+            <MudText Typo="Typo.body1" Style="font-weight: 600;">
+                Toplam Kayıt: @filteredData.Count() &nbsp;&nbsp;|&nbsp;&nbsp; 
+                Makine: @filteredData.Select(x => x.MachineName).Distinct().Count() &nbsp;&nbsp;|&nbsp;&nbsp; 
+                Verimlilik: %@overallEfficiency.ToString("F1")
+            </MudText>
+        </MudPaper>
+    }
+    break;
             case "trend":
                 <MudCard Class="mb-4" Elevation="3">
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="4">
-                                <MudDateRangePicker Label="@Loc["AnalizAraligiLabel"]" @bind-DateRange="_trendDateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudDateRangePicker Label="@Loc["AnalizAraligiLabel"]" @bind-DateRange="_trendDateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                             </MudItem>
                             <MudItem xs="12" md="4">
-                                <MudSelect T="int" Label="@Loc["MakineSecimiLabel"]" @bind-Value="selectedTrendMachineIdInt" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                <MudSelect T="int" Label="@Loc["MakineSecimiLabel"]" @bind-Value="selectedTrendMachineIdInt" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" AnchorOrigin="Origin.BottomCenter">
                                     <MudSelectItem Value="0">@Loc["MakineSecinizPlaceholder"]</MudSelectItem>
                                     @if (machines != null)
                                     {
@@ -275,10 +431,10 @@
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="4">
-                                <MudDateRangePicker Label="@Loc["AnalizAraligiLabel"]" @bind-DateRange="_manualDateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudDateRangePicker Label="@Loc["AnalizAraligiLabel"]" @bind-DateRange="_manualDateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                             </MudItem>
                             <MudItem xs="12" md="4">
-                                <MudSelect T="int" Label="@Loc["MakineSecimiLabel"]" MultiSelection="true" @bind-SelectedValues="_selectedManualMachineIds" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                <MudSelect T="int" Label="@Loc["MakineSecimiLabel"]" MultiSelection="true" @bind-SelectedValues="_selectedManualMachineIds" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" AnchorOrigin="Origin.BottomCenter">
                                     @if (machines != null)
                                     {
                                         foreach (var m in machines)
@@ -333,17 +489,17 @@
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="3">
-                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]" @bind-DateRange="_generalDateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]" @bind-DateRange="_generalDateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                             </MudItem>
                             <MudItem xs="12" md="3">
-                                <MudSelect T="string" Label="@Loc["TuketimTipiLabel"]" @bind-Value="selectedConsumptionType" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                <MudSelect T="string" Label="@Loc["TuketimTipiLabel"]" @bind-Value="selectedConsumptionType" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" AnchorOrigin="Origin.BottomCenter">
                                     <MudSelectItem Value="@("TotalElectricity")">@Loc["ElektrikKw"]</MudSelectItem>
                                     <MudSelectItem Value="@("TotalWater")">@Loc["SuLitre"]</MudSelectItem>
                                     <MudSelectItem Value="@("TotalSteam")">@Loc["BuharKg"]</MudSelectItem>
                                 </MudSelect>
                             </MudItem>
                             <MudItem xs="12" md="4">
-                                <MudSelect T="int" Label="@Loc["MakinelerCokluSecim"]" MultiSelection="true" @bind-SelectedValues="_selectedGeneralMachineIds" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                <MudSelect T="int" Label="@Loc["MakinelerCokluSecim"]" MultiSelection="true" @bind-SelectedValues="_selectedGeneralMachineIds" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" AnchorOrigin="Origin.BottomCenter">
                                     @if (machines != null)
                                     {
                                         foreach (var m in machines)
@@ -398,13 +554,13 @@
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" md="3">
-                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]" @bind-DateRange="_actionDateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudDateRangePicker Label="@Loc["TarihAraligiLabel"]" @bind-DateRange="_actionDateRange" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                             </MudItem>
                             <MudItem xs="12" md="3">
-                                <MudTextField @bind-Value="actionLogFilters.Username" Label="@Loc["KullaniciAdiLabel"]" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Person" />
+                                <MudTextField @bind-Value="actionLogFilters.Username" Label="@Loc["KullaniciAdiLabel"]" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Person" />
                             </MudItem>
                             <MudItem xs="12" md="4">
-                                <MudTextField @bind-Value="actionLogFilters.Details" Label="@Loc["IslemDetayiArama"]" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.TextSnippet" />
+                                <MudTextField @bind-Value="actionLogFilters.Details" Label="@Loc["IslemDetayiArama"]" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.TextSnippet" />
                                 
                             </MudItem>
                             <MudItem xs="12" md="2" Class="d-flex justify-end gap-2">
@@ -516,7 +672,31 @@
         public decimal MaxLevel { get; set; }
         public decimal AvgLevel { get; set; }
     }
+    // --- Verimlilik Değişkenleri ---
+    private DateRange _efficiencyDateRange = new DateRange(DateTime.Now.Date.AddDays(-1), DateTime.Now.Date);
+    private int selectedEfficiencyMachineId = 0;
+    private string? selectedEfficiencySubType = null;
+    private string _quickFilterEfficiency = "";
+    private List<string>? machineSubTypes = new List<string>();
+    private List<EfficiencyLog>? efficiencyReports;
 
+    // KPI Değişkenleri
+    private double totalAutoTime = 0;
+    private double totalWaitTime = 0;
+    private double totalManualTime = 0;
+    private double overallEfficiency = 0;
+    // Tarih ve Saat Değişkenleri
+    private DateTime? _effStartDate = DateTime.Now.Date.AddDays(-1);
+    private TimeSpan? _effStartTime = new TimeSpan(0, 0, 0); // 00:00:00
+
+    private DateTime? _effEndDate = DateTime.Now.Date;
+    private TimeSpan? _effEndTime = new TimeSpan(23, 59, 59); // 23:59:59
+
+    // Pasta grafiği referansını canlı tutmak için özellik (Property) ataması:
+    // SADECE BU SATIRI KULLANIN, BAŞKA YERDE efficiencyPieSeries TANIMLAMAYIN
+   // public System.Collections.ObjectModel.ObservableCollection<ISeries> efficiencyPieSeries { get; set; } = new System.Collections.ObjectModel.ObservableCollection<ISeries>();
+
+    //private System.Collections.ObjectModel.ObservableCollection<ISeries> efficiencyPieSeries = new System.Collections.ObjectModel.ObservableCollection<ISeries>();
     protected override async Task OnInitializedAsync()
     {
         // Aggregation tanımını burada yapıyoruz ki Loc servisi erişilebilir olsun
@@ -536,6 +716,7 @@
             if (machines != null && machines.Any())
             {
                 selectedTrendMachineIdInt = machines.First().Id;
+                machineSubTypes = machines.Where(m => !string.IsNullOrWhiteSpace(m.MachineSubType)).Select(m => m.MachineSubType).Distinct().ToList();
             }
             await LoadSavedFilters();
             await InvokeAsync(StateHasChanged);
@@ -608,7 +789,97 @@
             Console.WriteLine($"Grafik çizim hatası: {ex.Message}");
         }
     }
+    private async Task GenerateEfficiencyReport()
+    {
+        isLoading = true;
+        efficiencyReports = null;
+        await InvokeAsync(StateHasChanged);
 
+        try
+        {
+            DateTime startDateTime = (_effStartDate ?? DateTime.Now.Date).Add(_effStartTime ?? TimeSpan.Zero);
+            DateTime endDateTime = (_effEndDate ?? DateTime.Now.Date).Add(_effEndTime ?? new TimeSpan(23, 59, 59));
+
+            var filters = new EfficiencyReportFilters
+            {
+                StartTime = startDateTime,
+                EndTime = endDateTime,
+                MachineId = selectedEfficiencyMachineId == 0 ? null : selectedEfficiencyMachineId,
+                SubType = string.IsNullOrEmpty(selectedEfficiencySubType) ? null : selectedEfficiencySubType
+            };
+
+            efficiencyReports = await ScadaDataService.GetEfficiencyReportAsync(filters, ScadaDataService.CurrentFactoryId);
+
+            if (efficiencyReports != null && efficiencyReports.Any())
+            {
+                UpdateDashboardValues(efficiencyReports);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Rapor çekilirken hata: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+
+        // Yükleme bitti, DOM hazır. JavaScript çizimlerini tetikle!
+        if (efficiencyReports != null && efficiencyReports.Any())
+        {
+            await Task.Delay(100);
+            try
+            {
+                // 1. Zaman Çizelgesi Grafiği
+                await JSRuntime.InvokeVoidAsync("drawEfficiencyTimeline", efficiencyReports, "efficiencyTimelineChart");
+
+                // 2. Pasta Grafiği (App.razor'daki drawPieChart fonksiyonuna veri gönderiyoruz)
+                var pieData = new List<object>();
+                if (totalAutoTime > 0) pieData.Add(new { label = "AUTO", value = totalAutoTime, color = "#10B981" });
+                if (totalWaitTime > 0) pieData.Add(new { label = "IDLE", value = totalWaitTime, color = "#EF4444" });
+                if (totalManualTime > 0) pieData.Add(new { label = "MANUAL", value = totalManualTime, color = "#F59E0B" });
+
+                await JSRuntime.InvokeVoidAsync("drawPieChart", "efficiencyPieChart", pieData);
+            }
+            catch (Exception jsEx) { Console.WriteLine("JS Çizim Hatası: " + jsEx.Message); }
+        }
+    }
+
+    // WinForms'taki RefreshDashboard ve UpdateSummaryText metodlarının birleşimi
+    private void UpdateDashboardValues(List<EfficiencyLog> data)
+    {
+        totalAutoTime = data.Where(x => x.State?.Trim().ToUpper() == "AUTO").Sum(x => x.DurationSeconds);
+        totalWaitTime = data.Where(x => x.State?.Trim().ToUpper() == "IDLE" || x.State?.Trim().ToUpper() == "IDLE").Sum(x => x.DurationSeconds);
+        totalManualTime = data.Where(x => x.State?.Trim().ToUpper() == "MANUAL").Sum(x => x.DurationSeconds);
+
+        double total = totalAutoTime + totalWaitTime + totalManualTime;
+        overallEfficiency = total > 0 ? (totalAutoTime / total) * 100 : 0;
+    }
+
+    // Hızlı Arama Kutusu Mantığı (TypingTimer_Tick Karşılığı)
+    private IEnumerable<EfficiencyLog> GetFilteredEfficiencyData()
+    {
+        if (efficiencyReports == null) return Array.Empty<EfficiencyLog>();
+    
+        if (string.IsNullOrWhiteSpace(_quickFilterEfficiency))
+            return efficiencyReports;
+
+        var key = _quickFilterEfficiency.ToLower();
+        return efficiencyReports.Where(x =>
+            (x.MachineName?.ToLower().Contains(key) ?? false) ||
+            (x.State?.ToLower().Contains(key) ?? false) ||
+            (x.Reason1?.ToLower().Contains(key) ?? false)
+        );
+    }
+
+    // Saniyeyi HH:mm:ss Formatına Çeviren Yardımcı Metot
+    private string FormatSeconds(double s)
+    {
+        TimeSpan t = TimeSpan.FromSeconds(Math.Max(0, s));
+        int totalHours = (int)Math.Floor(t.TotalHours);
+        return $"{totalHours:D2}:{t.Minutes:D2}:{t.Seconds:D2}";
+    }
     private async Task GenerateReport() => await GenerateReportCore(true);
 
     private async Task GenerateReportCore(bool saveFilters)
@@ -755,6 +1026,7 @@
         if (tabName != "manuelTuketim") manualConsumptionReports = null;
         if (tabName != "genelTuketim") generalDetailedConsumptionReport = null;
         if (tabName != "eylemKayitlari") actionLogs = null;
+        if (tabName != "verimlilik") efficiencyReports = null;
     }
     private async Task GenerateManualConsumptionReport()
     {

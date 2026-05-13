@@ -19,6 +19,7 @@ namespace TekstilScada.UI.Views
         private readonly CostSettings_Control _costSettings; // YENİ
         private readonly RecipeStepDesigner_Control _recipeStepDesigner;
         private readonly UtilitySettings_Control _utilitySettings;
+        private readonly DowntimeSettings_Control _downtimeSettings;
         public Ayarlar_Control()
         {
             InitializeComponent();
@@ -26,6 +27,9 @@ namespace TekstilScada.UI.Views
             _machineSettings = new MachineSettings_Control();
             _userSettings = new UserSettings_Control();
             _alarmSettings = new AlarmSettings_Control();
+            _downtimeSettings = new DowntimeSettings_Control(); // Yeni kontrolü oluştur
+            _downtimeSettings.Dock = DockStyle.Fill;
+            tabPageDowntimeReasons.Controls.Add(_downtimeSettings); // Sekmeye ekle
             _plcOperatorSettings = new PlcOperatorSettings_Control();
             _costSettings = new CostSettings_Control(); // YENİ
             // YENİ: Tasarımcı kontrolünü oluştur
@@ -72,6 +76,7 @@ namespace TekstilScada.UI.Views
             _costSettings.Enabled = PermissionService.HasAnyPermission(new List<int> { 9 });
             _plcOperatorSettings.Enabled = PermissionService.HasAnyPermission(new List<int> { 10 });
             _recipeStepDesigner.Visible = PermissionService.HasAnyPermission(new List<int> { 11 });
+            _downtimeSettings.Enabled = PermissionService.HasAnyPermission(new List<int> { 8 });
             // btnVnc.Enabled = btnVnc.Visible; // Yetkisi yoksa butonun tıklanmasını engelle
             _utilitySettings.Visible = PermissionService.HasAnyPermission(new List<int> {6, 1000 });
             _utilitySettings.Visible = false;
@@ -82,6 +87,7 @@ namespace TekstilScada.UI.Views
                 _machineSettings.Visible = PermissionService.HasAnyPermission(new List<int> { 1000 });
                 _userSettings.Visible = PermissionService.HasAnyPermission(new List<int> { 1000 });
                 _alarmSettings.Enabled = PermissionService.HasAnyPermission(new List<int> { 1000 });
+                _downtimeSettings.Enabled = PermissionService.HasAnyPermission(new List<int> { 1000 });
                 _costSettings.Enabled = PermissionService.HasAnyPermission(new List<int> { 1000 });
                 _plcOperatorSettings.Enabled = PermissionService.HasAnyPermission(new List<int> { 1000 });
                 _recipeStepDesigner.Visible = PermissionService.HasAnyPermission(new List<int> { 1000 });
@@ -95,9 +101,14 @@ namespace TekstilScada.UI.Views
             _machineSettings.RefreshMachineList();
         }
         // DEĞİŞİKLİK: LsPlcManager -> IPlcManager
-        public void InitializeControl(MachineRepository machineRepo, Dictionary<int, IPlcManager> plcManagers)
+        // InitializeControl metodunu güncelle (Parametre olarak repo ve service gelmeli):
+        public void InitializeControl(MachineRepository machineRepo,
+                                      EfficiencyRepository efficiencyRepo,
+                                      Dictionary<int, IPlcManager> plcManagers,
+                                      PlcPollingService pollingService)
         {
             _plcOperatorSettings.InitializeControl(machineRepo, plcManagers);
+            _downtimeSettings.InitializeControl(efficiencyRepo, pollingService); // <--- BURASI
         }
         private void LanguageManager_LanguageChanged(object sender, EventArgs e)
         {
@@ -114,7 +125,7 @@ namespace TekstilScada.UI.Views
            tabPageRecipeDesigner.Text = Resources.recipedesigner;
             //btnSave.Text = Resources.Save;
           tabPageUtilitySettings.Text = "Line Usage Settings";
-
+            tabPageDowntimeReasons.Text = "Down Time Settings"; // Veya Resources.DowntimeSettings
         }
     }
 }

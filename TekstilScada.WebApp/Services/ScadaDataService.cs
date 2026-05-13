@@ -52,7 +52,13 @@ public class SaveLayoutRequest { public string LayoutName { get; set; } public s
 public class GeneralConsumptionExportDto { public List<ProductionReportItem>? Items { get; set; } public string? ConsumptionType { get; set; } }
 public class CentralFactoryDto { public int Id { get; set; } public string FactoryName { get; set; } }
 public class LoginResponse { public string Token { get; set; } public string FullName { get; set; } public string Role { get; set; } public string AllowedFactories { get; set; } }
-
+public class EfficiencyReportFilters
+{
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
+    public int? MachineId { get; set; }
+    public string? SubType { get; set; }
+}
 namespace TekstilScada.WebApp.Services
 {
     public class ScadaDataService : IAsyncDisposable
@@ -86,7 +92,7 @@ namespace TekstilScada.WebApp.Services
         public ConcurrentDictionary<int, FullMachineStatus> MachineData { get; private set; } = new();
         public ConcurrentDictionary<int, Machine> MachineDetailsCache { get; private set; } = new();
         private string _accessToken = string.Empty;
-
+        
         public ScadaDataService(HttpClient httpClient, ILocalStorageService localStorage, IConfiguration config)
         {
             _httpClient = httpClient;
@@ -436,7 +442,10 @@ namespace TekstilScada.WebApp.Services
         }
         public async Task<List<ProductionReportItem>?> GetGeneralDetailedConsumptionReportAsync(GeneralDetailedConsumptionFilters f, int factoryId = 0)
             => await InvokeSafeAsync<List<ProductionReportItem>?>("GetGeneralDetailedConsumptionReport", factoryId, null, f, 180);
-
+        public async Task<List<EfficiencyLog>> GetEfficiencyReportAsync(EfficiencyReportFilters f, int factoryId = 0)
+        {
+            return await InvokeSafeAsync("GetEfficiencyReport", factoryId, new List<EfficiencyLog>(), f, 120);
+        }
         public async Task<List<TekstilScada.Core.Models.ActionLogEntry>> GetActionLogsAsync(ActionLogFilters f, int factoryId = 0)
             => await InvokeSafeAsync("GetActionLogs", factoryId, new List<TekstilScada.Core.Models.ActionLogEntry>(), f, 60);
 

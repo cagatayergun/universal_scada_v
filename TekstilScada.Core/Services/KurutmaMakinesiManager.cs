@@ -49,6 +49,7 @@ namespace TekstilScada.Services
         private const string ACTIVE_STEP_TYPE_WORD = "3085"; // D94
         private const string RECIPE_DATA_ADDRESS = "3086"; // D100
         private const string OPERATOR_TEMPLATE_ADDRESS = "3087"; // D7500
+        private const string WaitingReasonWords_read = "3300"; // D7500
         #endregion
 
         public KurutmaMakinesiManager(string ipAddress, int port)
@@ -163,7 +164,16 @@ namespace TekstilScada.Services
                 var musteriNoResult = ReadStringFromWords(CUSTOMER_NO, 5);
                 if (musteriNoResult.IsSuccess) status.MusteriNumarasi = musteriNoResult.Content;
                 else { Debug.WriteLine($"[ERROR] {IpAddress} - {CUSTOMER_NO} (Customer No) could not be read: {musteriNoResult.Message}"); anyReadFailed = true; }
-
+                var waitingRead = _plcClient.ReadInt16(WaitingReasonWords_read, 5); // 5 word oku
+                if (waitingRead.IsSuccess)
+                {
+                    status.WaitingReasonWords = waitingRead.Content;
+                }
+                else
+                {
+                    Debug.WriteLine($"[ERROR] {IpAddress} - Bekleme sebepleri okunamadı: {waitingRead.Message}");
+                    anyReadFailed = true;
+                }
                 if (!string.IsNullOrEmpty(status.BatchNumarasi))
                 {
                     // 1. Uzunluk Ayarı: 

@@ -39,6 +39,13 @@ public class TransferJob
                                 ? (!string.IsNullOrEmpty(TargetFileName) ? $"{LocalRecipe?.RecipeName} -> {TargetFileName}" : LocalRecipe?.RecipeName)
                                 : RemoteFileName;
 }
+public class EfficiencyReportFilters
+{
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
+    public int? MachineId { get; set; }
+    public string? SubType { get; set; }
+}
 public class HourlyConsumptionData
 {
     public double Saat { get; set; }
@@ -510,7 +517,11 @@ namespace TekstilScada.WebAPI.Hubs
         public async Task<List<ProductionReportItem>> GetGeneralDetailedConsumptionReport(int factoryId, GeneralDetailedConsumptionFilters filters, int timeout = 180) => await InvokeOnGateway<List<ProductionReportItem>>(factoryId, "GetGeneralDetailedConsumptionReport", timeout, filters) ?? new List<ProductionReportItem>();
         public async Task<List<ActionLogEntry>> GetActionLogs(int factoryId, ActionLogFilters filters, int timeout = 60) => await InvokeOnGateway<List<ActionLogEntry>>(factoryId, "GetActionLogs", timeout, filters) ?? new List<ActionLogEntry>();
         public async Task<ProductionDetailDto?> GetProductionDetail(int factoryId, int machineId, string batchId) => await InvokeOnGateway<ProductionDetailDto>(factoryId, "GetProductionDetail", 60, machineId, batchId);
-
+        public async Task<List<EfficiencyLog>> GetEfficiencyReport(int factoryId, EfficiencyReportFilters filters, int timeout = 120)
+        {
+            return await InvokeOnGateway<List<EfficiencyLog>>(factoryId, "GetEfficiencyReport", timeout, filters)
+                   ?? new List<EfficiencyLog>();
+        }
         // --- EXPORT METOTLARI (Byte[] Olarak Kaldı) ---
         public async Task<byte[]> ExportProductionReport(int factoryId, List<ProductionReportItem> items) => await InvokeOnGateway<byte[]>(factoryId, "ExportProductionReport", 180, items) ?? Array.Empty<byte>();
         public async Task<byte[]> ExportAlarmReport(int factoryId, List<AlarmReportItem> items) => await InvokeOnGateway<byte[]>(factoryId, "ExportAlarmReport", 180, items) ?? Array.Empty<byte>();
