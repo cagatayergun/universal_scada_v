@@ -1810,4 +1810,49 @@
 	<data name="ExcelExportHatasi" xml:space="preserve">
     <value>Excel export error</value>
   </data>
+	<data name="VerimlilikTab" xml:space="preserve">
+    <value>Efficiency and Status</value>
+  </data>
+	<data name="SaatLabel" xml:space="preserve">
+    <value>Time</value>
+  </data>
+	<data name="MakineTipiLabel" xml:space="preserve">
+    <value>Machine Type</value>
+  </data>
+	<data name="TumTipler" xml:space="preserve">
+    <value>All Types</value>
+  </data>
+	<data name="HizliAraPlaceholder" xml:space="preserve">
+    <value>Quick Search (Machine, Status, Alarm)</value>
+  </data>
+	<data name="CalismaAuto" xml:space="preserve">
+    <value>AUTO</value>
+  </data>
+	<data name="DurusIdle" xml:space="preserve">
+    <value>IDLE</value>
+  </data>
+	<data name="ManuelKontrol" xml:space="preserve">
+    <value>MANUAL</value>
+  </data>
+	<data name="VerimlilikLabel" xml:space="preserve">
+    <value>EFFICIENCY</value>
+  </data>
+	<data name="ZamanBazliUretimAkisi" xml:space="preserve">
+    <value>TIME-BASED PRODUCTION FLOW ANALYSIS</value>
+  </data>
+	<data name="DurusDagilimi" xml:space="preserve">
+    <value>STOPPAGE DISTRIBUTION</value>
+  </data>
+	<data name="VerimlilikDetaylariBaslik" xml:space="preserve">
+    <value>Efficiency and Stoppage Details</value>
+  </data>
+	<data name="ToplamKayit" xml:space="preserve">
+    <value>Total Records</value>
+  </data>
+	<data name="SureSaniye" xml:space="preserve">
+    <value>Duration (sec)</value>
+  </data>
+	<data name="BitisZamani2" xml:space="preserve">
+    <value>End Time</value>
+  </data>
 </root>

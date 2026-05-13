@@ -117,6 +117,7 @@ namespace TekstilScada.UI.Views
             txtFtpUsername.Text = machine.FtpUsername;
             txtFtpPassword.Text = machine.FtpPassword;
             txtMachineSubType.Text = machine.MachineSubType;
+            displaybox.Text=machine.DisplayOrder.ToString();
         }
 
         private void ClearFields()
@@ -134,6 +135,7 @@ namespace TekstilScada.UI.Views
             txtFtpUsername.Text = "";
             txtFtpPassword.Text = "";
             txtMachineSubType.Text = "";
+            displaybox.Text = "";
         }
 
         private void btnNew_Click(object sender, EventArgs e)
@@ -171,7 +173,8 @@ namespace TekstilScada.UI.Views
                         // YENİ: FTP alanlarını oku
                         FtpUsername = txtFtpUsername.Text,
                         FtpPassword = txtFtpPassword.Text,
-                        MachineSubType = txtMachineSubType.Text
+                        MachineSubType = txtMachineSubType.Text,
+                        DisplayOrder= int.Parse(displaybox.Text)
                     }; 
                     _repository.AddMachine(newMachine);
                     MessageBox.Show($"{Resources.yenimakinebasarili}", $"{Resources.Confirim}", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -193,6 +196,7 @@ namespace TekstilScada.UI.Views
                     _selectedMachine.FtpUsername = txtFtpUsername.Text;
                     _selectedMachine.FtpPassword = txtFtpPassword.Text;
                     _selectedMachine.MachineSubType = txtMachineSubType.Text;
+                    _selectedMachine.DisplayOrder = int.Parse(displaybox.Text);
                     _repository.UpdateMachine(_selectedMachine);
                   
                     MessageBox.Show($"{Resources.makinebilgilerigüncellendi}", $"{Resources.Confirim}", MessageBoxButtons.OK, MessageBoxIcon.Information);

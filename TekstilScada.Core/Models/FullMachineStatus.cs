@@ -10,7 +10,7 @@ namespace TekstilScada.Models
         public int MachineId { get; set; }
         public string MachineName { get; set; }
         public ConnectionStatus ConnectionState { get; set; }
-
+        public int DisplayOrder { get; set; }
         // Anlık Proses Değerleri
         public short AnlikSuSeviyesi { get; set; }
         public short AnlikDevirRpm { get; set; }

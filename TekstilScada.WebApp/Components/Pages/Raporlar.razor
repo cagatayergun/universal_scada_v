@@ -27,7 +27,7 @@
                 <a class="nav-link @(activeTab == "alarmlar" ? "active" : "")" href="javascript:void(0);" @onclick='() => ChangeTab("alarmlar")'>@Loc["GecmisAlarmlarTab"]</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(activeTab == "verimlilik" ? "active" : "")" href="javascript:void(0);" @onclick='() => ChangeTab("verimlilik")'>Verimlilik ve Durum</a>
+                <a class="nav-link @(activeTab == "verimlilik" ? "active" : "")" href="javascript:void(0);" @onclick='() => ChangeTab("verimlilik")'>@Loc["VerimlilikTab"]</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link @(activeTab == "trend" ? "active" : "")" href="javascript:void(0);" @onclick='() => ChangeTab("trend")'>@Loc["TrendAnaliziTabRaporlar"]</a>
@@ -80,7 +80,7 @@
                             </MudItem>
                             <MudItem xs="12" Class="d-flex justify-end gap-2">
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Search" OnClick="GenerateReport" Disabled="@isLoading">
-                                    @(isLoading? Loc["Hesaplaniyor"].Value : Loc["RaporlaButon"].Value)
+                                    @(isLoading ? Loc["Hesaplaniyor"].Value : Loc["RaporlaButon"].Value)
                                 </MudButton>
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Success" StartIcon="@Icons.Material.Filled.FileDownload" OnClick="ExportProductionToExcel" Disabled="@(reportItems == null || !reportItems.Any())">
                                     @Loc["ExcelIndirButon"]
@@ -188,31 +188,32 @@
                     </PagerContent>
                 </MudDataGrid>
                 break;
-           case "verimlilik":
-    <!-- 1. FİLTRE PANELİ -->
-    <MudCard Class="mb-4" Elevation="3" Style="background-color: #ffffff;">
-        <MudCardContent>
+                
+            case "verimlilik":
+                <!-- 1. FİLTRE PANELİ -->
+                <MudCard Class="mb-4" Elevation="3" Style="background-color: #ffffff;">
+                    <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <!-- BAŞLANGIÇ TARİH VE SAAT -->
                             <MudItem xs="12" sm="6" md="2">
-                                <MudDatePicker Label="Başlangıç Tarihi" @bind-Date="_effStartDate" Color="Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
+                                <MudDatePicker Label="@Loc["BaslangicZamani"]" @bind-Date="_effStartDate" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                             </MudItem>
                             <MudItem xs="12" sm="6" md="1">
-                                <MudTimePicker Label="Saat" @bind-Time="_effStartTime" Color="Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
+                                <MudTimePicker Label="@Loc["SaatLabel"]" @bind-Time="_effStartTime" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                             </MudItem>
 
                             <!-- BİTİŞ TARİH VE SAAT -->
                             <MudItem xs="12" sm="6" md="2">
-                                <MudDatePicker Label="Bitiş Tarihi" @bind-Date="_effEndDate" Color="Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
+                                <MudDatePicker Label="@Loc["BitisZamani2"]" @bind-Date="_effEndDate" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                             </MudItem>
                             <MudItem xs="12" sm="6" md="1">
-                                <MudTimePicker Label="Saat" @bind-Time="_effEndTime" Color="Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
+                                <MudTimePicker Label="@Loc["SaatLabel"]" @bind-Time="_effEndTime" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                             </MudItem>
 
                             <!-- MAKİNE VE TİP SEÇİMİ -->
                             <MudItem xs="12" sm="6" md="2">
-                                <MudSelect T="int" Label="Makine" @bind-Value="selectedEfficiencyMachineId" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense">
-                                    <MudSelectItem Value="0">Tüm Makineler</MudSelectItem>
+                                <MudSelect T="int" Label="@Loc["MakineLabel"]" @bind-Value="selectedEfficiencyMachineId" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense">
+                                    <MudSelectItem Value="0">@Loc["TumMakineler"]</MudSelectItem>
                                     @if (machines != null)
                                     {
                                         foreach (var m in machines)
@@ -223,8 +224,8 @@
                                 </MudSelect>
                             </MudItem>
                             <MudItem xs="12" sm="6" md="2">
-                                <MudSelect T="string" Label="Makine Tipi" @bind-Value="selectedEfficiencySubType" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense">
-                                    <MudSelectItem Value="@((string)null)">Tüm Tipler</MudSelectItem>
+                                <MudSelect T="string" Label="@Loc["MakineTipiLabel"]" @bind-Value="selectedEfficiencySubType" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense">
+                                    <MudSelectItem Value="@((string)null)">@Loc["TumTipler"]</MudSelectItem>
                                     @if (machineSubTypes != null)
                                     {
                                         foreach (var type in machineSubTypes)
@@ -238,110 +239,116 @@
                             <!-- BUTON -->
                             <MudItem xs="12" md="2" Class="d-flex justify-end">
                                 <MudButton Variant="Variant.Filled" Style="background-color: #2563EB; color: white; width: 100%;" StartIcon="@Icons.Material.Filled.Search" OnClick="GenerateEfficiencyReport" Disabled="@isLoading">
-                                    @(isLoading ? "..." : "Rapor Getir")
+                                    @(isLoading ? Loc["Hesaplaniyor"].Value : Loc["RaporlaButon"].Value)
                                 </MudButton>
                             </MudItem>
                         </MudGrid>
-        </MudCardContent>
-    </MudCard>
+                    </MudCardContent>
+                </MudCard>
 
-    @if (isLoading)
-    {
-        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
-    }
-    else if (efficiencyReports != null && efficiencyReports.Any())
-    {
-        var filteredData = GetFilteredEfficiencyData();
+                @if (isLoading)
+                {
+                    <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" Class="my-7" />
+                }
+                else if (efficiencyReports != null && efficiencyReports.Any())
+                {
+                    var filteredData = GetFilteredEfficiencyData();
 
-        <!-- 2. KPI KARTLARI (WinForms'taki ile birebir tasarım) -->
-        <MudGrid Class="mb-4" Spacing="3">
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-4 d-flex flex-column" Elevation="1" Style="border-left: 6px solid #10B981; height: 100%;">
-                    <MudText Typo="Typo.body2" Style="color: #64748b; font-weight: 600;">ÇALIŞMA (AUTO)</MudText>
-                    <MudText Typo="Typo.h5" Style="color: #0f172a; font-weight: 700; margin-top: 8px;">@FormatSeconds(totalAutoTime)</MudText>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-4 d-flex flex-column" Elevation="1" Style="border-left: 6px solid #EF4444; height: 100%;">
-                    <MudText Typo="Typo.body2" Style="color: #64748b; font-weight: 600;">DURUŞ (IDLE)</MudText>
-                    <MudText Typo="Typo.h5" Style="color: #0f172a; font-weight: 700; margin-top: 8px;">@FormatSeconds(totalWaitTime)</MudText>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-4 d-flex flex-column" Elevation="1" Style="border-left: 6px solid #F59E0B; height: 100%;">
-                    <MudText Typo="Typo.body2" Style="color: #64748b; font-weight: 600;">MANUEL</MudText>
-                    <MudText Typo="Typo.h5" Style="color: #0f172a; font-weight: 700; margin-top: 8px;">@FormatSeconds(totalManualTime)</MudText>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-4 d-flex flex-column" Elevation="1" Style="border-left: 6px solid #2563EB; height: 100%;">
-                    <MudText Typo="Typo.body2" Style="color: #64748b; font-weight: 600;">VERİMLİLİK</MudText>
-                    <MudText Typo="Typo.h5" Style="color: #0f172a; font-weight: 700; margin-top: 8px;">%@overallEfficiency.ToString("F1")</MudText>
-                </MudPaper>
-            </MudItem>
-        </MudGrid>
-
-        <!-- 3. GRAFİKLER BÖLÜMÜ (WinForms SplitTop Paneli) -->
-        <MudGrid Class="mb-4" Spacing="3">
-            <MudItem xs="12" md="8">
-                <MudPaper Class="pa-4" Elevation="2" Style="height: 380px;">
-                    <MudText Typo="Typo.subtitle1" Style="color: #334155; font-weight: bold; margin-bottom: 10px;">ZAMAN BAZLI ÜRETİM AKIŞ ANALİZİ</MudText>
-                    <!-- Trend sayfasında yaptığınız gibi Plotly JS ile Gantt/Timeline çizdirmek için container -->
-                    <div id="efficiencyTimelineChart" style="width:100%; height:300px;"></div>
-                </MudPaper>
-            </MudItem>
-                        <MudItem xs="12" md="4">
-                            <MudPaper Class="pa-4" Elevation="2" Style="height: 380px;">
-                                <MudText Typo="Typo.subtitle1" Align="Align.Center" Style="color: #334155; font-weight: bold; margin-bottom: 10px;">DURUŞ DAĞILIMI</MudText>
-
-                                <!-- LiveCharts yerine Plotly'nin çizeceği Div -->
-                                <div id="efficiencyPieChart" style="width: 100%; height: 300px; display: block;"></div>
-        
+                    <!-- 2. KPI KARTLARI -->
+                    <MudGrid Class="mb-4" Spacing="3">
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudPaper Class="pa-4 d-flex flex-column" Elevation="1" Style="border-left: 6px solid #10B981; height: 100%;">
+                                <MudText Typo="Typo.body2" Style="color: #64748b; font-weight: 600;">@Loc["CalismaAuto"]</MudText>
+                                <MudText Typo="Typo.h5" Style="color: #0f172a; font-weight: 700; margin-top: 8px;">@FormatSeconds(totalAutoTime)</MudText>
                             </MudPaper>
                         </MudItem>
-        </MudGrid>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudPaper Class="pa-4 d-flex flex-column" Elevation="1" Style="border-left: 6px solid #EF4444; height: 100%;">
+                                <MudText Typo="Typo.body2" Style="color: #64748b; font-weight: 600;">@Loc["DurusIdle"]</MudText>
+                                <MudText Typo="Typo.h5" Style="color: #0f172a; font-weight: 700; margin-top: 8px;">@FormatSeconds(totalWaitTime)</MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudPaper Class="pa-4 d-flex flex-column" Elevation="1" Style="border-left: 6px solid #F59E0B; height: 100%;">
+                                <MudText Typo="Typo.body2" Style="color: #64748b; font-weight: 600;">@Loc["ManuelKontrol"]</MudText>
+                                <MudText Typo="Typo.h5" Style="color: #0f172a; font-weight: 700; margin-top: 8px;">@FormatSeconds(totalManualTime)</MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudPaper Class="pa-4 d-flex flex-column" Elevation="1" Style="border-left: 6px solid #2563EB; height: 100%;">
+                                <MudText Typo="Typo.body2" Style="color: #64748b; font-weight: 600;">@Loc["VerimlilikLabel"]</MudText>
+                                <MudText Typo="Typo.h5" Style="color: #0f172a; font-weight: 700; margin-top: 8px;">%@overallEfficiency.ToString("F1")</MudText>
+                            </MudPaper>
+                        </MudItem>
+                    </MudGrid>
 
-        <!-- 4. DATAGRID BÖLÜMÜ (WinForms SplitMain.Panel2) -->
-        <MudDataGrid T="EfficiencyLog" Items="@filteredData" Dense="true" Striped="true" Hover="true" Bordered="false" RowsPerPage="10" Style="background-color: white;">
-            <Columns>
-                <PropertyColumn Property="x => x.MachineName" Title="Makine" />
-                <TemplateColumn Title="Durum">
-                    <CellTemplate>
-                        @{
-                            string state = context.Item.State;
-                            string bgColor = state == "AUTO" ? "#10B981" : (state == "IDLE" || state == "IDLE" ? "#EF4444" : "#F59E0B");
-                        }
-                        <!-- WinForms CellFormatting Birebir Karşılığı -->
-                        <div style="background-color: @bgColor; color: white; font-weight: bold; padding: 4px 8px; border-radius: 4px; text-align: center; display: inline-block; min-width: 70px;">
-                            @state
-                        </div>
-                    </CellTemplate>
-                </TemplateColumn>
-                <PropertyColumn Property="x => x.Reason1" Title="Alarm / Sebep" />
-                <PropertyColumn Property="x => x.StartTime" Title="Başlangıç" Format="dd.MM.yyyy HH:mm:ss" />
-                <PropertyColumn Property="x => x.EndTime" Title="Bitiş" Format="dd.MM.yyyy HH:mm:ss" />
-                <TemplateColumn Title="Süre (sn)">
-                    <CellTemplate>
-                        <div style="text-align: right; width: 100%;">
-                            @context.Item.DurationSeconds.ToString("N0")
-                        </div>
-                    </CellTemplate>
-                </TemplateColumn>
-            </Columns>
-            <PagerContent><MudDataGridPager T="EfficiencyLog" /></PagerContent>
-        </MudDataGrid>
+                    <!-- 3. GRAFİKLER BÖLÜMÜ -->
+                    <MudGrid Class="mb-4" Spacing="3">
+                        <MudItem xs="12" md="8">
+                            <MudPaper Class="pa-4" Elevation="2" Style="height: 380px;">
+                                <MudText Typo="Typo.subtitle1" Style="color: #334155; font-weight: bold; margin-bottom: 10px;">@Loc["ZamanBazliUretimAkisi"]</MudText>
+                                <div id="efficiencyTimelineChart" style="width:100%; height:300px;"></div>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudPaper Class="pa-4" Elevation="2" Style="height: 380px;">
+                                <MudText Typo="Typo.subtitle1" Align="Align.Center" Style="color: #334155; font-weight: bold; margin-bottom: 10px;">@Loc["DurusDagilimi"]</MudText>
+                                <div id="efficiencyPieChart" style="width: 100%; height: 300px; display: block;"></div>
+                            </MudPaper>
+                        </MudItem>
+                    </MudGrid>
 
-        <!-- 5. ÖZET BARI (WinForms panelSummary Birebir Karşılığı) -->
-        <MudPaper Class="pa-3 mt-4 d-flex align-center" Elevation="2" Style="background-color: #0f172a; color: white; height: 42px;">
-            <MudText Typo="Typo.body1" Style="font-weight: 600;">
-                Toplam Kayıt: @filteredData.Count() &nbsp;&nbsp;|&nbsp;&nbsp; 
-                Makine: @filteredData.Select(x => x.MachineName).Distinct().Count() &nbsp;&nbsp;|&nbsp;&nbsp; 
-                Verimlilik: %@overallEfficiency.ToString("F1")
-            </MudText>
-        </MudPaper>
-    }
-    break;
+                    <!-- 4. DATAGRID BÖLÜMÜ -->
+                    <MudDataGrid T="EfficiencyLog" Items="@filteredData" Dense="true" Striped="true" Hover="true" Bordered="false" RowsPerPage="10" Style="background-color: white;">
+                        <ToolBarContent>
+                            <MudText Typo="Typo.h6">@Loc["VerimlilikDetaylariBaslik"]</MudText>
+                            <MudSpacer />
+                            <MudTextField @bind-Value="_quickFilterEfficiency" Placeholder="@Loc["HizliAraPlaceholder"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" Immediate="true"></MudTextField>
+                        </ToolBarContent>
+                        <Columns>
+                            <PropertyColumn Property="x => x.MachineName" Title="@Loc["MakineLabel"]" />
+                            <TemplateColumn Title="@Loc["Durum"]">
+                                <CellTemplate>
+                                    @{
+                                        string state = context.Item.State;
+                                        string bgColor = state == "AUTO" ? "#10B981" : (state == "IDLE" || state == "WAIT" ? "#EF4444" : "#F59E0B");
+                                    }
+                                    <div style="background-color: @bgColor; color: white; font-weight: bold; padding: 4px 8px; border-radius: 4px; text-align: center; display: inline-block; min-width: 70px;">
+                                        @state
+                                    </div>
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <PropertyColumn Property="x => x.Reason1" Title="@Loc["Aciklama"]" />
+                            <PropertyColumn Property="x => x.StartTime" Title="@Loc["BaslangicZamani"]" Format="dd.MM.yyyy HH:mm:ss" />
+                            <PropertyColumn Property="x => x.EndTime" Title="@Loc["BitisZamani"]" Format="dd.MM.yyyy HH:mm:ss" />
+                            <TemplateColumn Title="@Loc["SureSaniye"]">
+                                <CellTemplate>
+                                    <div style="text-align: right; width: 100%;">
+                                        @context.Item.DurationSeconds.ToString("N0")
+                                    </div>
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                        <PagerContent><MudDataGridPager T="EfficiencyLog" /></PagerContent>
+                    </MudDataGrid>
+
+                    <!-- 5. ÖZET BARI -->
+                    <MudPaper Class="pa-3 mt-4 d-flex align-center" Elevation="2" Style="background-color: #0f172a; color: white; height: 42px;">
+                        <MudText Typo="Typo.body1" Style="font-weight: 600;">
+                            @Loc["ToplamKayit"]: @filteredData.Count() &nbsp;&nbsp;|&nbsp;&nbsp;
+                            @Loc["MakineLabel"]: @filteredData.Select(x => x.MachineName).Distinct().Count() &nbsp;&nbsp;|&nbsp;&nbsp;
+                            @Loc["VerimlilikLabel"]: %@overallEfficiency.ToString("F1")
+                        </MudText>
+                    </MudPaper>
+                }
+                else if (efficiencyReports != null)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="mt-4">@Loc["KriterlereUygunKayitYok"]</MudAlert>
+                }
+                break;
+
             case "trend":
+                <!-- Trend Kodu Aynen Korundu -->
                 <MudCard Class="mb-4" Elevation="3">
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
@@ -362,7 +369,7 @@
                             </MudItem>
                             <MudItem xs="12" md="4" Class="d-flex justify-end">
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.ShowChart" OnClick="GenerateTrendReport" Disabled="@isLoading" FullWidth="true">
-                                    @(isLoading? Loc["AnalizEdiliyor"].Value : Loc["TrendiCizButon"].Value)
+                                    @(isLoading ? Loc["AnalizEdiliyor"].Value : Loc["TrendiCizButon"].Value)
                                 </MudButton>
                             </MudItem>
                         </MudGrid>
@@ -427,6 +434,7 @@
                 break;
 
             case "manuelTuketim":
+                <!-- Manuel Tuketim Kodu Aynen Korundu -->
                 <MudCard Class="mb-4" Elevation="3">
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
@@ -446,7 +454,7 @@
                             </MudItem>
                             <MudItem xs="12" md="4" Class="d-flex justify-end gap-2">
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Analytics" OnClick="GenerateManualConsumptionReport" Disabled="@isLoading">
-                                    @(isLoading? Loc["AnalizEdiliyor"].Value : Loc["RaporlaButon"].Value)
+                                    @(isLoading ? Loc["AnalizEdiliyor"].Value : Loc["RaporlaButon"].Value)
                                 </MudButton>
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Success" StartIcon="@Icons.Material.Filled.FileDownload" OnClick="ExportManualConsumptionToExcel" Disabled="@(manualConsumptionReports == null || !manualConsumptionReports.Any())">
                                     @Loc["ExcelIndirButon"]
@@ -485,6 +493,7 @@
                 break;
 
             case "genelTuketim":
+                <!-- Genel Tuketim Kodu Aynen Korundu -->
                 <MudCard Class="mb-4" Elevation="3">
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
@@ -550,6 +559,7 @@
                 break;
 
             case "eylemKayitlari":
+                <!-- Eylem Kayitlari Kodu Aynen Korundu -->
                 <MudCard Class="mb-4" Elevation="3">
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
@@ -561,7 +571,6 @@
                             </MudItem>
                             <MudItem xs="12" md="4">
                                 <MudTextField @bind-Value="actionLogFilters.Details" Label="@Loc["IslemDetayiArama"]" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.TextSnippet" />
-                                
                             </MudItem>
                             <MudItem xs="12" md="2" Class="d-flex justify-end gap-2">
                                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.ManageSearch" OnClick="GenerateActionLogsReport" Disabled="@isLoading" FullWidth="true">
@@ -651,6 +660,7 @@
     private string _searchStringAlarm;
     private string _searchStringAction;
     private DateTime GetEndOfDay(DateTime date) => date.Date.AddDays(1).AddTicks(-1);
+
     private class TrendProcessDataPoint
     {
         public int MachineId { get; set; }
@@ -672,8 +682,13 @@
         public decimal MaxLevel { get; set; }
         public decimal AvgLevel { get; set; }
     }
+
     // --- Verimlilik Değişkenleri ---
-    private DateRange _efficiencyDateRange = new DateRange(DateTime.Now.Date.AddDays(-1), DateTime.Now.Date);
+    private DateTime? _effStartDate = DateTime.Now.Date.AddDays(-1);
+    private TimeSpan? _effStartTime = new TimeSpan(0, 0, 0);
+    private DateTime? _effEndDate = DateTime.Now.Date;
+    private TimeSpan? _effEndTime = new TimeSpan(23, 59, 59);
+
     private int selectedEfficiencyMachineId = 0;
     private string? selectedEfficiencySubType = null;
     private string _quickFilterEfficiency = "";
@@ -685,21 +700,9 @@
     private double totalWaitTime = 0;
     private double totalManualTime = 0;
     private double overallEfficiency = 0;
-    // Tarih ve Saat Değişkenleri
-    private DateTime? _effStartDate = DateTime.Now.Date.AddDays(-1);
-    private TimeSpan? _effStartTime = new TimeSpan(0, 0, 0); // 00:00:00
 
-    private DateTime? _effEndDate = DateTime.Now.Date;
-    private TimeSpan? _effEndTime = new TimeSpan(23, 59, 59); // 23:59:59
-
-    // Pasta grafiği referansını canlı tutmak için özellik (Property) ataması:
-    // SADECE BU SATIRI KULLANIN, BAŞKA YERDE efficiencyPieSeries TANIMLAMAYIN
-   // public System.Collections.ObjectModel.ObservableCollection<ISeries> efficiencyPieSeries { get; set; } = new System.Collections.ObjectModel.ObservableCollection<ISeries>();
-
-    //private System.Collections.ObjectModel.ObservableCollection<ISeries> efficiencyPieSeries = new System.Collections.ObjectModel.ObservableCollection<ISeries>();
     protected override async Task OnInitializedAsync()
     {
-        // Aggregation tanımını burada yapıyoruz ki Loc servisi erişilebilir olsun
         _sumAggregation = new AggregateDefinition<ProductionReportItem>
         {
             Type = AggregateType.Sum,
@@ -726,10 +729,10 @@
             // Log error
         }
     }
+
     private bool _canLoadAlarmData = false;
     private MudDataGrid<AlarmReportItem> _alarmDataGrid;
 
-    // ServerData fonksiyonu (Otomatik sayfalama yapar)
     private async Task<GridData<AlarmReportItem>> AlarmServerReload(GridState<AlarmReportItem> state)
     {
         if (!_canLoadAlarmData)
@@ -738,7 +741,6 @@
         }
 
         UpdateFiltersFromDateRanges();
-
         var pagedData = await ScadaDataService.GetAlarmReportPagedAsync(alarmFilters, state.Page, state.PageSize);
 
         return new GridData<AlarmReportItem>
@@ -781,7 +783,6 @@
         if (trendDataPoints == null || !trendDataPoints.Any()) return;
         try
         {
-            // Artık hesaplama yapmıyoruz, arka planda hazırlandı. Sadece JS'e basıyoruz.
             await JSRuntime.InvokeVoidAsync("plotSyncedTrendCharts", trendDataPoints, "chartTemperature", "chartRpm", "chartLevel");
         }
         catch (Exception ex)
@@ -789,6 +790,7 @@
             Console.WriteLine($"Grafik çizim hatası: {ex.Message}");
         }
     }
+
     private async Task GenerateEfficiencyReport()
     {
         isLoading = true;
@@ -825,20 +827,17 @@
             await InvokeAsync(StateHasChanged);
         }
 
-        // Yükleme bitti, DOM hazır. JavaScript çizimlerini tetikle!
         if (efficiencyReports != null && efficiencyReports.Any())
         {
             await Task.Delay(100);
             try
             {
-                // 1. Zaman Çizelgesi Grafiği
                 await JSRuntime.InvokeVoidAsync("drawEfficiencyTimeline", efficiencyReports, "efficiencyTimelineChart");
 
-                // 2. Pasta Grafiği (App.razor'daki drawPieChart fonksiyonuna veri gönderiyoruz)
                 var pieData = new List<object>();
-                if (totalAutoTime > 0) pieData.Add(new { label = "AUTO", value = totalAutoTime, color = "#10B981" });
-                if (totalWaitTime > 0) pieData.Add(new { label = "IDLE", value = totalWaitTime, color = "#EF4444" });
-                if (totalManualTime > 0) pieData.Add(new { label = "MANUAL", value = totalManualTime, color = "#F59E0B" });
+                if (totalAutoTime > 0) pieData.Add(new { label = Loc["CalismaAuto"].Value, value = totalAutoTime, color = "#10B981" });
+                if (totalWaitTime > 0) pieData.Add(new { label = Loc["DurusIdle"].Value, value = totalWaitTime, color = "#EF4444" });
+                if (totalManualTime > 0) pieData.Add(new { label = Loc["ManuelKontrol"].Value, value = totalManualTime, color = "#F59E0B" });
 
                 await JSRuntime.InvokeVoidAsync("drawPieChart", "efficiencyPieChart", pieData);
             }
@@ -846,18 +845,16 @@
         }
     }
 
-    // WinForms'taki RefreshDashboard ve UpdateSummaryText metodlarının birleşimi
     private void UpdateDashboardValues(List<EfficiencyLog> data)
     {
         totalAutoTime = data.Where(x => x.State?.Trim().ToUpper() == "AUTO").Sum(x => x.DurationSeconds);
-        totalWaitTime = data.Where(x => x.State?.Trim().ToUpper() == "IDLE" || x.State?.Trim().ToUpper() == "IDLE").Sum(x => x.DurationSeconds);
+        totalWaitTime = data.Where(x => x.State?.Trim().ToUpper() == "WAIT" || x.State?.Trim().ToUpper() == "IDLE").Sum(x => x.DurationSeconds);
         totalManualTime = data.Where(x => x.State?.Trim().ToUpper() == "MANUAL").Sum(x => x.DurationSeconds);
 
         double total = totalAutoTime + totalWaitTime + totalManualTime;
         overallEfficiency = total > 0 ? (totalAutoTime / total) * 100 : 0;
     }
 
-    // Hızlı Arama Kutusu Mantığı (TypingTimer_Tick Karşılığı)
     private IEnumerable<EfficiencyLog> GetFilteredEfficiencyData()
     {
         if (efficiencyReports == null) return Array.Empty<EfficiencyLog>();
@@ -873,13 +870,13 @@
         );
     }
 
-    // Saniyeyi HH:mm:ss Formatına Çeviren Yardımcı Metot
     private string FormatSeconds(double s)
     {
         TimeSpan t = TimeSpan.FromSeconds(Math.Max(0, s));
         int totalHours = (int)Math.Floor(t.TotalHours);
         return $"{totalHours:D2}:{t.Minutes:D2}:{t.Seconds:D2}";
     }
+
     private async Task GenerateReport() => await GenerateReportCore(true);
 
     private async Task GenerateReportCore(bool saveFilters)
@@ -945,12 +942,10 @@
 
             if (rawData != null)
             {
-                // Tüm JSON dönüştürme, istatistik hesaplama ve GÖRSEL SEYRELTME işlemlerini arka plana atıyoruz (UI Donmaz!)
                 var processedResult = await Task.Run(() =>
                 {
                     List<TrendProcessDataPoint> fullData;
 
-                    // 1. JSON Parse İşlemi
                     if (rawData.Count > 0 && rawData[0] is JsonElement)
                         fullData = rawData.Select(x => ((JsonElement)x).Deserialize<TrendProcessDataPoint>()).ToList();
                     else
@@ -961,7 +956,6 @@
 
                     if (fullData == null || !fullData.Any()) return null;
 
-                    // 2. İstatistikleri HAM veri üzerinden (doğru sonuç için) hesapla
                     var temps = fullData.Select(x => x.Temperature / 10.0m).ToList();
                     var rpms = fullData.Select(x => x.Rpm).ToList();
                     var levels = fullData.Select(x => x.WaterLevel).ToList();
@@ -979,7 +973,6 @@
                         AvgLevel = levels.DefaultIfEmpty(0).Average()
                     };
 
-                    // 3. Grafiğe çizilecek veriyi SEYRELT (Downsampling)
                     const int TARGET_POINT_COUNT = 500;
                     List<TrendProcessDataPoint> pointsToDraw = fullData;
 
@@ -999,14 +992,13 @@
                             .ToList();
                     }
 
-                    // UI'a sadece özetlenmiş veriyi ve istatistikleri gönderiyoruz
                     return new { Stats = stats, PointsToDraw = pointsToDraw };
                 });
 
                 if (processedResult != null)
                 {
                     trendStats = processedResult.Stats;
-                    trendDataPoints = processedResult.PointsToDraw; // Artık RAM'de sadece 500 nokta tutulacak!
+                    trendDataPoints = processedResult.PointsToDraw;
                     shouldRenderChart = true;
                 }
             }
@@ -1020,7 +1012,6 @@
     {
         activeTab = tabName;
 
-        // RAM'i korumak için aktif olmayan devasa listeleri temizliyoruz (Sadece açık olan kalır)
         if (tabName != "uretim") reportItems = null;
         if (tabName != "trend") { trendDataPoints = null; shouldRenderChart = false; }
         if (tabName != "manuelTuketim") manualConsumptionReports = null;
@@ -1028,6 +1019,7 @@
         if (tabName != "eylemKayitlari") actionLogs = null;
         if (tabName != "verimlilik") efficiencyReports = null;
     }
+
     private async Task GenerateManualConsumptionReport()
     {
         UpdateFiltersFromDateRanges();
@@ -1039,11 +1031,10 @@
 
         isLoading = true;
         manualConsumptionReports = new List<ManualConsumptionSummary>();
-        StateHasChanged(); // Sadece loading animasyonunu başlatmak için
+        StateHasChanged();
 
         try
         {
-            // İşleme başlamadan makine listesini O(1) arama hızına sahip Dictionary'ye alıyoruz
             var machineDict = machines?.ToDictionary(m => m.Id, m => m) ?? new Dictionary<int, Machine>();
 
             var fetchTasks = _selectedManualMachineIds.Select(async mId =>
@@ -1053,7 +1044,6 @@
 
                 if (summary != null)
                 {
-                    // Dictionary üzerinden bekleme yapmadan thread-safe şekilde eşleştir
                     if (machineDict.TryGetValue(mId, out var machineInfo) && machineInfo.MachineType == "Kurutma Makinesi")
                     {
                         summary.ToplamSuTuketimi_Litre = 0;
@@ -1064,16 +1054,13 @@
 
             var results = await Task.WhenAll(fetchTasks);
             manualConsumptionReports = results.Where(r => r != null).ToList();
-        
         }
         catch (Exception ex)
         {
-            //Console.WriteLine($"Manuel Tüketim Hatası: {ex.Message}");
         }
         finally
         {
             isLoading = false;
-            // Blazor butona basılma olayı bittiğinde StateHasChanged'i kendisi çağırır, tekrar yazmaya gerek yok.
         }
     }
 
@@ -1111,12 +1098,10 @@
         finally { isLoading = false; await InvokeAsync(StateHasChanged); }
     }
 
-    // --- ALARM EXPORT DÜZELTMESİ ---
     private async Task ExportAlarmsToExcel()
     {
         UpdateFiltersFromDateRanges();
 
-        // Tabloda sadece sayfa verisi olduğu için, export yaparken tüm veriyi çekiyoruz
         var exportFilters = new ReportFilters
         {
             StartTime = alarmFilters.StartTime.Date,
@@ -1130,9 +1115,7 @@
 
         try
         {
-            // Tüm listeyi çek
             var allAlarms = await ScadaDataService.GetAlarmReportAsync(exportFilters);
-
             await ExportHelper(async () => await ScadaDataService.ExportAlarmReportAsync(allAlarms), "Alarm_Raporu");
         }
         catch (Exception ex)
@@ -1154,11 +1137,10 @@
 
         var combinedSummary = new ManualConsumptionSummary
         {
-            Makine = "Total Selected", // Sadece "Seçilenler" yerine daha net ifade
+            Makine = "Total Selected",
             RaporAraligi = manualConsumptionReports.First().RaporAraligi,
-            ToplamManuelSure = "-", // Excel'de hataya yol açmaması için boşluk yerine tire
+            ToplamManuelSure = "-",
 
-            // ÖNEMLİ: Null ihtimaline karşı ?? 0 kontrolü eklenmeli!
             ToplamSuTuketimi_Litre = manualConsumptionReports.Sum(x => x?.ToplamSuTuketimi_Litre ?? 0),
             ToplamElektrikTuketimi_kW = manualConsumptionReports.Sum(x => x?.ToplamElektrikTuketimi_kW ?? 0),
             ToplamBuharTuketimi_kg = manualConsumptionReports.Sum(x => x?.ToplamBuharTuketimi_kg ?? 0)
@@ -1168,6 +1150,7 @@
     }
 
     private async Task ExportGeneralDetailedConsumptionToExcel() => await ExportHelper(async () => await ScadaDataService.ExportGeneralDetailedConsumptionReportAsync(new GeneralConsumptionExportDto { Items = generalDetailedConsumptionReport, ConsumptionType = selectedConsumptionType }), "Genel_Tuketim_Detay");
+    
     private async Task ExportActionLogsToExcel() => await ExportHelper(async () => await ScadaDataService.ExportActionLogsReportAsync(actionLogs), "Eylem_Kayitlari_Raporu");
 
     private async Task ExportHelper(Func<Task<byte[]>> exportFunc, string fileNamePrefix)

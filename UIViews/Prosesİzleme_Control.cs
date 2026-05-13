@@ -47,16 +47,17 @@ namespace TekstilScada.UI.Views
 
             // KPI Kartlarını oluştur
             InitializeKpiCards();
+            var sortedMachines = machines.OrderBy(m => m.DisplayOrder).ToList();
 
-            // Makine Kartlarını oluştur ve panele ekle
             int displayCounter = 1;
+
             // Performans için paneli askıya al
             flowLayoutPanelMachines.SuspendLayout();
 
-            foreach (var machine in machines)
+            foreach (var machine in sortedMachines)
             {
-                // Not: MachineCard_Control yapıcınızda (constructor) machineType parametresi ekli varsayarak bu satırı korudum.
-                // Eğer hata alırsanız sondaki 'machine.MachineType' parametresini kaldırın.
+                // displayCounter kartın üstünde yazan ardışık numaradır (1, 2, 3..)
+                // İsterseniz displayCounter yerine direkt machine.DisplayOrder değişkenini basabilirsiniz.
                 var card = new MachineCard_Control(machine.Id, machine.MachineUserDefinedId, machine.MachineName, displayCounter++, machine.MachineType);
 
                 card.DetailsRequested += Card_DetailsRequested;

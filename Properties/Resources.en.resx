@@ -743,4 +743,7 @@
   <data name="aktifalarmyok" xml:space="preserve">
     <value>There is no active alarm.</value>
   </data>
+	<data name="BitisZamani2" xml:space="preserve">
+    <value>Bitiş Zamanı</value>
+  </data>
 </root>

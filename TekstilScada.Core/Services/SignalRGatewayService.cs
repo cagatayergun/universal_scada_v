@@ -298,7 +298,7 @@ namespace TekstilScada.Services
                 int mId = GetArg<int>(args, 0);
                 return await RunDb(() => {
                     var m = _machineRepo.GetAllMachines().Find(x => x.Id == mId);
-                    return m != null ? new FullMachineStatus { MachineId = m.Id, MachineName = m.MachineName, MakineTipi = m.MachineSubType } : null;
+                    return m != null ? new FullMachineStatus { MachineId = m.Id, MachineName = m.MachineName, MakineTipi = m.MachineSubType, DisplayOrder = m.DisplayOrder } : null;
                 });
             };
             _requestHandlers["AddMachine"] = async args => await RunDb(() => { _machineRepo.AddMachine(GetArg<Machine>(args, 0)); return true; });

@@ -1810,4 +1810,18 @@
 	<data name="ExcelExportHatasi" xml:space="preserve">
     <value>Excel export hatası</value>
   </data>
+	<data name="VerimlilikTab" xml:space="preserve">  <value>Verimlilik ve Durum</value></data>
+	<data name="SaatLabel" xml:space="preserve">  <value>Saat</value></data>
+	<data name="MakineTipiLabel" xml:space="preserve">  <value>Makine Tipi</value></data>
+	<data name="TumTipler" xml:space="preserve">  <value>Tüm Tipler</value></data>
+	<data name="HizliAraPlaceholder" xml:space="preserve">  <value>Hızlı Ara (Makine, Durum, Alarm)</value></data>
+	<data name="CalismaAuto" xml:space="preserve">  <value>OTOMATİK</value></data>
+	<data name="DurusIdle" xml:space="preserve">  <value>BOŞTA</value></data>
+	<data name="ManuelKontrol" xml:space="preserve">  <value>MANUEL</value></data>
+	<data name="VerimlilikLabel" xml:space="preserve">  <value>VERİMLİLİK</value></data>
+	<data name="ZamanBazliUretimAkisi" xml:space="preserve">  <value>ZAMAN BAZLI ÜRETİM AKIŞ ANALİZİ</value></data>
+	<data name="DurusDagilimi" xml:space="preserve">  <value>DURUŞ DAĞILIMI</value></data>
+	<data name="VerimlilikDetaylariBaslik" xml:space="preserve">  <value>Verimlilik ve Duruş Detayları</value></data>
+	<data name="ToplamKayit" xml:space="preserve">  <value>Toplam Kayıt</value></data>
+	<data name="SureSaniye" xml:space="preserve">  <value>Süre (sn)</value></data>
 </root>

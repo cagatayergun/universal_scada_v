@@ -36,7 +36,7 @@ namespace TekstilScada
 
             AppConfig.SetConnectionString(licenseData.EncryptedConnectionString);
             // === LÝSANS DOÐRULAMA VE KONTROL KODU BÝTÝÞÝ ===
-
+            TekstilScada.Repositories.DatabaseUpdater.CheckAndUpgradeDatabase();
             Application.Run(new MainForm());
         }
     }

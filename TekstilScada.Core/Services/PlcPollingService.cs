@@ -155,6 +155,7 @@ namespace TekstilScada.Services
                         MachineId = machine.Id,
                         MachineName = machine.MachineName,
                         MakineTipi = machine.MachineSubType,
+                        DisplayOrder = machine.DisplayOrder,
                         ConnectionState = ConnectionStatus.Disconnected
                     });
 
@@ -326,6 +327,7 @@ namespace TekstilScada.Services
                         newStatus.MachineId = machine.Id;
                         newStatus.MachineName = status.MachineName;
                         newStatus.MakineTipi = status.MakineTipi;
+                        newStatus.DisplayOrder = machine.DisplayOrder;
                         newStatus.ConnectionState = ConnectionStatus.Connected;
                         newStatus.AktifAdimAdi = GetStepTypeName(newStatus.AktifAdimTipiWordu);
                         CheckAndLogEfficiencyState(machine, newStatus);

@@ -39,6 +39,8 @@ namespace TekstilScada.UI.Views
             label2 = new Label();
             txtMachineId = new TextBox();
             label1 = new Label();
+            displaybox = new TextBox();
+            displayno = new Label();
             ((System.ComponentModel.ISupportInitialize)dgvMachines).BeginInit();
             groupBox1.SuspendLayout();
             SuspendLayout();
@@ -64,6 +66,8 @@ namespace TekstilScada.UI.Views
             // 
             // groupBox1
             // 
+            groupBox1.Controls.Add(displaybox);
+            groupBox1.Controls.Add(displayno);
             groupBox1.Controls.Add(txtMachineSubType);
             groupBox1.Controls.Add(label9);
             groupBox1.Controls.Add(txtFtpPassword);
@@ -109,7 +113,7 @@ namespace TekstilScada.UI.Views
             label9.AutoSize = true;
             label9.Location = new Point(368, 56);
             label9.Name = "label9";
-            label9.Size = new Size(80, 15);
+            label9.Size = new Size(81, 15);
             label9.TabIndex = 20;
             label9.Text = "Makine Tipi 2:";
             // 
@@ -127,7 +131,7 @@ namespace TekstilScada.UI.Views
             label8.AutoSize = true;
             label8.Location = new Point(368, 115);
             label8.Name = "label8";
-            label8.Size = new Size(55, 15);
+            label8.Size = new Size(56, 15);
             label8.TabIndex = 18;
             label8.Text = "FTP Şifre:";
             // 
@@ -144,7 +148,7 @@ namespace TekstilScada.UI.Views
             label7.AutoSize = true;
             label7.Location = new Point(368, 85);
             label7.Name = "label7";
-            label7.Size = new Size(77, 15);
+            label7.Size = new Size(78, 15);
             label7.TabIndex = 16;
             label7.Text = "FTP Kullanıcı:";
             // 
@@ -163,7 +167,7 @@ namespace TekstilScada.UI.Views
             label6.AutoSize = true;
             label6.Location = new Point(368, 26);
             label6.Name = "label6";
-            label6.Size = new Size(71, 15);
+            label6.Size = new Size(72, 15);
             label6.TabIndex = 14;
             label6.Text = "Makine Tipi:";
             // 
@@ -203,7 +207,7 @@ namespace TekstilScada.UI.Views
             // chkIsEnabled
             // 
             chkIsEnabled.AutoSize = true;
-            chkIsEnabled.Location = new Point(114, 142);
+            chkIsEnabled.Location = new Point(114, 165);
             chkIsEnabled.Margin = new Padding(3, 2, 3, 2);
             chkIsEnabled.Name = "chkIsEnabled";
             chkIsEnabled.Size = new Size(110, 19);
@@ -296,6 +300,23 @@ namespace TekstilScada.UI.Views
             label1.TabIndex = 0;
             label1.Text = "Makine ID:";
             // 
+            // displaybox
+            // 
+            displaybox.Location = new Point(114, 140);
+            displaybox.Margin = new Padding(3, 2, 3, 2);
+            displaybox.Name = "displaybox";
+            displaybox.Size = new Size(219, 23);
+            displaybox.TabIndex = 23;
+            // 
+            // displayno
+            // 
+            displayno.AutoSize = true;
+            displayno.Location = new Point(18, 143);
+            displayno.Name = "displayno";
+            displayno.Size = new Size(67, 15);
+            displayno.TabIndex = 22;
+            displayno.Text = "Display No:";
+            // 
             // MachineSettings_Control
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -336,5 +357,7 @@ namespace TekstilScada.UI.Views
         private System.Windows.Forms.Label label7;
         private TextBox txtMachineSubType;
         private Label label9;
+        private TextBox displaybox;
+        private Label displayno;
     }
 }

@@ -50,7 +50,9 @@ else if (AllMachines.Count == 0)
 else
 {
     <div class="machine-grid">
-        @foreach (var machineStatus in AllMachines.OrderBy(m => m.MachineId))
+        @* DEĞİŞİKLİK 1: Buradaki .OrderBy(m => m.MachineId) zorlamasını kaldırdık.
+           Çünkü listeyi UpdateMachineData metodunda çoktan sıralamış olacağız. *@
+        @foreach (var machineStatus in AllMachines)
         {
             <MachineCard MachineStatus="machineStatus"
                          @key="machineStatus.MachineId"
@@ -128,7 +130,6 @@ else
         InvokeAsync(() =>
         {
             if (_isDisposed) return; // Çift güvenlik kontrolü
-
             UpdateMachineData();
             StateHasChanged();
         });
@@ -136,32 +137,33 @@ else
 
     private void UpdateMachineData()
     {
-        // 1. Veritabanından gelen TÜM makineleri (Cache) referans alıyoruz.
-        // 2. Canlı verisi olanları güncelliyor, olmayanları "Offline" olarak listeye ekliyoruz.
-        // Bu sayede bağlantısı kopan makineler ekrandan aniden kaybolmaz.
-
-        AllMachines = ScadaService.MachineDetailsCache.Values.Select(m =>
-        {
-            // O(1) hızında Dictionary araması
-            if (ScadaService.MachineData.TryGetValue(m.Id, out var liveStatus))
+        // DEĞİŞİKLİK 2: Makineleri Cache'den okurken, kullanıcının girdiği DisplayOrder'a göre sıralıyoruz.
+        // Sıfır (0) girilmişse en sona atıyoruz (999999), ardından aynı sıradakileri Id'ye göre sıralıyoruz.
+        AllMachines = ScadaService.MachineDetailsCache.Values
+            .OrderBy(m => m.DisplayOrder == 0 ? 999999 : m.DisplayOrder)
+            .ThenBy(m => m.Id)
+            .Select(m =>
             {
-                // Eğer canlı veride makine tipi boş geldiyse, tanımdan (Cache) doldur
-                if (string.IsNullOrEmpty(liveStatus.MakineTipi))
-                    liveStatus.MakineTipi = m.MachineSubType;
+                // O(1) hızında Dictionary araması
+                if (ScadaService.MachineData.TryGetValue(m.Id, out var liveStatus))
+                {
+                    // Eğer canlı veride makine tipi boş geldiyse, tanımdan (Cache) doldur
+                    if (string.IsNullOrEmpty(liveStatus.MakineTipi))
+                        liveStatus.MakineTipi = m.MachineSubType;
 
-                return liveStatus;
-            }
+                    return liveStatus;
+                }
 
-            // O an canlı verisi (SignalR vb.) yoksa varsayılan Offline kart oluştur
-            return new FullMachineStatus
-            {
-                MachineId = m.Id,
-                MachineName = m.MachineName,
-                MakineTipi = string.IsNullOrEmpty(m.MachineSubType) ? "Undefined" : m.MachineSubType,
-                ConnectionState = ConnectionStatus.Disconnected,
-                manuel_status = false
-            };
-        }).ToList();
+                // O an canlı verisi (SignalR vb.) yoksa varsayılan Offline kart oluştur
+                return new FullMachineStatus
+                {
+                    MachineId = m.Id,
+                    MachineName = m.MachineName,
+                    MakineTipi = string.IsNullOrEmpty(m.MachineSubType) ? "Undefined" : m.MachineSubType,
+                    ConnectionState = ConnectionStatus.Disconnected,
+                    manuel_status = false
+                };
+            }).ToList();
     }
 
     private async Task ForceRefresh()

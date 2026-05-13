@@ -143,18 +143,23 @@ namespace TekstilScada.WebApp.Services
                     options.HttpMessageHandlerFactory = (h) => { if (h is HttpClientHandler c) c.ServerCertificateCustomValidationCallback = (s, c2, ch, e) => true; return h; };
                     options.WebSocketConfiguration = w => { w.RemoteCertificateValidationCallback = (s, c, ch, e) => true; };
 
-                    // --- DEĞİŞİKLİK 1: 500 Makine için Buffer Artırımı (10MB) ---
-                    // Standart 32KB yetersiz kalabilir, büyük paketler için artırıyoruz.
+                    // 500 Makine için Buffer Artırımı (10MB)
                     options.ApplicationMaxBufferSize = 10 * 1024 * 1024;
                     options.TransportMaxBufferSize = 10 * 1024 * 1024;
                 })
-                .AddJsonProtocol(options => { options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles; options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true; })
+                // DEĞİŞİKLİK BURADA: JSON dönüşümünde her türlü harf büyüklüğünü (camelCase vs) es geçecek ayarlar
+                .AddJsonProtocol(options =>
+                {
+                    options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+                    options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+                    options.PayloadSerializerOptions.NumberHandling = JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.AllowNamedFloatingPointLiterals;
+                })
                 .WithAutomaticReconnect()
                 .Build();
 
             _hubConnection.On<TransferJob>("ReceiveFtpProgress", (job) => { if (job != null) OnFtpProgressReceived?.Invoke(job); });
 
-            // --- ESKİ YÖNTEM (Tekli Güncelleme - Geri Uyumluluk) ---
+            // --- ESKİ YÖNTEM (Tekli Güncelleme) ---
             _hubConnection.On<int, FullMachineStatus>("ReceiveMachineUpdate", (factoryId, status) =>
             {
                 if (status != null)
@@ -165,40 +170,56 @@ namespace TekstilScada.WebApp.Services
                         MachineData[status.MachineId] = status;
                         if (!MachineDetailsCache.ContainsKey(status.MachineId))
                         {
-                            MachineDetailsCache.TryAdd(status.MachineId, new Machine { Id = status.MachineId, MachineName = status.MachineName, MachineSubType = string.IsNullOrEmpty(status.MakineTipi) ? "Standart" : status.MakineTipi });
+                            // BURADA DISPLAY ORDER EŞLEŞTİRMESİ VAR (DOĞRU)
+                            MachineDetailsCache.TryAdd(status.MachineId, new Machine
+                            {
+                                Id = status.MachineId,
+                                MachineName = status.MachineName,
+                                MachineSubType = string.IsNullOrEmpty(status.MakineTipi) ? "Standart" : status.MakineTipi,
+                                DisplayOrder = status.DisplayOrder
+                            });
+                        }
+                        else
+                        {
+                            // Eğer cache'te varsa ama DisplayOrder 0 ise yine güncelle
+                            if (MachineDetailsCache[status.MachineId].DisplayOrder != status.DisplayOrder)
+                                MachineDetailsCache[status.MachineId].DisplayOrder = status.DisplayOrder;
                         }
                         OnDataUpdated?.Invoke();
                     }
                 }
             });
 
-            // --- DEĞİŞİKLİK 2: YENİ Toplu Güncelleme (Batch Update) Listener ---
-            // Gateway'den gelen 500 makinelik paket burada karşılanır.
+            // --- YENİ Toplu Güncelleme (Batch Update) Listener ---
             _hubConnection.On<int, List<FullMachineStatus>>("ReceiveMachineBatch", (factoryId, statusList) =>
             {
                 if (statusList != null && statusList.Count > 0)
                 {
-                    // Sadece seçili fabrika (veya hepsi) ise işle
                     if (_currentSelectedFactoryId == factoryId || _currentSelectedFactoryId == 0)
                     {
                         foreach (var status in statusList)
                         {
-                            // 1. Canlı veriyi güncelle
                             MachineData[status.MachineId] = status;
 
-                            // 2. Cache'te olmayan makine varsa ekle (Otomatik keşif)
                             if (!MachineDetailsCache.ContainsKey(status.MachineId))
                             {
                                 MachineDetailsCache.TryAdd(status.MachineId, new Machine
                                 {
                                     Id = status.MachineId,
                                     MachineName = status.MachineName,
-                                    MachineSubType = string.IsNullOrEmpty(status.MakineTipi) ? "Standart" : status.MakineTipi
+                                    MachineSubType = string.IsNullOrEmpty(status.MakineTipi) ? "Standart" : status.MakineTipi,
+                                    DisplayOrder = status.DisplayOrder // EŞLEŞTİRME BURADA DA VAR (DOĞRU)
                                 });
                             }
+                            else
+                            {
+                                // Eğer makine zaten cache'te varsa ama sonradan sıra numarası verildiyse güncelleyelim
+                                if (MachineDetailsCache[status.MachineId].DisplayOrder != status.DisplayOrder)
+                                {
+                                    MachineDetailsCache[status.MachineId].DisplayOrder = status.DisplayOrder;
+                                }
+                            }
                         }
-
-                        // Döngü bittikten sonra tek bir güncelleme eventi fırlat (UI donmasını engeller)
                         OnDataUpdated?.Invoke();
                     }
                 }
