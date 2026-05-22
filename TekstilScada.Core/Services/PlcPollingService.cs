@@ -21,7 +21,7 @@ namespace TekstilScada.Services
         public event Action<int, FullMachineStatus> OnMachineDataRefreshed;
         public event Action<int, FullMachineStatus> OnMachineConnectionStateChanged;
         public event Action<int, FullMachineStatus> OnActiveAlarmStateChanged;
-
+        private ConcurrentDictionary<int, Machine> _activeMachinesConfig;
         // --- OPTİMİZASYON: DB İŞLEM KUYRUĞU VE SCOPE YÖNETİMİ ---
         // Veritabanını korumak için sınırsız kapasiteli ama tek tüketiciye sahip asenkron kuyruk
         // Artık IServiceProvider alıyor ki her işlemde yepyeni bir DB bağlantısı açılabilsin.
@@ -139,7 +139,8 @@ namespace TekstilScada.Services
             LoadWaitingDefinitionsCache();
             // OPTİMİZASYON: Veritabanı Yazma İşçisini (Consumer) Arka Planda Başlat
             _ = Task.Run(() => ProcessDbOperationsQueueAsync(_cancellationTokenSource.Token));
-
+            // 1. Tüm Makineleri Hazırla adımının hemen üstüne ekleyin:
+            _activeMachinesConfig = new ConcurrentDictionary<int, Machine>(machines.ToDictionary(m => m.Id));
             // 1. Tüm Makineleri Hazırla (Manager oluştur, Cache doldur)
             foreach (var machine in machines)
             {
@@ -184,6 +185,14 @@ namespace TekstilScada.Services
 
             _loggingTimer = new System.Threading.Timer(LoggingTimer_Tick, null, 1000, Timeout.Infinite);
             _logger.LogInformation("{Count} makine için Polling Servisi başlatıldı. ({BatchCount} Grup Halinde)", machines.Count, machineBatches.Count);
+
+        }
+        public void UpdateMachineConfig(Machine updatedMachine)
+        {
+            if (_activeMachinesConfig != null && _activeMachinesConfig.ContainsKey(updatedMachine.Id))
+            {
+                _activeMachinesConfig[updatedMachine.Id] = updatedMachine;
+            }
         }
         static PlcPollingService()
         {
@@ -327,7 +336,12 @@ namespace TekstilScada.Services
                         newStatus.MachineId = machine.Id;
                         newStatus.MachineName = status.MachineName;
                         newStatus.MakineTipi = status.MakineTipi;
-                        newStatus.DisplayOrder = machine.DisplayOrder;
+                        if (_activeMachinesConfig.TryGetValue(machine.Id, out var currentMachineConfig))
+                        {
+                            newStatus.DisplayOrder = currentMachineConfig.DisplayOrder;
+                            // İsterseniz Makine Tipi'ni de güncel tutabilirsiniz:
+                            newStatus.MakineTipi = currentMachineConfig.MachineSubType;
+                        }
                         newStatus.ConnectionState = ConnectionStatus.Connected;
                         newStatus.AktifAdimAdi = GetStepTypeName(newStatus.AktifAdimTipiWordu);
                         CheckAndLogEfficiencyState(machine, newStatus);

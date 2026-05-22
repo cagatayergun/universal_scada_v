@@ -124,7 +124,7 @@
     <value>Add New Alarm</value>
   </data>
   <data name="AlarmNo" xml:space="preserve">
-    <value>Alarm Number</value>
+    <value>Alarm No</value>
   </data>
   <data name="AlarmMetni" xml:space="preserve">
     <value>Alarm Text</value>
@@ -367,7 +367,7 @@
     <value>Drying Parameters</value>
   </data>
   <data name="SicaklikC" xml:space="preserve">
-    <value>Temperature (°C):</value>
+    <value>Temperature (°C)</value>
   </data>
   <data name="NemYuzde" xml:space="preserve">
     <value>Moisture (%):</value>
@@ -430,13 +430,13 @@
     <value>Progress</value>
   </data>
   <data name="Recete" xml:space="preserve">
-    <value>Recipe:</value>
+    <value>RECIPE:</value>
   </data>
   <data name="Parti" xml:space="preserve">
-    <value>Batch:</value>
+    <value>BATCH:</value>
   </data>
   <data name="Adim" xml:space="preserve">
-    <value>Step:</value>
+    <value>Step</value>
   </data>
   <data name="Sicaklik" xml:space="preserve">
     <value>Temperature</value>
@@ -460,7 +460,7 @@
     <value>Machine ID (Short Code):</value>
   </data>
   <data name="MakineTipiLabel" xml:space="preserve">
-    <value>Machine Type:</value>
+    <value>Machine Type</value>
   </data>
   <data name="Seciniz" xml:space="preserve">
     <value>Select...</value>
@@ -1078,7 +1078,7 @@
     <value>Start - End</value>
   </data>
   <data name="BitisZamani" xml:space="preserve">
-    <value>Finish</value>
+    <value>End Time</value>
   </data>
   <data name="MakineLabel" xml:space="preserve">
     <value>Machine</value>
@@ -1186,7 +1186,7 @@
     <value>Manual Mode Usage Summary</value>
   </data>
   <data name="RaporAraligi" xml:space="preserve">
-    <value>Report Range:</value>
+    <value>Report Interval</value>
   </data>
   <data name="OrtalamaDevir" xml:space="preserve">
     <value>AVG SPEED</value>
@@ -1201,7 +1201,7 @@
     <value>Electricity (kW)</value>
   </data>
   <data name="SuLitre" xml:space="preserve">
-    <value>Water (Liter)</value>
+    <value>Water (Litre)</value>
   </data>
   <data name="SuLitre3" xml:space="preserve">
     <value>Water (m³)</value>
@@ -1572,286 +1572,223 @@
   <data name="KullaniciSilindi" xml:space="preserve">
     <value>User deleted.</value>
   </data>
-	<data name="OEEYuzde" xml:space="preserve">
+  <data name="OEEYuzde" xml:space="preserve">
     <value>OEE (%)</value>
   </data>
-	<data name="BirimKWh" xml:space="preserve">
+  <data name="BirimKWh" xml:space="preserve">
     <value>kWh</value>
   </data>
-	<data name="BirimLitre" xml:space="preserve">
+  <data name="BirimLitre" xml:space="preserve">
     <value>Liter</value>
   </data>
-	<data name="BirimKg" xml:space="preserve">
+  <data name="BirimKg" xml:space="preserve">
     <value>kg</value>
   </data>
-	<data name="Adim" xml:space="preserve">
-    <value>Step</value>
-  </data>
-	<data name="AdimSicaklikTrendi" xml:space="preserve">
+  <data name="AdimSicaklikTrendi" xml:space="preserve">
     <value>Step Temperature Trend</value>
   </data>
-	<data name="CanliTrend" xml:space="preserve">
+  <data name="CanliTrend" xml:space="preserve">
     <value>Live Trend</value>
   </data>
-	<data name="SicaklikDerece" xml:space="preserve">
+  <data name="SicaklikDerece" xml:space="preserve">
     <value>Temperature (°C)</value>
   </data>
-	<data name="DevirRPM" xml:space="preserve">
+  <data name="DevirRPM" xml:space="preserve">
     <value>RPM</value>
   </data>
-	<data name="DevirDd" xml:space="preserve">
+  <data name="DevirDd" xml:space="preserve">
     <value>RPM (d/d)</value>
   </data>
-	<data name="BirimDd" xml:space="preserve">
+  <data name="BirimDd" xml:space="preserve">
     <value>d/d</value>
   </data>
-	<data name="Seviye" xml:space="preserve">
+  <data name="Seviye" xml:space="preserve">
     <value>Level</value>
   </data>
-	<data name="BirimLtYuzde" xml:space="preserve">
+  <data name="BirimLtYuzde" xml:space="preserve">
     <value>Lt / %</value>
   </data>
-	<data name="SeviyeYuzde" xml:space="preserve">
+  <data name="SeviyeYuzde" xml:space="preserve">
     <value>Level (%)</value>
   </data>
-	<data name="SuSeviyesiYuzde" xml:space="preserve">
+  <data name="SuSeviyesiYuzde" xml:space="preserve">
     <value>Water Level (%)</value>
   </data>
-	<data name="BirimRPM" xml:space="preserve">
+  <data name="BirimRPM" xml:space="preserve">
     <value>RPM</value>
   </data>
-	<data name="UretimRaporu" xml:space="preserve">
+  <data name="UretimRaporu" xml:space="preserve">
     <value>Production Report</value>
   </data>
-	<data name="MakineAdi" xml:space="preserve">
-    <value>Machine Name</value>
-  </data>
-	<data name="ReceteAdi" xml:space="preserve">
-    <value>Recipe Name</value>
-  </data>
-	<data name="BatchNo" xml:space="preserve">
+  <data name="BatchNo" xml:space="preserve">
     <value>Batch No</value>
   </data>
-	<data name="Operator" xml:space="preserve">
+  <data name="Operator" xml:space="preserve">
     <value>Operator</value>
   </data>
-	<data name="Baslangic" xml:space="preserve">
+  <data name="Baslangic" xml:space="preserve">
     <value>Start</value>
   </data>
-	<data name="Bitis" xml:space="preserve">
+  <data name="Bitis" xml:space="preserve">
     <value>End</value>
   </data>
-	<data name="Sure" xml:space="preserve">
-    <value>Duration</value>
-  </data>
-	<data name="UretilenMiktar" xml:space="preserve">
+  <data name="UretilenMiktar" xml:space="preserve">
     <value>Produced Quantity</value>
   </data>
-	<data name="ToplamSuL" xml:space="preserve">
+  <data name="ToplamSuL" xml:space="preserve">
     <value>Total Water (L)</value>
   </data>
-	<data name="ToplamElektrikKW" xml:space="preserve">
+  <data name="ToplamElektrikKW" xml:space="preserve">
     <value>Total Electricity (kW)</value>
   </data>
-	<data name="AlarmRaporu" xml:space="preserve">
+  <data name="AlarmRaporu" xml:space="preserve">
     <value>Alarm Report</value>
   </data>
-	<data name="AlarmNo" xml:space="preserve">
-    <value>Alarm No</value>
-  </data>
-	<data name="AlarmAciklamasi" xml:space="preserve">
+  <data name="AlarmAciklamasi" xml:space="preserve">
     <value>Alarm Description</value>
   </data>
-	<data name="BaslangicZamani" xml:space="preserve">
-    <value>Start Time</value>
-  </data>
-	<data name="BitisZamani" xml:space="preserve">
-    <value>End Time</value>
-  </data>
-	<data name="OEERaporu" xml:space="preserve">
+  <data name="OEERaporu" xml:space="preserve">
     <value>OEE Report</value>
   </data>
-	<data name="KullanilabilirlikA" xml:space="preserve">
+  <data name="KullanilabilirlikA" xml:space="preserve">
     <value>Availability (A)</value>
   </data>
-	<data name="PerformansP" xml:space="preserve">
+  <data name="PerformansP" xml:space="preserve">
     <value>Performance (P)</value>
   </data>
-	<data name="KaliteQ" xml:space="preserve">
+  <data name="KaliteQ" xml:space="preserve">
     <value>Quality (Q)</value>
   </data>
-	<data name="OEEFormul" xml:space="preserve">
+  <data name="OEEFormul" xml:space="preserve">
     <value>OEE (A x P x Q)</value>
   </data>
-	<data name="ManuelTuketimOzeti" xml:space="preserve">
+  <data name="ManuelTuketimOzeti" xml:space="preserve">
     <value>Manual Consumption Summary</value>
   </data>
-	<data name="ManuelTuketimOzetiBaslik" xml:space="preserve">
+  <data name="ManuelTuketimOzetiBaslik" xml:space="preserve">
     <value>Manual Consumption Summary - {0}</value>
   </data>
-	<data name="RaporAraligi" xml:space="preserve">
-    <value>Report Interval</value>
-  </data>
-	<data name="ToplamManuelCalismaSuresi" xml:space="preserve">
+  <data name="ToplamManuelCalismaSuresi" xml:space="preserve">
     <value>Total Manual Runtime</value>
   </data>
-	<data name="OrtalamaSicaklikC" xml:space="preserve">
+  <data name="OrtalamaSicaklikC" xml:space="preserve">
     <value>Average Temperature (°C)</value>
   </data>
-	<data name="OrtalamaDevirRpm" xml:space="preserve">
+  <data name="OrtalamaDevirRpm" xml:space="preserve">
     <value>Average Speed (Rpm)</value>
   </data>
-	<data name="TuketimDegerleri" xml:space="preserve">
+  <data name="TuketimDegerleri" xml:space="preserve">
     <value>Consumption Values</value>
   </data>
-	<data name="ToplamSuTuketimiL" xml:space="preserve">
+  <data name="ToplamSuTuketimiL" xml:space="preserve">
     <value>Total Water Consumption (Litre)</value>
   </data>
-	<data name="ToplamElektrikTuketimiKW" xml:space="preserve">
+  <data name="ToplamElektrikTuketimiKW" xml:space="preserve">
     <value>Total Electricity Consumption (kW)</value>
   </data>
-	<data name="ToplamBuharTuketimiKg" xml:space="preserve">
+  <data name="ToplamBuharTuketimiKg" xml:space="preserve">
     <value>Total Steam Consumption (kg)</value>
   </data>
-	<data name="DetayliTuketim" xml:space="preserve">
+  <data name="DetayliTuketim" xml:space="preserve">
     <value>Detailed Consumption</value>
   </data>
-	<data name="SuLitre" xml:space="preserve">
-    <value>Water (Litre)</value>
-  </data>
-	<data name="BuharKg" xml:space="preserve">
-    <value>Steam (kg)</value>
-  </data>
-	<data name="TuketimDegeri" xml:space="preserve">
+  <data name="TuketimDegeri" xml:space="preserve">
     <value>Consumption Value</value>
   </data>
-	<data name="EylemKayitlari" xml:space="preserve">
+  <data name="EylemKayitlari" xml:space="preserve">
     <value>Action Logs</value>
   </data>
-	<data name="ZamanDamgasi" xml:space="preserve">
+  <data name="ZamanDamgasi" xml:space="preserve">
     <value>Timestamp</value>
   </data>
-	<data name="KullaniciAdi" xml:space="preserve">
-    <value>Username</value>
-  </data>
-	<data name="EylemTipi" xml:space="preserve">
+  <data name="EylemTipi" xml:space="preserve">
     <value>Action Type</value>
   </data>
-	<data name="Detaylar" xml:space="preserve">
-    <value>Details</value>
-  </data>
-	<data name="UretimDetayi" xml:space="preserve">
+  <data name="UretimDetayi" xml:space="preserve">
     <value>Production Detail</value>
   </data>
-	<data name="GenelBilgiler" xml:space="preserve">
-    <value>General Information</value>
-  </data>
-	<data name="BatchID" xml:space="preserve">
+  <data name="BatchID" xml:space="preserve">
     <value>Batch ID</value>
   </data>
-	<data name="MakineAlarmSuresiSn" xml:space="preserve">
+  <data name="MakineAlarmSuresiSn" xml:space="preserve">
     <value>Machine Alarm Duration (sec)</value>
   </data>
-	<data name="OperatorDuraklamaSuresiSn" xml:space="preserve">
+  <data name="OperatorDuraklamaSuresiSn" xml:space="preserve">
     <value>Operator Pause Duration (sec)</value>
   </data>
-	<data name="ToplamSure" xml:space="preserve">
-    <value>Total Duration</value>
-  </data>
-	<data name="AdimDetaylari" xml:space="preserve">
+  <data name="AdimDetaylari" xml:space="preserve">
     <value>Step Details</value>
   </data>
-	<data name="AdimNo" xml:space="preserve">
-    <value>Step No</value>
-  </data>
-	<data name="Aciklama" xml:space="preserve">
-    <value>Description</value>
-  </data>
-	<data name="TeorikSure" xml:space="preserve">
-    <value>Theoretical Duration</value>
-  </data>
-	<data name="GerceklesenSure" xml:space="preserve">
-    <value>Actual Duration</value>
-  </data>
-	<data name="SicaklikC" xml:space="preserve">
-    <value>Temperature (°C)</value>
-  </data>
-	<data name="AlarmDetaylari" xml:space="preserve">
+  <data name="AlarmDetaylari" xml:space="preserve">
     <value>Alarm Details</value>
   </data>
-	<data name="Tarih" xml:space="preserve">
-    <value>Date</value>
-  </data>
-	<data name="Tip" xml:space="preserve">
-    <value>Type</value>
-  </data>
-	<data name="Toplam" xml:space="preserve">
+  <data name="Toplam" xml:space="preserve">
     <value>Total</value>
   </data>
-	<data name="Min" xml:space="preserve">
+  <data name="Min" xml:space="preserve">
     <value>Min</value>
   </data>
-	<data name="Max" xml:space="preserve">
+  <data name="Max" xml:space="preserve">
     <value>Max</value>
   </data>
-	<data name="Ort" xml:space="preserve">
+  <data name="Ort" xml:space="preserve">
     <value>Avg</value>
   </data>
-	<data name="LutfenMakineSeciniz" xml:space="preserve">
+  <data name="LutfenMakineSeciniz" xml:space="preserve">
     <value>Please select a machine.</value>
   </data>
-	<data name="LutfenEnAzBirMakineSeciniz" xml:space="preserve">
+  <data name="LutfenEnAzBirMakineSeciniz" xml:space="preserve">
     <value>Please select at least one machine.</value>
   </data>
-	<data name="IndirilecekVeriYok" xml:space="preserve">
+  <data name="IndirilecekVeriYok" xml:space="preserve">
     <value>No data to download.</value>
   </data>
-	<data name="ExcelExportHatasi" xml:space="preserve">
+  <data name="ExcelExportHatasi" xml:space="preserve">
     <value>Excel export error</value>
   </data>
-	<data name="VerimlilikTab" xml:space="preserve">
+  <data name="VerimlilikTab" xml:space="preserve">
     <value>Efficiency and Status</value>
   </data>
-	<data name="SaatLabel" xml:space="preserve">
+  <data name="SaatLabel" xml:space="preserve">
     <value>Time</value>
   </data>
-	<data name="MakineTipiLabel" xml:space="preserve">
-    <value>Machine Type</value>
-  </data>
-	<data name="TumTipler" xml:space="preserve">
+  <data name="TumTipler" xml:space="preserve">
     <value>All Types</value>
   </data>
-	<data name="HizliAraPlaceholder" xml:space="preserve">
+  <data name="HizliAraPlaceholder" xml:space="preserve">
     <value>Quick Search (Machine, Status, Alarm)</value>
   </data>
-	<data name="CalismaAuto" xml:space="preserve">
+  <data name="CalismaAuto" xml:space="preserve">
     <value>AUTO</value>
   </data>
-	<data name="DurusIdle" xml:space="preserve">
+  <data name="DurusIdle" xml:space="preserve">
     <value>IDLE</value>
   </data>
-	<data name="ManuelKontrol" xml:space="preserve">
+  <data name="ManuelKontrol" xml:space="preserve">
     <value>MANUAL</value>
   </data>
-	<data name="VerimlilikLabel" xml:space="preserve">
+  <data name="VerimlilikLabel" xml:space="preserve">
     <value>EFFICIENCY</value>
   </data>
-	<data name="ZamanBazliUretimAkisi" xml:space="preserve">
+  <data name="ZamanBazliUretimAkisi" xml:space="preserve">
     <value>TIME-BASED PRODUCTION FLOW ANALYSIS</value>
   </data>
-	<data name="DurusDagilimi" xml:space="preserve">
+  <data name="DurusDagilimi" xml:space="preserve">
     <value>STOPPAGE DISTRIBUTION</value>
   </data>
-	<data name="VerimlilikDetaylariBaslik" xml:space="preserve">
+  <data name="VerimlilikDetaylariBaslik" xml:space="preserve">
     <value>Efficiency and Stoppage Details</value>
   </data>
-	<data name="ToplamKayit" xml:space="preserve">
+  <data name="ToplamKayit" xml:space="preserve">
     <value>Total Records</value>
   </data>
-	<data name="SureSaniye" xml:space="preserve">
+  <data name="SureSaniye" xml:space="preserve">
     <value>Duration (sec)</value>
   </data>
-	<data name="BitisZamani2" xml:space="preserve">
+  <data name="BitisZamani2" xml:space="preserve">
     <value>End Time</value>
+  </data>
+  <data name="CikisYap2" xml:space="preserve">
+    <value>Sign Out</value>
   </data>
 </root>

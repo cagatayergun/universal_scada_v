@@ -67,6 +67,7 @@ else
     private int selectedMachineId = 0;
     private bool isLoading = true;
     private bool _isDisposed = false;
+    
     // Veri Listesi
     private List<FullMachineStatus> AllMachines = new();
 
@@ -100,6 +101,7 @@ else
             {
                 foreach (var status in liveStatuses)
                 {
+                    // DÜZELTME 1: Dictionary'nin Key değeri DisplayOrder değil MachineId olmak ZORUNDADIR!
                     ScadaService.MachineData[status.MachineId] = status;
                 }
             }
@@ -137,33 +139,45 @@ else
 
     private void UpdateMachineData()
     {
-        // DEĞİŞİKLİK 2: Makineleri Cache'den okurken, kullanıcının girdiği DisplayOrder'a göre sıralıyoruz.
-        // Sıfır (0) girilmişse en sona atıyoruz (999999), ardından aynı sıradakileri Id'ye göre sıralıyoruz.
-        AllMachines = ScadaService.MachineDetailsCache.Values
-            .OrderBy(m => m.DisplayOrder == 0 ? 999999 : m.DisplayOrder)
-            .ThenBy(m => m.Id)
-            .Select(m =>
+        var tempList = new List<FullMachineStatus>();
+
+        // DEĞİŞİKLİK 2: Önce listeyi tamamen oluşturuyoruz, ardından FullMachineStatus nesnesinin
+        // kendi içindeki "DisplayOrder" değerine göre en son aşamada sıralıyoruz.
+        foreach (var m in ScadaService.MachineDetailsCache.Values)
+        {
+            if (ScadaService.MachineData.TryGetValue(m.Id, out var liveStatus))
             {
-                // O(1) hızında Dictionary araması
-                if (ScadaService.MachineData.TryGetValue(m.Id, out var liveStatus))
-                {
-                    // Eğer canlı veride makine tipi boş geldiyse, tanımdan (Cache) doldur
-                    if (string.IsNullOrEmpty(liveStatus.MakineTipi))
-                        liveStatus.MakineTipi = m.MachineSubType;
+                // Eğer canlı veride makine tipi boş geldiyse, tanımdan (Cache) doldur
+                if (string.IsNullOrEmpty(liveStatus.MakineTipi))
+                    liveStatus.MakineTipi = m.MachineSubType;
+                    
+                // Güvenlik: Eğer canlı veriden DisplayOrder 0 gelirse, veritabanı cache'inden tamamla
+                if (liveStatus.DisplayOrder <= 0 && m.DisplayOrder > 0)
+                    liveStatus.DisplayOrder = m.DisplayOrder;
 
-                    return liveStatus;
-                }
-
+                tempList.Add(liveStatus);
+            }
+            else
+            {
                 // O an canlı verisi (SignalR vb.) yoksa varsayılan Offline kart oluştur
-                return new FullMachineStatus
+                tempList.Add(new FullMachineStatus
                 {
                     MachineId = m.Id,
                     MachineName = m.MachineName,
                     MakineTipi = string.IsNullOrEmpty(m.MachineSubType) ? "Undefined" : m.MachineSubType,
                     ConnectionState = ConnectionStatus.Disconnected,
+                    DisplayOrder = m.DisplayOrder, // Çevrimdışı olsa bile sıralama yerini korusun
                     manuel_status = false
-                };
-            }).ToList();
+                });
+            }
+        }
+
+        // 3. OLUŞAN NİHAİ LİSTEYİ SIRALA
+        // Sıfır (0) veya eksi girilmişse en sona (999999) atıyoruz, ardından Id'ye göre sıralıyoruz.
+        AllMachines = tempList
+            .OrderBy(x => x.DisplayOrder <= 0 ? 999999 : x.DisplayOrder)
+            .ThenBy(x => x.MachineId)
+            .ToList();
     }
 
     private async Task ForceRefresh()

@@ -48,7 +48,7 @@ namespace TekstilScada.UI.Controls
             this.MachineName = machineName;
             this.MachineType = machineType; // Makine tipini kaydet
             lblMachineNumber.Text = $"{displayIndex}.";
-
+          
             // YENİ: Makine Tipi "Kurutma" ise ilgili kontrolleri gizle
             if (this.MachineType == "Kurutma Makinesi")
             {

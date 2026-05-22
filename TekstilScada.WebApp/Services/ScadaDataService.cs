@@ -162,28 +162,15 @@ namespace TekstilScada.WebApp.Services
             // --- ESKİ YÖNTEM (Tekli Güncelleme) ---
             _hubConnection.On<int, FullMachineStatus>("ReceiveMachineUpdate", (factoryId, status) =>
             {
-                if (status != null)
+            if (status != null)
+            {
+                _onMachineUpdate?.Invoke(factoryId, status);
+                if (_currentSelectedFactoryId == factoryId || _currentSelectedFactoryId == 0)
                 {
-                    _onMachineUpdate?.Invoke(factoryId, status);
-                    if (_currentSelectedFactoryId == factoryId || _currentSelectedFactoryId == 0)
+                    MachineData[status.MachineId] = status;
+                    if (!MachineDetailsCache.ContainsKey(status.MachineId))
                     {
-                        MachineData[status.MachineId] = status;
-                        if (!MachineDetailsCache.ContainsKey(status.MachineId))
-                        {
-                            // BURADA DISPLAY ORDER EŞLEŞTİRMESİ VAR (DOĞRU)
-                            MachineDetailsCache.TryAdd(status.MachineId, new Machine
-                            {
-                                Id = status.MachineId,
-                                MachineName = status.MachineName,
-                                MachineSubType = string.IsNullOrEmpty(status.MakineTipi) ? "Standart" : status.MakineTipi,
-                                DisplayOrder = status.DisplayOrder
-                            });
-                        }
-                        else
-                        {
-                            // Eğer cache'te varsa ama DisplayOrder 0 ise yine güncelle
-                            if (MachineDetailsCache[status.MachineId].DisplayOrder != status.DisplayOrder)
-                                MachineDetailsCache[status.MachineId].DisplayOrder = status.DisplayOrder;
+                        MachineDetailsCache.TryAdd(status.MachineId, new Machine { Id = status.MachineId, MachineName = status.MachineName, MachineSubType = string.IsNullOrEmpty(status.MakineTipi) ? "Standart" : status.MakineTipi });
                         }
                         OnDataUpdated?.Invoke();
                     }
@@ -195,31 +182,27 @@ namespace TekstilScada.WebApp.Services
             {
                 if (statusList != null && statusList.Count > 0)
                 {
+                    // Sadece seçili fabrika (veya hepsi) ise işle
                     if (_currentSelectedFactoryId == factoryId || _currentSelectedFactoryId == 0)
                     {
                         foreach (var status in statusList)
                         {
+                            // 1. Canlı veriyi güncelle
                             MachineData[status.MachineId] = status;
 
+                            // 2. Cache'te olmayan makine varsa ekle (Otomatik keşif)
                             if (!MachineDetailsCache.ContainsKey(status.MachineId))
                             {
                                 MachineDetailsCache.TryAdd(status.MachineId, new Machine
                                 {
                                     Id = status.MachineId,
                                     MachineName = status.MachineName,
-                                    MachineSubType = string.IsNullOrEmpty(status.MakineTipi) ? "Standart" : status.MakineTipi,
-                                    DisplayOrder = status.DisplayOrder // EŞLEŞTİRME BURADA DA VAR (DOĞRU)
+                                    MachineSubType = string.IsNullOrEmpty(status.MakineTipi) ? "Standart" : status.MakineTipi
                                 });
                             }
-                            else
-                            {
-                                // Eğer makine zaten cache'te varsa ama sonradan sıra numarası verildiyse güncelleyelim
-                                if (MachineDetailsCache[status.MachineId].DisplayOrder != status.DisplayOrder)
-                                {
-                                    MachineDetailsCache[status.MachineId].DisplayOrder = status.DisplayOrder;
-                                }
-                            }
                         }
+
+                        // Döngü bittikten sonra tek bir güncelleme eventi fırlat (UI donmasını engeller)
                         OnDataUpdated?.Invoke();
                     }
                 }

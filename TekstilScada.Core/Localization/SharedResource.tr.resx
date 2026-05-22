@@ -124,7 +124,7 @@
     <value>Yeni Alarm Ekle</value>
   </data>
   <data name="AlarmNo" xml:space="preserve">
-    <value>Alarm Numarası</value>
+    <value>Alarm No</value>
   </data>
   <data name="AlarmMetni" xml:space="preserve">
     <value>Alarm Metni</value>
@@ -367,7 +367,7 @@
     <value>Kurutma Parametreleri</value>
   </data>
   <data name="SicaklikC" xml:space="preserve">
-    <value>Sıcaklık (°C):</value>
+    <value>Sıcaklık (°C)</value>
   </data>
   <data name="NemYuzde" xml:space="preserve">
     <value>Nem (%):</value>
@@ -430,13 +430,13 @@
     <value>İlerleme</value>
   </data>
   <data name="Recete" xml:space="preserve">
-    <value>Reçete:</value>
+    <value>REÇETE:</value>
   </data>
   <data name="Parti" xml:space="preserve">
-    <value>Parti:</value>
+    <value>PARTİ:</value>
   </data>
   <data name="Adim" xml:space="preserve">
-    <value>Adım:</value>
+    <value>Adım</value>
   </data>
   <data name="Sicaklik" xml:space="preserve">
     <value>Sıcaklık</value>
@@ -460,7 +460,7 @@
     <value>Makine ID (Kısa Kod):</value>
   </data>
   <data name="MakineTipiLabel" xml:space="preserve">
-    <value>Makine Tipi:</value>
+    <value>Makine Tipi</value>
   </data>
   <data name="Seciniz" xml:space="preserve">
     <value>Seçiniz...</value>
@@ -1078,7 +1078,7 @@
     <value>Başlangıç - Bitiş</value>
   </data>
   <data name="BitisZamani" xml:space="preserve">
-    <value>End Time</value>
+    <value>Bitiş Zamanı</value>
   </data>
   <data name="MakineLabel" xml:space="preserve">
     <value>Makine</value>
@@ -1186,7 +1186,7 @@
     <value>Manuel Mod Kullanım Özeti</value>
   </data>
   <data name="RaporAraligi" xml:space="preserve">
-    <value>Rapor Aralığı:</value>
+    <value>Rapor Aralığı</value>
   </data>
   <data name="OrtalamaDevir" xml:space="preserve">
     <value>ORTALAMA DEVİR</value>
@@ -1294,7 +1294,7 @@
     <value>Recipe Name</value>
   </data>
   <data name="ToplamSure" xml:space="preserve">
-    <value>Total Duration</value>
+    <value>Toplam Süre</value>
   </data>
   <data name="ExceleAktar" xml:space="preserve">
     <value>Export to Excel</value>
@@ -1315,19 +1315,19 @@
     <value>Step Details</value>
   </data>
   <data name="AdimNo" xml:space="preserve">
-    <value>Step No</value>
+    <value>Adım No</value>
   </data>
   <data name="TeorikSure" xml:space="preserve">
-    <value>Theoretical Duration</value>
+    <value>Teorik Süre</value>
   </data>
   <data name="GerceklesenSure" xml:space="preserve">
-    <value>Actual Duration</value>
+    <value>Gerçekleşen Süre</value>
   </data>
   <data name="Tarih" xml:space="preserve">
-    <value>Date</value>
+    <value>Tarih</value>
   </data>
   <data name="Tip" xml:space="preserve">
-    <value>Type</value>
+    <value>Tip</value>
   </data>
   <data name="UretimDetaylariYukleniyor" xml:space="preserve">
     <value>Loading production details...</value>
@@ -1572,256 +1572,223 @@
   <data name="KullaniciSilindi" xml:space="preserve">
     <value>Kullanıcı silindi.</value>
   </data>
-	<data name="OEEYuzde" xml:space="preserve">
+  <data name="OEEYuzde" xml:space="preserve">
     <value>OEE (%)</value>
   </data>
-	<data name="BirimKWh" xml:space="preserve">
+  <data name="BirimKWh" xml:space="preserve">
     <value>kWh</value>
   </data>
-	<data name="BirimLitre" xml:space="preserve">
+  <data name="BirimLitre" xml:space="preserve">
     <value>Litre</value>
   </data>
-	<data name="BirimKg" xml:space="preserve">
+  <data name="BirimKg" xml:space="preserve">
     <value>kg</value>
   </data>
-	<data name="Adim" xml:space="preserve">
-    <value>Adım</value>
-  </data>
-	<data name="AdimSicaklikTrendi" xml:space="preserve">
+  <data name="AdimSicaklikTrendi" xml:space="preserve">
     <value>Adım Sıcaklık Trendi</value>
   </data>
-	<data name="CanliTrend" xml:space="preserve">
+  <data name="CanliTrend" xml:space="preserve">
     <value>Canlı Trend</value>
   </data>
-	<data name="SicaklikDerece" xml:space="preserve">
+  <data name="SicaklikDerece" xml:space="preserve">
     <value>Sıcaklık (°C)</value>
   </data>
-	<data name="DevirRPM" xml:space="preserve">
+  <data name="DevirRPM" xml:space="preserve">
     <value>Devir (RPM)</value>
   </data>
-	<data name="DevirDd" xml:space="preserve">
+  <data name="DevirDd" xml:space="preserve">
     <value>Devir (d/d)</value>
   </data>
-	<data name="BirimDd" xml:space="preserve">
+  <data name="BirimDd" xml:space="preserve">
     <value>d/d</value>
   </data>
-	<data name="Seviye" xml:space="preserve">
+  <data name="Seviye" xml:space="preserve">
     <value>Seviye</value>
   </data>
-	<data name="BirimLtYuzde" xml:space="preserve">
+  <data name="BirimLtYuzde" xml:space="preserve">
     <value>Lt / %</value>
   </data>
-	<data name="SeviyeYuzde" xml:space="preserve">
+  <data name="SeviyeYuzde" xml:space="preserve">
     <value>Seviye (%)</value>
   </data>
-	<data name="SuSeviyesiYuzde" xml:space="preserve">
+  <data name="SuSeviyesiYuzde" xml:space="preserve">
     <value>Su Seviyesi (%)</value>
   </data>
-	<data name="BirimRPM" xml:space="preserve">
+  <data name="BirimRPM" xml:space="preserve">
     <value>RPM</value>
   </data>
-	<data name="UretimRaporu" xml:space="preserve">
+  <data name="UretimRaporu" xml:space="preserve">
     <value>Üretim Raporu</value>
   </data>
-	<data name="MakineAdi" xml:space="preserve">
-    <value>Makine Adı</value>
-  </data>
-	<data name="ReceteAdi" xml:space="preserve">
-    <value>Reçete Adı</value>
-  </data>
-	<data name="BatchNo" xml:space="preserve">
+  <data name="BatchNo" xml:space="preserve">
     <value>Batch No</value>
   </data>
-	<data name="Operator" xml:space="preserve">
+  <data name="Operator" xml:space="preserve">
     <value>Operatör</value>
   </data>
-	<data name="Baslangic" xml:space="preserve">
+  <data name="Baslangic" xml:space="preserve">
     <value>Başlangıç</value>
   </data>
-	<data name="Bitis" xml:space="preserve">
+  <data name="Bitis" xml:space="preserve">
     <value>Bitiş</value>
   </data>
-	<data name="Sure" xml:space="preserve">
-    <value>Süre</value>
-  </data>
-	<data name="UretilenMiktar" xml:space="preserve">
+  <data name="UretilenMiktar" xml:space="preserve">
     <value>Üretilen Miktar</value>
   </data>
-	<data name="ToplamSuL" xml:space="preserve">
+  <data name="ToplamSuL" xml:space="preserve">
     <value>Toplam Su (L)</value>
   </data>
-	<data name="ToplamElektrikKW" xml:space="preserve">
+  <data name="ToplamElektrikKW" xml:space="preserve">
     <value>Toplam Elektrik (kW)</value>
   </data>
-	<data name="AlarmRaporu" xml:space="preserve">
+  <data name="AlarmRaporu" xml:space="preserve">
     <value>Alarm Raporu</value>
   </data>
-	<data name="AlarmNo" xml:space="preserve">
-    <value>Alarm No</value>
-  </data>
-	<data name="AlarmAciklamasi" xml:space="preserve">
+  <data name="AlarmAciklamasi" xml:space="preserve">
     <value>Alarm Açıklaması</value>
   </data>
-	<data name="BaslangicZamani" xml:space="preserve">
-    <value>Başlangıç Zamanı</value>
-  </data>
-	<data name="BitisZamani" xml:space="preserve">
-    <value>Bitiş Zamanı</value>
-  </data>
-	<data name="OEERaporu" xml:space="preserve">
+  <data name="OEERaporu" xml:space="preserve">
     <value>OEE Raporu</value>
   </data>
-	<data name="KullanilabilirlikA" xml:space="preserve">
+  <data name="KullanilabilirlikA" xml:space="preserve">
     <value>Kullanılabilirlik (A)</value>
   </data>
-	<data name="PerformansP" xml:space="preserve">
+  <data name="PerformansP" xml:space="preserve">
     <value>Performans (P)</value>
   </data>
-	<data name="KaliteQ" xml:space="preserve">
+  <data name="KaliteQ" xml:space="preserve">
     <value>Kalite (Q)</value>
   </data>
-	<data name="OEEFormul" xml:space="preserve">
+  <data name="OEEFormul" xml:space="preserve">
     <value>OEE (A x P x Q)</value>
   </data>
-	<data name="ManuelTuketimOzeti" xml:space="preserve">
+  <data name="ManuelTuketimOzeti" xml:space="preserve">
     <value>Manuel Tüketim Özeti</value>
   </data>
-	<data name="ManuelTuketimOzetiBaslik" xml:space="preserve">
+  <data name="ManuelTuketimOzetiBaslik" xml:space="preserve">
     <value>Manuel Tüketim Özeti - {0}</value>
   </data>
-	<data name="RaporAraligi" xml:space="preserve">
-    <value>Rapor Aralığı</value>
-  </data>
-	<data name="ToplamManuelCalismaSuresi" xml:space="preserve">
+  <data name="ToplamManuelCalismaSuresi" xml:space="preserve">
     <value>Toplam Manuel Çalışma Süresi</value>
   </data>
-	<data name="OrtalamaSicaklikC" xml:space="preserve">
+  <data name="OrtalamaSicaklikC" xml:space="preserve">
     <value>Ortalama Sıcaklık (°C)</value>
   </data>
-	<data name="OrtalamaDevirRpm" xml:space="preserve">
+  <data name="OrtalamaDevirRpm" xml:space="preserve">
     <value>Ortalama Devir (Rpm)</value>
   </data>
-	<data name="TuketimDegerleri" xml:space="preserve">
+  <data name="TuketimDegerleri" xml:space="preserve">
     <value>Tüketim Değerleri</value>
   </data>
-	<data name="ToplamSuTuketimiL" xml:space="preserve">
+  <data name="ToplamSuTuketimiL" xml:space="preserve">
     <value>Toplam Su Tüketimi (Litre)</value>
   </data>
-	<data name="ToplamElektrikTuketimiKW" xml:space="preserve">
+  <data name="ToplamElektrikTuketimiKW" xml:space="preserve">
     <value>Toplam Elektrik Tüketimi (kW)</value>
   </data>
-	<data name="ToplamBuharTuketimiKg" xml:space="preserve">
+  <data name="ToplamBuharTuketimiKg" xml:space="preserve">
     <value>Toplam Buhar Tüketimi (kg)</value>
   </data>
-	<data name="DetayliTuketim" xml:space="preserve">
+  <data name="DetayliTuketim" xml:space="preserve">
     <value>Detaylı Tüketim</value>
   </data>
-	<data name="SuLitre" xml:space="preserve">
-    <value>Su (Litre)</value>
-  </data>
-	
-	<data name="BuharKg" xml:space="preserve">
-    <value>Buhar (kg)</value>
-  </data>
-	<data name="TuketimDegeri" xml:space="preserve">
+  <data name="TuketimDegeri" xml:space="preserve">
     <value>Tüketim Değeri</value>
   </data>
-	<data name="EylemKayitlari" xml:space="preserve">
+  <data name="EylemKayitlari" xml:space="preserve">
     <value>Eylem Kayıtları</value>
   </data>
-	<data name="ZamanDamgasi" xml:space="preserve">
+  <data name="ZamanDamgasi" xml:space="preserve">
     <value>Zaman Damgası</value>
   </data>
-	<data name="KullaniciAdi" xml:space="preserve">
-    <value>Kullanıcı Adı</value>
-  </data>
-	<data name="EylemTipi" xml:space="preserve">
+  <data name="EylemTipi" xml:space="preserve">
     <value>Eylem Tipi</value>
   </data>
-	<data name="Detaylar" xml:space="preserve">
-    <value>Detaylar</value>
-  </data>
-	<data name="UretimDetayi" xml:space="preserve">
+  <data name="UretimDetayi" xml:space="preserve">
     <value>Üretim Detayı</value>
   </data>
-	<data name="GenelBilgiler" xml:space="preserve">
-    <value>Genel Bilgiler</value>
-  </data>
-	<data name="BatchID" xml:space="preserve">
+  <data name="BatchID" xml:space="preserve">
     <value>Batch ID</value>
   </data>
-	<data name="MakineAlarmSuresiSn" xml:space="preserve">
+  <data name="MakineAlarmSuresiSn" xml:space="preserve">
     <value>Makine Alarm Süresi (sn)</value>
   </data>
-	<data name="OperatorDuraklamaSuresiSn" xml:space="preserve">
+  <data name="OperatorDuraklamaSuresiSn" xml:space="preserve">
     <value>Operatör Duraklama Süresi (sn)</value>
   </data>
-	<data name="ToplamSure" xml:space="preserve">
-    <value>Toplam Süre</value>
-  </data>
-	<data name="AdimDetaylari" xml:space="preserve">
+  <data name="AdimDetaylari" xml:space="preserve">
     <value>Adım Detayları</value>
   </data>
-	<data name="AdimNo" xml:space="preserve">
-    <value>Adım No</value>
-  </data>
-	<data name="Aciklama" xml:space="preserve">
-    <value>Açıklama</value>
-  </data>
-	<data name="TeorikSure" xml:space="preserve">
-    <value>Teorik Süre</value>
-  </data>
-	<data name="GerceklesenSure" xml:space="preserve">
-    <value>Gerçekleşen Süre</value>
-  </data>
-	<data name="SicaklikC" xml:space="preserve">
-    <value>Sıcaklık (°C)</value>
-  </data>
-	<data name="AlarmDetaylari" xml:space="preserve">
+  <data name="AlarmDetaylari" xml:space="preserve">
     <value>Alarm Detayları</value>
   </data>
-	<data name="Tarih" xml:space="preserve">
-    <value>Tarih</value>
-  </data>
-	<data name="Tip" xml:space="preserve">
-    <value>Tip</value>
-  </data>
-	<data name="Toplam" xml:space="preserve">
+  <data name="Toplam" xml:space="preserve">
     <value>Toplam</value>
   </data>
-	<data name="Min" xml:space="preserve">
+  <data name="Min" xml:space="preserve">
     <value>Min</value>
   </data>
-	<data name="Max" xml:space="preserve">
+  <data name="Max" xml:space="preserve">
     <value>Maks</value>
   </data>
-	<data name="Ort" xml:space="preserve">
+  <data name="Ort" xml:space="preserve">
     <value>Ort</value>
   </data>
-	<data name="LutfenMakineSeciniz" xml:space="preserve">
+  <data name="LutfenMakineSeciniz" xml:space="preserve">
     <value>Lütfen bir makine seçiniz.</value>
   </data>
-	<data name="LutfenEnAzBirMakineSeciniz" xml:space="preserve">
+  <data name="LutfenEnAzBirMakineSeciniz" xml:space="preserve">
     <value>Lütfen en az bir makine seçiniz.</value>
   </data>
-	<data name="IndirilecekVeriYok" xml:space="preserve">
+  <data name="IndirilecekVeriYok" xml:space="preserve">
     <value>İndirilecek veri yok.</value>
   </data>
-	<data name="ExcelExportHatasi" xml:space="preserve">
+  <data name="ExcelExportHatasi" xml:space="preserve">
     <value>Excel export hatası</value>
   </data>
-	<data name="VerimlilikTab" xml:space="preserve">  <value>Verimlilik ve Durum</value></data>
-	<data name="SaatLabel" xml:space="preserve">  <value>Saat</value></data>
-	<data name="MakineTipiLabel" xml:space="preserve">  <value>Makine Tipi</value></data>
-	<data name="TumTipler" xml:space="preserve">  <value>Tüm Tipler</value></data>
-	<data name="HizliAraPlaceholder" xml:space="preserve">  <value>Hızlı Ara (Makine, Durum, Alarm)</value></data>
-	<data name="CalismaAuto" xml:space="preserve">  <value>OTOMATİK</value></data>
-	<data name="DurusIdle" xml:space="preserve">  <value>BOŞTA</value></data>
-	<data name="ManuelKontrol" xml:space="preserve">  <value>MANUEL</value></data>
-	<data name="VerimlilikLabel" xml:space="preserve">  <value>VERİMLİLİK</value></data>
-	<data name="ZamanBazliUretimAkisi" xml:space="preserve">  <value>ZAMAN BAZLI ÜRETİM AKIŞ ANALİZİ</value></data>
-	<data name="DurusDagilimi" xml:space="preserve">  <value>DURUŞ DAĞILIMI</value></data>
-	<data name="VerimlilikDetaylariBaslik" xml:space="preserve">  <value>Verimlilik ve Duruş Detayları</value></data>
-	<data name="ToplamKayit" xml:space="preserve">  <value>Toplam Kayıt</value></data>
-	<data name="SureSaniye" xml:space="preserve">  <value>Süre (sn)</value></data>
+  <data name="VerimlilikTab" xml:space="preserve">
+    <value>Verimlilik ve Durum</value>
+  </data>
+  <data name="SaatLabel" xml:space="preserve">
+    <value>Saat</value>
+  </data>
+  <data name="TumTipler" xml:space="preserve">
+    <value>Tüm Tipler</value>
+  </data>
+  <data name="HizliAraPlaceholder" xml:space="preserve">
+    <value>Hızlı Ara (Makine, Durum, Alarm)</value>
+  </data>
+  <data name="CalismaAuto" xml:space="preserve">
+    <value>OTOMATİK</value>
+  </data>
+  <data name="DurusIdle" xml:space="preserve">
+    <value>BOŞTA</value>
+  </data>
+  <data name="ManuelKontrol" xml:space="preserve">
+    <value>MANUEL</value>
+  </data>
+  <data name="VerimlilikLabel" xml:space="preserve">
+    <value>VERİMLİLİK</value>
+  </data>
+  <data name="ZamanBazliUretimAkisi" xml:space="preserve">
+    <value>ZAMAN BAZLI ÜRETİM AKIŞ ANALİZİ</value>
+  </data>
+  <data name="DurusDagilimi" xml:space="preserve">
+    <value>DURUŞ DAĞILIMI</value>
+  </data>
+  <data name="VerimlilikDetaylariBaslik" xml:space="preserve">
+    <value>Verimlilik ve Duruş Detayları</value>
+  </data>
+  <data name="ToplamKayit" xml:space="preserve">
+    <value>Toplam Kayıt</value>
+  </data>
+  <data name="SureSaniye" xml:space="preserve">
+    <value>Süre (sn)</value>
+  </data>
+  <data name="BitisZamani2" xml:space="preserve">
+    <value>Bitiş Zamanı</value>
+  </data>
+  <data name="CikisYap2" xml:space="preserve">
+    <value>Çıkış Yap</value>
+  </data>
 </root>

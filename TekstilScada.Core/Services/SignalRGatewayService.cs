@@ -144,6 +144,7 @@ namespace TekstilScada.Services
         // --- DISPATCHER (YENİ: Command Pattern için Sözlük) ---
         // Metot isminden çalıştırılacak fonksiyona haritalama yapar.
         private readonly Dictionary<string, Func<object[], Task<object>>> _requestHandlers;
+
         private readonly ConcurrentDictionary<int, FullMachineStatus> _bufferedMachineStatuses = new();
 
         // Gönderim Döngüsü için Cancellation Token
@@ -298,7 +299,7 @@ namespace TekstilScada.Services
                 int mId = GetArg<int>(args, 0);
                 return await RunDb(() => {
                     var m = _machineRepo.GetAllMachines().Find(x => x.Id == mId);
-                    return m != null ? new FullMachineStatus { MachineId = m.Id, MachineName = m.MachineName, MakineTipi = m.MachineSubType, DisplayOrder = m.DisplayOrder } : null;
+                    return m != null ? new FullMachineStatus { MachineId = m.Id, MachineName = m.MachineName, MakineTipi = m.MachineSubType } : null;
                 });
             };
             _requestHandlers["AddMachine"] = async args => await RunDb(() => { _machineRepo.AddMachine(GetArg<Machine>(args, 0)); return true; });

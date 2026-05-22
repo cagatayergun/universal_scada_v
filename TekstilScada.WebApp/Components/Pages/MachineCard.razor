@@ -173,15 +173,20 @@
     [Parameter] public EventCallback<int> OnInfoClick { get; set; }
 
     // --- YENİ EKLENEN METOT ---
+    // --- YENİ EKLENEN METOT ---
     private int GetDisplayOrder()
     {
-        // Makinenin özelliklerini önbellekten arıyoruz
+        // 1. Eğer canlı akıştan DisplayOrder düzgün (>0) geldiyse onu kullan
+        if (MachineStatus.DisplayOrder > 0)
+            return MachineStatus.DisplayOrder;
+
+        // 2. Yoksa, önbellekten (DB'den en son çekilen) haline bak
         if (ScadaService.MachineDetailsCache.TryGetValue(MachineStatus.MachineId, out var machineInfo))
         {
-            // Eğer DisplayOrder girilmişse onu göster, girilmemişse (0 ise) orijinal ID'sini göster
             return machineInfo.DisplayOrder > 0 ? machineInfo.DisplayOrder : machineInfo.Id;
         }
-        
+    
+        // 3. Hiçbir yerde yoksa mecburen ID dön
         return MachineStatus.MachineId;
     }
 
