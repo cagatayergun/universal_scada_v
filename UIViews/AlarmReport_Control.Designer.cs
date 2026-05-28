@@ -1,7 +1,5 @@
-﻿// UI/Views/AlarmReport_Control.Designer.cs
-namespace TekstilScada.UI.Views
+﻿namespace TekstilScada.UI.Views
 {
-    // DÜZELTME: Sınıfın bir UserControl'den türediğini belirtiyoruz.
     partial class AlarmReport_Control
     {
         private System.ComponentModel.IContainer components = null;
@@ -25,8 +23,13 @@ namespace TekstilScada.UI.Views
             label1 = new Label();
             btnExportToExcel = new Button();
             dgvAlarmReport = new DataGridView();
+            pnlPagination = new Panel();
+            btnPrev = new Button();
+            lblPageInfo = new Label();
+            btnNext = new Button();
             pnlFilters.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvAlarmReport).BeginInit();
+            pnlPagination.SuspendLayout();
             SuspendLayout();
             // 
             // pnlFilters
@@ -138,14 +141,57 @@ namespace TekstilScada.UI.Views
             dgvAlarmReport.ReadOnly = true;
             dgvAlarmReport.RowHeadersWidth = 51;
             dgvAlarmReport.RowTemplate.Height = 29;
-            dgvAlarmReport.Size = new Size(929, 405);
+            dgvAlarmReport.Size = new Size(929, 365);
             dgvAlarmReport.TabIndex = 1;
+            // 
+            // pnlPagination
+            // 
+            pnlPagination.Controls.Add(btnPrev);
+            pnlPagination.Controls.Add(lblPageInfo);
+            pnlPagination.Controls.Add(btnNext);
+            pnlPagination.Dock = DockStyle.Bottom;
+            pnlPagination.Location = new Point(0, 410);
+            pnlPagination.Margin = new Padding(3, 2, 3, 2);
+            pnlPagination.Name = "pnlPagination";
+            pnlPagination.Size = new Size(929, 40);
+            pnlPagination.TabIndex = 2;
+            // 
+            // btnPrev
+            // 
+            btnPrev.Location = new Point(6, 9);
+            btnPrev.Name = "btnPrev";
+            btnPrev.Size = new Size(88, 23);
+            btnPrev.TabIndex = 0;
+            btnPrev.Text = "< Back";
+            btnPrev.UseVisualStyleBackColor = true;
+            btnPrev.Click += btnPrev_Click;
+            // 
+            // lblPageInfo
+            // 
+            lblPageInfo.AutoSize = true;
+            lblPageInfo.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblPageInfo.Location = new Point(105, 13);
+            lblPageInfo.Name = "lblPageInfo";
+            lblPageInfo.Size = new Size(132, 15);
+            lblPageInfo.TabIndex = 1;
+            lblPageInfo.Text = "Sayfa: 1 / 1 (Toplam: 0)";
+            // 
+            // btnNext
+            // 
+            btnNext.Location = new Point(320, 9);
+            btnNext.Name = "btnNext";
+            btnNext.Size = new Size(88, 23);
+            btnNext.TabIndex = 2;
+            btnNext.Text = "Next >";
+            btnNext.UseVisualStyleBackColor = true;
+            btnNext.Click += btnNext_Click;
             // 
             // AlarmReport_Control
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             Controls.Add(dgvAlarmReport);
+            Controls.Add(pnlPagination);
             Controls.Add(pnlFilters);
             Margin = new Padding(3, 2, 3, 2);
             Name = "AlarmReport_Control";
@@ -154,9 +200,12 @@ namespace TekstilScada.UI.Views
             pnlFilters.ResumeLayout(false);
             pnlFilters.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)dgvAlarmReport).EndInit();
+            pnlPagination.ResumeLayout(false);
+            pnlPagination.PerformLayout();
             ResumeLayout(false);
         }
         #endregion
+
         private System.Windows.Forms.Panel pnlFilters;
         private System.Windows.Forms.Button btnGenerateReport;
         private System.Windows.Forms.ComboBox cmbMachines;
@@ -167,5 +216,11 @@ namespace TekstilScada.UI.Views
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.DataGridView dgvAlarmReport;
         private System.Windows.Forms.Button btnExportToExcel;
+
+        // YENİ: Sayfalama Kontrollerinin Private Tanımlamaları
+        private System.Windows.Forms.Panel pnlPagination;
+        private System.Windows.Forms.Button btnPrev;
+        private System.Windows.Forms.Button btnNext;
+        private System.Windows.Forms.Label lblPageInfo;
     }
 }

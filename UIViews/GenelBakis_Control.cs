@@ -150,12 +150,24 @@ namespace TekstilScada.UI.Views
 
                 if (_uiUpdateTimer == null)
                 {
+                    // Makinelerin durum kartları için 2 saniye kalabilir
                     _uiUpdateTimer = new System.Windows.Forms.Timer { Interval = 2000 };
-                    _uiUpdateTimer.Tick += (s, a) => RefreshDashboard();
+                    _uiUpdateTimer.Tick += (s, a) => {
+                        UpdateKpiCards();
+                        CheckUtilityConnections();
+                        // NOT: UpdateSidebarCharts() buradaki 2 saniyelik timer'dan KALDIRILDI!
+                    };
                 }
                 _uiUpdateTimer.Start();
 
+                // GRAFİKLER İÇİN YENİ BİR TIMER KURUN (Örn: 60 saniyede bir)
+                System.Windows.Forms.Timer chartUpdateTimer = new System.Windows.Forms.Timer { Interval = 60000 };
+                chartUpdateTimer.Tick += (s, a) => UpdateSidebarCharts();
+                chartUpdateTimer.Start();
+
+                // İlk açılışta bir kez el ile tetikleyin
                 RefreshDashboard();
+                UpdateSidebarCharts();
 
                 _isDashboardSetup = true;
             }
@@ -450,21 +462,23 @@ namespace TekstilScada.UI.Views
                     var today = DateTime.Today;
                     var now = DateTime.Now;
 
+                    // ÖNEMLİ: Sorguyu 3 kere değil, SADECE 1 KERE çalıştırıyoruz.
+                    var singleConsumptionTable = _dashboardRepository.GetHourlyFactoryConsumption(today);
+
                     return new
                     {
-                        ElecData = _dashboardRepository.GetHourlyFactoryConsumption(today),
-                        WaterData = _dashboardRepository.GetHourlyFactoryConsumption(today),
-                        SteamData = _dashboardRepository.GetHourlyFactoryConsumption(today),
+                        ConsumptionData = singleConsumptionTable,
                         TopAlarms = _alarmRepository.GetTopAlarmsByFrequency(now.AddDays(-1), now),
                         OeeData = _dashboardRepository.GetHourlyAverageOee(today)
                     };
                 });
 
+                // 1. ELEKTRİK GRAFİĞİ (Aynı tablodan besleniyor)
                 formsPlotHourly.Plot.Clear();
-                if (result.ElecData != null && result.ElecData.Rows.Count > 0)
+                if (result.ConsumptionData != null && result.ConsumptionData.Rows.Count > 0)
                 {
-                    double[] hours = result.ElecData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
-                    double[] consumption = result.ElecData.AsEnumerable().Select(row => row.IsNull("ToplamElektrik") ? 0.0 : Convert.ToDouble(row["ToplamElektrik"]) / 1000.0).ToArray();
+                    double[] hours = result.ConsumptionData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
+                    double[] consumption = result.ConsumptionData.AsEnumerable().Select(row => row.IsNull("ToplamElektrik") ? 0.0 : Convert.ToDouble(row["ToplamElektrik"]) / 1000.0).ToArray();
 
                     var barPlot = formsPlotHourly.Plot.Add.Scatter(hours, consumption);
                     barPlot.Color = ScottPlot.Colors.SteelBlue;
@@ -474,11 +488,12 @@ namespace TekstilScada.UI.Views
                 formsPlotHourly.Plot.Axes.AutoScale();
                 formsPlotHourly.Refresh();
 
+                // 2. SU GRAFİĞİ (Yine aynı tablodan besleniyor, DB'ye tekrar gidilmedi)
                 formsPlotHourlyWater.Plot.Clear();
-                if (result.WaterData != null && result.WaterData.Rows.Count > 0)
+                if (result.ConsumptionData != null && result.ConsumptionData.Rows.Count > 0)
                 {
-                    double[] hours = result.WaterData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
-                    double[] consumption = result.WaterData.AsEnumerable().Select(row => row.IsNull("ToplamSu") ? 0.0 : Convert.ToDouble(row["ToplamSu"]) / 1000.0).ToArray();
+                    double[] hours = result.ConsumptionData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
+                    double[] consumption = result.ConsumptionData.AsEnumerable().Select(row => row.IsNull("ToplamSu") ? 0.0 : Convert.ToDouble(row["ToplamSu"]) / 1000.0).ToArray();
 
                     var barPlot = formsPlotHourlyWater.Plot.Add.Scatter(hours, consumption);
                     barPlot.Color = ScottPlot.Colors.CornflowerBlue;
@@ -488,11 +503,12 @@ namespace TekstilScada.UI.Views
                 formsPlotHourlyWater.Plot.Axes.AutoScale();
                 formsPlotHourlyWater.Refresh();
 
+                // 3. BUHAR GRAFİĞİ (Yine aynı tablodan besleniyor)
                 formsPlotHourlySteam.Plot.Clear();
-                if (result.SteamData != null && result.SteamData.Rows.Count > 0)
+                if (result.ConsumptionData != null && result.ConsumptionData.Rows.Count > 0)
                 {
-                    double[] hours = result.SteamData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
-                    double[] consumption = result.SteamData.AsEnumerable().Select(row => row.IsNull("ToplamBuhar") ? 0.0 : Convert.ToDouble(row["ToplamBuhar"]) / 1000.0).ToArray();
+                    double[] hours = result.ConsumptionData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
+                    double[] consumption = result.ConsumptionData.AsEnumerable().Select(row => row.IsNull("ToplamBuhar") ? 0.0 : Convert.ToDouble(row["ToplamBuhar"]) / 1000.0).ToArray();
 
                     var barPlot = formsPlotHourlySteam.Plot.Add.Scatter(hours, consumption);
                     barPlot.Color = ScottPlot.Colors.DimGray;
@@ -502,6 +518,7 @@ namespace TekstilScada.UI.Views
                 formsPlotHourlySteam.Plot.Axes.AutoScale();
                 formsPlotHourlySteam.Refresh();
 
+                // 4. ALARM GRAFİĞİ
                 formsPlotTopAlarms.Plot.Clear();
                 if (result.TopAlarms != null && result.TopAlarms.Any())
                 {
@@ -521,6 +538,7 @@ namespace TekstilScada.UI.Views
                 formsPlotTopAlarms.Plot.Axes.AutoScale();
                 formsPlotTopAlarms.Refresh();
 
+                // 5. OEE GRAFİĞİ
                 formsPlotHourlyOee.Plot.Clear();
                 if (result.OeeData != null && result.OeeData.Rows.Count > 0)
                 {
@@ -539,7 +557,8 @@ namespace TekstilScada.UI.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Grafik güncelleme hatası: {ex.Message}");
+                // Gerçek hatayı log penceresine yazın ki kilitlenme olursa görün
+                System.Diagnostics.Trace.WriteLine($"CRITICAL REFRESH ERROR: {ex}");
             }
         }
 

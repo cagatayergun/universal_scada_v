@@ -181,7 +181,7 @@
         else
         {
             // Windows Forms logic: lblTemperature.Text = $"{status.AnlikSicaklik / 10.0m}°C";
-            return (MachineStatus.AnlikSicaklik / 100.0m).ToString("0.#"); // Virgülden sonra gerekmiyorsa gösterme
+            return (MachineStatus.AnlikSicaklik / 10.0m).ToString("0.#"); // Virgülden sonra gerekmiyorsa gösterme
         }
     }
 

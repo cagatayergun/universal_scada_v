@@ -41,6 +41,9 @@ namespace TekstilScada.UIViews
         public EfficiencyReport_Control()
         {
             InitializeComponent();
+            typeof(DataGridView).InvokeMember("DoubleBuffered",
+   System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.SetProperty,
+   null, dgvEfficiency, new object[] { true });
             InitializeKpiCards();
 
             this.BackColor = Color.FromArgb(248, 250, 252);
@@ -60,6 +63,7 @@ namespace TekstilScada.UIViews
             _typingTimer = new System.Windows.Forms.Timer();
             _typingTimer.Interval = 400;
             _typingTimer.Tick += TypingTimer_Tick;
+           
         }
 
         public void InitializeControl(MachineRepository machineRepo, EfficiencyRepository efficiencyRepo)
@@ -267,12 +271,16 @@ namespace TekstilScada.UIViews
 
         private void UpdateTimelineChart(List<EfficiencyLog> data)
         {
+            // 1. Performans: Çizimi askıya al (Tüm veriler bitene kadar arayüzü kilitleyip tek seferde çizer)
+            chartTimeline.SuspendLayout();
+
             chartTimeline.Series.Clear();
             chartTimeline.Titles.Clear();
             chartTimeline.Annotations.Clear();
 
-            int uniqueMachineCount = data.Select(x => x.MachineName).Distinct().Count();
-            chartTimeline.Height = Math.Max(320, uniqueMachineCount * 50);
+            // Benzersiz makineleri bul
+            var uniqueMachines = data.Select(x => x.MachineName).Distinct().ToList();
+            chartTimeline.Height = Math.Max(320, uniqueMachines.Count * 50);
 
             Title title = chartTimeline.Titles.Add("TIME-BASED PRODUCTION AND STOPPAGE ANALYSIS");
             title.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
@@ -282,21 +290,48 @@ namespace TekstilScada.UIViews
             Series s = new Series("Timeline")
             {
                 ChartType = SeriesChartType.RangeBar,
-                XValueType = ChartValueType.String,
+                // 2. Performans ve Hata Çözümü: X eksenini String yerine Int32 yapıyoruz.
+                XValueType = ChartValueType.Int32,
                 YValueType = ChartValueType.DateTime,
                 YValuesPerPoint = 2
             };
             s["PointWidth"] = "0.65";
 
-            foreach (var item in data.Take(1000))
+            // Makineleri birer Index (sayı) ile eşleştiriyoruz (Grafik eksenine oturtmak için)
+            var machineIndexMap = new Dictionary<string, int>();
+            for (int i = 0; i < uniqueMachines.Count; i++)
+            {
+                machineIndexMap[uniqueMachines[i]] = i + 1;
+            }
+
+            // X eksenine sayısal değerlere karşılık gelen makine isimlerini yazdırıyoruz
+            var xAxis = chartTimeline.ChartAreas[0].AxisX;
+            xAxis.CustomLabels.Clear();
+            xAxis.Minimum = 0.5;
+            xAxis.Maximum = uniqueMachines.Count + 0.5;
+            xAxis.Interval = 1;
+            xAxis.MajorGrid.Enabled = false;
+
+            foreach (var kvp in machineIndexMap)
+            {
+                // Örn: Y eksenindeki "1" değeri yerine "Makine A" yazacak
+                xAxis.CustomLabels.Add(kvp.Value - 0.5, kvp.Value + 0.5, kvp.Key);
+            }
+
+            // 3. Take(1000) sınırını kaldırıyoruz. Artık tüm veriler (veya filtrelenmiş veriler) gelecek.
+            foreach (var item in data)
             {
                 if (item.EndTime == null) continue;
 
-                int idx = s.Points.AddXY(item.MachineName, item.StartTime, item.EndTime);
+                int machineIdx = machineIndexMap[item.MachineName];
+
+                // String isim yerine eşleştirdiğimiz Index (sayısal) değeri basıyoruz
+                int idx = s.Points.AddXY(machineIdx, item.StartTime, item.EndTime);
                 var p = s.Points[idx];
 
-                p.BorderColor = Color.White;
-                p.BorderWidth = 1;
+                // 4. Performans: Kenarlıkları (Border) kapatıyoruz. 
+                // 10.000 noktaya kenarlık çizmek ekran kartını yorar, kaldırınca inanılmaz hızlanır.
+                p.BorderWidth = 0;
 
                 if (item.State == "AUTO") p.Color = Color.FromArgb(16, 185, 129);
                 else if (item.State == "IDLE") p.Color = Color.FromArgb(225, 29, 72);
@@ -310,10 +345,15 @@ namespace TekstilScada.UIViews
 
             var yAxis = chartTimeline.ChartAreas[0].AxisY;
             yAxis.ScaleView.Zoomable = true;
-
             chartTimeline.ChartAreas[0].CursorY.IsUserSelectionEnabled = false;
             yAxis.ScrollBar.ButtonStyle = ScrollBarButtonStyles.SmallScroll;
             yAxis.ScrollBar.Size = 10;
+
+            // Y (Zaman) ekseninin sadece saati göstermesini sağlayın, daha şık durur
+            yAxis.LabelStyle.Format = "HH:mm";
+
+            // Çizimi devam ettir
+            chartTimeline.ResumeLayout();
         }
 
         private void ChartTimeline_GetToolTipText(object sender, ToolTipEventArgs e)
