@@ -533,5 +533,113 @@ namespace TekstilScada.WebAPI.Hubs
         public async Task<byte[]> ExportGeneralDetailedConsumptionReport(int factoryId, GeneralConsumptionExportDto data) => await InvokeOnGateway<byte[]>(factoryId, "ExportGeneralDetailedConsumptionReport", 300, data) ?? Array.Empty<byte>();
         public async Task<byte[]> ExportActionLogsReport(int factoryId, List<ActionLogEntry> logs) => await InvokeOnGateway<byte[]>(factoryId, "ExportActionLogsReport", 180, logs) ?? Array.Empty<byte>();
         public async Task<byte[]> ExportProductionDetailFile(int factoryId, int machineId, string batchId) => await InvokeOnGateway<byte[]>(factoryId, "ExportProductionDetailFile", 180, machineId, batchId) ?? Array.Empty<byte>();
+        public async Task<List<LaundryMachineReportDto>> GetLaundryMachineReports(int factoryId, ReportFilters filters)
+        {
+            // InvokeOnGateway yardımcısı sayesinde isteği hedef fabrikanın Gateway'ine güvenle yönlendiriyoruz.
+            // 60 saniyelik timeout süresi veritabanı yoğunluğu için fazlasıyla yeterlidir.
+            var result = await InvokeOnGateway<List<LaundryMachineReportDto>>(
+                factoryId,
+                "GetLaundryMachineReports",
+                60,
+                filters
+            );
+
+            return result ?? new List<LaundryMachineReportDto>();
+        }
+        // ScadaHub.cs içerisine eklenecek güvenli statik köprü metodu:
+
+        // ScadaHub.cs içerisindeki ilgili metodu bu düzeltilmiş haliyle güncelleyin:
+
+        public static async Task<List<LaundryMachineReportDto>?> GetLaundryReportsFromController(
+            Microsoft.AspNetCore.SignalR.IHubContext<ScadaHub> hubContext,
+            int factoryId,
+            ReportFilters filters)
+        {
+            string? targetConnectionId = _gatewayConnections.FirstOrDefault(x => x.Value == factoryId).Key;
+            if (string.IsNullOrEmpty(targetConnectionId)) return null;
+
+            var requestId = Guid.NewGuid().ToString();
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            cts.Token.Register(() => {
+                if (_pendingRequests.TryRemove(requestId, out var pendingTcs))
+                    pendingTcs.TrySetException(new TimeoutException("Fabrikadaki Gateway cevap vermedi (60sn)."));
+            });
+
+            _pendingRequests[requestId] = tcs;
+
+            try
+            {
+                await hubContext.Clients.Client(targetConnectionId).SendAsync("HandleRequest", requestId, "GetLaundryMachineReports", new object[] { filters });
+
+                var result = await tcs.Task;
+                if (result == null) return null;
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    ReferenceHandler = ReferenceHandler.IgnoreCycles,
+                    NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                    WriteIndented = false
+                };
+
+                string jsonString = "";
+                if (result is string s)
+                {
+                    jsonString = s;
+                }
+                else if (result is JsonElement e)
+                {
+                    // ÇÖZÜM: Eğer veri string olarak sarmalanmışsa e.GetString() ile dış tırnakları temizleyip asıl array metnine ulaşıyoruz
+                    if (e.ValueKind == JsonValueKind.String)
+                    {
+                        jsonString = e.GetString() ?? "";
+                    }
+                    else
+                    {
+                        jsonString = e.GetRawText();
+                    }
+                }
+                else
+                {
+                    return (List<LaundryMachineReportDto>)result;
+                }
+
+                if (string.IsNullOrWhiteSpace(jsonString)) return null;
+
+                using (JsonDocument doc = JsonDocument.Parse(jsonString))
+                {
+                    if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                        return JsonSerializer.Deserialize<List<LaundryMachineReportDto>>(jsonString, options);
+                    else if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                    {
+                        if (doc.RootElement.TryGetProperty("$values", out JsonElement valuesElement))
+                            return JsonSerializer.Deserialize<List<LaundryMachineReportDto>>(valuesElement.GetRawText(), options);
+                        return JsonSerializer.Deserialize<List<LaundryMachineReportDto>>(jsonString, options);
+                    }
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ScadaHub REST Bridge Error]: {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                _pendingRequests.TryRemove(requestId, out _);
+                if (_chunkBuffers.TryRemove(requestId, out var buffer)) buffer.Clear();
+            }
+        }
+        public static object GetActiveConnectionsDebug()
+        {
+            // O an hafızada bağlı olan tüm soketlerin ve atanan Fabrika ID'lerinin listesini döner
+            return _gatewayConnections.Select(x => new {
+                ConnectionId = x.Key,
+                MappedFactoryId = x.Value
+            }).ToList();
+        }
     }
 }

@@ -17,7 +17,39 @@ namespace TekstilScada.Repositories
                 try
                 {
                     connection.Open();
+                    string createTableQuery = @"
+                        CREATE TABLE IF NOT EXISTS laundry_machine_reports (
+                            Id INT AUTO_INCREMENT PRIMARY KEY,
+                            Date DATE NOT NULL,
+                            Machine_ID VARCHAR(50),
+                            Machine_IP VARCHAR(45),
+                            `Machine Name` VARCHAR(100),
+                            Machine_Type VARCHAR(50),
+                            Start_time TIME,
+                            End_Time TIME,
+                            Duration_mins INT,
+                            Type VARCHAR(50),
+                            `Reason Type` VARCHAR(100),
+                            Reason TEXT,
+                            Recipe_id VARCHAR(100),
+                            Factory_Order VARCHAR(50),
+                            telematric_user VARCHAR(50),
+                            machine_operator_id VARCHAR(50),
+                            machine_operator_name VARCHAR(100)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
 
+                    using (var createCmd = new MySqlCommand(createTableQuery, connection))
+                    {
+                        createCmd.ExecuteNonQuery();
+                    }
+
+                    // OTOMATİK DÜZELTME: Eğer tablo daha önceki kodla INT olarak oluşturalıysa, veri kaybı olmadan VARCHAR'a çevirir
+                    string alterColumnQuery = "ALTER TABLE laundry_machine_reports MODIFY COLUMN Recipe_id VARCHAR(100);";
+                    using (var alterColCmd = new MySqlCommand(alterColumnQuery, connection))
+                    {
+                        alterColCmd.ExecuteNonQuery();
+                        Debug.WriteLine("[DB UPDATE] 'Recipe_id' sütunu otomatik olarak VARCHAR(100) tipine yükseltildi.");
+                    }
                     // 1. 'machines' tablosunda 'DisplayOrder' sütunu var mı diye kontrol et
                     string checkQuery = @"
                         SELECT COUNT(*) 

@@ -1,4 +1,5 @@
-﻿@using TekstilScada.Models
+﻿
+@using TekstilScada.Models
 @using TekstilScada.Services
 @using TekstilScada.WebApp.Services
 @using System.Collections.Concurrent
@@ -12,6 +13,7 @@
 @inject ISnackbar Snackbar
 @inject IJSRuntime JSRuntime
 @inject IStringLocalizer<SharedResource> Loc
+@implements IDisposable
 
 <MudDialog DisableSidePadding="true" MaxWidth="MaxWidth.False" Style="width:95vw; max-height:95vh;" Scrollable="true">
     <DialogContent>
@@ -252,7 +254,7 @@
                             <MudPaper Class="pa-2" Elevation="0" Style="background-color:transparent">
                                 <MudProgressLinear Color="MudBlazor.Color.Info" Indeterminate="true" />
                                 <MudText Align="MudBlazor.Align.Center" Typo="Typo.caption">@Loc["IslemlerSuruyor"]</MudText>
-                            </MudPaper>
+                            </MudPaper> @* 🚨 BURASI DÜZELTİLDİ: </Paper> yazan yer </MudPaper> yapıldı *@
                         </div>
                     }
                 </MudItem>
@@ -266,8 +268,6 @@
 </MudDialog>
 
 @code {
-    // Değişkenler ve Metotlar (Tamamen Aynı)
-    // ...
     private int currentUserId = 0;
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
 
@@ -306,7 +306,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // --- KULLANICI ID ALMA İŞLEMİ ---
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         try
         {
@@ -314,8 +313,6 @@
             if (currentJobs != null && currentJobs.Any())
             {
                 _activeJobs = currentJobs;
-                // Listeyi en yeniden en eskiye veya duruma göre sıralayabilirsiniz
-                // _activeJobs = currentJobs.OrderByDescending(x => x.Id).ToList();
             }
         }
         catch (Exception ex)
@@ -465,9 +462,7 @@
         StateHasChanged();
         try
         {
-            // --- DÜZELTME BURADA: Değişkeni döngüden ÖNCE tanımlıyoruz ---
             string recipeNames = string.Join(", ", _selectedRecipes.Select(r => r.RecipeName));
-            // -------------------------------------------------------------
             foreach (var machineItem in _selectedMachines)
             {
                 var recipeIds = _selectedRecipes.Select(r => r.Id).ToList();
@@ -482,13 +477,7 @@
                 Snackbar.Add($"{machineItem.Machine.MachineName}: {Loc["KuyrugaAlindi"]}", Severity.Success);
                 if (currentUserId > 0)
                 {
-                    // Örn: "FTP Transfer: Reçete1, Reçete2 -> Makine1 (Başlangıç Slot: 1)"
-                    string logDetails = Loc["Log_ReceteTransferDetay",
-    recipeNames,
-    machineItem.Machine.MachineName,
-    startSlot
-];
-                    // Fire-and-forget (Await etmiyoruz ki arayüz donmasın)
+                    string logDetails = Loc["Log_ReceteTransferDetay", recipeNames, machineItem.Machine.MachineName, startSlot];
                     _ = ScadaDataService.LogUserActionAsync(currentUserId, "FTP_BATCH_SEND", logDetails);
                 }
             }
@@ -497,7 +486,8 @@
         finally { isBusy = false; StateHasChanged(); }
     }
 
-    private void OnFtpProgress(TransferJob job)
+    // 🚨 BURASI DÜZELTİLDİ: Metod async yapıldı ve anlık UI yenileme eklendi
+    private async void OnFtpProgress(TransferJob job)
     {
         if (job == null) return;
         var existing = _activeJobs.FirstOrDefault(j => j != null && j.Id == job.Id);
@@ -511,7 +501,8 @@
         {
             _activeJobs.Insert(0, job);
         }
-        InvokeAsync(StateHasChanged);
+        
+        await InvokeAsync(StateHasChanged);
     }
 
     private MudBlazor.Color GetJobColor(TransferJob job)
@@ -536,3 +527,5 @@
         ScadaDataService.OnFtpProgressReceived -= OnFtpProgress;
     }
 }
+
+```

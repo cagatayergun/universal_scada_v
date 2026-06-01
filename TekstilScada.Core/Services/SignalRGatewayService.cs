@@ -640,8 +640,69 @@ namespace TekstilScada.Services
                 int pageSize = GetArg<int>(args, 2);
                 return _alarmRepo.GetAlarmReportPaged(rf, pageNumber, pageSize);
             });
-        }
+            _requestHandlers["GetLaundryMachineReports"] = async args =>
+            {
+                var filters = GetArg<ReportFilters>(args, 0);
 
+                return await Task.Run(async () =>
+                {
+                    var list = new List<LaundryMachineReportDto>();
+
+                    using (var conn = new MySql.Data.MySqlClient.MySqlConnection(AppConfig.ConnectionString))
+                    {
+                        await conn.OpenAsync();
+
+                        string sql = @"
+                SELECT Date, Machine_ID, Machine_IP, `Machine Name`, Machine_Type, 
+                       Start_time, End_Time, Duration_mins, Type, `Reason Type`, 
+                       Reason, Recipe_id, Factory_Order, telematric_user, 
+                       machine_operator_id, machine_operator_name 
+                FROM laundry_machine_reports 
+                WHERE Date BETWEEN @Start AND @End 
+                ORDER BY Date DESC, Start_time DESC;";
+
+                        using (var cmd = new MySql.Data.MySqlClient.MySqlCommand(sql, conn))
+                        {
+                            cmd.Parameters.AddWithValue("@Start", filters.StartTime.Date);
+                            cmd.Parameters.AddWithValue("@End", filters.EndTime.Date);
+
+                            using (var reader = await cmd.ExecuteReaderAsync())
+                            {
+                                while (await reader.ReadAsync())
+                                {
+                                    list.Add(new LaundryMachineReportDto
+                                    {
+                                        Date = reader.GetDateTime(reader.GetOrdinal("Date")).ToString("yyyy-MM-dd"),
+                                        MachineId = reader.GetString(reader.GetOrdinal("Machine_ID")),
+                                        MachineIp = reader.GetString(reader.GetOrdinal("Machine_IP")),
+                                        MachineName = reader.GetString(reader.GetOrdinal("Machine Name")),
+                                        MachineType = reader.GetString(reader.GetOrdinal("Machine_Type")),
+
+                                        // CS1061 ÇÖZÜMÜ: GetFieldValue<TimeSpan> kullanımı DbDataReader standartlarıyla %100 uyumludur.
+                                        StartTime = reader.GetFieldValue<TimeSpan>(reader.GetOrdinal("Start_time")).ToString(@"hh\:mm\:ss"),
+                                        EndTime = reader.GetFieldValue<TimeSpan>(reader.GetOrdinal("End_Time")).ToString(@"hh\:mm\:ss"),
+
+                                        DurationMins = reader.GetInt32(reader.GetOrdinal("Duration_mins")),
+                                        Type = reader.GetString(reader.GetOrdinal("Type")),
+                                        ReasonType = reader.GetString(reader.GetOrdinal("Reason Type")),
+                                        Reason = reader.GetString(reader.GetOrdinal("Reason")),
+                                        // SignalRGatewayService.cs içindeki ilgili satırı bulun ve bununla değiştirin:
+                                        RecipeId = reader.IsDBNull(reader.GetOrdinal("Recipe_id")) ? "" : reader.GetString(reader.GetOrdinal("Recipe_id")),
+                                        AzgardOrder = reader.GetString(reader.GetOrdinal("Factory_Order")),
+                                        TelematricUser = reader.IsDBNull(reader.GetOrdinal("telematric_user")) ? "" : reader.GetString(reader.GetOrdinal("telematric_user")),
+
+                                        // CS0117 ÇÖZÜMÜ: Mülk adı DTO nesnesiyle (MachineOperatorId) birebir eşlenecek şekilde düzeltildi.
+                                        MachineOperatorId = reader.GetString(reader.GetOrdinal("machine_operator_id")),
+                                        MachineOperatorName = reader.GetString(reader.GetOrdinal("machine_operator_name"))
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    return (object)list;
+                });
+            };
+        }
         private string GetLocalIpAddress()
         {
             try
