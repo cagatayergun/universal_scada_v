@@ -153,8 +153,7 @@
 
     private async Task LoadInitialData()
     {
-        // Cache Kontrolü: Veri varsa ağ gecikmesini tamamen atla, saniyeler kazan!
-        // İskelet kayıtlara bakma, DB'den asıl hol isimlerinin çekilip çekilmediğini denetle
+        // Cache Kontrolü
         if (ScadaService.IsMachinesLoadedFromDb && ScadaService.MachineDetailsCache.Count > 0 && ScadaService.MachineData.Count > 0)
         {
             _isLoading = false;
@@ -171,11 +170,22 @@
 
             foreach (var m in dbMachines)
             {
+                // ÇÖZÜM: Cache'i güncelleyerek UpdateDashboardData'nın 1 saniye sonra
+                // eski veya boş veriyi referans almasını engelliyoruz!
+                if (ScadaService.MachineDetailsCache.TryGetValue(m.Id, out var cachedMachine))
+                {
+                    cachedMachine.MachineHall = m.MachineHall;
+                    cachedMachine.MachineSubType = m.MachineSubType;
+                }
+                else
+                {
+                    ScadaService.MachineDetailsCache[m.Id] = m;
+                }
+
                 var liveStatus = liveStatuses.FirstOrDefault(s => s.MachineId == m.Id);
                 if (liveStatus != null)
                 {
-                    // DEĞİŞİKLİK: İlk açılışta canlı durum paketi varsa hol bilgisini DB mülkünden eşitle
-                    liveStatus.MachineHall = string.IsNullOrEmpty(m.MachineHall) ? "Empty" : m.MachineHall;
+                    liveStatus.MachineHall = string.IsNullOrWhiteSpace(m.MachineHall) ? "Empty" : m.MachineHall;
                     ScadaService.MachineData[m.Id] = liveStatus;
                 }
                 else if (!ScadaService.MachineData.ContainsKey(m.Id))
@@ -184,9 +194,8 @@
                     {
                         MachineId = m.Id,
                         MachineName = m.MachineName,
-                        MakineTipi = m.MachineSubType ?? "Standart",
-                        // YENİ SATIR: Çevrimdışı şablon için hol bilgisini ata
-                        MachineHall = string.IsNullOrEmpty(m.MachineHall) ? "Empty" : m.MachineHall,
+                        MakineTipi = string.IsNullOrWhiteSpace(m.MachineSubType) ? "Standart" : m.MachineSubType,
+                        MachineHall = string.IsNullOrWhiteSpace(m.MachineHall) ? "Empty" : m.MachineHall,
                         ConnectionState = ConnectionStatus.Disconnected
                     };
                 }
@@ -257,14 +266,17 @@
     {
         var allStatuses = ScadaService.MachineDetailsCache.Values.Select(m =>
         {
+            // 1. ADIM: Her zaman veritabanı (önbellek) değerini esas alıyoruz.
+            string realHall = string.IsNullOrWhiteSpace(m.MachineHall) ? "Empty" : m.MachineHall.Trim();
+            string realType = string.IsNullOrWhiteSpace(m.MachineSubType) ? "Standart" : m.MachineSubType.Trim();
+
             if (ScadaService.MachineData.TryGetValue(m.Id, out var liveStatus))
             {
-                if (string.IsNullOrEmpty(liveStatus.MakineTipi))
-                    liveStatus.MakineTipi = m.MachineSubType;
-
-                // DEĞİŞİKLİK: Canlı veride hol bilgisi yoksa veya boşsa önbellekteki/DB'deki holü bağla
-                if (string.IsNullOrEmpty(liveStatus.MachineHall))
-                    liveStatus.MachineHall = string.IsNullOrEmpty(m.MachineHall) ? "Empty" : m.MachineHall;
+                // KESİN ÇÖZÜM: Canlı veriden Hol ve Tip için ne gelirse gelsin DİKKATE ALMA!
+                // Doğrudan veritabanındaki gerçek Hol ve Tip bilgisini canlı verinin içine zorla yazıyoruz.
+                liveStatus.MachineHall = realHall;
+                liveStatus.MakineTipi = realType;
+                liveStatus.MachineName = string.IsNullOrWhiteSpace(liveStatus.MachineName) ? m.MachineName : liveStatus.MachineName;
 
                 return liveStatus;
             }
@@ -273,9 +285,8 @@
             {
                 MachineId = m.Id,
                 MachineName = m.MachineName,
-                MakineTipi = string.IsNullOrEmpty(m.MachineSubType) ? "Undefined" : m.MachineSubType,
-                // YENİ SATIR: Veri yoksa (çevrimdışı durumlar için) holü eşitle
-                MachineHall = string.IsNullOrEmpty(m.MachineHall) ? "Empty" : m.MachineHall,
+                MakineTipi = realType,
+                MachineHall = realHall,
                 ConnectionState = ConnectionStatus.Disconnected,
                 manuel_status = false
             };
@@ -310,9 +321,10 @@
             .ThenByDescending(m => m.HasActiveAlarm)
             .ThenBy(m => m.MachineName);
 
-        // KÖK DEĞİŞİKLİK: Gruplama mekanizması artık 'MakineTipi' yerine defansif 'MachineHall' parametresine geçirildi
+        // Gruplama işlemi artık doğrudan m.MachineHall kullanabilir çünkü
+        // yukarıda hepsini zorla gerçek "realHall" değeri ile doldurduk.
         GroupedMachines = sortedMachines
-            .GroupBy(m => string.IsNullOrEmpty(m.MachineHall) ? "Empty" : m.MachineHall)
+            .GroupBy(m => m.MachineHall)
             .OrderByDescending(g => g.Any(m => m.IsInRecipeMode))
             .ThenBy(g => g.Key)
             .ToList();
