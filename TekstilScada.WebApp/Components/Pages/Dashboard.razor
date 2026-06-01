@@ -165,8 +165,16 @@
 
         try
         {
-            var dbMachines = await ScadaService.GetMachinesAsync();
-            var liveStatuses = await ScadaService.GetLiveMachineStatusByFactoryId(ScadaService.CurrentFactoryId);
+            // ADIM 2 UYGULAMASI: İki ana veri isteğini aynı anda (paralel) başlatıyoruz
+            var dbMachinesTask = ScadaService.GetMachinesAsync();
+            var liveStatusesTask = ScadaService.GetLiveMachineStatusByFactoryId(ScadaService.CurrentFactoryId);
+
+            // İkisinin de aynı anda tamamlanmasını bekliyoruz
+            await Task.WhenAll(dbMachinesTask, liveStatusesTask);
+
+            // Verileri görevlerden alıyoruz
+            var dbMachines = await dbMachinesTask;
+            var liveStatuses = await liveStatusesTask;
 
             foreach (var m in dbMachines)
             {
@@ -194,7 +202,7 @@
                     {
                         MachineId = m.Id,
                         MachineName = m.MachineName,
-                        MakineTipi = string.IsNullOrWhiteSpace(m.MachineSubType) ? "Standart" : m.MachineSubType,
+                        MakineTipi = string.IsNullOrWhiteSpace(m.MachineSubType) ? "" : m.MachineSubType,
                         MachineHall = string.IsNullOrWhiteSpace(m.MachineHall) ? "Empty" : m.MachineHall,
                         ConnectionState = ConnectionStatus.Disconnected
                     };

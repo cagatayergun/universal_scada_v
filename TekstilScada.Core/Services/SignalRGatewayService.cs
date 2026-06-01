@@ -2,18 +2,18 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Data; // EKLENDİ: DataTable işlemleri için gerekli
+using System.Data;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using TekstilScada.Core;
-using TekstilScada.Core.Core; // ExcelExportHelper için
+using TekstilScada.Core.Core;
 using TekstilScada.Core.Models;
 using TekstilScada.Models;
 using TekstilScada.Repositories;
-using TekstilScada.Services; // Namespace düzeltmesi
+using TekstilScada.Services;
 using static TekstilScada.Core.Core.ExcelExportHelper;
 
 // --- DTO SINIFLARI (Kaybolmaması için aynen korundu) ---
@@ -65,22 +65,11 @@ public class ProductionStepDetailDto : ProductionStepDetail
 
 public class AlarmDetailDto
 {
-    // Alarmın başlangıç zamanı
     public DateTime AlarmTime { get; set; } = DateTime.MinValue;
-
-    // Kritik: Alarm ID'si (0-499: Makine, 500-600: Operatör ayrımı için şart)
     public int AlarmNumber { get; set; }
-
-    // Alarmın tipi (Warning, Error vb.)
     public string AlarmType { get; set; } = string.Empty;
-
-    // Alarm açıklaması
     public string AlarmDescription { get; set; } = string.Empty;
-
-    // Alarm süresi
     public TimeSpan Duration { get; set; } = TimeSpan.Zero;
-
-    // Zaman kesişim analizi (Interval Merging) yaparken hassasiyet için EndTime eklendi
     public DateTime EndTime => AlarmTime.Add(Duration);
 }
 
@@ -139,26 +128,23 @@ namespace TekstilScada.Services
         // --- EVENT & STATE ---
         public event Action<int, string, string> OnRemoteCommandReceived;
         private DateTime _lastSentTime = DateTime.MinValue;
-        private readonly int _sendIntervalMs = 500; // Canlı yayın için hız limiti
+        private readonly int _sendIntervalMs = 500;
 
-        // --- DISPATCHER (YENİ: Command Pattern için Sözlük) ---
-        // Metot isminden çalıştırılacak fonksiyona haritalama yapar.
+        // --- DISPATCHER ---
         private readonly Dictionary<string, Func<object[], Task<object>>> _requestHandlers;
-
         private readonly ConcurrentDictionary<int, FullMachineStatus> _bufferedMachineStatuses = new();
-
-        // YENİ: Canlı yayınlar sırasında DB'ye sürekli sorgu atmamak için yüksek performanslı Hol Hafıza Sözlüğü
         private readonly ConcurrentDictionary<int, string> _machineHallCache = new ConcurrentDictionary<int, string>();
 
-        // Gönderim Döngüsü için Cancellation Token
+        // --- 5. ADIM: GATEWAY RAM CACHE DEĞİŞKENLERİ ---
+        private readonly ConcurrentDictionary<string, (object Data, DateTime Expiry)> _gatewayCache = new();
+
         private CancellationTokenSource _loopCts;
-        // JSON ayarlarını statik yapıp performansı artırıyoruz
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
         {
-            ReferenceHandler = ReferenceHandler.IgnoreCycles, // EF Core Döngüsel referans hatasını önler
-            WriteIndented = false, // Veri boyutunu küçültür
+            ReferenceHandler = ReferenceHandler.IgnoreCycles,
+            WriteIndented = false,
             PropertyNameCaseInsensitive = true,
-            NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals, // NaN ve Infinity desteği
+            NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
@@ -194,18 +180,15 @@ namespace TekstilScada.Services
             _ftpService = ftpService;
             _myApiKey = apiKey;
 
-            // --- HANDLER KAYITLARI (Switch Case Yerine) ---
             _requestHandlers = new Dictionary<string, Func<object[], Task<object>>>(StringComparer.OrdinalIgnoreCase);
-            RegisterHandlers(); // Tüm metotları sözlüğe ekle
+            RegisterHandlers();
 
-            // SignalR Bağlantı Ayarları
             _connection = new HubConnectionBuilder()
                 .WithUrl(hubUrl, options =>
                 {
                     if (!string.IsNullOrEmpty(jwtToken))
                         options.AccessTokenProvider = () => Task.FromResult(jwtToken);
 
-                    // SSL Bypass
                     options.HttpMessageHandlerFactory = (handler) =>
                     {
                         if (handler is System.Net.Http.HttpClientHandler clientHandler)
@@ -216,7 +199,6 @@ namespace TekstilScada.Services
                         return handler;
                     };
 
-                    // Büyük veri transfer limitleri
                     options.ApplicationMaxBufferSize = 100 * 1024 * 1024;
                     options.TransportMaxBufferSize = 100 * 1024 * 1024;
                 })
@@ -228,9 +210,30 @@ namespace TekstilScada.Services
             _ = StartBatchSenderLoopAsync(_loopCts.Token);
         }
 
+        // --- 5. ADIM: CACHE YARDIMCI METOTLARI ---
+        private async Task<T> GetOrAddCacheAsync<T>(string cacheKey, Func<Task<T>> dbFetchTask, TimeSpan expiration)
+        {
+            if (_gatewayCache.TryGetValue(cacheKey, out var cacheEntry))
+            {
+                if (DateTime.Now < cacheEntry.Expiry)
+                {
+                    return (T)cacheEntry.Data;
+                }
+            }
+
+            T data = await dbFetchTask();
+            _gatewayCache[cacheKey] = (data, DateTime.Now.Add(expiration));
+            return data;
+        }
+
+        private void InvalidateCache(string cacheKey)
+        {
+            _gatewayCache.TryRemove(cacheKey, out _);
+        }
+        // ----------------------------------------
+
         private void RegisterSignalRListeners()
         {
-            // --- GELEN İSTEKLERİ İŞLEME ---
             _connection.On<string, string, object[]>("HandleRequest", async (reqId, method, args) =>
             {
                 object result = null;
@@ -238,7 +241,6 @@ namespace TekstilScada.Services
 
                 try
                 {
-                    // Sözlükten metodu bul ve çalıştır (Performanslı Yöntem)
                     if (_requestHandlers.TryGetValue(method, out var handler))
                     {
                         result = await handler(args);
@@ -256,7 +258,6 @@ namespace TekstilScada.Services
                 await SendLargeDataAsync(reqId, result, errorMessage);
             });
 
-            // --- LOGLAMA ---
             _connection.On<ActionLogEntry>("HandleLogAction", (entry) =>
             {
                 Task.Run(() =>
@@ -265,13 +266,11 @@ namespace TekstilScada.Services
                 });
             });
 
-            // --- KOMUT ALMA ---
             _connection.On<int, string, string>("ReceiveCommand", (machineId, command, parameters) =>
             {
                 OnRemoteCommandReceived?.Invoke(machineId, command, parameters);
             });
 
-            // --- BAĞLANTI YÖNETİMİ ---
             _connection.Closed += async (error) => await ConnectWithRetryAsync();
             _connection.Reconnected += async (connectionId) =>
             {
@@ -284,18 +283,14 @@ namespace TekstilScada.Services
             };
         }
 
-        // --- HANDLER KAYIT CENTER ---
         private void RegisterHandlers()
         {
-            // Yardımcı: DB işlemlerini Thread Pool'a atarak SignalR'ın bloklanmasını önler
             Task<T> RunDb<T>(Func<T> action) => Task.Run(action);
 
             // -- MAKİNE İŞLEMLERİ --
             _requestHandlers["GetAllMachineStatuses"] = async _ =>
             {
-                // PLC'ye gitme, sadece RAM'deki sözlüğü dön
                 var list = _plcService.MachineDataCache.Values.ToList();
-                // Performanslı zenginleştirme: toplu canlı durum isteğinde de holleri enjekte et
                 foreach (var status in list)
                 {
                     if (string.IsNullOrWhiteSpace(status.MachineHall) && _machineHallCache.TryGetValue(status.MachineId, out var hall))
@@ -315,14 +310,14 @@ namespace TekstilScada.Services
                         MachineName = m.MachineName,
                         MakineTipi = m.MachineSubType,
                         DisplayOrder = m.DisplayOrder,
-                        MachineHall = m.MachineHall // Entegre Edildi
+                        MachineHall = m.MachineHall
                     } : null;
                 });
             };
             _requestHandlers["AddMachine"] = async args => await RunDb(() => { _machineRepo.AddMachine(GetArg<Machine>(args, 0)); return true; });
             _requestHandlers["UpdateMachine"] = async args => await RunDb(() => {
                 var m = GetArg<Machine>(args, 0);
-                if (m != null) _machineHallCache[m.Id] = m.MachineHall; // Hafızayı güncelle
+                if (m != null) _machineHallCache[m.Id] = m.MachineHall;
                 _machineRepo.UpdateMachine(m);
                 return true;
             });
@@ -333,28 +328,46 @@ namespace TekstilScada.Services
                 return true;
             });
 
-            // -- MALİYET --
-            _requestHandlers["GetCosts"] = async _ => await RunDb(() => _costRepo.GetAllParameters());
-            _requestHandlers["UpdateParameters"] = async args => await RunDb(() => { _costRepo.UpdateParameters(GetArg<List<CostParameter>>(args, 0)); return true; });
+            // -- MALİYET (CACHE EKLENDİ) --
+            _requestHandlers["GetCosts"] = async _ =>
+                await GetOrAddCacheAsync("CostsCache", async () => await RunDb(() => _costRepo.GetAllParameters()), TimeSpan.FromMinutes(10));
 
-            // -- KULLANICI --
-            _requestHandlers["GetAllUsers"] = async _ => await RunDb(() => _userRepo.GetAllUsers());
-            _requestHandlers["GetAllRoles"] = async _ => await RunDb(() => _userRepo.GetAllRoles());
+            _requestHandlers["UpdateParameters"] = async args => await RunDb(() => {
+                _costRepo.UpdateParameters(GetArg<List<CostParameter>>(args, 0));
+                InvalidateCache("CostsCache"); // Cache'i Temizle
+                return true;
+            });
+
+            // -- KULLANICI (CACHE EKLENDİ) --
+            _requestHandlers["GetAllUsers"] = async _ =>
+                await GetOrAddCacheAsync("UsersCache", async () => await RunDb(() => _userRepo.GetAllUsers()), TimeSpan.FromMinutes(5));
+
+            _requestHandlers["GetAllRoles"] = async _ =>
+                await GetOrAddCacheAsync("RolesCache", async () => await RunDb(() => _userRepo.GetAllRoles()), TimeSpan.FromMinutes(30));
+
             _requestHandlers["AddUser"] = async args => await RunDb(() =>
             {
                 var u = GetArg<UserViewModel>(args, 0);
                 var userNew = new User { Username = u.Username, FullName = u.FullName, IsActive = u.IsActive };
                 _userRepo.AddUser(userNew, u.Password, u.SelectedRoleIds);
+                InvalidateCache("UsersCache"); // Cache'i Temizle
                 return true;
             });
+
             _requestHandlers["UpdateUser"] = async args => await RunDb(() =>
             {
                 var u = GetArg<UserViewModel>(args, 0);
                 var userUpd = new User { Id = u.Id, Username = u.Username, FullName = u.FullName, IsActive = u.IsActive };
                 _userRepo.UpdateUser(userUpd, u.SelectedRoleIds, u.Password);
+                InvalidateCache("UsersCache"); // Cache'i Temizle
                 return true;
             });
-            _requestHandlers["DeleteUser"] = async args => await RunDb(() => { _userRepo.DeleteUser(GetArg<int>(args, 0)); return true; });
+
+            _requestHandlers["DeleteUser"] = async args => await RunDb(() => {
+                _userRepo.DeleteUser(GetArg<int>(args, 0));
+                InvalidateCache("UsersCache"); // Cache'i Temizle
+                return true;
+            });
 
             // -- REÇETE --
             _requestHandlers["GetAllRecipes"] = async _ => await RunDb(() => _recipeRepo.GetAllRecipes());
@@ -363,8 +376,10 @@ namespace TekstilScada.Services
             _requestHandlers["DeleteRecipe"] = async args => await RunDb(() => { _recipeRepo.DeleteRecipe(GetArg<int>(args, 0)); return true; });
             _requestHandlers["GetRecipeUsageHistory"] = async args => await RunDb(() => _recipeRepo.GetRecipeUsageHistory(GetArg<int>(args, 0)));
 
-            // -- DESIGNER & LAYOUT --
-            _requestHandlers["GetMachineSubTypes"] = async _ => await RunDb(() => _configRepo.GetMachineSubTypes());
+            // -- DESIGNER & LAYOUT (CACHE EKLENDİ) --
+            _requestHandlers["GetMachineSubTypes"] = async _ =>
+                await GetOrAddCacheAsync("MachineSubTypesCache", async () => await RunDb(() => _configRepo.GetMachineSubTypes()), TimeSpan.FromHours(1));
+
             _requestHandlers["GetStepTypes"] = async _ => await RunDb(() =>
             {
                 var dt = _configRepo.GetStepTypes();
@@ -594,10 +609,25 @@ namespace TekstilScada.Services
             });
             _requestHandlers["ExportProductionDetailFile"] = async args => await RunDb(() => ExportProductionDetailInternal(GetArg<int>(args, 0), GetArg<string>(args, 1)));
 
-            _requestHandlers["GetAllAlarmDefinitions"] = async _ => await RunDb(() => _alarmRepo.GetAllAlarmDefinitions());
-            _requestHandlers["AddAlarmDefinition"] = async args => await RunDb(() => { _alarmRepo.AddAlarmDefinition(GetArg<AlarmDefinition>(args, 0)); return true; });
-            _requestHandlers["UpdateAlarmDefinition"] = async args => await RunDb(() => { _alarmRepo.UpdateAlarmDefinition(GetArg<AlarmDefinition>(args, 0)); return true; });
-            _requestHandlers["DeleteAlarmDefinition"] = async args => await RunDb(() => { _alarmRepo.DeleteAlarmDefinition(GetArg<int>(args, 0)); return true; });
+            // -- ALARM TANIMLARI (CACHE EKLENDİ) --
+            _requestHandlers["GetAllAlarmDefinitions"] = async _ =>
+                await GetOrAddCacheAsync("AlarmDefsCache", async () => await RunDb(() => _alarmRepo.GetAllAlarmDefinitions()), TimeSpan.FromMinutes(30));
+
+            _requestHandlers["AddAlarmDefinition"] = async args => await RunDb(() => {
+                _alarmRepo.AddAlarmDefinition(GetArg<AlarmDefinition>(args, 0));
+                InvalidateCache("AlarmDefsCache"); // Cache'i Temizle
+                return true;
+            });
+            _requestHandlers["UpdateAlarmDefinition"] = async args => await RunDb(() => {
+                _alarmRepo.UpdateAlarmDefinition(GetArg<AlarmDefinition>(args, 0));
+                InvalidateCache("AlarmDefsCache"); // Cache'i Temizle
+                return true;
+            });
+            _requestHandlers["DeleteAlarmDefinition"] = async args => await RunDb(() => {
+                _alarmRepo.DeleteAlarmDefinition(GetArg<int>(args, 0));
+                InvalidateCache("AlarmDefsCache"); // Cache'i Temizle
+                return true;
+            });
 
             _requestHandlers["GetPlcOperators"] = async _ => await RunDb(() => _plcOpRepo.GetAll());
             _requestHandlers["SaveOrUpdateOperator"] = async args => await RunDb(() => { _plcOpRepo.SaveOrUpdate(GetArg<PlcOperator>(args, 0)); return true; });
@@ -699,7 +729,6 @@ namespace TekstilScada.Services
             catch { }
         }
 
-        // DÜZELTME: PLC turları döndükçe hafızadan eşleştirip "MachineHall" bilgisini SignalR paketine enjekte eder (Enrichment)
         private void OnLocalDataRefreshed(int machineId, FullMachineStatus status)
         {
             if (status == null) return;

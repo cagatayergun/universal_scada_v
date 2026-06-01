@@ -119,8 +119,15 @@ else
 
         try
         {
-            await ScadaService.GetMachinesAsync();
-            var liveStatuses = await ScadaService.GetLiveMachineStatusByFactoryId(0);
+            // ADIM 2 UYGULAMASI: İstekleri await ile bekletmeden Task (görev) olarak başlatıyoruz
+            var machinesTask = ScadaService.GetMachinesAsync();
+            var liveStatusesTask = ScadaService.GetLiveMachineStatusByFactoryId(0);
+
+            // İki isteğin de ağ üzerinden AYNI ANDA gidip gelmesini bekliyoruz
+            await Task.WhenAll(machinesTask, liveStatusesTask);
+
+            // Gelen canlı verileri değişkene alıyoruz
+            var liveStatuses = await liveStatusesTask;
 
             if (liveStatuses != null && liveStatuses.Any())
             {

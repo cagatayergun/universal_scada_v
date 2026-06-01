@@ -235,23 +235,47 @@
     {
         isBusy = true;
         statusMessage = Loc["BilesenlerYukleniyor"];
-        await LoadMachines();
-        await LoadRecipes();
-        isBusy = false;
-        selectedRecipe = null;
-        selectedStep = null;
-        FilterRecipesByMachine(autoSelectFirst: false);
-        StateHasChanged();
+        StateHasChanged(); // Yükleniyor ibaresini kullanıcıya anında göster
+
+        try
+        {
+            // ADIM 2 UYGULAMASI: Makine ve Reçete listelerini ağdan AYNI ANDA (Paralel) istiyoruz
+            var machinesTask = ScadaDataService.GetMachinesAsync();
+            var recipesTask = ScadaDataService.GetRecipesAsync();
+
+            // İkisinin de veri tabanından gelmesini aynı anda bekliyoruz (Süre yarıya düştü)
+            await Task.WhenAll(machinesTask, recipesTask);
+
+            // Gelen verileri listelere atıyoruz
+            machines = await machinesTask;
+            recipes = await recipesTask;
+
+            if (machines == null || !machines.Any())
+            {
+                selectedMachineId = 0;
+                selectedMachine = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"ProsesKontrol Init Error: {ex.Message}");
+        }
+        finally
+        {
+            // İkisi de tamamen yüklendikten sonra güvenli bir şekilde UI işlemlerini yapıyoruz
+            isBusy = false;
+            selectedRecipe = null;
+            selectedStep = null;
+            FilterRecipesByMachine(autoSelectFirst: false);
+            StateHasChanged();
+        }
     }
 
     private async Task LoadMachines()
     {
+        // Sayfa içindeki manuel tetiklemeler için (Sadece makineleri çeker)
         machines = await ScadaDataService.GetMachinesAsync();
-        if (machines != null && machines.Any())
-        {
-            // Initial load logic if needed
-        }
-        else
+        if (machines == null || !machines.Any())
         {
             selectedMachineId = 0;
             selectedMachine = null;
@@ -260,11 +284,16 @@
 
     private async Task LoadRecipes()
     {
+        // Yenile butonuna basıldığında (Sadece reçeteleri çeker)
         isBusy = true;
-        recipes = await ScadaDataService.GetRecipesAsync();
         StateHasChanged();
+
+        recipes = await ScadaDataService.GetRecipesAsync();
+
         FilterRecipesByMachine(autoSelectFirst: false);
+
         isBusy = false;
+        StateHasChanged();
     }
 
     private void FilterRecipesByMachine(bool autoSelectFirst = false)

@@ -9,13 +9,10 @@
 @inject IDialogService DialogService
 @inject ScadaDataService ScadaService
 
-
-
 <MudCard Elevation="4" Class="ma-2 machine-card-hover" Style="@GetCardBorderStyle()">
     <MudCardHeader>
         <CardHeaderAvatar>
             <MudAvatar Color="@GetConnectionColor()" Variant="Variant.Filled" Size="Size.Medium">
-                <!-- DEĞİŞİKLİK: MachineId yerine yeni yazdığımız GetDisplayOrder() metodunu çağırıyoruz -->
                 <MudText Typo="Typo.subtitle1"><b>@GetDisplayOrder()</b></MudText>
             </MudAvatar>
         </CardHeaderAvatar>
@@ -127,32 +124,6 @@
                     </MudTooltip>
                 </MudStack>
             </MudItem>
-
-            <MudItem xs="12"><MudDivider Class="my-1" /></MudItem>
-
-            <MudItem xs="6">
-                <div class="d-flex align-center justify-center flex-column pa-2 rounded mud-theme-primary-hover">
-                    <MudIcon Icon="@Icons.Material.Filled.Thermostat" Color="Color.Error" />
-                    <MudText Typo="Typo.h6">@GetFormattedTemperature()°C</MudText>
-                    <MudText Typo="Typo.caption">@Loc["Sicaklik"]</MudText>
-                </div>
-            </MudItem>
-
-            <MudItem xs="6">
-                <div class="d-flex align-center justify-center flex-column pa-2 rounded mud-theme-primary-hover">
-                    <MudIcon Icon="@Icons.Material.Filled.Speed" Color="Color.Warning" />
-                    <MudText Typo="Typo.h6">@MachineStatus.AnlikDevirRpm</MudText>
-                    <MudText Typo="Typo.caption">@Loc["Devir"]</MudText>
-                </div>
-            </MudItem>
-
-            <MudItem xs="12" Class="d-flex justify-end mt-1">
-                <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-1" style="vertical-align:middle" />
-                    @MachineStatus.OperatorIsmi
-                </MudText>
-            </MudItem>
-
         </MudGrid>
     </MudCardContent>
 </MudCard>
@@ -174,21 +145,37 @@
     [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
     [Parameter] public EventCallback<int> OnInfoClick { get; set; }
 
-    // --- YENİ EKLENEN METOT ---
-    // --- YENİ EKLENEN METOT ---
+    // --- 8. ADIM (GEREKSİZ RENDER ENGELLEYİCİ) ---
+    private string _lastRenderedStateHash = "";
+
+    protected override bool ShouldRender()
+    {
+        if (MachineStatus == null) return false;
+
+        // Kartın görünümünü değiştiren "TÜM" metinleri ve durumları birleştiriyoruz
+        string currentStateHash = $"{MachineStatus.ConnectionState}_{MachineStatus.HasActiveAlarm}_{MachineStatus.ActiveAlarmNumber}_{MachineStatus.IsPaused}_{MachineStatus.IsInRecipeMode}_{MachineStatus.ProsesYuzdesi}_{MachineStatus.RecipeName}_{MachineStatus.BatchNumarasi}_{MachineStatus.SiparisNumarasi}_{MachineStatus.MusteriNumarasi}_{MachineStatus.AktifAdimNo}_{MachineStatus.AktifAdimAdi}_{MachineStatus.DisplayOrder}";
+
+        // Veriler bir önceki render ile BİREBİR AYNIYSA kartı yeniden çizmeyi reddediyoruz.
+        if (_lastRenderedStateHash != currentStateHash)
+        {
+            _lastRenderedStateHash = currentStateHash;
+            return true; // Ekrana yansıyacak bir değişiklik var, ÇİZ!
+        }
+
+        return false; // Hiçbir değişiklik yok, eski görüntüyü tut (MUAZZAM CPU TASARRUFU)
+    }
+    // ----------------------------------------------
+
     private int GetDisplayOrder()
     {
-        // 1. Eğer canlı akıştan DisplayOrder düzgün (>0) geldiyse onu kullan
         if (MachineStatus.DisplayOrder > 0)
             return MachineStatus.DisplayOrder;
 
-        // 2. Yoksa, önbellekten (DB'den en son çekilen) haline bak
         if (ScadaService.MachineDetailsCache.TryGetValue(MachineStatus.MachineId, out var machineInfo))
         {
             return machineInfo.DisplayOrder > 0 ? machineInfo.DisplayOrder : machineInfo.Id;
         }
-    
-        // 3. Hiçbir yerde yoksa mecburen ID dön
+
         return MachineStatus.MachineId;
     }
 

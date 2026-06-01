@@ -162,32 +162,43 @@
     [Parameter] public FullMachineStatus MachineStatus { get; set; }
     [Parameter] public EventCallback MouseClick { get; set; }
 
-    // --- Helper Method to Check Machine Type ---
+    // --- 8. ADIM (GEREKSİZ RENDER ENGELLEYİCİ) ---
+    private string _lastRenderedStateHash = "";
+
+    protected override bool ShouldRender()
+    {
+        if (MachineStatus == null) return false;
+
+        // Kartın görüntüsünü etkileyen "TÜM" değişkenleri bir araya getirip bir DNA (Hash) oluşturuyoruz.
+        string currentStateHash = $"{MachineStatus.ConnectionState}_{MachineStatus.HasActiveAlarm}_{MachineStatus.IsPaused}_{MachineStatus.IsInRecipeMode}_{MachineStatus.BatchNumarasi}_{MachineStatus.AktifAdimNo}_{MachineStatus.AktifAdimAdi}_{MachineStatus.AnlikSicaklik}_{MachineStatus.AnlikSuSeviyesi}_{MachineStatus.AnlikDevirRpm}_{MachineStatus.ProsesYuzdesi}";
+
+        // Eğer yeni gelen veri paketindeki veriler bir öncekiyle TAMAMEN AYNIYSA:
+        if (_lastRenderedStateHash != currentStateHash)
+        {
+            _lastRenderedStateHash = currentStateHash;
+            return true; // Değişiklik var, HTML'i yeniden hesapla ve çiz!
+        }
+
+        return false; // Hiçbir veri değişmemiş, CPU'yu yorma, eski görüntüyü tut!
+    }
+    // ----------------------------------------------
+
     private bool IsDryerMachine()
     {
         if (string.IsNullOrEmpty(MachineStatus.MakineTipi)) return false;
-        // Case-insensitive check for "Kurutma"
         return MachineStatus.MakineTipi.Contains("Kurutma Makinesi", StringComparison.OrdinalIgnoreCase);
     }
 
-    // --- Temperature Formatting Logic based on WinForms code ---
     private string GetFormattedTemperature()
     {
         if (IsDryerMachine())
         {
-            // Windows Forms logic: lblTemperature.Text = $"{status.AnlikSicaklik / 100.0m:F1}°C";
             return (MachineStatus.AnlikSicaklik / 100.0m).ToString("F1");
         }
         else
         {
-            // Windows Forms logic: lblTemperature.Text = $"{status.AnlikSicaklik / 10.0m}°C";
-            return (MachineStatus.AnlikSicaklik / 10.0m).ToString("0.#"); // Virgülden sonra gerekmiyorsa gösterme
+            return (MachineStatus.AnlikSicaklik / 10.0m).ToString("0.#");
         }
-    }
-
-    private async Task OnClickCallback()
-    {
-        await MouseClick.InvokeAsync();
     }
 
     private MudBlazor.Color GetStatusColor()
