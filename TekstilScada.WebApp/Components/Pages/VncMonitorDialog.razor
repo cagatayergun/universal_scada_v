@@ -19,7 +19,7 @@
             <MudIcon Icon="@Icons.Material.Filled.DesktopWindows" Class="mr-3 mb-n1" />
             @if (machine != null)
             {
-                @($"{Loc["UzaktanErisim"]} - {machine.MachineName}")
+                @($"{Loc["UzaktanErisim"]} - {machine.MachineName} ({Loc["SadeceIzleme"]})")
             }
             else
             {
@@ -44,15 +44,13 @@
         }
         else
         {
-            @* --- GÖRÜNTÜ PANELİ --- *@
+            @* --- GÖRÜNTÜ PANELİ (Tıklama Olayları Tamamen Kaldırıldı) --- *@
             <div style="width: 100%; min-height: 400px; display: flex; justify-content: center; align-items: center; background-color: #000; border: 1px solid #333; overflow: hidden;">
                 @if (!string.IsNullOrEmpty(imageData))
                 {
                     <img id="vncStreamImage"
                          src="data:image/jpeg;base64,@imageData"
-                         style="max-width: 100%; max-height: 600px; object-fit: contain; cursor: @(isTouchEnabled ? "crosshair" : "default");"
-                         @onmousedown="HandleImageClick"
-                         @ontouchstart="HandleTouchClick"
+                         style="max-width: 100%; max-height: 600px; object-fit: contain; cursor: default;"
                          draggable="false" />
                 }
                 else
@@ -66,19 +64,6 @@
             </div>
         }
     </DialogContent>
-    @*  <DialogActions>
-         Tıklama Kontrolünü Aç/Kapat Switch'i (Erişim reddedilmediyse gösterilir) 
-        @if (!isAccessDenied)
-        {
-            <MudSwitch @bind-Value="isTouchEnabled" Color="Color.Success" Class="mr-auto">
-                <MudText Typo="Typo.body2">
-                    @(isTouchEnabled ? "Kontrol Aktif" : "Kontrol Kapalı (Sadece İzleme)")
-                </MudText>
-            </MudSwitch>
-        }
-        <MudButton OnClick="CloseConnection" Color="Color.Error" Variant="Variant.Filled">Kapat</MudButton>
-    </DialogActions>
-    *@
 </MudDialog>
 
 @code {
@@ -89,15 +74,15 @@
     private Machine? machine;
     private bool isAccessDenied = false;
     private string? currentViewerName;
-    private string myUserName = "Operator"; // Giriş yapan kullanıcının gerçek adını AuthState'den alabilirsiniz
+    private string myUserName = "Operator";
     private HubConnection? hubConnection;
     private string? imageData;
 
-    // TIKLAMA / KONTROL YETKİSİ
-    // Başlangıçta güvenlik amacıyla false (Sadece İzleme) yapıyoruz. İsterseniz true yapabilirsiniz.
-    private bool isTouchEnabled = false;
+    // --- PERFORMANS VE DARBOĞAZ ENGELLEME DEĞİŞKENLERİ ---
+    private bool _isProcessingFrame = false; // Kare işleme (Render) kilidi
+    private DateTime _lastFrameTime = DateTime.MinValue; // Son kare kabul zamanı
+    private const int MinimumFrameIntervalMs = 150; // İdeal kare aralığı (Hattı tıkamaz, akıcı görüntü sunar)
 
-    // Bağlantı Yönetimi
     private System.Threading.Timer? _heartbeatTimer;
     private DotNetObjectReference<VncMonitorDialog>? _objRef;
 
@@ -105,11 +90,11 @@
     {
         try
         {
-            // 1. Makine Bilgisini Çek
+            // 1. Makine Bilgisini Önbellekten / Servisten Çek
             var machines = await ScadaService.GetMachinesAsync();
             if (machines != null) machine = machines.FirstOrDefault(m => m.Id == MachineId);
 
-            // 2. Oturum Kontrolü (Biri izliyor mu?)
+            // 2. Oturum Kontrolü
             var result = VncSessionService.TryEnterSession(MachineId, myUserName);
             if (!result.Success)
             {
@@ -118,19 +103,18 @@
                 return;
             }
 
-            // 3. SignalR Bağlantısı
+            // 3. SignalR Canlı Resim Akışını Başlat
             await StartSignalRConnection();
 
-            // 4. JS Hook (Tarayıcı Kapanmasını Yakala)
+            // 4. Sayfa Kapanma Hook'u
             _objRef = DotNetObjectReference.Create(this);
             try
             {
-                // index.html'e eklediğimiz fonksiyonu çağırıyoruz
                 await JS.InvokeVoidAsync("vncUtils.setupUnloadHandler", _objRef);
             }
-            catch { /* JS hatası olursa akışı bozma */ }
+            catch { }
 
-            // 5. Heartbeat Başlat (Her 5 saniyede bir sunucuya "Ben Buradayım" der)
+            // 5. Gateway Keep-Alive Heartbeat
             _heartbeatTimer = new System.Threading.Timer(async _ => await SendHeartbeat(), null, 5000, 5000);
         }
         catch (Exception ex)
@@ -144,7 +128,6 @@
         try
         {
             var token = await LocalStorage.GetItemAsync<string>("authToken");
-            // Production ortamında BaseUrl'i appsettings'den veya ScadaService'den almak daha iyidir
             var hubUrl = "https://api.malkanteknolojionline.com.tr/scadaHub";
 
             hubConnection = new HubConnectionBuilder()
@@ -155,19 +138,45 @@
                 .WithAutomaticReconnect()
                 .Build();
 
-            // Görüntü Geldiğinde
+            // Sadece Akıllı Filtrelemeden Geçen Canlı Kareleri Kabul Eden Dinleyici
             hubConnection.On<int, string>("ReceiveScreenImage", (mId, base64) =>
             {
                 if (mId == MachineId)
                 {
-                    imageData = base64;
-                    InvokeAsync(StateHasChanged);
+                    var now = DateTime.UtcNow;
+
+                    // Gecikme Birikmesini Önleyen Karar Mekanizması:
+                    // Önceki kare render ediliyorsa veya son kareden sonra 150ms geçmediyse bu kareyi işleme, direkt atla!
+                    if (_isProcessingFrame || (now - _lastFrameTime).TotalMilliseconds < MinimumFrameIntervalMs)
+                    {
+                        return;
+                    }
+
+                    _isProcessingFrame = true;
+                    _lastFrameTime = now;
+
+                    _ = InvokeAsync(async () =>
+                    {
+                        try
+                        {
+                            imageData = base64;
+                            StateHasChanged(); // Sadece taze olan kareyi ekrana bas
+                            await Task.Yield(); // Blazor Server WebSocket kanalına nefes aldır
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"VNC Render Hatası: {ex.Message}");
+                        }
+                        finally
+                        {
+                            _isProcessingFrame = false; // Yeni taze kareler için kilidi aç
+                        }
+                    });
                 }
             });
 
             await hubConnection.StartAsync();
 
-            // VNC Başlat Komutu Gönder
             if (machine != null)
             {
                 string vncParams = $"{machine.VncAddress};{machine.VncPassword}";
@@ -180,68 +189,18 @@
         }
     }
 
-    // --- TIKLAMA OLAYLARI ---
-
-    private async Task HandleImageClick(MouseEventArgs e)
-    {
-        // EĞER KONTROL KAPALIYSA İŞLEM YAPMA (Geri Dön)
-        if (!isTouchEnabled) return;
-
-        if (hubConnection is not null && hubConnection.State == HubConnectionState.Connected)
-        {
-            try
-            {
-                // JS: Koordinatları hesapla (Resim ölçeklendiği için gereklidir)
-                var coords = await JS.InvokeAsync<Coordinates>("vncUtils.calculateCoordinates", "vncStreamImage", e.ClientX, e.ClientY);
-
-                if (coords != null)
-                {
-                    await hubConnection.InvokeAsync("SendCommandToLocal", ScadaService.CurrentFactoryId, MachineId, "CLICK", $"{coords.X};{coords.Y}");
-                }
-            }
-            catch (Exception ex) { Console.WriteLine($"[Click Error] {ex.Message}"); }
-        }
-    }
-
-    private async Task HandleTouchClick(TouchEventArgs e)
-    {
-        // EĞER KONTROL KAPALIYSA İŞLEM YAPMA (Geri Dön)
-        if (!isTouchEnabled) return;
-
-        if (e.Touches.Length > 0 && hubConnection is not null && hubConnection.State == HubConnectionState.Connected)
-        {
-            try
-            {
-                var touch = e.Touches[0];
-                var coords = await JS.InvokeAsync<Coordinates>("vncUtils.calculateCoordinates", "vncStreamImage", touch.ClientX, touch.ClientY);
-
-                if (coords != null)
-                {
-                    await hubConnection.InvokeAsync("SendCommandToLocal", ScadaService.CurrentFactoryId, MachineId, "CLICK", $"{coords.X};{coords.Y}");
-                }
-            }
-            catch { }
-        }
-    }
-
-    // --- HEARTBEAT / KEEP-ALIVE ---
     private async Task SendHeartbeat()
     {
         if (hubConnection is not null && hubConnection.State == HubConnectionState.Connected)
         {
             try
             {
-                // Sunucuya boş bir komut veya özel bir Heartbeat mesajı atıyoruz.
-                // Bu, Gateway tarafındaki zaman aşımı sayacını sıfırlamak içindir.
                 await hubConnection.InvokeAsync("SendCommandToLocal", ScadaService.CurrentFactoryId, MachineId, "HEARTBEAT", "");
             }
             catch { }
         }
     }
 
-    // --- KAPANMA YÖNETİMİ ---
-
-    // JS Tarafından çağrılır (Tarayıcı kapanırken)
     [JSInvokable]
     public async Task OnPageUnload()
     {
@@ -255,33 +214,19 @@
 
     public async ValueTask DisposeAsync()
     {
-        // 1. Timer'ı Durdur
         if (_heartbeatTimer != null) await _heartbeatTimer.DisposeAsync();
 
-        // 2. VNC Durdurma Komutu Gönder (Bağlantı hala varsa)
         if (hubConnection is not null && hubConnection.State == HubConnectionState.Connected)
         {
             try
             {
                 await hubConnection.InvokeAsync("SendCommandToLocal", ScadaService.CurrentFactoryId, MachineId, "STOP_VNC", "");
             }
-            catch { /* Kapanırken hata olabilir, yut */ }
+            catch { }
         }
 
-        // 3. SignalR Bağlantısını Kes
         if (hubConnection is not null) await hubConnection.DisposeAsync();
-
-        // 4. Oturumu Boşa Çıkar
         if (!isAccessDenied) VncSessionService.ExitSession(MachineId, myUserName);
-
-        // 5. JS Referansını Temizle
         _objRef?.Dispose();
-    }
-
-    // JS dönüş tipi için yardımcı sınıf
-    public class Coordinates
-    {
-        public int X { get; set; }
-        public int Y { get; set; }
     }
 }

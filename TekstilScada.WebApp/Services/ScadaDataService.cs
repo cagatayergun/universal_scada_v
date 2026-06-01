@@ -321,6 +321,14 @@ namespace TekstilScada.WebApp.Services
 
         public async Task<List<Machine>> GetMachinesAsync(int factoryId = 0)
         {
+            int targetFactoryId = ResolveId(factoryId);
+
+            // ÖNBELLEK OPTİMİZASYONU: Eğer cache zaten doluysa ağa hiç gitme, jet hızında teslim et!
+            if (MachineDetailsCache.Count > 0 && targetFactoryId == _currentSelectedFactoryId)
+            {
+                return MachineDetailsCache.Values.ToList();
+            }
+
             var machines = await InvokeSafeAsync("GetAllMachines", factoryId, new List<Machine>());
             if (machines.Any())
             {
