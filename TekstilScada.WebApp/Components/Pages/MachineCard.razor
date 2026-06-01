@@ -9,12 +9,14 @@
 @inject IDialogService DialogService
 @inject ScadaDataService ScadaService
 
+
+
 <MudCard Elevation="4" Class="ma-2 machine-card-hover" Style="@GetCardBorderStyle()">
     <MudCardHeader>
         <CardHeaderAvatar>
             <MudAvatar Color="@GetConnectionColor()" Variant="Variant.Filled" Size="Size.Medium">
                 <!-- DEĞİŞİKLİK: MachineId yerine yeni yazdığımız GetDisplayOrder() metodunu çağırıyoruz -->
-                <MudText Typo="Typo.subtitle1"><b>@MachineStatus.DisplayOrder</b></MudText>
+                <MudText Typo="Typo.subtitle1"><b>@GetDisplayOrder()</b></MudText>
             </MudAvatar>
         </CardHeaderAvatar>
         <CardHeaderContent>

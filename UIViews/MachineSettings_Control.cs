@@ -19,6 +19,7 @@ namespace TekstilScada.UI.Views
         private List<TekstilScada.Models.Machine> _machines;
         private TekstilScada.Models.Machine _selectedMachine;
         private List<object> _machineTypeOptions;
+
         public MachineSettings_Control()
         {
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
@@ -26,12 +27,13 @@ namespace TekstilScada.UI.Views
             _repository = new MachineRepository();
             _userRepository = new UserRepository();
         }
+
         private void LanguageManager_LanguageChanged(object sender, EventArgs e)
         {
             ApplyLocalization();
             PopulateMachineTypeComboBox();
-
         }
+
         public void ApplyLocalization()
         {
             groupBox1.Text = Resources.makinebilgileri;
@@ -47,18 +49,19 @@ namespace TekstilScada.UI.Views
             btnDelete.Text = Resources.Delete;
             btnNew.Text = Resources.New;
             btnSave.Text = Resources.Save;
-            //btnSave.Text = Resources.Save;
 
-
+            // YENİ: Eğer Resources içinde makinehol tanımı varsa label'a uygula (Yoksa hata vermemesi için try-catch veya direkt string yazılabilir)
+           // try { lblMachineHall.Text = Resources.makinehol; } catch { try { lblMachineHall.Text = "Makine Holü"; } catch { } }
         }
+
         private void MachineSettings_Control_Load(object sender, EventArgs e)
         {
-
             // ComboBox'ı ilk defa doldur ve makineleri listele.
             PopulateMachineTypeComboBox();
             RefreshMachineList();
             ApplyLocalization(); // Metinleri ilk yüklemede de uygula
         }
+
         private void PopulateMachineTypeComboBox()
         {
             // 1. Dilden bağımsız anahtarları ("Value") ve çevrilmiş metinleri ("Display") içeren listeyi oluştur.
@@ -74,6 +77,7 @@ namespace TekstilScada.UI.Views
             cmbMachineType.DisplayMember = "Display"; // Kullanıcı çevrilmiş metni görecek
             cmbMachineType.ValueMember = "Value";     // Arka planda dilden bağımsız anahtar tutulacak
         }
+
         public void RefreshMachineList()
         {
             try
@@ -113,11 +117,14 @@ namespace TekstilScada.UI.Views
             txtVncAddress.Text = machine.VncAddress;
             chkIsEnabled.Checked = machine.IsEnabled;
             cmbMachineType.SelectedValue = machine.MachineType;
-            // YENİ: FTP alanlarını doldur
+            // FTP alanlarını doldur
             txtFtpUsername.Text = machine.FtpUsername;
             txtFtpPassword.Text = machine.FtpPassword;
             txtMachineSubType.Text = machine.MachineSubType;
-            displaybox.Text=machine.DisplayOrder.ToString();
+            displaybox.Text = machine.DisplayOrder.ToString();
+
+            // YENİ SATIR: Veritabanından gelen Hol parametresini Textbox'a dolduruyoruz
+            textdisplayname.Text = string.IsNullOrEmpty(machine.MachineHall) ? "Empty" : machine.MachineHall;
         }
 
         private void ClearFields()
@@ -131,11 +138,14 @@ namespace TekstilScada.UI.Views
             txtVncAddress.Text = "";
             chkIsEnabled.Checked = true;
             cmbMachineType.SelectedIndex = 0;
-            // YENİ: FTP alanlarını temizle
+            // FTP alanlarını temizle
             txtFtpUsername.Text = "";
             txtFtpPassword.Text = "";
             txtMachineSubType.Text = "";
             displaybox.Text = "";
+
+            // YENİ SATIR: Yeni kayıt butonuna basınca veya temizlenince varsayılan değer atar
+            textdisplayname.Text = "Empty";
         }
 
         private void btnNew_Click(object sender, EventArgs e)
@@ -157,6 +167,9 @@ namespace TekstilScada.UI.Views
                 return;
             }
 
+            // Hol alanı boş geçildiyse varsayılan değer ata
+            string hallName = string.IsNullOrWhiteSpace(textdisplayname.Text) ? "Empty" : textdisplayname.Text;
+
             try
             {
                 if (_selectedMachine == null) // Yeni Kayıt
@@ -170,12 +183,14 @@ namespace TekstilScada.UI.Views
                         VncAddress = txtVncAddress.Text,
                         IsEnabled = chkIsEnabled.Checked,
                         MachineType = cmbMachineType.SelectedValue.ToString(),
-                        // YENİ: FTP alanlarını oku
                         FtpUsername = txtFtpUsername.Text,
                         FtpPassword = txtFtpPassword.Text,
                         MachineSubType = txtMachineSubType.Text,
-                        DisplayOrder= int.Parse(displaybox.Text)
-                    }; 
+                        DisplayOrder = string.IsNullOrWhiteSpace(displaybox.Text) ? 0 : int.Parse(displaybox.Text),
+
+                        // YENİ PARAMETRE: Veritabanına yeni kaydı eklerken hol bilgisini gönderiyoruz
+                        MachineHall = hallName
+                    };
                     _repository.AddMachine(newMachine);
                     MessageBox.Show($"{Resources.yenimakinebasarili}", $"{Resources.Confirim}", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     if (CurrentUser.IsLoggedIn)
@@ -192,13 +207,16 @@ namespace TekstilScada.UI.Views
                     _selectedMachine.VncAddress = txtVncAddress.Text;
                     _selectedMachine.IsEnabled = chkIsEnabled.Checked;
                     _selectedMachine.MachineType = cmbMachineType.SelectedValue.ToString();
-                    // YENİ: FTP alanlarını oku
                     _selectedMachine.FtpUsername = txtFtpUsername.Text;
                     _selectedMachine.FtpPassword = txtFtpPassword.Text;
                     _selectedMachine.MachineSubType = txtMachineSubType.Text;
-                    _selectedMachine.DisplayOrder = int.Parse(displaybox.Text);
+                    _selectedMachine.DisplayOrder = string.IsNullOrWhiteSpace(displaybox.Text) ? 0 : int.Parse(displaybox.Text);
+
+                    // YENİ PARAMETRE: Mevcut makineyi güncellerken yeni hol bilgisini kaydediyoruz
+                    _selectedMachine.MachineHall = hallName;
+
                     _repository.UpdateMachine(_selectedMachine);
-                  
+
                     MessageBox.Show($"{Resources.makinebilgilerigüncellendi}", $"{Resources.Confirim}", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     if (CurrentUser.IsLoggedIn)
                     {

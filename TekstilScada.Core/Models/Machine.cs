@@ -17,5 +17,6 @@ namespace TekstilScada.Models
         public string MachineSubType { get; set; } // YENİ
         public int DisplayOrder { get; set; }
         public string DisplayInfo => $"{MachineName} - ({MachineUserDefinedId})";
+        public string MachineHall { get; set; } = "Empty";
     }
 }

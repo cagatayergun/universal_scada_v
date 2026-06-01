@@ -12,6 +12,50 @@ namespace TekstilScada.Repositories
     {
         private readonly string _connectionString = AppConfig.ConnectionString;
 
+        // YENİ: Yapıcı metot (Constructor) program her repository çağırdığında sütun kontrolü yapar
+        public MachineRepository()
+        {
+            EnsureMachineHallColumnExists();
+        }
+
+        /// <summary>
+        /// Veritabanında MachineHall sütunu yoksa otomatik olarak ekler.
+        /// </summary>
+        private void EnsureMachineHallColumnExists()
+        {
+            using (var connection = new MySqlConnection(_connectionString))
+            {
+                try
+                {
+                    connection.Open();
+
+                    // 1. Sütun mevcut mu kontrol et (Mevcut aktif veritabanı şemasında)
+                    string checkQuery = @"
+                        SELECT COUNT(*) 
+                        FROM INFORMATION_SCHEMA.COLUMNS 
+                        WHERE TABLE_NAME = 'machines' 
+                        AND COLUMN_NAME = 'MachineHall' 
+                        AND TABLE_SCHEMA = DATABASE();";
+
+                    var checkCmd = new MySqlCommand(checkQuery, connection);
+                    long count = Convert.ToInt64(checkCmd.ExecuteScalar());
+
+                    // 2. Sütun yoksa tabloyu dinamik olarak güncelle (Varsayılan değer atayarak)
+                    if (count == 0)
+                    {
+                        string alterQuery = "ALTER TABLE machines ADD COLUMN MachineHall VARCHAR(100) DEFAULT 'Empty';";
+                        var alterCmd = new MySqlCommand(alterQuery, connection);
+                        alterCmd.ExecuteNonQuery();
+                        Debug.WriteLine("[Repository] 'MachineHall' sütunu başarıyla veritabanına eklendi.");
+                    }
+                }
+                catch (MySqlException ex)
+                {
+                    Debug.WriteLine($"Veritabanı şema güncelleme hatası (EnsureMachineHallColumnExists): {ex.Message}");
+                }
+            }
+        }
+
         public List<Machine> GetAllMachines()
         {
             var machines = new List<Machine>();
@@ -20,8 +64,8 @@ namespace TekstilScada.Repositories
                 try
                 {
                     connection.Open();
-                    // DEĞİŞİKLİK: DisplayOrder eklendi ve sıralama ORDER BY DisplayOrder, Id yapıldı
-                    string query = "SELECT Id, MachineUserDefinedId, MachineName, IpAddress, Port, MachineType, IsEnabled, VncAddress, VncPassword, FtpUsername, FtpPassword, MachineSubType, DisplayOrder FROM machines ORDER BY DisplayOrder ASC, Id ASC;";
+                    // DEĞİŞİKLİK: MachineHall sütunu SELECT sorgusuna eklendi
+                    string query = "SELECT Id, MachineUserDefinedId, MachineName, IpAddress, Port, MachineType, IsEnabled, VncAddress, VncPassword, FtpUsername, FtpPassword, MachineSubType, DisplayOrder, MachineHall FROM machines ORDER BY DisplayOrder ASC, Id ASC;";
                     var cmd = new MySqlCommand(query, connection);
 
                     using (var reader = cmd.ExecuteReader())
@@ -42,8 +86,9 @@ namespace TekstilScada.Repositories
                                 FtpUsername = reader.IsDBNull(reader.GetOrdinal("FtpUsername")) ? string.Empty : reader.GetString("FtpUsername"),
                                 FtpPassword = reader.IsDBNull(reader.GetOrdinal("FtpPassword")) ? string.Empty : reader.GetString("FtpPassword"),
                                 MachineSubType = reader.IsDBNull(reader.GetOrdinal("MachineSubType")) ? string.Empty : reader.GetString("MachineSubType"),
-                                // YENİ SATIR: Sıralama bilgisini okuyoruz
-                                DisplayOrder = reader.IsDBNull(reader.GetOrdinal("DisplayOrder")) ? 0 : reader.GetInt32("DisplayOrder")
+                                DisplayOrder = reader.IsDBNull(reader.GetOrdinal("DisplayOrder")) ? 0 : reader.GetInt32("DisplayOrder"),
+                                // YENİ SATIR: Hol bilgisini okuyoruz (boşsa varsayılan değer atanır)
+                                MachineHall = reader.IsDBNull(reader.GetOrdinal("MachineHall")) ? "Empty" : reader.GetString("MachineHall")
                             };
                             machines.Add(machine);
                         }
@@ -66,8 +111,8 @@ namespace TekstilScada.Repositories
                 try
                 {
                     connection.Open();
-                    // DEĞİŞİKLİK: DisplayOrder eklendi ve sıralama ORDER BY DisplayOrder, Id yapıldı
-                    string query = "SELECT Id, MachineUserDefinedId, MachineName, IpAddress, Port, MachineType, IsEnabled, VncAddress, VncPassword, FtpUsername, FtpPassword, MachineSubType, DisplayOrder FROM machines WHERE IsEnabled = TRUE ORDER BY DisplayOrder ASC, Id ASC;";
+                    // DEĞİŞİKLİK: MachineHall sütunu SELECT sorgusuna eklendi
+                    string query = "SELECT Id, MachineUserDefinedId, MachineName, IpAddress, Port, MachineType, IsEnabled, VncAddress, VncPassword, FtpUsername, FtpPassword, MachineSubType, DisplayOrder, MachineHall FROM machines WHERE IsEnabled = TRUE ORDER BY DisplayOrder ASC, Id ASC;";
                     var cmd = new MySqlCommand(query, connection);
 
                     using (var reader = cmd.ExecuteReader())
@@ -88,8 +133,9 @@ namespace TekstilScada.Repositories
                                 FtpUsername = reader.IsDBNull(reader.GetOrdinal("FtpUsername")) ? string.Empty : reader.GetString("FtpUsername"),
                                 FtpPassword = reader.IsDBNull(reader.GetOrdinal("FtpPassword")) ? string.Empty : reader.GetString("FtpPassword"),
                                 MachineSubType = reader.IsDBNull(reader.GetOrdinal("MachineSubType")) ? string.Empty : reader.GetString("MachineSubType"),
-                                // YENİ SATIR: Sıralama bilgisini okuyoruz
-                                DisplayOrder = reader.IsDBNull(reader.GetOrdinal("DisplayOrder")) ? 0 : reader.GetInt32("DisplayOrder")
+                                DisplayOrder = reader.IsDBNull(reader.GetOrdinal("DisplayOrder")) ? 0 : reader.GetInt32("DisplayOrder"),
+                                // YENİ SATIR: Hol bilgisini okuyoruz
+                                MachineHall = reader.IsDBNull(reader.GetOrdinal("MachineHall")) ? "Empty" : reader.GetString("MachineHall")
                             };
                             machines.Add(machine);
                         }
@@ -109,8 +155,8 @@ namespace TekstilScada.Repositories
             using (var connection = new MySqlConnection(_connectionString))
             {
                 connection.Open();
-                // DEĞİŞİKLİK: DisplayOrder eklendi
-                string query = "INSERT INTO machines (MachineUserDefinedId, MachineName, IpAddress, Port, MachineType, IsEnabled, VncAddress, VncPassword, FtpUsername, FtpPassword, MachineSubType, DisplayOrder) VALUES (@MachineUserDefinedId, @MachineName, @IpAddress, @Port, @MachineType, @IsEnabled, @VncAddress, @VncPassword, @FtpUsername, @FtpPassword, @MachineSubType, @DisplayOrder);";
+                // DEĞİŞİKLİK: MachineHall INSERT query'sine eklendi
+                string query = "INSERT INTO machines (MachineUserDefinedId, MachineName, IpAddress, Port, MachineType, IsEnabled, VncAddress, VncPassword, FtpUsername, FtpPassword, MachineSubType, DisplayOrder, MachineHall) VALUES (@MachineUserDefinedId, @MachineName, @IpAddress, @Port, @MachineType, @IsEnabled, @VncAddress, @VncPassword, @FtpUsername, @FtpPassword, @MachineSubType, @DisplayOrder, @MachineHall);";
                 var cmd = new MySqlCommand(query, connection);
                 cmd.Parameters.AddWithValue("@MachineUserDefinedId", machine.MachineUserDefinedId);
                 cmd.Parameters.AddWithValue("@MachineName", machine.MachineName);
@@ -123,7 +169,8 @@ namespace TekstilScada.Repositories
                 cmd.Parameters.AddWithValue("@FtpUsername", machine.FtpUsername);
                 cmd.Parameters.AddWithValue("@FtpPassword", machine.FtpPassword);
                 cmd.Parameters.AddWithValue("@MachineSubType", machine.MachineSubType);
-                cmd.Parameters.AddWithValue("@DisplayOrder", machine.DisplayOrder); // YENİ SATIR
+                cmd.Parameters.AddWithValue("@DisplayOrder", machine.DisplayOrder);
+                cmd.Parameters.AddWithValue("@MachineHall", machine.MachineHall); // YENİ PARAMETRE
                 cmd.ExecuteNonQuery();
             }
         }
@@ -133,8 +180,8 @@ namespace TekstilScada.Repositories
             using (var connection = new MySqlConnection(_connectionString))
             {
                 connection.Open();
-                // DEĞİŞİKLİK: DisplayOrder eklendi
-                string query = "UPDATE machines SET MachineUserDefinedId = @MachineUserDefinedId, MachineName = @MachineName, IpAddress = @IpAddress, Port = @Port, MachineType = @MachineType, IsEnabled = @IsEnabled, VncAddress = @VncAddress, VncPassword = @VncPassword, FtpUsername = @FtpUsername, FtpPassword = @FtpPassword, MachineSubType = @MachineSubType, DisplayOrder = @DisplayOrder WHERE Id = @Id;";
+                // DEĞİŞİKLİK: MachineHall UPDATE query'sine eklendi
+                string query = "UPDATE machines SET MachineUserDefinedId = @MachineUserDefinedId, MachineName = @MachineName, IpAddress = @IpAddress, Port = @Port, MachineType = @MachineType, IsEnabled = @IsEnabled, VncAddress = @VncAddress, VncPassword = @VncPassword, FtpUsername = @FtpUsername, FtpPassword = @FtpPassword, MachineSubType = @MachineSubType, DisplayOrder = @DisplayOrder, MachineHall = @MachineHall WHERE Id = @Id;";
                 var cmd = new MySqlCommand(query, connection);
                 cmd.Parameters.AddWithValue("@Id", machine.Id);
                 cmd.Parameters.AddWithValue("@MachineUserDefinedId", machine.MachineUserDefinedId);
@@ -148,7 +195,8 @@ namespace TekstilScada.Repositories
                 cmd.Parameters.AddWithValue("@FtpUsername", machine.FtpUsername);
                 cmd.Parameters.AddWithValue("@FtpPassword", machine.FtpPassword);
                 cmd.Parameters.AddWithValue("@MachineSubType", machine.MachineSubType);
-                cmd.Parameters.AddWithValue("@DisplayOrder", machine.DisplayOrder); // YENİ SATIR
+                cmd.Parameters.AddWithValue("@DisplayOrder", machine.DisplayOrder);
+                cmd.Parameters.AddWithValue("@MachineHall", machine.MachineHall); // YENİ PARAMETRE
                 cmd.ExecuteNonQuery();
             }
         }

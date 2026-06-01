@@ -207,7 +207,7 @@ namespace TekstilScada.UI.Views
             flpUtilityStrip.SuspendLayout();
             flpUtilityStrip.Controls.Clear();
             _utilityCards.Clear();
-            flpUtilityStrip.Visible=false;
+            flpUtilityStrip.Visible = false;
             // Hatları çek (Repository'de GetUtilityLines var)
             var lines = _utilityRepository.GetUtilityLines();
 
@@ -238,16 +238,10 @@ namespace TekstilScada.UI.Views
             var allMachines = _machineRepository.GetAllEnabledMachines();
             var machineCache = _pollingService.MachineDataCache;
 
+            // DÜZELTME: Makineler artık MachineSubType yerine yeni parametremiz olan MachineHall (Hol) bilgisine göre gruplanıyor
             var groupedMachines = allMachines
-                 .GroupBy(m => m.MachineSubType ?? "Other")
-                 .OrderBy(g =>
-                 {
-                     var type = g.FirstOrDefault()?.MachineType?.ToString() ?? "";
-                     if (type.Contains("BYMakinesi")) return 1;
-                     if (type.Contains("Kurutma Makinesi")) return 2;
-                     return 3;
-                 })
-                 .ThenBy(g => g.Key);
+                 .GroupBy(m => string.IsNullOrWhiteSpace(m.MachineHall) ? "Empty" : m.MachineHall)
+                 .OrderBy(g => g.Key); // Hol isimlerine göre alfabetik sıralar
 
             _colorIndex = 0;
 
@@ -255,7 +249,8 @@ namespace TekstilScada.UI.Views
             {
                 var groupPanel = new GroupBox
                 {
-                    Text = group.Key,
+                    // DÜZELTME: Başlık metni hol ismine göre ayarlandı
+                    Text = $"{group.Key} ",
                     Width = flpMachineGroups.ClientSize.Width * 2 - 50,
                     Height = 265,
                     Font = new System.Drawing.Font("Segoe UI", 12F, FontStyle.Bold),
@@ -266,6 +261,7 @@ namespace TekstilScada.UI.Views
 
                 var innerPanel = new FlowLayoutPanel
                 {
+                    // Kartları hol panelinin içerisine yan yana dizer
                     Dock = DockStyle.Fill,
                     FlowDirection = FlowDirection.LeftToRight,
                     WrapContents = false,
@@ -273,6 +269,7 @@ namespace TekstilScada.UI.Views
                     BackColor = Color.WhiteSmoke
                 };
 
+                // Hol içerisindeki makineler kendi içlerinde çalışma önceliklerine göre sıralanır
                 var sortedMachines = group.OrderBy(m =>
                 {
                     if (machineCache.TryGetValue(m.Id, out var status))
@@ -420,8 +417,6 @@ namespace TekstilScada.UI.Views
         private void UpdateUtilityKpiData()
         {
             // Bu metot artık kullanılmıyor, canlı veri UtilityService_OnDataRefreshed üzerinden geliyor.
-            // Ancak geçmiş verileri veya toplamları göstermek isterseniz burada tutabilirsiniz.
-            // Şimdilik boş bırakıyorum veya silebilirsiniz.
         }
 
         private void UpdateKpiCards()
@@ -462,7 +457,7 @@ namespace TekstilScada.UI.Views
                     var today = DateTime.Today;
                     var now = DateTime.Now;
 
-                    // ÖNEMLİ: Sorguyu 3 kere değil, SADECE 1 KERE çalıştırıyoruz.
+                    // Sorguyu 3 kere değil, SADECE 1 KERE çalıştırıyoruz.
                     var singleConsumptionTable = _dashboardRepository.GetHourlyFactoryConsumption(today);
 
                     return new
@@ -557,7 +552,6 @@ namespace TekstilScada.UI.Views
             }
             catch (Exception ex)
             {
-                // Gerçek hatayı log penceresine yazın ki kilitlenme olursa görün
                 System.Diagnostics.Trace.WriteLine($"CRITICAL REFRESH ERROR: {ex}");
             }
         }

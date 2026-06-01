@@ -19,7 +19,7 @@
             <MudIcon Icon="@Icons.Material.Filled.DesktopWindows" Class="mr-3 mb-n1" />
             @if (machine != null)
             {
-                @($"{Loc["UzaktanErisim"]} - {machine.MachineName} ({Loc["SadeceIzleme"]})")
+                @($"{Loc["UzaktanErisim"]} - {machine.MachineName} ")
             }
             else
             {
@@ -128,7 +128,7 @@
         try
         {
             var token = await LocalStorage.GetItemAsync<string>("authToken");
-            var hubUrl = "https://api.malkanteknolojionline.com.tr/scadaHub";
+            var hubUrl = "https://api.yilmaktelemetry.com/scadaHub";
 
             hubConnection = new HubConnectionBuilder()
                 .WithUrl(hubUrl, options =>

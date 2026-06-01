@@ -16,6 +16,9 @@ using TekstilScada.Repositories;
 using TekstilScada.Services;
 using static TekstilScada.Repositories.AlarmRepository;
 
+
+
+
 // --- DTO Sınıfları (Global) ---
 public class TrendDataPoint { public DateTime Timestamp { get; set; } public double Temperature { get; set; } public double Rpm { get; set; } public double WaterLevel { get; set; } }
 public class ProductionStepDetailDto : TekstilScada.Models.ProductionStepDetail { public double TheoreticalDurationSeconds { get; set; } = 0; public double Temperature { get; set; } = 0; public string StepDescription => StepName; }
@@ -78,7 +81,7 @@ namespace TekstilScada.WebApp.Services
 
         // Hata Bildirim Event'i
         public event Action<string>? OnError;
-
+        private bool _isMachinesLoadedFromDb = false;
         public List<int> UserAllowedFactoryIds { get; private set; } = new();
         public string UserRole { get; private set; } = "";
         private int _currentSelectedFactoryId = 0;
@@ -197,7 +200,8 @@ namespace TekstilScada.WebApp.Services
                                 {
                                     Id = status.MachineId,
                                     MachineName = status.MachineName,
-                                    MachineSubType = string.IsNullOrEmpty(status.MakineTipi) ? "Standart" : status.MakineTipi
+                                    MachineSubType = string.IsNullOrEmpty(status.MakineTipi) ? "Standart" : status.MakineTipi,
+                                    MachineHall = status.MachineHall
                                 });
                             }
                         }
@@ -323,8 +327,8 @@ namespace TekstilScada.WebApp.Services
         {
             int targetFactoryId = ResolveId(factoryId);
 
-            // ÖNBELLEK OPTİMİZASYONU: Eğer cache zaten doluysa ağa hiç gitme, jet hızında teslim et!
-            if (MachineDetailsCache.Count > 0 && targetFactoryId == _currentSelectedFactoryId)
+            // DÜZELTME: Sadece DB'den gerçekten başarılı bir yükleme yapıldıysa önbelleği dön
+            if (_isMachinesLoadedFromDb && MachineDetailsCache.Count > 0 && targetFactoryId == _currentSelectedFactoryId)
             {
                 return MachineDetailsCache.Values.ToList();
             }
@@ -332,7 +336,12 @@ namespace TekstilScada.WebApp.Services
             var machines = await InvokeSafeAsync("GetAllMachines", factoryId, new List<Machine>());
             if (machines.Any())
             {
-                foreach (var x in machines) MachineDetailsCache.TryAdd(x.Id, x);
+                foreach (var x in machines)
+                {
+                    // Canlı veri placeholder'ı varsa ezip gerçek DB verisini yazar
+                    MachineDetailsCache[x.Id] = x;
+                }
+                _isMachinesLoadedFromDb = true; // DB yüklemesi tamamlandı
                 return machines;
             }
             return MachineDetailsCache.Values.ToList();
@@ -529,6 +538,7 @@ namespace TekstilScada.WebApp.Services
         }
         public void ExitFactory()
         {
+            _isMachinesLoadedFromDb = false; // <-- EKLENDİ
             CurrentFactoryName = ""; _currentSelectedFactoryId = 0; MachineData.Clear(); MachineDetailsCache.Clear(); OnFactoryChanged?.Invoke();
         }
         public async Task<PagedResult<AlarmReportItem>> GetAlarmReportPagedAsync(ReportFilters f, int pageNumber, int pageSize)

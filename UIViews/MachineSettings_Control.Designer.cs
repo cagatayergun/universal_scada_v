@@ -17,6 +17,8 @@ namespace TekstilScada.UI.Views
         {
             dgvMachines = new DataGridView();
             groupBox1 = new GroupBox();
+            displaybox = new TextBox();
+            displayno = new Label();
             txtMachineSubType = new TextBox();
             label9 = new Label();
             txtFtpPassword = new TextBox();
@@ -39,8 +41,8 @@ namespace TekstilScada.UI.Views
             label2 = new Label();
             txtMachineId = new TextBox();
             label1 = new Label();
-            displaybox = new TextBox();
-            displayno = new Label();
+            textdisplayname = new TextBox();
+            label10 = new Label();
             ((System.ComponentModel.ISupportInitialize)dgvMachines).BeginInit();
             groupBox1.SuspendLayout();
             SuspendLayout();
@@ -66,6 +68,8 @@ namespace TekstilScada.UI.Views
             // 
             // groupBox1
             // 
+            groupBox1.Controls.Add(textdisplayname);
+            groupBox1.Controls.Add(label10);
             groupBox1.Controls.Add(displaybox);
             groupBox1.Controls.Add(displayno);
             groupBox1.Controls.Add(txtMachineSubType);
@@ -100,9 +104,26 @@ namespace TekstilScada.UI.Views
             groupBox1.TabStop = false;
             groupBox1.Text = "Makine Bilgileri";
             // 
+            // displaybox
+            // 
+            displaybox.Location = new Point(114, 140);
+            displaybox.Margin = new Padding(3, 2, 3, 2);
+            displaybox.Name = "displaybox";
+            displaybox.Size = new Size(219, 23);
+            displaybox.TabIndex = 23;
+            // 
+            // displayno
+            // 
+            displayno.AutoSize = true;
+            displayno.Location = new Point(18, 143);
+            displayno.Name = "displayno";
+            displayno.Size = new Size(67, 15);
+            displayno.TabIndex = 22;
+            displayno.Text = "Display No:";
+            // 
             // txtMachineSubType
             // 
-            txtMachineSubType.Location = new Point(455, 52);
+            txtMachineSubType.Location = new Point(478, 52);
             txtMachineSubType.Margin = new Padding(3, 2, 3, 2);
             txtMachineSubType.Name = "txtMachineSubType";
             txtMachineSubType.Size = new Size(219, 23);
@@ -119,7 +140,7 @@ namespace TekstilScada.UI.Views
             // 
             // txtFtpPassword
             // 
-            txtFtpPassword.Location = new Point(455, 112);
+            txtFtpPassword.Location = new Point(478, 112);
             txtFtpPassword.Margin = new Padding(3, 2, 3, 2);
             txtFtpPassword.Name = "txtFtpPassword";
             txtFtpPassword.PasswordChar = '*';
@@ -137,7 +158,7 @@ namespace TekstilScada.UI.Views
             // 
             // txtFtpUsername
             // 
-            txtFtpUsername.Location = new Point(455, 82);
+            txtFtpUsername.Location = new Point(478, 82);
             txtFtpUsername.Margin = new Padding(3, 2, 3, 2);
             txtFtpUsername.Name = "txtFtpUsername";
             txtFtpUsername.Size = new Size(219, 23);
@@ -156,7 +177,7 @@ namespace TekstilScada.UI.Views
             // 
             cmbMachineType.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbMachineType.FormattingEnabled = true;
-            cmbMachineType.Location = new Point(455, 22);
+            cmbMachineType.Location = new Point(478, 22);
             cmbMachineType.Margin = new Padding(3, 2, 3, 2);
             cmbMachineType.Name = "cmbMachineType";
             cmbMachineType.Size = new Size(219, 23);
@@ -173,7 +194,7 @@ namespace TekstilScada.UI.Views
             // 
             // btnDelete
             // 
-            btnDelete.Location = new Point(592, 154);
+            btnDelete.Location = new Point(592, 163);
             btnDelete.Margin = new Padding(3, 2, 3, 2);
             btnDelete.Name = "btnDelete";
             btnDelete.Size = new Size(82, 22);
@@ -184,7 +205,7 @@ namespace TekstilScada.UI.Views
             // 
             // btnSave
             // 
-            btnSave.Location = new Point(504, 154);
+            btnSave.Location = new Point(504, 163);
             btnSave.Margin = new Padding(3, 2, 3, 2);
             btnSave.Name = "btnSave";
             btnSave.Size = new Size(82, 22);
@@ -195,7 +216,7 @@ namespace TekstilScada.UI.Views
             // 
             // btnNew
             // 
-            btnNew.Location = new Point(416, 154);
+            btnNew.Location = new Point(416, 163);
             btnNew.Margin = new Padding(3, 2, 3, 2);
             btnNew.Name = "btnNew";
             btnNew.Size = new Size(82, 22);
@@ -300,22 +321,22 @@ namespace TekstilScada.UI.Views
             label1.TabIndex = 0;
             label1.Text = "Makine ID:";
             // 
-            // displaybox
+            // textdisplayname
             // 
-            displaybox.Location = new Point(114, 140);
-            displaybox.Margin = new Padding(3, 2, 3, 2);
-            displaybox.Name = "displaybox";
-            displaybox.Size = new Size(219, 23);
-            displaybox.TabIndex = 23;
+            textdisplayname.Location = new Point(478, 140);
+            textdisplayname.Margin = new Padding(3, 2, 3, 2);
+            textdisplayname.Name = "textdisplayname";
+            textdisplayname.Size = new Size(219, 23);
+            textdisplayname.TabIndex = 25;
             // 
-            // displayno
+            // label10
             // 
-            displayno.AutoSize = true;
-            displayno.Location = new Point(18, 143);
-            displayno.Name = "displayno";
-            displayno.Size = new Size(67, 15);
-            displayno.TabIndex = 22;
-            displayno.Text = "Display No:";
+            label10.AutoSize = true;
+            label10.Location = new Point(368, 143);
+            label10.Name = "label10";
+            label10.Size = new Size(107, 15);
+            label10.TabIndex = 24;
+            label10.Text = "Display Hall Name:";
             // 
             // MachineSettings_Control
             // 
@@ -359,5 +380,8 @@ namespace TekstilScada.UI.Views
         private Label label9;
         private TextBox displaybox;
         private Label displayno;
+        private TextBox textBox1;
+        private Label label10;
+        private TextBox textdisplayname;
     }
 }
