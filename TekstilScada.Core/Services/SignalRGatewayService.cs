@@ -16,7 +16,6 @@ using TekstilScada.Repositories;
 using TekstilScada.Services; // Namespace düzeltmesi
 using static TekstilScada.Core.Core.ExcelExportHelper;
 
-
 // --- DTO SINIFLARI (Kaybolmaması için aynen korundu) ---
 public class HourlyConsumptionData
 {
@@ -147,6 +146,9 @@ namespace TekstilScada.Services
         private readonly Dictionary<string, Func<object[], Task<object>>> _requestHandlers;
 
         private readonly ConcurrentDictionary<int, FullMachineStatus> _bufferedMachineStatuses = new();
+
+        // YENİ: Canlı yayınlar sırasında DB'ye sürekli sorgu atmamak için yüksek performanslı Hol Hafıza Sözlüğü
+        private readonly ConcurrentDictionary<int, string> _machineHallCache = new ConcurrentDictionary<int, string>();
 
         // Gönderim Döngüsü için Cancellation Token
         private CancellationTokenSource _loopCts;
@@ -282,7 +284,7 @@ namespace TekstilScada.Services
             };
         }
 
-        // --- HANDLER KAYIT MERKEZİ (BURASI PROJENİN KALP ATIŞIDIR) ---
+        // --- HANDLER KAYIT CENTER ---
         private void RegisterHandlers()
         {
             // Yardımcı: DB işlemlerini Thread Pool'a atarak SignalR'ın bloklanmasını önler
@@ -292,7 +294,14 @@ namespace TekstilScada.Services
             _requestHandlers["GetAllMachineStatuses"] = async _ =>
             {
                 // PLC'ye gitme, sadece RAM'deki sözlüğü dön
-                return await Task.Run(() => _plcService.MachineDataCache.Values.ToList());
+                var list = _plcService.MachineDataCache.Values.ToList();
+                // Performanslı zenginleştirme: toplu canlı durum isteğinde de holleri enjekte et
+                foreach (var status in list)
+                {
+                    if (string.IsNullOrWhiteSpace(status.MachineHall) && _machineHallCache.TryGetValue(status.MachineId, out var hall))
+                        status.MachineHall = hall;
+                }
+                return await Task.Run(() => list);
             };
             _requestHandlers["GetAllMachines"] = async _ => await RunDb(() => _machineRepo.GetAllMachines());
             _requestHandlers["GetMachineStatus"] = async args =>
@@ -306,13 +315,23 @@ namespace TekstilScada.Services
                         MachineName = m.MachineName,
                         MakineTipi = m.MachineSubType,
                         DisplayOrder = m.DisplayOrder,
-                        MachineHall = m.MachineHall// <-- EKLENDİ (Modelinizde varsa eşitleyin)
+                        MachineHall = m.MachineHall // Entegre Edildi
                     } : null;
                 });
             };
             _requestHandlers["AddMachine"] = async args => await RunDb(() => { _machineRepo.AddMachine(GetArg<Machine>(args, 0)); return true; });
-            _requestHandlers["UpdateMachine"] = async args => await RunDb(() => { _machineRepo.UpdateMachine(GetArg<Machine>(args, 0)); return true; });
-            _requestHandlers["DeleteMachine"] = async args => await RunDb(() => { _machineRepo.DeleteMachine(GetArg<int>(args, 0)); return true; });
+            _requestHandlers["UpdateMachine"] = async args => await RunDb(() => {
+                var m = GetArg<Machine>(args, 0);
+                if (m != null) _machineHallCache[m.Id] = m.MachineHall; // Hafızayı güncelle
+                _machineRepo.UpdateMachine(m);
+                return true;
+            });
+            _requestHandlers["DeleteMachine"] = async args => await RunDb(() => {
+                int id = GetArg<int>(args, 0);
+                _machineHallCache.TryRemove(id, out _);
+                _machineRepo.DeleteMachine(id);
+                return true;
+            });
 
             // -- MALİYET --
             _requestHandlers["GetCosts"] = async _ => await RunDb(() => _costRepo.GetAllParameters());
@@ -375,7 +394,6 @@ namespace TekstilScada.Services
             {
                 int rId = GetArg<int>(args, 0);
                 int mId = GetArg<int>(args, 1);
-                // PLC yazma işlemleri zaten async olduğu için RunDb içinde await ediyoruz
                 return await RunDb(async () =>
                 {
                     var recipe = _recipeRepo.GetRecipeById(rId);
@@ -391,7 +409,6 @@ namespace TekstilScada.Services
             _requestHandlers["ReadRecipeFromPlc"] = async args =>
             {
                 int mId = GetArg<int>(args, 0);
-                // PLC okuma async
                 if (_plcService.GetPlcManagers().TryGetValue(mId, out var mgr))
                 {
                     var res = await mgr.ReadRecipeFromPlcAsync();
@@ -465,28 +482,18 @@ namespace TekstilScada.Services
             _requestHandlers["GetEfficiencyReport"] = async args => await RunDb(() =>
             {
                 var rf = GetArg<EfficiencyReportFilters>(args, 0);
-                // Asenkron metodu Task.Run içinde senkronize olarak bekleyip listeye çeviriyoruz
                 return _efficiencyRepo.GetEfficiencyReportAsync(rf.StartTime, rf.EndTime, rf.MachineId, rf.SubType)
                                       .GetAwaiter().GetResult().ToList();
             });
             _requestHandlers["GetAlarmReport"] = async args => await RunDb(() =>
             {
                 var rf = GetArg<ReportFilters>(args, 0);
-
-                // .Date ekini sildik, böylece rf içindeki saat/dakika bilgisi korunur.
-                // .AddDays(1) ekini sildik, çünkü artık tam bitiş saatini baz alıyoruz.
                 return _alarmRepo.GetAlarmReport(rf.StartTime, rf.EndTime, rf.MachineId);
             });
             _requestHandlers["GetTrendData"] = async args => await RunDb(() =>
             {
                 var rf = GetArg<ReportFilters>(args, 0);
-
-                // Güvenlik kontrolü
-                if (rf.MachineId == null)
-                    return new List<ProcessLogRepository.ProcessDataPoint>();
-
-                // .Date eklerini sildik. 
-                // Artık rf.StartTime "14:30" ise veritabanına tam olarak "14:30" gider.
+                if (rf.MachineId == null) return new List<ProcessLogRepository.ProcessDataPoint>();
                 return _processLogRepo.GetLogsForDateRange(rf.MachineId.Value, rf.StartTime, rf.EndTime);
             });
             _requestHandlers["GetManualConsumptionReport"] = async args => await RunDb(() =>
@@ -501,10 +508,7 @@ namespace TekstilScada.Services
             _requestHandlers["GetManualTrendData"] = async args => await RunDb(() =>
             {
                 var rf = GetArg<ReportFilters>(args, 0);
-                if (rf == null || rf.MachineId == null)
-                    return new List<ProcessLogRepository.ProcessDataPoint>();
-
-                // WinForms'taki gibi manual_mode_log tablosundan verileri çeker
+                if (rf == null || rf.MachineId == null) return new List<ProcessLogRepository.ProcessDataPoint>();
                 return _processLogRepo.GetManualLogs(rf.MachineId.Value, rf.StartTime, rf.EndTime);
             });
             _requestHandlers["GetConsumptionTotalsForPeriod"] = async args => await RunDb(() =>
@@ -532,14 +536,12 @@ namespace TekstilScada.Services
             });
             _requestHandlers["GetProductionDetail"] = async args => await RunDb(() => GetProductionDetailInternal(GetArg<int>(args, 0), GetArg<string>(args, 1)));
 
-            // -- DASHBOARD METOTLARI (DÜZELTİLDİ) --
             _requestHandlers["GetOeeReport"] = async args => await RunDb(() =>
             {
                 var rf = GetArg<ReportFilters>(args, 0);
                 return _dashboardRepo.GetOeeReport(rf.StartTime, rf.EndTime, rf.MachineId);
             });
 
-            // GÜNCELLENDİ: Windows Forms mantığı ile birebir aynı veri çekme işlemi
             _requestHandlers["GetHourlyFactoryConsumption"] = async _ => await RunDb(() =>
             {
                 var dt = _dashboardRepo.GetHourlyFactoryConsumption(DateTime.Today);
@@ -551,7 +553,6 @@ namespace TekstilScada.Services
                         list.Add(new HourlyConsumptionData
                         {
                             Saat = Convert.ToDouble(row["Saat"]),
-                            // WinForms'ta olduğu gibi 1000'e bölerek gönderiyoruz
                             ToplamElektrik = row.IsNull("ToplamElektrik") ? 0 : (Convert.ToDouble(row["ToplamElektrik"]) / 1000.0),
                             ToplamSu = row.IsNull("ToplamSu") ? 0 : (Convert.ToDouble(row["ToplamSu"]) / 1000.0),
                             ToplamBuhar = row.IsNull("ToplamBuhar") ? 0 : (Convert.ToDouble(row["ToplamBuhar"]) / 1000.0)
@@ -561,7 +562,6 @@ namespace TekstilScada.Services
                 return list;
             });
 
-            // GÜNCELLENDİ: OEE Verisi
             _requestHandlers["GetHourlyAverageOee"] = async _ => await RunDb(() =>
             {
                 var dt = _dashboardRepo.GetHourlyAverageOee(DateTime.Today);
@@ -582,7 +582,6 @@ namespace TekstilScada.Services
 
             _requestHandlers["GetTopAlarmsByFrequency"] = async _ => await RunDb(() => _alarmRepo.GetTopAlarmsByFrequency(DateTime.Now.AddDays(-1), DateTime.Now));
 
-            // -- EXCEL EXPORT (Ağır İşlemler) --
             _requestHandlers["ExportProductionReport"] = async args => await RunDb(() => ExcelExportHelper.ExportProductionReportToExcel(GetArg<List<ProductionReportItem>>(args, 0)));
             _requestHandlers["ExportAlarmReport"] = async args => await RunDb(() => ExcelExportHelper.ExportAlarmReportToExcel(GetArg<List<AlarmReportItem>>(args, 0)));
             _requestHandlers["ExportOeeReport"] = async args => await RunDb(() => ExcelExportHelper.ExportOeeReportToExcel(GetArg<List<OeeData>>(args, 0)));
@@ -595,24 +594,20 @@ namespace TekstilScada.Services
             });
             _requestHandlers["ExportProductionDetailFile"] = async args => await RunDb(() => ExportProductionDetailInternal(GetArg<int>(args, 0), GetArg<string>(args, 1)));
 
-            // -- ALARM TANIMLARI --
             _requestHandlers["GetAllAlarmDefinitions"] = async _ => await RunDb(() => _alarmRepo.GetAllAlarmDefinitions());
             _requestHandlers["AddAlarmDefinition"] = async args => await RunDb(() => { _alarmRepo.AddAlarmDefinition(GetArg<AlarmDefinition>(args, 0)); return true; });
             _requestHandlers["UpdateAlarmDefinition"] = async args => await RunDb(() => { _alarmRepo.UpdateAlarmDefinition(GetArg<AlarmDefinition>(args, 0)); return true; });
             _requestHandlers["DeleteAlarmDefinition"] = async args => await RunDb(() => { _alarmRepo.DeleteAlarmDefinition(GetArg<int>(args, 0)); return true; });
 
-            // -- PLC OPERATORLERİ --
             _requestHandlers["GetPlcOperators"] = async _ => await RunDb(() => _plcOpRepo.GetAll());
             _requestHandlers["SaveOrUpdateOperator"] = async args => await RunDb(() => { _plcOpRepo.SaveOrUpdate(GetArg<PlcOperator>(args, 0)); return true; });
             _requestHandlers["AddDefaultOperator"] = async _ => await RunDb(() => { _plcOpRepo.AddDefaultOperator(); return true; });
             _requestHandlers["DeleteOperator"] = async args => await RunDb(() => { _plcOpRepo.Delete(GetArg<int>(args, 0)); return true; });
             _requestHandlers["GetAlarmReportPaged"] = async args => await RunDb(() =>
             {
-                var rf = GetArg<ReportFilters>(args, 0); // Filtreler
-                int pageNumber = GetArg<int>(args, 1);   // Sayfa No
-                int pageSize = GetArg<int>(args, 2);     // Sayfa Boyutu (50)
-
-                // Repository'yi çağırıyoruz
+                var rf = GetArg<ReportFilters>(args, 0);
+                int pageNumber = GetArg<int>(args, 1);
+                int pageSize = GetArg<int>(args, 2);
                 return _alarmRepo.GetAlarmReportPaged(rf, pageNumber, pageSize);
             });
         }
@@ -704,32 +699,41 @@ namespace TekstilScada.Services
             catch { }
         }
 
+        // DÜZELTME: PLC turları döndükçe hafızadan eşleştirip "MachineHall" bilgisini SignalR paketine enjekte eder (Enrichment)
         private void OnLocalDataRefreshed(int machineId, FullMachineStatus status)
         {
             if (status == null) return;
 
-            // Dictionary'yi güncelle (Varsa ezer, yoksa ekler)
+            if (string.IsNullOrWhiteSpace(status.MachineHall))
+            {
+                if (!_machineHallCache.TryGetValue(machineId, out var hall))
+                {
+                    try
+                    {
+                        var m = _machineRepo.GetAllMachines().Find(x => x.Id == machineId);
+                        hall = m != null && !string.IsNullOrWhiteSpace(m.MachineHall) ? m.MachineHall : "Genel Hol";
+                        _machineHallCache.TryAdd(machineId, hall);
+                    }
+                    catch { hall = "Genel Hol"; }
+                }
+                status.MachineHall = hall;
+            }
+
             _bufferedMachineStatuses.AddOrUpdate(machineId, status, (key, oldValue) => status);
         }
 
-        // 2. TOPLU GÖNDERİM DÖNGÜSÜ (5 Saniyede bir çalışır)
         private async Task StartBatchSenderLoopAsync(CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
                 try
                 {
-                    // 5 Saniye bekle
                     await Task.Delay(5000, token);
 
                     if (_connection.State == HubConnectionState.Connected && !_bufferedMachineStatuses.IsEmpty)
                     {
-                        // Havuzdaki tüm değerleri listeye çevir
                         var packageToSend = _bufferedMachineStatuses.Values.ToList();
-
-                        // Hub üzerindeki "yeni" toplu güncelleme metoduna gönder
                         await _connection.InvokeAsync("BroadcastMachineBatch", packageToSend, token);
-
                         Console.WriteLine($"[Gateway] {packageToSend.Count} makine verisi toplu gönderildi.");
                     }
                 }
@@ -749,17 +753,14 @@ namespace TekstilScada.Services
             return (T)args[index];
         }
 
-        // Yardımcı Metotlar (Private)
         private ProductionDetailDto GetProductionDetailInternal(int machineId, string batchId)
         {
-            // 1. Header (Başlık) Bilgisi
             var headerFilter = new ReportFilters { MachineId = machineId, BatchNo = batchId, StartTime = DateTime.MinValue, EndTime = DateTime.MaxValue };
             var reportList = _productionRepo.GetProductionReport(headerFilter);
             var reportItem = reportList.Count > 0 ? reportList[0] : null;
 
             if (reportItem == null) return null;
 
-            // 2. Adım Detayları (Aynen korundu)
             var rawSteps = _productionRepo.GetProductionStepDetails(batchId, machineId);
             var stepDtos = rawSteps.Select(s => new ProductionStepDetailDto
             {
@@ -770,36 +771,27 @@ namespace TekstilScada.Services
                 StopTime = s.StopTime,
                 DeflectionTime = s.DeflectionTime,
                 TheoreticalDurationSeconds = TimeSpan.TryParse(s.TheoreticalTime, out var tt) ? tt.TotalSeconds : 0,
-               // Temperature = s.Temperature
             }).ToList();
 
-            // 3. ALARMLAR (BURASI DÜZELTİLDİ)
             var rawAlarms = _alarmRepo.GetAlarmDetailsForBatch(batchId, machineId);
-
-            // Batch bitiş zamanı (Eğer üretim devam ediyorsa şu anı al)
             DateTime batchEndTime = reportItem.EndTime == DateTime.MinValue ? DateTime.Now : reportItem.EndTime;
 
             var alarmDtos = rawAlarms.Select(a =>
             {
-                // Bitiş zamanı yoksa (hala aktifse) veya null ise batch bitişini/şu anı kullan
                 DateTime effectiveEnd = a.EndTime ?? batchEndTime;
-
-                // Süreyi hesapla
                 TimeSpan duration = effectiveEnd - a.StartTime;
-                if (duration < TimeSpan.Zero) duration = TimeSpan.Zero; // Negatif süre koruması
+                if (duration < TimeSpan.Zero) duration = TimeSpan.Zero;
 
                 return new AlarmDetailDto
                 {
-                    AlarmTime = a.StartTime,          // GERÇEK BAŞLANGIÇ
-                    AlarmNumber = a.AlarmNumber,      // GERÇEK ID (0-499 Makine, 500+ Operatör ayrımı için şart)
+                    AlarmTime = a.StartTime,
+                    AlarmNumber = a.AlarmNumber,
                     AlarmType = (a.AlarmNumber >= 500) ? "Operatör" : "Makine",
                     AlarmDescription = a.AlarmDescription,
-                    Duration = duration               // GERÇEK HESAPLANAN SÜRE
+                    Duration = duration
                 };
             }).ToList();
 
-            // 4. LOG (TREND) VERİLERİ (Aynen korundu)
-            // Gateway'den veri çekerken büyük veri setlerinde kısıtlama yapmak gerekebilir
             var rawLogs = _processLogRepo.GetLogsForBatch(machineId, batchId);
             var logDtos = rawLogs.Select(p => new TrendDataPoint
             {
@@ -854,6 +846,5 @@ namespace TekstilScada.Services
             if (_connection != null && _connection.State == HubConnectionState.Connected)
                 await _connection.InvokeAsync("SendScreenImage", machineId, base64Image);
         }
-
     }
 }

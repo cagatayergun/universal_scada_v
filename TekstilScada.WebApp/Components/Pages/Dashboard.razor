@@ -50,7 +50,7 @@
                     @foreach (var group in GroupedMachines)
                     {
                         <div class="machine-group-box" style="--group-color: @GetGroupColor(group.Key)">
-                            <div class="group-title">@group.Key Bölümü (@group.Count())</div>
+                            <div class="group-title">@group.Key (@group.Count())</div>
                             <div class="group-inner-panel" style="display: flex; flex-wrap: wrap; gap: 10px;">
                                 @foreach (var machineStatus in group)
                                 {
@@ -154,7 +154,8 @@
     private async Task LoadInitialData()
     {
         // Cache Kontrolü: Veri varsa ağ gecikmesini tamamen atla, saniyeler kazan!
-        if (ScadaService.MachineDetailsCache.Count > 0 && ScadaService.MachineData.Count > 0)
+        // İskelet kayıtlara bakma, DB'den asıl hol isimlerinin çekilip çekilmediğini denetle
+        if (ScadaService.IsMachinesLoadedFromDb && ScadaService.MachineDetailsCache.Count > 0 && ScadaService.MachineData.Count > 0)
         {
             _isLoading = false;
             UpdateDashboardData();
@@ -174,7 +175,7 @@
                 if (liveStatus != null)
                 {
                     // DEĞİŞİKLİK: İlk açılışta canlı durum paketi varsa hol bilgisini DB mülkünden eşitle
-                    liveStatus.MachineHall = string.IsNullOrEmpty(m.MachineHall) ? "Genel Hol" : m.MachineHall;
+                    liveStatus.MachineHall = string.IsNullOrEmpty(m.MachineHall) ? "Empty" : m.MachineHall;
                     ScadaService.MachineData[m.Id] = liveStatus;
                 }
                 else if (!ScadaService.MachineData.ContainsKey(m.Id))
@@ -185,7 +186,7 @@
                         MachineName = m.MachineName,
                         MakineTipi = m.MachineSubType ?? "Standart",
                         // YENİ SATIR: Çevrimdışı şablon için hol bilgisini ata
-                        MachineHall = string.IsNullOrEmpty(m.MachineHall) ? "Genel Hol" : m.MachineHall,
+                        MachineHall = string.IsNullOrEmpty(m.MachineHall) ? "Empty" : m.MachineHall,
                         ConnectionState = ConnectionStatus.Disconnected
                     };
                 }
@@ -263,7 +264,7 @@
 
                 // DEĞİŞİKLİK: Canlı veride hol bilgisi yoksa veya boşsa önbellekteki/DB'deki holü bağla
                 if (string.IsNullOrEmpty(liveStatus.MachineHall))
-                    liveStatus.MachineHall = string.IsNullOrEmpty(m.MachineHall) ? "Genel Hol" : m.MachineHall;
+                    liveStatus.MachineHall = string.IsNullOrEmpty(m.MachineHall) ? "Empty" : m.MachineHall;
 
                 return liveStatus;
             }
@@ -274,7 +275,7 @@
                 MachineName = m.MachineName,
                 MakineTipi = string.IsNullOrEmpty(m.MachineSubType) ? "Undefined" : m.MachineSubType,
                 // YENİ SATIR: Veri yoksa (çevrimdışı durumlar için) holü eşitle
-                MachineHall = string.IsNullOrEmpty(m.MachineHall) ? "Genel Hol" : m.MachineHall,
+                MachineHall = string.IsNullOrEmpty(m.MachineHall) ? "Empty" : m.MachineHall,
                 ConnectionState = ConnectionStatus.Disconnected,
                 manuel_status = false
             };
