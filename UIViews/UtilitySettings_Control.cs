@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
+using Telemetry.Models;
+using Telemetry.Repositories;
 
-namespace TekstilScada.UIViews
+namespace Telemetry.UIViews
 {
     public partial class UtilitySettings_Control : UserControl
     {

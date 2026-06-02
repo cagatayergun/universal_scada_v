@@ -6,10 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 // ILogger yoksa veya kullanmak istemezseniz aşağıdaki satırı silebilirsiniz.
 using Microsoft.Extensions.Logging;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
+using Telemetry.Models;
+using Telemetry.Repositories;
 
-namespace TekstilScada.Services
+namespace Telemetry.Services
 {
     public class UtilityPollingService
     {

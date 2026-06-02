@@ -2,9 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using TekstilScada.Models;
+using Telemetry.Models;
 
-namespace TekstilScada.UI
+namespace Telemetry.UI
 {
     public partial class SelectMachineForm : Form
     {

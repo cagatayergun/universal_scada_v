@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Dapper; // Performanslı okuma için Dapper eklendi
-using TekstilScada.Core;
-using TekstilScada.Models;
+using Telemetry.Core;
+using Telemetry.Models;
 
-namespace TekstilScada.Repositories
+namespace Telemetry.Repositories
 {
     public class ProcessLogRepository
     {

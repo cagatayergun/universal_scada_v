@@ -11,14 +11,14 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
-using TekstilScada.Services;
-using static TekstilScada.Repositories.AlarmRepository;
+using Telemetry.Models;
+using Telemetry.Repositories;
+using Telemetry.Services;
+using static Telemetry.Repositories.AlarmRepository;
 
 // --- DTO Sınıfları (Global) ---
 public class TrendDataPoint { public DateTime Timestamp { get; set; } public double Temperature { get; set; } public double Rpm { get; set; } public double WaterLevel { get; set; } }
-public class ProductionStepDetailDto : TekstilScada.Models.ProductionStepDetail { public double TheoreticalDurationSeconds { get; set; } = 0; public double Temperature { get; set; } = 0; public string StepDescription => StepName; }
+public class ProductionStepDetailDto : Telemetry.Models.ProductionStepDetail { public double TheoreticalDurationSeconds { get; set; } = 0; public double Temperature { get; set; } = 0; public string StepDescription => StepName; }
 public class AlarmDetailDto
 {
     public DateTime AlarmTime { get; set; } = DateTime.MinValue;
@@ -29,7 +29,7 @@ public class AlarmDetailDto
     public DateTime EndTime => AlarmTime.Add(Duration);
 }
 
-public class ProductionDetailDto { public TekstilScada.Models.ProductionReportItem Header { get; set; } = new(); public List<ProductionStepDetailDto> Steps { get; set; } = new(); public List<AlarmDetailDto> Alarms { get; set; } = new(); public List<TrendDataPoint> LogData { get; set; } = new(); public List<TrendDataPoint> TheoreticalData { get; set; } = new(); }
+public class ProductionDetailDto { public Telemetry.Models.ProductionReportItem Header { get; set; } = new(); public List<ProductionStepDetailDto> Steps { get; set; } = new(); public List<AlarmDetailDto> Alarms { get; set; } = new(); public List<TrendDataPoint> LogData { get; set; } = new(); public List<TrendDataPoint> TheoreticalData { get; set; } = new(); }
 public class GeneralDetailedConsumptionFilters { public DateTime StartTime { get; set; } public DateTime EndTime { get; set; } public List<int>? MachineIds { get; set; } }
 public class ActionLogFilters { public DateTime StartTime { get; set; } public DateTime EndTime { get; set; } public string? Username { get; set; } public string? Details { get; set; } }
 public class HourlyConsumptionData { public double Saat { get; set; } public double ToplamElektrik { get; set; } public double ToplamSu { get; set; } public double ToplamBuhar { get; set; } }
@@ -49,7 +49,7 @@ public class EfficiencyReportFilters
     public string? SubType { get; set; }
 }
 
-namespace TekstilScada.WebApp.Services
+namespace Telemetry.WebApp.Services
 {
     public class ScadaDataService : IAsyncDisposable
     {
@@ -434,8 +434,8 @@ namespace TekstilScada.WebApp.Services
         {
             return await InvokeSafeAsync("GetEfficiencyReport", factoryId, new List<EfficiencyLog>(), f, 120);
         }
-        public async Task<List<TekstilScada.Core.Models.ActionLogEntry>> GetActionLogsAsync(ActionLogFilters f, int factoryId = 0)
-            => await InvokeSafeAsync("GetActionLogs", factoryId, new List<TekstilScada.Core.Models.ActionLogEntry>(), f, 60);
+        public async Task<List<Telemetry.Core.Models.ActionLogEntry>> GetActionLogsAsync(ActionLogFilters f, int factoryId = 0)
+            => await InvokeSafeAsync("GetActionLogs", factoryId, new List<Telemetry.Core.Models.ActionLogEntry>(), f, 60);
 
         public async Task<ProductionDetailDto?> GetProductionDetailAsync(int mId, string bId, int factoryId = 0)
             => await InvokeSafeAsync<ProductionDetailDto?>("GetProductionDetail", factoryId, null, mId, bId);
@@ -467,7 +467,7 @@ namespace TekstilScada.WebApp.Services
         public async Task<byte[]> ExportGeneralDetailedConsumptionReportAsync(GeneralConsumptionExportDto d, int factoryId = 0)
             => await InvokeSafeAsync("ExportGeneralDetailedConsumptionReport", factoryId, Array.Empty<byte>(), d);
 
-        public async Task<byte[]> ExportActionLogsReportAsync(List<TekstilScada.Core.Models.ActionLogEntry> l, int factoryId = 0)
+        public async Task<byte[]> ExportActionLogsReportAsync(List<Telemetry.Core.Models.ActionLogEntry> l, int factoryId = 0)
             => await InvokeSafeAsync("ExportActionLogsReport", factoryId, Array.Empty<byte>(), l);
 
         public async Task<byte[]> ExportProductionDetailFileAsync(int mId, string bId, int factoryId = 0)
@@ -493,7 +493,7 @@ namespace TekstilScada.WebApp.Services
 
         public async Task LogUserActionAsync(int uId, string t, string d, int factoryId = 0)
         {
-            var entry = new TekstilScada.Core.Models.ActionLogEntry { UserId = uId, ActionType = t, Details = d, Timestamp = DateTime.Now };
+            var entry = new Telemetry.Core.Models.ActionLogEntry { UserId = uId, ActionType = t, Details = d, Timestamp = DateTime.Now };
             await InvokeSafeActionAsync("LogAction", factoryId, entry);
         }
 

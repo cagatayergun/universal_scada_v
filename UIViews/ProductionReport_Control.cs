@@ -1,13 +1,13 @@
 ﻿// UI/Views/ProductionReport_Control.cs
 using System;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
-using TekstilScada.UI;
-using static TekstilScada.Repositories.ProductionRepository;
+using Telemetry.Core;
+using Telemetry.Models;
+using Telemetry.Repositories;
+using Telemetry.UI;
+using static Telemetry.Repositories.ProductionRepository;
 
-namespace TekstilScada.UI.Views
+namespace Telemetry.UI.Views
 {
     public partial class ProductionReport_Control : UserControl
     {

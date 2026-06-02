@@ -13,6 +13,6 @@
 	  <Folder Include="Services\" />
 	</ItemGroup>
 	<ItemGroup>
-	  <ProjectReference Include="..\TekstilScada.Core\TekstilScada.Core.csproj" />
+	  <ProjectReference Include="..\TekstilScada.Core\Telemetry.Core.csproj" />
 	</ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-﻿namespace TekstilScada.Services
+﻿namespace Telemetry.Services
 {
     /// <summary>
     /// Uygulama genelindeki tüm yetki kurallarını merkezi olarak yönetir.

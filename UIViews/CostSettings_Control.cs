@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Models;
-using TekstilScada.Properties;
-using TekstilScada.Repositories;
+using Telemetry.Core;
+using Telemetry.Models;
+using Telemetry.Properties;
+using Telemetry.Repositories;
 
-namespace TekstilScada.UI.Views
+namespace Telemetry.UI.Views
 {
     public partial class CostSettings_Control : UserControl
     {

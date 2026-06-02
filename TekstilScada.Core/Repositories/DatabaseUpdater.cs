@@ -1,9 +1,9 @@
 ﻿using MySql.Data.MySqlClient;
 using System;
 using System.Diagnostics;
-using TekstilScada.Core; // AppConfig.ConnectionString'in bulunduğu namespace
+using Telemetry.Core; // AppConfig.ConnectionString'in bulunduğu namespace
 
-namespace TekstilScada.Repositories
+namespace Telemetry.Repositories
 {
     public static class DatabaseUpdater
     {

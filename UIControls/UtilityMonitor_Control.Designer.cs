@@ -1,4 +1,4 @@
-﻿namespace TekstilScada.UIControls
+﻿namespace Telemetry.UIControls
 {
     partial class UtilityMonitor_Control
     {

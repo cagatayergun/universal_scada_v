@@ -1,5 +1,5 @@
 ﻿// ======================================================
-// FILE: TekstilScada.Core/Services/FtpTransferService.cs
+// FILE: Telemetry.Core/Services/FtpTransferService.cs
 // New property added to the TransferJob class and queue processing logic updated.
 // ======================================================
 
@@ -12,11 +12,11 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using TekstilScada.Core;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
+using Telemetry.Core;
+using Telemetry.Models;
+using Telemetry.Repositories;
 
-namespace TekstilScada.Services
+namespace Telemetry.Services
 {
     public enum TransferType { Send, Receive }
     public enum TransferStatus { Pending, Transferring, Successful, Failed }

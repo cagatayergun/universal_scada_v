@@ -2,10 +2,10 @@
 using System;
 using System.Linq;
 using System.Windows.Forms;
-using TekstilScada.Core.Services;
-using TekstilScada.Repositories;
+using Telemetry.Core.Services;
+using Telemetry.Repositories;
 
-namespace TekstilScada.UIViews
+namespace Telemetry.UIViews
 {
     public partial class ActionLogReport_Control : UserControl
     {

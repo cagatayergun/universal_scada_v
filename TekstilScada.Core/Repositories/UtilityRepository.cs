@@ -4,10 +4,10 @@ using System.Data;
 using System.Linq;
 using Dapper;
 using MySql.Data.MySqlClient;
-using TekstilScada.Core;
-using TekstilScada.Models;
+using Telemetry.Core;
+using Telemetry.Models;
 
-namespace TekstilScada.Repositories
+namespace Telemetry.Repositories
 {
     public class UtilityRepository
     {

@@ -8,6 +8,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="Localization\SharedResource.Designer.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <None Remove="Localization\odvohe2v.3cw~" />
 	</ItemGroup>
 

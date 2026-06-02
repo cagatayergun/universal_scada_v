@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Windows.Forms;
-using TekstilScada.Models;
+using Telemetry.Models;
 
-namespace TekstilScada.UI.Controls
+namespace Telemetry.UI.Controls
 {
     public partial class KurutmaReçete_Control : UserControl
     {

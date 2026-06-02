@@ -6,12 +6,12 @@ using System.Linq;
 using System.Security.Claims;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
-using TekstilScada.Core;
-using TekstilScada.Core.Models;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
+using Telemetry.Core;
+using Telemetry.Core.Models;
+using Telemetry.Models;
+using Telemetry.Repositories;
 using ChartLegend = System.Windows.Forms.DataVisualization.Charting.Legend;
-namespace TekstilScada.UI
+namespace Telemetry.UI
 {
     public partial class ProductionDetail_Form : Form
     {
@@ -102,7 +102,7 @@ namespace TekstilScada.UI
 
             
         }
-        // TekstilScada/UI/ProductionDetail_Form.cs
+        // Telemetry/UI/ProductionDetail_Form.cs
 
         private void LoadPieChart()
         {

@@ -12,10 +12,10 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
+using Telemetry.Models;
+using Telemetry.Repositories;
 
-namespace TekstilScada.UIViews
+namespace Telemetry.UIViews
 {
     public partial class EfficiencyReport_Control : UserControl
     {

@@ -1,4 +1,4 @@
-﻿namespace TekstilScada.WebAPI.Models
+﻿namespace Telemetry.WebAPI.Models
 {
     public class CentralFactory
     {

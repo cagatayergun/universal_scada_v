@@ -7,9 +7,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using TekstilScada.UI.Views;
+using Telemetry.UI.Views;
 
-namespace TekstilScada.UIViews
+namespace Telemetry.UIViews
 {
     public partial class RecipeTypeSelection_Form : Form
     {

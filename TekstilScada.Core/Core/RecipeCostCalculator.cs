@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using TekstilScada.Models;
+using Telemetry.Models;
 
-namespace TekstilScada.Core
+namespace Telemetry.Core
 {
     public static class RecipeCostCalculator
     {

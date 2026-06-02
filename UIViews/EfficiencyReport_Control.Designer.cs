@@ -4,7 +4,7 @@ using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
 using LiveChartsCore.SkiaSharpView.WinForms;
 
-namespace TekstilScada.UIViews
+namespace Telemetry.UIViews
 {
     partial class EfficiencyReport_Control
     {

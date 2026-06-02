@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System;
 
-namespace TekstilScada.Models
+namespace Telemetry.Models
 {
     public class ScadaRecipe
     {

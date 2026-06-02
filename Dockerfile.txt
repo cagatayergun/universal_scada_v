@@ -11,4 +11,4 @@ COPY . .
 EXPOSE 8080
 
 # Uygulamayı başlat (ProjeAdiniz.dll kısmını kendi projenizin adıyla değiştirin!)
-ENTRYPOINT ["dotnet", "TekstilScada.dll"]
+ENTRYPOINT ["dotnet", "Telemetry.dll"]

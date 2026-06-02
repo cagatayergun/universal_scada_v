@@ -1,7 +1,7 @@
 ﻿// Models/AlarmReportItem.cs
 using System;
 
-namespace TekstilScada.Models
+namespace Telemetry.Models
 {
     public class AlarmReportItem
     {

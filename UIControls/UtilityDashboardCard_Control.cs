@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
-using TekstilScada.Models;
+using Telemetry.Models;
 
-namespace TekstilScada.UIControls
+namespace Telemetry.UIControls
 {
     public partial class UtilityDashboardCard_Control : UserControl
     {

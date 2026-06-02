@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
-using TekstilScada.Services;
+using Telemetry.Models;
+using Telemetry.Repositories;
+using Telemetry.Services;
 
-namespace TekstilScada.UIControls
+namespace Telemetry.UIControls
 {
     public partial class UtilityMonitor_Control : UserControl
     {

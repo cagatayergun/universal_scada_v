@@ -1,6 +1,6 @@
-@TekstilScada.WebAPI_HostAddress = http://:5008
+@Telemetry.WebAPI_HostAddress = http://:5008
 
-GET {{TekstilScada.WebAPI_HostAddress}}/weatherforecast/
+GET {{Telemetry.WebAPI_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###

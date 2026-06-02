@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.Concurrent;
-using TekstilScada.Core.Models;
-using TekstilScada.Models;
-using TekstilScada.WebApp.Services;
+using Telemetry.Core.Models;
+using Telemetry.Models;
+using Telemetry.WebApp.Services;
 
-namespace TekstilScada.WebApp.Services
+namespace Telemetry.WebApp.Services
 {
     public class FactoryStateService : IHostedService, IDisposable
     {

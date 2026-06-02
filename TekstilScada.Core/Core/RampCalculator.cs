@@ -1,9 +1,9 @@
 ﻿//# ===== YENİ DOSYA: Core/RampCalculator.cs =====
 using System;
 using System.Collections.Generic;
-using TekstilScada.Models;
+using Telemetry.Models;
 
-namespace TekstilScada.Core
+namespace Telemetry.Core
 {
     /// <summary>
     /// Gradyan (Rampa) raporlaması için teorik sıcaklık grafiğini hesaplar.

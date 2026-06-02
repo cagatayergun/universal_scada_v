@@ -1,5 +1,5 @@
 ﻿// UI/SelectMachineForm.Designer.cs
-namespace TekstilScada.UI
+namespace Telemetry.UI
 {
     partial class SelectMachineForm
     {

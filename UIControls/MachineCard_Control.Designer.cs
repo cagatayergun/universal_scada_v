@@ -1,5 +1,5 @@
 ﻿// UI/Controls/MachineCard_Control.Designer.cs
-namespace TekstilScada.UI.Controls
+namespace Telemetry.UI.Controls
 {
     partial class MachineCard_Control
     {

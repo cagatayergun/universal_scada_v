@@ -5,9 +5,9 @@ using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks; // Task yapısı için
 using MySql.Data.MySqlClient;
-using TekstilScada.Core;
+using Telemetry.Core;
 
-namespace TekstilScada.Services
+namespace Telemetry.Services
 {
     public class AutoBackupService
     {

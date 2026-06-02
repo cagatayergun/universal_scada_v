@@ -2,9 +2,9 @@
 using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
-using TekstilScada.Models;
-using TekstilScada.Core; // Bu satırı ekleyin
-namespace TekstilScada.Repositories
+using Telemetry.Models;
+using Telemetry.Core; // Bu satırı ekleyin
+namespace Telemetry.Repositories
 {
     public class RecipeRepository
     {

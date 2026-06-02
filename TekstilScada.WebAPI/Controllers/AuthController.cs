@@ -3,10 +3,10 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using TekstilScada.WebAPI.Repositories; // Yeni Repo'lar burada
-using TekstilScada.WebAPI.Models;       // Yeni Modeller burada
+using Telemetry.WebAPI.Repositories; // Yeni Repo'lar burada
+using Telemetry.WebAPI.Models;       // Yeni Modeller burada
 
-namespace TekstilScada.WebAPI.Controllers
+namespace Telemetry.WebAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

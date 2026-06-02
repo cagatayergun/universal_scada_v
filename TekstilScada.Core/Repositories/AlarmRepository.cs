@@ -2,11 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using TekstilScada.Core;
-using TekstilScada.Core.Models;
-using TekstilScada.Models;
+using Telemetry.Core;
+using Telemetry.Core.Models;
+using Telemetry.Models;
 
-namespace TekstilScada.Repositories
+namespace Telemetry.Repositories
 {
     public class PagedResult<T>
     {

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace TekstilScada.Models
+namespace TelemetryScada.Models
 {
-    // Firma (Örn: A Tekstil, B İplik)
+    // Firma (Örn: A Telemetry, B İplik)
     public class Company
     {
         public int Id { get; set; }

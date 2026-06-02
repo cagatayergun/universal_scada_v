@@ -1,6 +1,6 @@
 ﻿// Models/ReportDataModels.cs
 
-namespace TekstilScada.Models
+namespace Telemetry.Models
 {
     /// <summary>
     /// Üretim sonu toplam tüketim verilerini tutar.

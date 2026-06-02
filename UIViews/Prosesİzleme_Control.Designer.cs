@@ -1,19 +1,16 @@
 ﻿// UI/Views/Prosesİzleme_Control.Designer.cs
-namespace TekstilScada.UI.Views
+namespace Telemetry.UI.Views
 {
     partial class Prosesİzleme_Control
     {
         private System.ComponentModel.IContainer components = null;
 
+        // OPTİMİZASYON DÜZELTMESİ: Olmayan event'lerden çıkış yapmaya çalışan 
+        // eski _pollingService bloğu kaldırıldı.
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
             {
-                if (_pollingService != null)
-                {
-                    _pollingService.OnMachineDataRefreshed -= PollingService_OnMachineDataRefreshed;
-                    _pollingService.OnMachineConnectionStateChanged -= PollingService_OnMachineConnectionStateChanged;
-                }
                 components.Dispose();
             }
             base.Dispose(disposing);

@@ -1,7 +1,7 @@
-﻿// TekstilScada.Core/Models/ActionLogEntry.cs
+﻿// Telemetry.Core/Models/ActionLogEntry.cs
 using System;
 
-namespace TekstilScada.Core.Models
+namespace Telemetry.Core.Models
 {
     public class ActionLogEntry
     {

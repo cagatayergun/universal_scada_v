@@ -4,11 +4,11 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
-using TekstilScada.Core.Services; // SignalRGatewayService namespace'iniz
-using TekstilScada.Services;
+using Telemetry.Core.Services; // SignalRGatewayService namespace'iniz
+using Telemetry.Services;
 using VncSharpCore; // VncSharp kütüphanesi
 
-namespace TekstilScada
+namespace Telemetry
 {
     public class VncProxyServer
     {

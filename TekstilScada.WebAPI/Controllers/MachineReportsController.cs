@@ -4,10 +4,10 @@ using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using TekstilScada.Core.Models;
-using TekstilScada.WebAPI.Hubs;
+using Telemetry.Core.Models;
+using Telemetry.WebAPI.Hubs;
 
-namespace TekstilScada.WebAPI.Controllers
+namespace Telemetry.WebAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

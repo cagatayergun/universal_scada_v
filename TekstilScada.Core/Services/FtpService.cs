@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using WinSCP; // WinSCP kütüphanesini kullanıyoruz
 
-namespace TekstilScada.Services
+namespace Telemetry.Services
 {
     public class FtpService
     {

@@ -8,15 +8,15 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 //using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
+using Telemetry.Core;
+using Telemetry.Models;
+using Telemetry.Repositories;
 
 
 
-// --- YENİ DOSYA: TekstilScada.Core/Models/ControlMetadata.cs ---
+// --- YENİ DOSYA: Telemetry.Core/Models/ControlMetadata.cs ---
 
-namespace TekstilScada.Repositories
+namespace Telemetry.Repositories
 {
     // Veritabanındaki yeni step_editor_layouts tablosuyla iletişim kurar
     public class RecipeConfigurationRepository

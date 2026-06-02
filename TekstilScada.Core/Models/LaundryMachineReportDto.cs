@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text.Json.Serialization;
 
-namespace TekstilScada.Core.Models
+namespace Telemetry.Core.Models
 {
     public class LaundryMachineReportDto
     {

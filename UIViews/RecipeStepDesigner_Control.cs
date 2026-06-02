@@ -8,11 +8,11 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows.Forms;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
+using Telemetry.Core;
+using Telemetry.Models;
+using Telemetry.Repositories;
 
-namespace TekstilScada.UI.Views
+namespace Telemetry.UI.Views
 {
     public partial class RecipeStepDesigner_Control : UserControl
     {

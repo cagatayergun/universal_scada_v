@@ -2,7 +2,7 @@
 using System;
 using System.Text;
 
-namespace TekstilScada.Models
+namespace Telemetry.Models
 {
     /// <summary>
     /// PLC'ye gönderilen 25 word'lük ham veriyi tutan ve ona erişimi kolaylaştıran temel sınıf.

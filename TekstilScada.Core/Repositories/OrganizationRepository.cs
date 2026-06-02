@@ -1,8 +1,8 @@
 ﻿using MySql.Data.MySqlClient;
-using TekstilScada.Core;
-using TekstilScada.Models;
-
-namespace TekstilScada.Repositories
+using Telemetry.Core;
+using Telemetry.Models;
+using TelemetryScada.Models;
+namespace Telemetry.Repositories
 {
     public class OrganizationRepository
     {
@@ -36,3 +36,5 @@ namespace TekstilScada.Repositories
         }
     }
 }
+
+

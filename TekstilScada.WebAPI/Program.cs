@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.ResponseCompression; // YENÝ: Sýkýþtýrma için gerekli
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
-using TekstilScada.WebAPI.Hubs;
+using Telemetry.WebAPI.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,10 +11,10 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (!string.IsNullOrEmpty(connectionString))
 {
-    TekstilScada.Core.AppConfig.SetConnectionString(connectionString);
+    Telemetry.Core.AppConfig.SetConnectionString(connectionString);
 }
-builder.Services.AddScoped<TekstilScada.WebAPI.Repositories.CentralFactoryRepository>();
-builder.Services.AddScoped<TekstilScada.WebAPI.Repositories.CentralAuthRepository>();
+builder.Services.AddScoped<Telemetry.WebAPI.Repositories.CentralFactoryRepository>();
+builder.Services.AddScoped<Telemetry.WebAPI.Repositories.CentralAuthRepository>();
 
 // --- 2. TEMEL SERVÝSLER ---
 builder.Services.AddControllers();

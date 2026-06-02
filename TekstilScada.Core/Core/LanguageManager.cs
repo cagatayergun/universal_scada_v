@@ -1,10 +1,10 @@
-﻿// Dosya: TekstilScada.Core/Core/LanguageManager.cs
+﻿// Dosya: Telemetry.Core/Core/LanguageManager.cs
 using System;
 using System.Globalization;
 using System.Threading;
-// using TekstilScada.Properties; // BU SATIRI SİLİN VEYA YORUMA ALIN
+// using Telemetry.Properties; // BU SATIRI SİLİN VEYA YORUMA ALIN
 
-namespace TekstilScada.Core
+namespace Telemetry.Core
 {
     public static class LanguageManager
     {

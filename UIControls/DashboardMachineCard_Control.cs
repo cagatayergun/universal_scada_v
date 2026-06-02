@@ -4,13 +4,13 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Windows.Forms;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
+using Telemetry.Models;
+using Telemetry.Repositories;
 using System.Threading.Tasks; // EKLENDİ
 using System.Text.Json;       // EKLENDİ
-using static TekstilScada.Repositories.ProcessLogRepository;
+using static Telemetry.Repositories.ProcessLogRepository;
 
-namespace TekstilScada.UI.Controls
+namespace Telemetry.UI.Controls
 {
     public partial class DashboardMachineCard_Control : UserControl
     {

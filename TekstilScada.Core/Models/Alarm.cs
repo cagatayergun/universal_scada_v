@@ -1,8 +1,8 @@
-﻿// YENİ DOSYA: TekstilScada.Core/Models/Alarm.cs
+﻿// YENİ DOSYA: Telemetry.Core/Models/Alarm.cs
 
 using System;
 
-namespace TekstilScada.Core.Models
+namespace Telemetry.Core.Models
 {
     public class Alarm
     {

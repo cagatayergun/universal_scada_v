@@ -1,8 +1,8 @@
-﻿// File: TekstilScada.Core/Services/PlcManagerFactory.cs
+﻿// File: Telemetry.Core/Services/PlcManagerFactory.cs
 using System;
-using TekstilScada.Models;
+using Telemetry.Models;
 
-namespace TekstilScada.Services
+namespace Telemetry.Services
 {
     /// <summary>
     /// Factory class that creates the appropriate IPlcManager object based on the given machine type.

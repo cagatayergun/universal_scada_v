@@ -1,5 +1,5 @@
 ﻿// Models/PlcOperator.cs
-namespace TekstilScada.Models
+namespace Telemetry.Models
 {
     public class PlcOperator
     {

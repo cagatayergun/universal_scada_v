@@ -1,4 +1,4 @@
-namespace TekstilScada.WebAPI
+namespace Telemetry.WebAPI
 {
     public class WeatherForecast
     {

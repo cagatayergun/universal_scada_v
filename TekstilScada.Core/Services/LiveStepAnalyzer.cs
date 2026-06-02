@@ -1,12 +1,12 @@
-﻿// File: TekstilScada.Core/Services/LiveStepAnalyzer.cs
+﻿// File: Telemetry.Core/Services/LiveStepAnalyzer.cs
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
+using Telemetry.Models;
+using Telemetry.Repositories;
 
-namespace TekstilScada.Core.Services
+namespace Telemetry.Core.Services
 {
     public class LiveStepAnalyzer
     {

@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
-using TekstilScada.Repositories;
-using TekstilScada.Services;
-using TekstilScada.Core;
+using Telemetry.Repositories;
+using Telemetry.Services;
+using Telemetry.Core;
 
-namespace TekstilScada.UIViews
+namespace Telemetry.UIViews
 {
     public partial class DowntimeSettings_Control : UserControl
     {

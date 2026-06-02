@@ -8,13 +8,13 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using TekstilScada.Core;
-using TekstilScada.Core.Core;
-using TekstilScada.Core.Models;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
-using TekstilScada.Services;
-using static TekstilScada.Core.Core.ExcelExportHelper;
+using Telemetry.Core;
+using Telemetry.Core.Core;
+using Telemetry.Core.Models;
+using Telemetry.Models;
+using Telemetry.Repositories;
+using Telemetry.Services;
+using static Telemetry.Core.Core.ExcelExportHelper;
 
 // --- DTO SINIFLARI (Kaybolmaması için aynen korundu) ---
 public class HourlyConsumptionData
@@ -102,7 +102,7 @@ public class ActionLogFilters
     public string? Details { get; set; }
 }
 
-namespace TekstilScada.Services
+namespace Telemetry.Services
 {
     public class SignalRGatewayService
     {
@@ -463,7 +463,7 @@ namespace TekstilScada.Services
                     var mHmi = _machineRepo.GetAllMachines().Find(x => x.Id == mId);
                     if (mHmi != null)
                     {
-                        var ftp = new TekstilScada.Services.FtpService(mHmi.IpAddress, mHmi.FtpUsername, mHmi.FtpPassword);
+                        var ftp = new Telemetry.Services.FtpService(mHmi.IpAddress, mHmi.FtpUsername, mHmi.FtpPassword);
                         string csv = await ftp.DownloadFileAsync("/" + fName);
                         return RecipeCsvConverter.ToRecipe(csv, fName);
                     }

@@ -3,11 +3,11 @@ using System;
 using System.Globalization;
 using System.Threading;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.UI;
-using TekstilScada.Properties;
+using Telemetry.Core;
+using Telemetry.UI;
+using Telemetry.Properties;
 
-namespace TekstilScada
+namespace Telemetry
 {
     internal static class Program
     {
@@ -36,7 +36,7 @@ namespace TekstilScada
 
             AppConfig.SetConnectionString(licenseData.EncryptedConnectionString);
             // === LÝSANS DOÐRULAMA VE KONTROL KODU BÝTÝÞÝ ===
-            TekstilScada.Repositories.DatabaseUpdater.CheckAndUpgradeDatabase();
+            Telemetry.Repositories.DatabaseUpdater.CheckAndUpgradeDatabase();
             Application.Run(new MainForm());
         }
     }

@@ -11,8 +11,8 @@
 		<FileVersion>1.0.0.0</FileVersion>
 		<InformationalVersion>1.0.0</InformationalVersion>
 		<Company>MalkanTeknoloji</Company>
-		<Product>TekstilScada</Product>
-		<Title>Tekstil SCADA Sistemi</Title>
+		<Product>Telemetry</Product>
+		<Title>Telemetry SCADA Sistemi</Title>
 		<Copyright>Copyright © 2025</Copyright>
 		<AssemblyName>$(MSBuildProjectName)</AssemblyName>
 	</PropertyGroup>
@@ -28,14 +28,26 @@
 	  <Compile Remove="Img\**" />
 	  <Compile Remove="publish_api_fix\**" />
 	  <Compile Remove="publish_webapp\**" />
-	  <Compile Remove="TekstilScada.Api\**" />
-	  <Compile Remove="TekstilScada.Core1\**" />
 	  <Compile Remove="TekstilScada.Core\**" />
-	  <Compile Remove="TekstilScada.WebAPI1\**" />
 	  <Compile Remove="TekstilScada.WebAPI\**" />
-	  <Compile Remove="TekstilScada.WebApp1\**" />
 	  <Compile Remove="TekstilScada.WebApp\**" />
-	  <Compile Remove="TekstilScada.Web\**" />
+	  <Compile Remove="TelemetryScada.Core\**" />
+	  <Compile Remove="TelemetryScada.WebAPI\**" />
+	  <Compile Remove="TelemetryScada.WebApp\**" />
+	  <Compile Remove="Telemetry.Core\**" />
+	  <Compile Remove="Telemetry.WebAPI\**" />
+	  <Compile Remove="Telemetry.WebApp\**" />
+	  <Compile Remove="TelemetryTelemetry.Core\**" />
+	  <Compile Remove="TelemetryTelemetry.WebAPI\**" />
+	  <Compile Remove="TelemetryTelemetry.WebApp\**" />
+	  <Compile Remove="Telemetry.Api\**" />
+	  <Compile Remove="Telemetry.Core1\**" />
+	  <Compile Remove="Telemetry.Core\**" />
+	  <Compile Remove="Telemetry.WebAPI1\**" />
+	  <Compile Remove="Telemetry.WebAPI\**" />
+	  <Compile Remove="Telemetry.WebApp1\**" />
+	  <Compile Remove="Telemetry.WebApp\**" />
+	  <Compile Remove="Telemetry.Web\**" />
 	  <Compile Remove="Universalscada.Core\**" />
 	  <Compile Remove="Universalscada.Module.Textile\**" />
 	  <Compile Remove="Universalscada.WebAPI\**" />
@@ -44,14 +56,26 @@
 	  <EmbeddedResource Remove="Img\**" />
 	  <EmbeddedResource Remove="publish_api_fix\**" />
 	  <EmbeddedResource Remove="publish_webapp\**" />
-	  <EmbeddedResource Remove="TekstilScada.Api\**" />
-	  <EmbeddedResource Remove="TekstilScada.Core1\**" />
 	  <EmbeddedResource Remove="TekstilScada.Core\**" />
-	  <EmbeddedResource Remove="TekstilScada.WebAPI1\**" />
 	  <EmbeddedResource Remove="TekstilScada.WebAPI\**" />
-	  <EmbeddedResource Remove="TekstilScada.WebApp1\**" />
 	  <EmbeddedResource Remove="TekstilScada.WebApp\**" />
-	  <EmbeddedResource Remove="TekstilScada.Web\**" />
+	  <EmbeddedResource Remove="TelemetryScada.Core\**" />
+	  <EmbeddedResource Remove="TelemetryScada.WebAPI\**" />
+	  <EmbeddedResource Remove="TelemetryScada.WebApp\**" />
+	  <EmbeddedResource Remove="Telemetry.Core\**" />
+	  <EmbeddedResource Remove="Telemetry.WebAPI\**" />
+	  <EmbeddedResource Remove="Telemetry.WebApp\**" />
+	  <EmbeddedResource Remove="TelemetryTelemetry.Core\**" />
+	  <EmbeddedResource Remove="TelemetryTelemetry.WebAPI\**" />
+	  <EmbeddedResource Remove="TelemetryTelemetry.WebApp\**" />
+	  <EmbeddedResource Remove="Telemetry.Api\**" />
+	  <EmbeddedResource Remove="Telemetry.Core1\**" />
+	  <EmbeddedResource Remove="Telemetry.Core\**" />
+	  <EmbeddedResource Remove="Telemetry.WebAPI1\**" />
+	  <EmbeddedResource Remove="Telemetry.WebAPI\**" />
+	  <EmbeddedResource Remove="Telemetry.WebApp1\**" />
+	  <EmbeddedResource Remove="Telemetry.WebApp\**" />
+	  <EmbeddedResource Remove="Telemetry.Web\**" />
 	  <EmbeddedResource Remove="Universalscada.Core\**" />
 	  <EmbeddedResource Remove="Universalscada.Module.Textile\**" />
 	  <EmbeddedResource Remove="Universalscada.WebAPI\**" />
@@ -60,19 +84,37 @@
 	  <None Remove="Img\**" />
 	  <None Remove="publish_api_fix\**" />
 	  <None Remove="publish_webapp\**" />
-	  <None Remove="TekstilScada.Api\**" />
-	  <None Remove="TekstilScada.Core1\**" />
 	  <None Remove="TekstilScada.Core\**" />
-	  <None Remove="TekstilScada.WebAPI1\**" />
 	  <None Remove="TekstilScada.WebAPI\**" />
-	  <None Remove="TekstilScada.WebApp1\**" />
 	  <None Remove="TekstilScada.WebApp\**" />
-	  <None Remove="TekstilScada.Web\**" />
+	  <None Remove="TelemetryScada.Core\**" />
+	  <None Remove="TelemetryScada.WebAPI\**" />
+	  <None Remove="TelemetryScada.WebApp\**" />
+	  <None Remove="Telemetry.Core\**" />
+	  <None Remove="Telemetry.WebAPI\**" />
+	  <None Remove="Telemetry.WebApp\**" />
+	  <None Remove="TelemetryTelemetry.Core\**" />
+	  <None Remove="TelemetryTelemetry.WebAPI\**" />
+	  <None Remove="TelemetryTelemetry.WebApp\**" />
+	  <None Remove="Telemetry.Api\**" />
+	  <None Remove="Telemetry.Core1\**" />
+	  <None Remove="Telemetry.Core\**" />
+	  <None Remove="Telemetry.WebAPI1\**" />
+	  <None Remove="Telemetry.WebAPI\**" />
+	  <None Remove="Telemetry.WebApp1\**" />
+	  <None Remove="Telemetry.WebApp\**" />
+	  <None Remove="Telemetry.Web\**" />
 	  <None Remove="Universalscada.Core\**" />
 	  <None Remove="Universalscada.Module.Textile\**" />
 	  <None Remove="Universalscada.WebAPI\**" />
 	  <None Remove="Universalscada.WebApp\**" />
 	  <None Remove="yilmak_scada_setup\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Localization1\Strings.Designer.cs" />
+	  <Compile Remove="Properties\Resource1.Designer.cs" />
+	  <Compile Remove="Properties\Resources.Designer.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -98,6 +140,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="TekstilScada.Core\Telemetry.Core.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Reference Include="HslCommunication">
 		  <HintPath>..\..\..\Downloads\HslCommunication\HslCommunication.dll</HintPath>
 		</Reference>
@@ -107,25 +153,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Compile Update="Localization\Strings.Designer.cs">
-		  <DesignTime>True</DesignTime>
-		  <AutoGen>True</AutoGen>
-		  <DependentUpon>Strings.resx</DependentUpon>
-		</Compile>
-		<Compile Update="Properties\Resource1.Designer.cs">
-		  <DesignTime>True</DesignTime>
-		  <AutoGen>True</AutoGen>
-		  <DependentUpon>Resource1.resx</DependentUpon>
-		</Compile>
-		<Compile Update="Properties\Resources.Designer.cs">
-			<DesignTime>True</DesignTime>
-			<AutoGen>True</AutoGen>
-			<DependentUpon>Resources.resx</DependentUpon>
-		</Compile>
-	</ItemGroup>
-
-	<ItemGroup>
-		<EmbeddedResource Update="Localization\Strings.resx">
+		<EmbeddedResource Update="Localization1\Strings.resx">
 			<Generator>PublicResXFileCodeGenerator</Generator>
 			<LastGenOutput>Strings.Designer.cs</LastGenOutput>
 		</EmbeddedResource>
@@ -137,10 +165,6 @@
 			<Generator>PublicResXFileCodeGenerator</Generator>
 			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
 		</EmbeddedResource>
-	</ItemGroup>
-
-	<ItemGroup>
-		<ProjectReference Include="TekstilScada.Core\TekstilScada.Core.csproj" />
 	</ItemGroup>
 
 </Project>

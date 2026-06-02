@@ -1,7 +1,7 @@
 ﻿// Models/ProductionStepDetail.cs
 using System;
 
-namespace TekstilScada.Models
+namespace Telemetry.Models
 {
     // Bu sınıf, eski programınızdaki 'analız' tablosunun karşılığıdır.
     public class ProductionStepDetail

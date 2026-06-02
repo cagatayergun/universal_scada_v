@@ -4,11 +4,11 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using TekstilScada.Core.Models;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
-using TekstilScada.WebAPI.Repositories;
-using static TekstilScada.Core.Core.ExcelExportHelper;
+using Telemetry.Core.Models;
+using Telemetry.Models;
+using Telemetry.Repositories;
+using Telemetry.WebAPI.Repositories;
+using static Telemetry.Core.Core.ExcelExportHelper;
 
 
 
@@ -139,7 +139,7 @@ public class ActionLogFilters
     public string? Details { get; set; }
 }
 
-namespace TekstilScada.WebAPI.Hubs
+namespace Telemetry.WebAPI.Hubs
 {
     public class ScadaHub : Hub
     {

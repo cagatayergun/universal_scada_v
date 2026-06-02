@@ -1,5 +1,5 @@
 ﻿// UI/Controls/AlarmBanner_Control.Designer.cs
-namespace TekstilScada.UI.Controls
+namespace Telemetry.UI.Controls
 {
     partial class AlarmBanner_Control
     {

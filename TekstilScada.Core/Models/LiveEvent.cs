@@ -1,7 +1,7 @@
 ﻿
     using System;
 
-namespace TekstilScada.Models
+namespace Telemetry.Models
     {
         public enum EventType { SystemInfo, SystemWarning, SystemSuccess, Alarm, ConnectionStateChange, Process }
 

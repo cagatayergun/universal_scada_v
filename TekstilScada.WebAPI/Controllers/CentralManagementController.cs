@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
-using TekstilScada.WebAPI.Models;
-using TekstilScada.WebAPI.Repositories;
+using Telemetry.WebAPI.Models;
+using Telemetry.WebAPI.Repositories;
 using System.Diagnostics;
 
-namespace TekstilScada.WebAPI.Controllers
+namespace Telemetry.WebAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

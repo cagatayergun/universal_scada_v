@@ -2,9 +2,9 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
-using TekstilScada.Services;
+using Telemetry.Services;
 
-namespace TekstilScada.UI
+namespace Telemetry.UI
 {
     public partial class LiveEventPopup_Form : Form
     {

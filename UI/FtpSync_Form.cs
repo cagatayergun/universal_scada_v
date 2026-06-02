@@ -8,16 +8,16 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
-using TekstilScada.Services;
-using TekstilScada.UI.Controls;
-using TekstilScada.UI.Controls.RecipeStepEditors;
-using TekstilScada.UI.Views;
-using TekstilScada.Core.Models;
+using Telemetry.Core;
+using Telemetry.Models;
+using Telemetry.Repositories;
+using Telemetry.Services;
+using Telemetry.UI.Controls;
+using Telemetry.UI.Controls.RecipeStepEditors;
+using Telemetry.UI.Views;
+using Telemetry.Core.Models;
 
-namespace TekstilScada.UI
+namespace Telemetry.UI
 {
     public partial class FtpSync_Form : Form
     {

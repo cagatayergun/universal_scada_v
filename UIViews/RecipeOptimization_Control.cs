@@ -3,12 +3,12 @@ using System.Collections.Generic; // List için eklendi
 using System.Drawing; // Color için eklendi
 using System.Linq;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Localization;
-using TekstilScada.Models;
-using TekstilScada.Properties;
-using TekstilScada.Repositories;
-namespace TekstilScada.UI.Views
+using Telemetry.Core;
+using Telemetry.Localization;
+using Telemetry.Models;
+using Telemetry.Properties;
+using Telemetry.Repositories;
+namespace Telemetry.UI.Views
 {
     public partial class RecipeOptimization_Control : UserControl
     {

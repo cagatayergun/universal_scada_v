@@ -5,10 +5,10 @@ using System.Drawing;
 using System.Drawing.Imaging; 
 using System.Reflection.PortableExecutable;
 using System.Windows.Forms;
-using TekstilScada.Models;
-using TekstilScada.Services;
+using Telemetry.Models;
+using Telemetry.Services;
 
-namespace TekstilScada.UI.Controls
+namespace Telemetry.UI.Controls
 {
     public partial class MachineCard_Control : UserControl
     {

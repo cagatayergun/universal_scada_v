@@ -6,17 +6,17 @@ using System.Linq;
 using System.Windows.Forms;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using TekstilScada.Core;
-using TekstilScada.Localization;
-using TekstilScada.Models;
-using TekstilScada.Properties;
-using TekstilScada.Repositories;
-using TekstilScada.Services;
-using TekstilScada.UI;
-using TekstilScada.UI.Controls;
-using TekstilScada.UI.Views;
+using Telemetry.Core;
+using Telemetry.forms.Localization;
+using Telemetry.Models;
+using Telemetry.Properties;
+using Telemetry.Repositories;
+using Telemetry.Services;
+using Telemetry.UI;
+using Telemetry.UI.Controls;
+using Telemetry.UI.Views;
 
-namespace TekstilScada
+namespace Telemetry
 {
     public partial class MainForm : Form
     {
@@ -383,12 +383,12 @@ namespace TekstilScada
 
         private void ApplyLocalization()
         {
-            this.Text = TekstilScada.Localization.Strings.ApplicationTitle;
-            btnGenelBakis.Text = TekstilScada.Localization.Strings.MainMenu_GeneralOverview;
-            btnProsesIzleme.Text = TekstilScada.Localization.Strings.MainMenu_ProcessMonitoring;
-            btnProsesKontrol.Text = TekstilScada.Localization.Strings.MainMenu_ProcessControl;
-            btnRaporlar.Text = TekstilScada.Localization.Strings.MainMenu_Reports;
-            btnAyarlar.Text = TekstilScada.Localization.Strings.MainMenu_Settings;
+            this.Text = Telemetry.Localization.Strings.ApplicationTitle;
+            btnGenelBakis.Text = Telemetry.Localization.Strings.MainMenu_GeneralOverview;
+            btnProsesIzleme.Text = Telemetry.Localization.Strings.MainMenu_ProcessMonitoring;
+            btnProsesKontrol.Text = Telemetry.Localization.Strings.MainMenu_ProcessControl;
+            btnRaporlar.Text = Telemetry.Localization.Strings.MainMenu_Reports;
+            btnAyarlar.Text = Telemetry.Localization.Strings.MainMenu_Settings;
 
             dilToolStripMenuItem.Text = Resources.Language;
             oturumToolStripMenuItem.Text = Resources.Session;

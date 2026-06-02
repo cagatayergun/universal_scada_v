@@ -1,4 +1,4 @@
-﻿namespace TekstilScada.UI
+﻿namespace Telemetry.UI
 {
     partial class ProductionDetail_Form
     {

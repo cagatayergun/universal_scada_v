@@ -3,11 +3,11 @@ using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using TekstilScada.Core;
-using TekstilScada.Core; // Bu satırı ekleyin
-using TekstilScada.Models;
-using TekstilScada.Core.Models;
-namespace TekstilScada.Repositories
+using Telemetry.Core;
+using Telemetry.Core; // Bu satırı ekleyin
+using Telemetry.Models;
+using Telemetry.Core.Models;
+namespace Telemetry.Repositories
 {
     public class UserRepository
     {

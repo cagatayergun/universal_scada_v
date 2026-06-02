@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace TekstilScada.Models
+namespace Telemetry.Models
 {
     // Hattın Tanımı (Veritabanı: utility_lines)
     public class UtilityLine

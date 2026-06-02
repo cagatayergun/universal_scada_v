@@ -746,4 +746,22 @@
 	<data name="BitisZamani2" xml:space="preserve">
     <value>Bitiş Zamanı</value>
   </data>
+	<data name="ApplicationTitle" xml:space="preserve">
+    <value>YILMAK TELEMETRY</value>
+  </data>
+	<data name="MainMenu_GeneralOverview" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+	<data name="MainMenu_ProcessControl" xml:space="preserve">
+    <value>Process Control</value>
+  </data>
+	<data name="MainMenu_ProcessMonitoring" xml:space="preserve">
+    <value>Process Monitoring</value>
+  </data>
+	<data name="MainMenu_Reports" xml:space="preserve">
+    <value>Reports</value>
+  </data>
+	<data name="MainMenu_Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
 </root>

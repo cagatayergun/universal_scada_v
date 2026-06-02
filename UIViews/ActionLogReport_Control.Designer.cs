@@ -1,5 +1,5 @@
 ﻿// UIViews/ActionLogReport_Control.Designer.cs
-namespace TekstilScada.UIViews
+namespace Telemetry.UIViews
 {
     partial class ActionLogReport_Control
     {

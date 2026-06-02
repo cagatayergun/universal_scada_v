@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using TekstilScada.Models;
+using Telemetry.Models;
 
-namespace TekstilScada.Core
+namespace Telemetry.Core
 {
     /// <summary>
     /// Reçetelerin teorik sürelerini ve diğer analizlerini yapmak için yardımcı metotlar içerir.

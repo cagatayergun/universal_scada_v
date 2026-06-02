@@ -1,5 +1,5 @@
 ﻿// UI/Views/PlcOperatorSettings_Control.Designer.cs
-namespace TekstilScada.UI.Views
+namespace Telemetry.UI.Views
 {
     partial class PlcOperatorSettings_Control
     {

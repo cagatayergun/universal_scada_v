@@ -1,4 +1,4 @@
-﻿// TekstilScada.WebApp/Services/CustomAuthStateProvider.cs
+﻿// Telemetry.WebApp/Services/CustomAuthStateProvider.cs
 
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -13,7 +13,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace TekstilScada.WebApp.Services
+namespace Telemetry.WebApp.Services
 {
     // API'den dönen Token modelini WebAPI'ye uyumlu hale getirelim (RefreshToken eklendi)
     public class LoginResponseModel

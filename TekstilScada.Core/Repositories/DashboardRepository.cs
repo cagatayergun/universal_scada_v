@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
-using TekstilScada.Models;
-using TekstilScada.Core;
+using Telemetry.Models;
+using Telemetry.Core;
 
-namespace TekstilScada.Repositories
+namespace Telemetry.Repositories
 {
     public class DashboardRepository
     {

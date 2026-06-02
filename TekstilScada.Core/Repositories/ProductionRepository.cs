@@ -3,11 +3,11 @@ using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using TekstilScada.Models; // BU SATIR EKLENDİ
+using Telemetry.Models; // BU SATIR EKLENDİ
 using System.Linq;
 using System.Data;
-using TekstilScada.Core; // Bu satırı ekleyin
-namespace TekstilScada.Repositories
+using Telemetry.Core; // Bu satırı ekleyin
+namespace Telemetry.Repositories
 {
     public class ReportFilters
     {

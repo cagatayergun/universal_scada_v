@@ -1,5 +1,5 @@
 ﻿// UI/LiveEventPopup_Form.Designer.cs
-namespace TekstilScada.UI
+namespace Telemetry.UI
 {
     partial class LiveEventPopup_Form
     {

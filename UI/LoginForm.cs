@@ -1,9 +1,9 @@
 ﻿// UI/LoginForm.cs
 using System;
 using System.Windows.Forms;
-using TekstilScada.Services;
+using Telemetry.Services;
 
-namespace TekstilScada.UI
+namespace Telemetry.UI
 {
     public partial class LoginForm : Form
     {

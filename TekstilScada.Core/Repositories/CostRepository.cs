@@ -1,11 +1,11 @@
 ﻿using MySql.Data.MySqlClient;
 using System.Collections.Generic;
 using System.Linq; // LINQ kullanabilmek için eklendi
-using TekstilScada.Models;
+using Telemetry.Models;
 using System; // DBNull için eklendi
-using TekstilScada.Core; // Bu satırı ekleyin
+using Telemetry.Core; // Bu satırı ekleyin
 
-namespace TekstilScada.Repositories
+namespace Telemetry.Repositories
 {
     public class CostRepository
     {

@@ -2,9 +2,9 @@
 using HslCommunication.ModBus;
 using System;
 using System.Threading.Tasks;
-using TekstilScada.Models;
+using Telemetry.Models;
 
-namespace TekstilScada.Services
+namespace Telemetry.Services
 {
     public class UtilityModbusManager : IUtilityManager
     {

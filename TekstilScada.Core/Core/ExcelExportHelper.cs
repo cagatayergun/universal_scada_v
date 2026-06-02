@@ -2,18 +2,18 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
-using TekstilScada.Core.Models;
-using TekstilScada.Models;
+using Telemetry.Core.Models;
+using Telemetry.Models;
 using System.Resources;
 using System.Globalization;
-using TekstilScada.Core.Localization;
+using Telemetry.Core.Localization;
 
-namespace TekstilScada.Core.Core
+namespace Telemetry.Core.Core
 {
     public static class ExcelExportHelper
     {
         // Kaynak Yöneticisi (Resx dosyasına erişim için)
-        private static readonly ResourceManager _rm = new ResourceManager("TekstilScada.Core.Localization.SharedResource", typeof(SharedResource).Assembly);
+        private static readonly ResourceManager _rm = new ResourceManager("Telemetry.Core.Localization.SharedResource", typeof(SharedResource).Assembly);
 
         // Helper: Çeviri yoksa anahtarı döndürür
         private static string L(string key)

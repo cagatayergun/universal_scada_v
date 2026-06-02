@@ -5,23 +5,23 @@ using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
 using System.Linq;
-using System.Threading.Tasks; // Task için gerekli
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Models;
-using TekstilScada.Properties;
-using TekstilScada.Repositories;
-using TekstilScada.Services;
-using TekstilScada.UI.Controls;
-using TekstilScada.UIControls;
-using static TekstilScada.Repositories.ProcessLogRepository;
+using Telemetry.Core;
+using Telemetry.Models;
+using Telemetry.Properties;
+using Telemetry.Repositories;
+using Telemetry.Services;
+using Telemetry.UI.Controls;
+using Telemetry.UIControls;
+using static Telemetry.Repositories.ProcessLogRepository;
 
-namespace TekstilScada.UI.Views
+namespace Telemetry.UI.Views
 {
     public partial class GenelBakis_Control : UserControl
     {
         private PlcPollingService _pollingService;
-        private UtilityPollingService _utilityPollingService; // YENİ: Servis Tanımı
+        private UtilityPollingService _utilityPollingService;
         private MachineRepository _machineRepository;
         private DashboardRepository _dashboardRepository;
         private AlarmRepository _alarmRepository;
@@ -34,7 +34,7 @@ namespace TekstilScada.UI.Views
         private System.Windows.Forms.Timer _uiUpdateTimer;
 
         // Utility (Enerji) Takibi İçin
-        private Dictionary<int, DateTime> _utilityLastSeen = new Dictionary<int, DateTime>(); // Son veri zamanı
+        private Dictionary<int, DateTime> _utilityLastSeen = new Dictionary<int, DateTime>();
         private Dictionary<int, UtilityDashboardCard_Control> _utilityCards = new Dictionary<int, UtilityDashboardCard_Control>();
 
         private bool _isDashboardSetup = false;
@@ -76,7 +76,6 @@ namespace TekstilScada.UI.Views
             ApplyLocalization();
         }
 
-        // InitializeControl GÜNCELLENDİ: utilityService parametresi eklendi
         public void InitializeControl(
             PlcPollingService pollingService,
             MachineRepository machineRepo,
@@ -85,7 +84,7 @@ namespace TekstilScada.UI.Views
             ProcessLogRepository logRepo,
             ProductionRepository productionRepo,
             UtilityRepository utilityrepo,
-            UtilityPollingService utilityService) // <--- YENİ PARAMETRE
+            UtilityPollingService utilityService)
         {
             _pollingService = pollingService;
             _machineRepository = machineRepo;
@@ -94,7 +93,7 @@ namespace TekstilScada.UI.Views
             _logRepository = logRepo;
             _productionRepository = productionRepo;
             _utilityRepository = utilityrepo;
-            _utilityPollingService = utilityService; // <--- ATAMA YAPILDI
+            _utilityPollingService = utilityService;
 
             if (this.IsHandleCreated && !_isDashboardSetup)
             {
@@ -135,13 +134,12 @@ namespace TekstilScada.UI.Views
                     .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.IsInRecipeMode);
 
                 BuildMachineCards();
-                BuildUtilityStrip(); // Enerji kartlarını oluştur
+                BuildUtilityStrip();
 
-                // Olay Abonelikleri
-                _pollingService.OnMachineDataRefreshed -= PollingService_OnMachineDataRefreshed;
-                _pollingService.OnMachineDataRefreshed += PollingService_OnMachineDataRefreshed;
+                // KRİTİK PERFORMANS REVİZYONU: Anlık veri yenileme event aboneliği tamamen kaldırıldı.
+                // Saniyede 400 makineden gelen veri seli arayüzü kilitlemeyecektir.
 
-                // YENİ: Enerji Servisi Olay Aboneliği
+                // Enerji Servisi Olay Aboneliği (Geniş periyotlu olduğu için kalabilir)
                 if (_utilityPollingService != null)
                 {
                     _utilityPollingService.OnUtilityDataRefreshed -= UtilityService_OnDataRefreshed;
@@ -150,23 +148,24 @@ namespace TekstilScada.UI.Views
 
                 if (_uiUpdateTimer == null)
                 {
-                    // Makinelerin durum kartları için 2 saniye kalabilir
-                    _uiUpdateTimer = new System.Windows.Forms.Timer { Interval = 2000 };
+                    // OPTİMİZASYON: 1000ms (1 saniye) aralıklarla uyanan merkezi PULL timer'ı.
+                    _uiUpdateTimer = new System.Windows.Forms.Timer { Interval = 1000 };
                     _uiUpdateTimer.Tick += (s, a) => {
-                        UpdateKpiCards();
-                        CheckUtilityConnections();
-                        // NOT: UpdateSidebarCharts() buradaki 2 saniyelik timer'dan KALDIRILDI!
+                        UpdateLiveMachineCardsAndSort(); // Kartları toplu ve sarsıntısız hafızadan güncelle
+                        UpdateKpiCards();                // KPI kartlarını tek döngüde hesaplayıp güncelle
+                        CheckUtilityConnections();       // Enerji cihaz bağlantılarını denetle
                     };
                 }
                 _uiUpdateTimer.Start();
 
-                // GRAFİKLER İÇİN YENİ BİR TIMER KURUN (Örn: 60 saniyede bir)
+                // GRAFİKLER İÇİN BAĞIMSIZ ULTRA YAVAŞ TIMER (60 saniyede bir çizim yükü getirir)
                 System.Windows.Forms.Timer chartUpdateTimer = new System.Windows.Forms.Timer { Interval = 60000 };
                 chartUpdateTimer.Tick += (s, a) => UpdateSidebarCharts();
                 chartUpdateTimer.Start();
 
-                // İlk açılışta bir kez el ile tetikleyin
-                RefreshDashboard();
+                // İlk açılışta bir kez el ile tetikleyin (RAM verileriyle hızlı dolum)
+                UpdateLiveMachineCardsAndSort();
+                UpdateKpiCards();
                 UpdateSidebarCharts();
 
                 _isDashboardSetup = true;
@@ -174,6 +173,46 @@ namespace TekstilScada.UI.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Dashboard kurulum hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Saniyede 1 kez uyanarak 400 makinenin grafik ve metin verilerini doğrudan RAM'den çeker ve panelleri sıralar.
+        /// </summary>
+        private void UpdateLiveMachineCardsAndSort()
+        {
+            if (_pollingService == null || this.IsDisposed || !this.IsHandleCreated) return;
+
+            try
+            {
+                var cache = _pollingService.MachineDataCache;
+                if (cache == null || cache.IsEmpty) return;
+
+                // 1. ADIM: Tüm kartları Invoke maliyeti olmadan doğrudan güncelle
+                foreach (var kvp in _machineCards)
+                {
+                    int machineId = kvp.Key;
+                    var card = kvp.Value;
+
+                    if (!card.IsDisposed && cache.TryGetValue(machineId, out var status))
+                    {
+                        card.UpdateData(status, new List<ProcessDataPoint>());
+                    }
+                }
+
+                // 2. ADIM: Her hol panelindeki kartları sıralama önceliğine göre yerleştir (Görünür performansı korur)
+                // DÜZELTME: Belirsizliği gidermek için System.Windows.Forms.Control olarak açıkça belirttik
+                foreach (System.Windows.Forms.Control control in flpMachineGroups.Controls)
+                {
+                    if (control is GroupBox gb && gb.Controls.Count > 0 && gb.Controls[0] is FlowLayoutPanel innerPanel)
+                    {
+                        SortMachinesInPanel(innerPanel);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // UI akışının kopmaması için
             }
         }
 
@@ -208,17 +247,15 @@ namespace TekstilScada.UI.Views
             flpUtilityStrip.Controls.Clear();
             _utilityCards.Clear();
             flpUtilityStrip.Visible = false;
-            // Hatları çek (Repository'de GetUtilityLines var)
+
             var lines = _utilityRepository.GetUtilityLines();
 
             foreach (var line in lines)
             {
                 var card = new UtilityDashboardCard_Control();
-
-                // Başlangıçta kartı oluşturuyoruz, henüz veri yok
                 var initialData = new UtilityDashboardDto { LineName = line.LineName };
                 card.SetData(initialData);
-                card.SetConnectionStatus(false); // Başlangıçta kopuk görünsün, veri gelince yeşil olacak
+                card.SetConnectionStatus(false);
 
                 _utilityCards.Add(line.Id, card);
                 flpUtilityStrip.Controls.Add(card);
@@ -238,10 +275,9 @@ namespace TekstilScada.UI.Views
             var allMachines = _machineRepository.GetAllEnabledMachines();
             var machineCache = _pollingService.MachineDataCache;
 
-            // DÜZELTME: Makineler artık MachineSubType yerine yeni parametremiz olan MachineHall (Hol) bilgisine göre gruplanıyor
             var groupedMachines = allMachines
                  .GroupBy(m => string.IsNullOrWhiteSpace(m.MachineHall) ? "Empty" : m.MachineHall)
-                 .OrderBy(g => g.Key); // Hol isimlerine göre alfabetik sıralar
+                 .OrderBy(g => g.Key);
 
             _colorIndex = 0;
 
@@ -249,7 +285,6 @@ namespace TekstilScada.UI.Views
             {
                 var groupPanel = new GroupBox
                 {
-                    // DÜZELTME: Başlık metni hol ismine göre ayarlandı
                     Text = $"{group.Key} ",
                     Width = flpMachineGroups.ClientSize.Width * 2 - 50,
                     Height = 265,
@@ -261,7 +296,6 @@ namespace TekstilScada.UI.Views
 
                 var innerPanel = new FlowLayoutPanel
                 {
-                    // Kartları hol panelinin içerisine yan yana dizer
                     Dock = DockStyle.Fill,
                     FlowDirection = FlowDirection.LeftToRight,
                     WrapContents = false,
@@ -269,7 +303,6 @@ namespace TekstilScada.UI.Views
                     BackColor = Color.WhiteSmoke
                 };
 
-                // Hol içerisindeki makineler kendi içlerinde çalışma önceliklerine göre sıralanır
                 var sortedMachines = group.OrderBy(m =>
                 {
                     if (machineCache.TryGetValue(m.Id, out var status))
@@ -296,47 +329,30 @@ namespace TekstilScada.UI.Views
         private void RefreshDashboard()
         {
             if (this.IsDisposed) return;
-
             if (!_isDashboardSetup || _pollingService == null) return;
 
-            var currentBatchStatuses = _pollingService.MachineDataCache
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.IsInRecipeMode);
-
-            if (_previousBatchStatuses != null && !_previousBatchStatuses.SequenceEqual(currentBatchStatuses))
-            {
-                _previousBatchStatuses = currentBatchStatuses;
-            }
-
+            UpdateLiveMachineCardsAndSort();
             UpdateKpiCards();
-
-            // YENİ: Enerji Bağlantı Kontrolü (Timeout)
             CheckUtilityConnections();
-
             UpdateSidebarCharts();
         }
 
-        // YENİ: Canlı Veri Geldiğinde Çalışacak Metot
         private void UtilityService_OnDataRefreshed(List<UtilityLog> logs)
         {
             if (this.IsDisposed || !this.IsHandleCreated) return;
 
-            // UI Thread'e geçiş
             this.BeginInvoke(new Action(() =>
             {
                 foreach (var log in logs)
                 {
                     if (_utilityCards.TryGetValue(log.LineId, out var card))
                     {
-                        // 1. "Görüldü" zamanını güncelle
                         _utilityLastSeen[log.LineId] = DateTime.Now;
-
-                        // 2. Kartı "BAĞLI" moduna geçir (Yeşil ışık)
                         card.SetConnectionStatus(true);
 
-                        // 3. Verileri DTO'ya çevirip karta bas
                         var dto = new UtilityDashboardDto
                         {
-                            LineName = "", // İsim zaten kartta var, değiştirmeye gerek yok
+                            LineName = "",
                             DailyElecUsage = log.ElecCounter,
                             DailyWaterUsage = log.WaterCounter,
                             DailySteamUsage = log.SteamCounter,
@@ -348,7 +364,6 @@ namespace TekstilScada.UI.Views
             }));
         }
 
-        // YENİ: Bağlantı Kopma Kontrolü (25 saniye kuralı)
         private void CheckUtilityConnections()
         {
             var now = DateTime.Now;
@@ -357,7 +372,6 @@ namespace TekstilScada.UI.Views
                 int lineId = kvp.Key;
                 var card = kvp.Value;
 
-                // Eğer son veri üzerinden 25 saniye geçtiyse "Bağlantı Yok" yap
                 if (!_utilityLastSeen.ContainsKey(lineId) || (now - _utilityLastSeen[lineId]).TotalSeconds > 25)
                 {
                     card.SetConnectionStatus(false);
@@ -365,23 +379,8 @@ namespace TekstilScada.UI.Views
             }
         }
 
-        private void PollingService_OnMachineDataRefreshed(int machineId, FullMachineStatus status)
-        {
-            if (this.IsDisposed || !this.IsHandleCreated) return;
-
-            this.BeginInvoke(new Action(() =>
-            {
-                if (_machineCards.TryGetValue(machineId, out var cardToUpdate))
-                {
-                    cardToUpdate.UpdateData(status, new List<ProcessDataPoint>());
-
-                    if (cardToUpdate.Parent is FlowLayoutPanel parentPanel)
-                    {
-                        SortMachinesInPanel(parentPanel);
-                    }
-                }
-            }));
-        }
+        // DİKKAT: PollingService_OnMachineDataRefreshed metodu artık event dinlemediğimiz için gövdesi boş bırakılmıştır, uyumluluk için silinmemiştir.
+        private void PollingService_OnMachineDataRefreshed(int machineId, FullMachineStatus status) { }
 
         private void SortMachinesInPanel(FlowLayoutPanel panel)
         {
@@ -414,36 +413,67 @@ namespace TekstilScada.UI.Views
             return 4;
         }
 
-        private void UpdateUtilityKpiData()
-        {
-            // Bu metot artık kullanılmıyor, canlı veri UtilityService_OnDataRefreshed üzerinden geliyor.
-        }
+        private void UpdateUtilityKpiData() { }
 
+        /// <summary>
+        /// 400 makine listesini tek bir döngüde (O(n)) tarayarak KPI verilerini ultra hızlı hesaplar.
+        /// </summary>
         private void UpdateKpiCards()
         {
-            if (_pollingService == null || _kpiTotalMachines == null) return;
+            if (_pollingService == null || _kpiTotalMachines == null || this.IsDisposed || !this.IsHandleCreated) return;
 
-            var allStatuses = _pollingService.MachineDataCache.Values;
-
-            int totalMachines = allStatuses.Count;
-            int offlineMachines = allStatuses.Count(s => s.ConnectionState != ConnectionStatus.Connected);
-            int runningMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.IsInRecipeMode && !s.HasActiveAlarm);
-            int alarmMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.HasActiveAlarm);
-            int manualMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
-            int idleMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && !s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
-
-            if (this.InvokeRequired)
+            try
             {
-                this.Invoke(new Action(UpdateKpiCards));
-                return;
-            }
+                var allStatuses = _pollingService.MachineDataCache.Values;
+                if (allStatuses == null || !allStatuses.Any()) return;
 
-            _kpiTotalMachines.SetData($"{Resources.AllMachines}", totalMachines.ToString(), Color.FromArgb(41, 128, 185));
-            _kpiOfflineMachines.SetData("Offline Status", offlineMachines.ToString(), Color.FromArgb(149, 165, 166));
-            _kpiRunningMachines.SetData($"{Resources.aktifüretim}", runningMachines.ToString(), Color.FromArgb(46, 204, 113));
-            _kpiAlarmMachines.SetData($"{Resources.alarmdurum}", alarmMachines.ToString(), Color.FromArgb(231, 76, 60));
-            _kpiManualMachines.SetData("Manuel Mode", manualMachines.ToString(), Color.FromArgb(155, 89, 182));
-            _kpiIdleMachines.SetData($"{Resources.bosbekleyen}", idleMachines.ToString(), Color.FromArgb(243, 156, 18));
+                int totalMachines = 0;
+                int offlineMachines = 0;
+                int runningMachines = 0;
+                int alarmMachines = 0;
+                int manualMachines = 0;
+                int idleMachines = 0;
+
+                // OPTİMİZASYON: LINQ sorguları yerine tek bir ham döngü (Tek geçiş)
+                foreach (var s in allStatuses)
+                {
+                    totalMachines++;
+                    if (s.ConnectionState != ConnectionStatus.Connected)
+                    {
+                        offlineMachines++;
+                    }
+                    else
+                    {
+                        if (s.HasActiveAlarm)
+                        {
+                            alarmMachines++;
+                        }
+                        else if (s.IsInRecipeMode)
+                        {
+                            runningMachines++;
+                        }
+                        else if (s.manuel_status)
+                        {
+                            manualMachines++;
+                        }
+                        else
+                        {
+                            idleMachines++;
+                        }
+                    }
+                }
+
+                _kpiTotalMachines.SetData($"{Resources.AllMachines}", totalMachines.ToString(), Color.FromArgb(41, 128, 185));
+                _kpiOfflineMachines.SetData("Offline Status", offlineMachines.ToString(), Color.FromArgb(149, 165, 166));
+                _kpiRunningMachines.SetData($"{Resources.aktifüretim}", runningMachines.ToString(), Color.FromArgb(46, 204, 113));
+                _kpiAlarmMachines.SetData($"{Resources.alarmdurum}", alarmMachines.ToString(), Color.FromArgb(231, 76, 60));
+                _kpiManualMachines.SetData("Manuel Mode", manualMachines.ToString(), Color.FromArgb(155, 89, 182));
+                _kpiIdleMachines.SetData($"{Resources.bosbekleyen}", idleMachines.ToString(), Color.FromArgb(243, 156, 18));
+            }
+            catch (Exception)
+            {
+                // UI koruması
+            }
         }
 
         private async void UpdateSidebarCharts()
@@ -457,7 +487,6 @@ namespace TekstilScada.UI.Views
                     var today = DateTime.Today;
                     var now = DateTime.Now;
 
-                    // Sorguyu 3 kere değil, SADECE 1 KERE çalıştırıyoruz.
                     var singleConsumptionTable = _dashboardRepository.GetHourlyFactoryConsumption(today);
 
                     return new
@@ -468,7 +497,9 @@ namespace TekstilScada.UI.Views
                     };
                 });
 
-                // 1. ELEKTRİK GRAFİĞİ (Aynı tablodan besleniyor)
+                if (this.IsDisposed || !this.IsHandleCreated) return;
+
+                // 1. ELEKTRİK GRAFİĞİ
                 formsPlotHourly.Plot.Clear();
                 if (result.ConsumptionData != null && result.ConsumptionData.Rows.Count > 0)
                 {
@@ -483,7 +514,7 @@ namespace TekstilScada.UI.Views
                 formsPlotHourly.Plot.Axes.AutoScale();
                 formsPlotHourly.Refresh();
 
-                // 2. SU GRAFİĞİ (Yine aynı tablodan besleniyor, DB'ye tekrar gidilmedi)
+                // 2. SU GRAFİĞİ
                 formsPlotHourlyWater.Plot.Clear();
                 if (result.ConsumptionData != null && result.ConsumptionData.Rows.Count > 0)
                 {
@@ -498,7 +529,7 @@ namespace TekstilScada.UI.Views
                 formsPlotHourlyWater.Plot.Axes.AutoScale();
                 formsPlotHourlyWater.Refresh();
 
-                // 3. BUHAR GRAFİĞİ (Yine aynı tablodan besleniyor)
+                // 3. BUHAR GRAFİĞİ
                 formsPlotHourlySteam.Plot.Clear();
                 if (result.ConsumptionData != null && result.ConsumptionData.Rows.Count > 0)
                 {
@@ -558,12 +589,6 @@ namespace TekstilScada.UI.Views
 
         protected override void OnHandleDestroyed(EventArgs e)
         {
-            if (_pollingService != null)
-            {
-                _pollingService.OnMachineDataRefreshed -= PollingService_OnMachineDataRefreshed;
-            }
-
-            // YENİ: Enerji Servisi Aboneliğini Kaldır
             if (_utilityPollingService != null)
             {
                 _utilityPollingService.OnUtilityDataRefreshed -= UtilityService_OnDataRefreshed;

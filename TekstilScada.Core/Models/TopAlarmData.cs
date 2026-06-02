@@ -1,5 +1,5 @@
-﻿// TekstilScada.Core/Models/TopAlarmData.cs
-namespace TekstilScada.Models
+﻿// Telemetry.Core/Models/TopAlarmData.cs
+namespace Telemetry.Models
 {
     public class TopAlarmData
     {

@@ -1,10 +1,10 @@
-﻿// Dosya: TekstilScada.Core/Models/UserViewModel.cs
+﻿// Dosya: Telemetry.Core/Models/UserViewModel.cs
 
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic; // List için eklendi
 
-// KRİTİK: Namespace'i TekstilScada.Core olarak ayarlayın
-namespace TekstilScada.Models
+// KRİTİK: Namespace'i Telemetry.Core olarak ayarlayın
+namespace Telemetry.Models
 {
     // Bu sınıf artık Core'dadır ve WebAPI ile WebApp tarafından kullanılabilir.
     public class UserViewModel

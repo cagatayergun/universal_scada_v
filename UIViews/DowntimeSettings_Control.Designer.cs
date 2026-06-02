@@ -1,4 +1,4 @@
-﻿namespace TekstilScada.UIViews
+﻿namespace Telemetry.UIViews
 {
     partial class DowntimeSettings_Control
     {

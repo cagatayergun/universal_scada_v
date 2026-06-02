@@ -1,4 +1,4 @@
-﻿namespace TekstilScada.Models
+﻿namespace Telemetry.Models
 {
     /// <summary>
     /// OEE Raporu için hesaplanmış verileri tutar.

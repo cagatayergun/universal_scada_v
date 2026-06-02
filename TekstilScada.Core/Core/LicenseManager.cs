@@ -1,4 +1,4 @@
-﻿// TekstilScada.Core/Core/LicenseManager.cs
+﻿// Telemetry.Core/Core/LicenseManager.cs
 using System;
 using System.IO;
 using System.Management;
@@ -6,7 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-namespace TekstilScada.Core
+namespace Telemetry.Core
 {
     public class LicenseData
     {

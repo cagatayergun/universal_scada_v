@@ -1,12 +1,12 @@
 ﻿// UI/Views/Ayarlar_Control.cs
 using System.Collections.Generic;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Properties;
-using TekstilScada.Repositories;
-using TekstilScada.Services;
-using TekstilScada.UIViews;
-namespace TekstilScada.UI.Views
+using Telemetry.Core;
+using Telemetry.Properties;
+using Telemetry.Repositories;
+using Telemetry.Services;
+using Telemetry.UIViews;
+namespace Telemetry.UI.Views
 {
     public partial class Ayarlar_Control : UserControl
     {

@@ -1,5 +1,5 @@
 ﻿// Models/FullMachineStatus.cs
-namespace TekstilScada.Models
+namespace Telemetry.Models
 {
     /// <summary>
     /// Bir makinenin tüm anlık durumunu tek bir nesnede birleştiren sınıf.

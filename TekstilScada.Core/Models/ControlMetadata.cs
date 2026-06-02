@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace TekstilScada.Models
+namespace Telemetry.Models
 {
     public class ControlMetadata
     {

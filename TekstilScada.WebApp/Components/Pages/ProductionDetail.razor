@@ -1,11 +1,11 @@
 ﻿@page "/reports/production-detail/{MachineId:int}/{BatchId}"
 @rendermode InteractiveServer
 @using System.Text.Json
-@using TekstilScada.Repositories
-@using TekstilScada.Core.Models
-@using TekstilScada.Models
-@using TekstilScada.WebApp.Services
-@using TekstilScada.Core.Localization
+@using Telemetry.Repositories
+@using Telemetry.Core.Models
+@using Telemetry.Models
+@using Telemetry.WebApp.Services
+@using Telemetry.Core.Localization
 @using Microsoft.Extensions.Localization
 @using System.Text.Json.Serialization
 @inject ScadaDataService ScadaDataService

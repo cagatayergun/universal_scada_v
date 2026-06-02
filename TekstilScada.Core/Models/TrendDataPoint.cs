@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace TekstilScada.Models
+namespace Telemetry.Models
 {
     /// <summary>
     /// Trend grafiğinde gösterilecek tek bir veri noktasını temsil eder.

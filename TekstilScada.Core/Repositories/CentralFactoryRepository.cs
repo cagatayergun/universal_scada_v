@@ -1,10 +1,10 @@
 ﻿using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
-using TekstilScada.WebAPI.Models;
+using Telemetry.WebAPI.Models;
 using System.Collections.Generic;
 using System;
 
-namespace TekstilScada.WebAPI.Repositories
+namespace Telemetry.WebAPI.Repositories
 {
     public class CentralFactoryRepository
     {

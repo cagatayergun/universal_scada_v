@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using TekstilScada.Models;
+using Telemetry.Models;
 
-namespace TekstilScada.Core
+namespace Telemetry.Core
 {
     public static class RecipeCsvConverter
     {

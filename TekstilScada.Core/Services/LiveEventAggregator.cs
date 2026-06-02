@@ -1,8 +1,8 @@
-﻿// TekstilScada.Core/Services/LiveEventAggregator.cs
+﻿// Telemetry.Core/Services/LiveEventAggregator.cs
 using System;
-using TekstilScada.Models;
+using Telemetry.Models;
 
-namespace TekstilScada.Services
+namespace Telemetry.Services
 {
     // LiveEvent ve EventType enum'ları burada yer alıyor. Bunlarda değişiklik yok.
     public class LiveEvent

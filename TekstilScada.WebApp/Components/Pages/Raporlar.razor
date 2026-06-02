@@ -1,9 +1,9 @@
 ﻿@page "/raporlar"
 @rendermode InteractiveServer
-@using TekstilScada.Models
-@using TekstilScada.Repositories
-@using TekstilScada.WebApp.Services
-@using TekstilScada.Core.Localization
+@using Telemetry.Models
+@using Telemetry.Repositories
+@using Telemetry.WebApp.Services
+@using Telemetry.Core.Localization
 @using Microsoft.Extensions.Localization
 @using System.Text.Json
 
@@ -585,7 +585,7 @@
                 </MudCard>
                 @if (actionLogs != null && actionLogs.Any())
                 {
-                    <MudDataGrid T="TekstilScada.Core.Models.ActionLogEntry" Items="@actionLogs" Filterable="true" SortMode="SortMode.Multiple" Groupable="true" Dense="true" Striped="true" Bordered="true" QuickFilter="@_quickFilterAction" RowsPerPage="15">
+                    <MudDataGrid T="Telemetry.Core.Models.ActionLogEntry" Items="@actionLogs" Filterable="true" SortMode="SortMode.Multiple" Groupable="true" Dense="true" Striped="true" Bordered="true" QuickFilter="@_quickFilterAction" RowsPerPage="15">
                         <ToolBarContent>
                             <MudText Typo="Typo.h6">@Loc["KullaniciHareketleriBaslik"]</MudText>
                             <MudSpacer />
@@ -608,7 +608,7 @@
                             </PropertyColumn>
                             <PropertyColumn Property="x => x.Details" Title="@Loc["Detaylar"]" CellStyle="white-space: normal;" />
                         </Columns>
-                        <PagerContent><MudDataGridPager T="TekstilScada.Core.Models.ActionLogEntry" /></PagerContent>
+                        <PagerContent><MudDataGridPager T="Telemetry.Core.Models.ActionLogEntry" /></PagerContent>
                     </MudDataGrid>
                 }
                 else if (isLoading)
@@ -654,7 +654,7 @@
     private TrendStats trendStats = new();
     private string selectedConsumptionType = "TotalElectricity";
     private ActionLogFilters actionLogFilters = new();
-    private List<TekstilScada.Core.Models.ActionLogEntry>? actionLogs;
+    private List<Telemetry.Core.Models.ActionLogEntry>? actionLogs;
     private DateRange _alarmDateRange = new DateRange(DateTime.Now.Date.AddDays(-7), DateTime.Now.Date);
     private DateRange _actionDateRange = new DateRange(DateTime.Now.Date.AddDays(-7), DateTime.Now.Date);
     private string _searchStringAlarm;
@@ -1179,7 +1179,7 @@
     private async Task OnRowClick(DataGridRowClickEventArgs<ProductionReportItem> args) => await GoToProductionDetail(args.Item.MachineId, args.Item.BatchId);
 
     private Func<ProductionReportItem, bool> _quickFilter => x => CheckFilter(x.MachineName, x.RecipeName, x.BatchId, x.OperatorName, x.SiparisNo, x.MusteriNo, _searchString);
-    private Func<TekstilScada.Core.Models.ActionLogEntry, bool> _quickFilterAction => x => CheckFilter(x.Username, x.Details, x.ActionType, null, null, null, _searchStringAction);
+    private Func<Telemetry.Core.Models.ActionLogEntry, bool> _quickFilterAction => x => CheckFilter(x.Username, x.Details, x.ActionType, null, null, null, _searchStringAction);
     private Func<ProductionReportItem, bool> _quickFilterGeneral => x => CheckFilter(x.MachineName, x.BatchId, null, null, null, null, _searchStringGeneral);
 
     private bool CheckFilter(string s1, string s2, string s3, string s4, string s5, string s6, string search)

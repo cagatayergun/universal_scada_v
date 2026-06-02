@@ -1,5 +1,5 @@
 ﻿// MainForm.Designer.cs
-namespace TekstilScada
+namespace Telemetry
 {
     partial class MainForm
     {
@@ -274,7 +274,7 @@ namespace TekstilScada
             MainMenuStrip = menuStrip1;
             Margin = new Padding(3, 2, 3, 2);
             Name = "MainForm";
-            Text = "Tekstil SCADA Sistemi";
+            Text = "Telemetry SCADA Sistemi";
             WindowState = FormWindowState.Maximized;
             FormClosing += MainForm_FormClosing;
             Load += MainForm_Load;

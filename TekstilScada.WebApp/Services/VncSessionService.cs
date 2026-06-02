@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace TekstilScada.WebApp.Services
+namespace Telemetry.WebApp.Services
 {
     /// <summary>
     /// VNC bağlantılarını yöneten ve aynı anda tek kullanıcı kısıtlamasını sağlayan servis.

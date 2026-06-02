@@ -1,15 +1,15 @@
 ﻿@page "/select-factory"
-@using TekstilScada.WebApp.Services
-@using TekstilScada.WebApp.Components.Shared
+@using Telemetry.WebApp.Services
+@using Telemetry.WebApp.Components.Shared
 @using Microsoft.AspNetCore.Components.Authorization
-@using TekstilScada.Models
+@using Telemetry.Models
 @inject ScadaDataService ScadaService
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 @inject CustomAuthStateProvider AuthProvider
 @inject AuthenticationStateProvider AuthStateProvider
-@layout TekstilScada.WebApp.Components.Layout.EmptyLayout
-@using TekstilScada.Core.Localization
+@layout Telemetry.WebApp.Components.Layout.EmptyLayout
+@using Telemetry.Core.Localization
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<SharedResource> Loc
 

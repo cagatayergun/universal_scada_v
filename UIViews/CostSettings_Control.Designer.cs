@@ -1,4 +1,4 @@
-﻿namespace TekstilScada.UI.Views
+﻿namespace Telemetry.UI.Views
 {
     partial class CostSettings_Control
     {

@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace TekstilScada.Core
+namespace Telemetry.Core
 {
     public static class PasswordHasher
     {

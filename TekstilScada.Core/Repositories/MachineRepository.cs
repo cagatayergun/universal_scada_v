@@ -3,10 +3,10 @@ using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using TekstilScada.Models;
-using TekstilScada.Core;
+using Telemetry.Models;
+using Telemetry.Core;
 
-namespace TekstilScada.Repositories
+namespace Telemetry.Repositories
 {
     public class MachineRepository
     {

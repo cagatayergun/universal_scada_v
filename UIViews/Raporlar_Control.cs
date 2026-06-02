@@ -1,12 +1,12 @@
 ﻿// UIViews/Raporlar_Control.cs
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Localization;
-using TekstilScada.Properties;
-using TekstilScada.Repositories;
-using TekstilScada.UIViews;
+using Telemetry.Core;
+using Telemetry.Localization;
+using Telemetry.Properties;
+using Telemetry.Repositories;
+using Telemetry.UIViews;
 
-namespace TekstilScada.UI.Views
+namespace Telemetry.UI.Views
 {
     public partial class Raporlar_Control : UserControl
     {

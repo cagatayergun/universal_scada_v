@@ -1,9 +1,9 @@
 ﻿using HslCommunication;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using TekstilScada.Models;
+using Telemetry.Models;
 
-namespace TekstilScada.Services
+namespace Telemetry.Services
 {
     /// <summary>
     /// Farklı PLC tipleriyle iletişimi soyutlayan arayüz.

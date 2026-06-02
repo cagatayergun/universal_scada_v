@@ -1,5 +1,5 @@
 ﻿// Models/Machine.cs
-namespace TekstilScada.Models
+namespace Telemetry.Models
 {
     public class Machine
     {

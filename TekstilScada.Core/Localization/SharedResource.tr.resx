@@ -1791,4 +1791,28 @@
   <data name="CikisYap2" xml:space="preserve">
     <value>Çıkış Yap</value>
   </data>
+	<data name="ApplicationTitle" xml:space="preserve">
+    <value>YILMAK TELEMETRY</value>
+    <comment>Uygulamanın ana başlığı</comment>
+  </data>
+	<data name="MainMenu_GeneralOverview" xml:space="preserve">
+    <value>Genel Bakış</value>
+    <comment>Ana menüdeki buton metni</comment>
+  </data>
+	<data name="MainMenu_ProcessControl" xml:space="preserve">
+    <value>Proses Kontrol</value>
+    <comment>Ana menüdeki buton metni</comment>
+  </data>
+	<data name="MainMenu_ProcessMonitoring" xml:space="preserve">
+    <value>Proses İzleme</value>
+    <comment>Ana menüdeki buton metni</comment>
+  </data>
+	<data name="MainMenu_Reports" xml:space="preserve">
+    <value>Raporlar</value>
+    <comment>Ana menüdeki buton metni</comment>
+  </data>
+	<data name="MainMenu_Settings" xml:space="preserve">
+    <value>Ayarlar</value>
+    <comment>Ana menüdeki buton metni</comment>
+  </data>
 </root>

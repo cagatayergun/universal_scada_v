@@ -8,9 +8,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TekstilScada.Models;
+using Telemetry.Models;
 
-namespace TekstilScada.Services
+namespace Telemetry.Services
 {
     public class KurutmaMakinesiManager : IPlcManager
     {

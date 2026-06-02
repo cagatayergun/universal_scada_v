@@ -6,11 +6,11 @@ using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Localization;
 using System.Globalization;
-using TekstilScada.WebApp.Components;
-using TekstilScada.WebApp.Services;
+using Telemetry.WebApp.Components;
+using Telemetry.WebApp.Services;
 
 // Core namespace'inizin doðru olduðundan emin olun
-using TekstilScada.Core.Models;
+using Telemetry.Core.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,8 +1,8 @@
-﻿// Dosya: TekstilScada.Core/Core/ConfigurationManager.cs
+﻿// Dosya: Telemetry.Core/Core/ConfigurationManager.cs
 using Microsoft.Extensions.Configuration;
 using System.IO;
 
-namespace TekstilScada.Core
+namespace Telemetry.Core
 {
     public static class AppConfig
     {

@@ -4,13 +4,13 @@ using ScottPlot.WinForms;
 using System;
 using System.Data;
 using System.Windows.Forms;
-using TekstilScada.Models;
+using Telemetry.Models;
 using ScottPlot; // ERROR FIXED: Added for ScottPlot
 using System.IO; // Added for MemoryStream
 using System.Drawing.Imaging; // ERROR FIXED: Added for ImageFormat
 using System.Linq; // Added for Any() method
 using ScottPlot;
-namespace TekstilScada.Core
+namespace Telemetry.Core
 {
     public static class ExcelExporter
     {

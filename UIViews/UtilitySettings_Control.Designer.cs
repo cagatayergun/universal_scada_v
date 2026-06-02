@@ -1,4 +1,4 @@
-﻿namespace TekstilScada.UIViews
+﻿namespace Telemetry.UIViews
 {
     partial class UtilitySettings_Control
     {

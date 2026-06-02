@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace TekstilScada.Properties {
+namespace Telemetry.forms.Properties {
     using System;
     
     
@@ -19,7 +19,7 @@ namespace TekstilScada.Properties {
     // sınıfı tarafından otomatik olarak oluşturuldu.
     // Üye eklemek veya kaldırmak için .ResX dosyanızı düzenleyin ve sonra da ResGen
     // komutunu /str seçeneğiyle yeniden çalıştırın veya VS projenizi yeniden oluşturun.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Resources {
@@ -39,7 +39,7 @@ namespace TekstilScada.Properties {
         public static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("TekstilScada.Properties.Resources", typeof(Resources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Telemetry.forms.Properties.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -210,6 +210,15 @@ namespace TekstilScada.Properties {
         public static string anarecete {
             get {
                 return ResourceManager.GetString("anarecete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   YILMAK TELEMETRY benzeri yerelleştirilmiş bir dize arar.
+        /// </summary>
+        public static string ApplicationTitle {
+            get {
+                return ResourceManager.GetString("ApplicationTitle", resourceCulture);
             }
         }
         
@@ -1020,6 +1029,51 @@ namespace TekstilScada.Properties {
         public static string MachineSelect {
             get {
                 return ResourceManager.GetString("MachineSelect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Genel Bakış benzeri yerelleştirilmiş bir dize arar.
+        /// </summary>
+        public static string MainMenu_GeneralOverview {
+            get {
+                return ResourceManager.GetString("MainMenu_GeneralOverview", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Proses Kontrol benzeri yerelleştirilmiş bir dize arar.
+        /// </summary>
+        public static string MainMenu_ProcessControl {
+            get {
+                return ResourceManager.GetString("MainMenu_ProcessControl", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Proses İzleme benzeri yerelleştirilmiş bir dize arar.
+        /// </summary>
+        public static string MainMenu_ProcessMonitoring {
+            get {
+                return ResourceManager.GetString("MainMenu_ProcessMonitoring", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Raporlar benzeri yerelleştirilmiş bir dize arar.
+        /// </summary>
+        public static string MainMenu_Reports {
+            get {
+                return ResourceManager.GetString("MainMenu_Reports", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ayarlar benzeri yerelleştirilmiş bir dize arar.
+        /// </summary>
+        public static string MainMenu_Settings {
+            get {
+                return ResourceManager.GetString("MainMenu_Settings", resourceCulture);
             }
         }
         

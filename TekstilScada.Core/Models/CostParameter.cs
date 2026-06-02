@@ -1,4 +1,4 @@
-﻿namespace TekstilScada.Models
+﻿namespace Telemetry.Models
 {
     public class CostParameter
     {

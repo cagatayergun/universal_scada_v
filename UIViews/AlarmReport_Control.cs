@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Windows.Forms;
 using System.Threading.Tasks;
 using System.Linq;
-using TekstilScada.Core;
-using TekstilScada.Core.Models; // ReportFilters modeli için gerekebilir
-using TekstilScada.Models;
-using TekstilScada.Properties;
-using TekstilScada.Repositories;
+using Telemetry.Core;
+using Telemetry.Core.Models; // ReportFilters modeli için gerekebilir
+using Telemetry.Models;
+using Telemetry.Properties;
+using Telemetry.Repositories;
 
-namespace TekstilScada.UI.Views
+namespace Telemetry.UI.Views
 {
     public partial class AlarmReport_Control : UserControl
     {

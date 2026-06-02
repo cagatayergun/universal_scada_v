@@ -7,14 +7,14 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Models;
-using TekstilScada.Properties;
-using TekstilScada.Repositories;
-using TekstilScada.Services;
+using Telemetry.Core;
+using Telemetry.Models;
+using Telemetry.Properties;
+using Telemetry.Repositories;
+using Telemetry.Services;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
-namespace TekstilScada.UI.Views
+namespace Telemetry.UI.Views
 {
     public partial class MakineDetay_Control : UserControl
     {

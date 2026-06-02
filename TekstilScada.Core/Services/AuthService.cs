@@ -1,8 +1,8 @@
 ﻿// Services/AuthService.cs
-using TekstilScada.Models;
-using TekstilScada.Repositories;
+using Telemetry.Models;
+using Telemetry.Repositories;
 
-namespace TekstilScada.Services
+namespace Telemetry.Services
 {
     /// <summary>
     /// O an giriş yapmış olan kullanıcının bilgilerini global olarak tutar.

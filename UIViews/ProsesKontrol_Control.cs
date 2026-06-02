@@ -3,15 +3,15 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-using TekstilScada.Core;
-using TekstilScada.Models;
-using TekstilScada.Repositories;
-using TekstilScada.Services;
-using TekstilScada.UI.Controls;
-using TekstilScada.UI.Controls.RecipeStepEditors;
-using TekstilScada.UIViews;
+using Telemetry.Core;
+using Telemetry.Models;
+using Telemetry.Repositories;
+using Telemetry.Services;
+using Telemetry.UI.Controls;
+using Telemetry.UI.Controls.RecipeStepEditors;
+using Telemetry.UIViews;
 
-namespace TekstilScada.UI.Views
+namespace Telemetry.UI.Views
 {
     public partial class ProsesKontrol_Control : UserControl
     {
