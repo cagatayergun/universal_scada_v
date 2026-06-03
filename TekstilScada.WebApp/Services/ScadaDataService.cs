@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Caching.Memory; // 🚨 EKLENDİ
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -57,6 +58,7 @@ namespace TekstilScada.WebApp.Services
         private readonly HttpClient _httpClient;
         private readonly ILocalStorageService _localStorage;
         private readonly JsonSerializerOptions _serializerOptions;
+        private readonly IMemoryCache _memoryCache; // 🚨 Önbellek referansı eklendi
 
         private HubConnection? _hubConnection;
         public HubConnection? HubConnection => _hubConnection;
@@ -69,7 +71,6 @@ namespace TekstilScada.WebApp.Services
         public event Action<string>? OnError;
         private bool _isMachinesLoadedFromDb = false;
 
-        // YENİ: Dashboard ve diğer sayfaların DB durumunu net sorgulayabilmesi için dışa açık mülk
         public bool IsMachinesLoadedFromDb => _isMachinesLoadedFromDb;
 
         public List<int> UserAllowedFactoryIds { get; private set; } = new();
@@ -84,11 +85,13 @@ namespace TekstilScada.WebApp.Services
         public ConcurrentDictionary<int, Machine> MachineDetailsCache { get; private set; } = new();
         private string _accessToken = string.Empty;
 
-        public ScadaDataService(HttpClient httpClient, ILocalStorageService localStorage, IConfiguration config)
+        // Constructor genişletildi ve IMemoryCache enjekte edildi
+        public ScadaDataService(HttpClient httpClient, ILocalStorageService localStorage, IConfiguration config, IMemoryCache memoryCache)
         {
             _httpClient = httpClient;
             _localStorage = localStorage;
             _config = config;
+            _memoryCache = memoryCache;
             _serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         }
 
@@ -157,13 +160,12 @@ namespace TekstilScada.WebApp.Services
                         MachineData[status.MachineId] = status;
                         if (!MachineDetailsCache.ContainsKey(status.MachineId))
                         {
-                            // DÜZELTME: Tekli yayın paketi geldiğinde de "MachineHall" parametresini koru
                             MachineDetailsCache.TryAdd(status.MachineId, new Machine
                             {
                                 Id = status.MachineId,
                                 MachineName = status.MachineName,
                                 MachineSubType = string.IsNullOrEmpty(status.MakineTipi) ? "Standart" : status.MakineTipi,
-                                MachineHall = status.MachineHall // Eklendi
+                                MachineHall = status.MachineHall
                             });
                         }
                         OnDataUpdated?.Invoke();
@@ -232,7 +234,7 @@ namespace TekstilScada.WebApp.Services
             var onlineIds = await GetOnlineFactoryIdsAsync();
             if (!onlineIds.Contains(factoryId)) throw new Exception("Fabrika çevrimdışı.");
 
-            _isMachinesLoadedFromDb = false; // Fabrika değişirse DB kilidini sıfırla
+            _isMachinesLoadedFromDb = false;
             MachineData.Clear(); MachineDetailsCache.Clear();
             CurrentFactoryName = factoryName; _currentSelectedFactoryId = factoryId;
             OnDataUpdated?.Invoke();
@@ -364,7 +366,7 @@ namespace TekstilScada.WebApp.Services
         public async Task<ScadaRecipe?> ReadRecipeFromPlcAsync(int mId, int factoryId = 0)
             => await InvokeSafeAsync<ScadaRecipe?>("ReadRecipeFromPlc", factoryId, null, mId);
 
-        public async Task<List<ProductionReportItem>?> GetRecipeConsumptionHistoryAsync(int rId, int factoryId = 0)
+        public async Task<List<ProductionReportItem>> GetRecipeConsumptionHistoryAsync(int rId, int factoryId = 0)
             => await InvokeSafeAsync("GetRecipeConsumptionHistory", factoryId, new List<ProductionReportItem>(), rId);
 
         public async Task<List<ControlMetadata>> GetLayoutAsync(string subType, int stepTypeId, int factoryId = 0)
@@ -443,14 +445,63 @@ namespace TekstilScada.WebApp.Services
         public async Task<List<OeeData>> GetOeeReportAsync(ReportFilters f, int factoryId = 0)
             => await InvokeSafeAsync("GetOeeReport", factoryId, new List<OeeData>(), f);
 
-        public async Task<List<HourlyConsumptionData>?> GetHourlyConsumptionAsync(int factoryId = 0)
-            => await InvokeSafeAsync<List<HourlyConsumptionData>?>("GetHourlyConsumption", factoryId, null);
+        // 🚨 Tüketim Grafiği - Akıllı Önbellek Mimarisi
+        public async Task<List<HourlyConsumptionData>?> GetHourlyConsumptionAsync(int factoryId = 0, bool forceRefresh = false)
+        {
+            int targetFactoryId = ResolveId(factoryId);
+            string cacheKey = $"HourlyConsumption_Factory_{targetFactoryId}";
 
-        public async Task<List<HourlyOeeData>?> GetHourlyOeeAsync(int factoryId = 0)
-            => await InvokeSafeAsync<List<HourlyOeeData>?>("GetHourlyOee", factoryId, null);
+            if (forceRefresh || !_memoryCache.TryGetValue(cacheKey, out List<HourlyConsumptionData>? data))
+            {
+                data = await InvokeSafeAsync<List<HourlyConsumptionData>?>("GetHourlyConsumption", factoryId, null);
 
-        public async Task<List<TopAlarmData>?> GetTopAlarmsAsync(int factoryId = 0)
-            => await InvokeSafeAsync<List<TopAlarmData>?>("GetTopAlarms", factoryId, null);
+                // 🚨 SAVUNMA KODU: Sadece veri null değilse VE içi boş değilse (satır varsa) RAM'e yaz. 
+                // Böylece hatalı boş dizilerin [ ] önbelleği zehirlemesini engellemiş oluruz.
+                if (data != null && data.Any())
+                {
+                    _memoryCache.Set(cacheKey, data, TimeSpan.FromMinutes(6));
+                }
+            }
+            return data;
+        }
+
+        // 🚨 OEE Grafiği - Akıllı Önbellek Mimarisi
+        public async Task<List<HourlyOeeData>?> GetHourlyOeeAsync(int factoryId = 0, bool forceRefresh = false)
+        {
+            int targetFactoryId = ResolveId(factoryId);
+            string cacheKey = $"HourlyOee_Factory_{targetFactoryId}";
+
+            if (forceRefresh || !_memoryCache.TryGetValue(cacheKey, out List<HourlyOeeData>? data))
+            {
+                data = await InvokeSafeAsync<List<HourlyOeeData>?>("GetHourlyOee", factoryId, null);
+
+                // 🚨 SAVUNMA KODU
+                if (data != null && data.Any())
+                {
+                    _memoryCache.Set(cacheKey, data, TimeSpan.FromMinutes(6));
+                }
+            }
+            return data;
+        }
+
+        // 🚨 Alarm Grafiği - Akıllı Önbellek Mimarisi
+        public async Task<List<TopAlarmData>?> GetTopAlarmsAsync(int factoryId = 0, bool forceRefresh = false)
+        {
+            int targetFactoryId = ResolveId(factoryId);
+            string cacheKey = $"TopAlarms_Factory_{targetFactoryId}";
+
+            if (forceRefresh || !_memoryCache.TryGetValue(cacheKey, out List<TopAlarmData>? cachedAlarms))
+            {
+                cachedAlarms = await InvokeSafeAsync<List<TopAlarmData>?>("GetTopAlarms", factoryId, null);
+
+                // 🚨 SAVUNMA KODU
+                if (cachedAlarms != null && cachedAlarms.Any())
+                {
+                    _memoryCache.Set(cacheKey, cachedAlarms, TimeSpan.FromMinutes(6));
+                }
+            }
+            return cachedAlarms;
+        }
 
         public async Task<byte[]> ExportProductionReportAsync(List<ProductionReportItem> i, int factoryId = 0)
             => await InvokeSafeAsync("ExportProductionReport", factoryId, Array.Empty<byte>(), i);

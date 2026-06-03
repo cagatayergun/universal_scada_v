@@ -43,7 +43,7 @@ else
                 }
                 else
                 {
-                    <i class="oi oi-data-transfer-download me-1"></i> 
+                    <i class="oi oi-data-transfer-download me-1"></i>
                     @Loc["ExceleAktar"]
                 }
             </button>
@@ -159,7 +159,6 @@ else
                                     <th>@Loc["AciklamaSutun"]</th>
                                     <th>@Loc["TeorikSure"]</th>
                                     <th>@Loc["GerceklesenSure"]</th>
-                                  
                                 </tr>
                             </thead>
                             <tbody>
@@ -170,7 +169,6 @@ else
                                         <td>@step.StepDescription</td>
                                         <td>@TimeSpan.FromSeconds(step.TheoreticalDurationSeconds).ToString(@"hh\:mm\:ss")</td>
                                         <td>@step.WorkingTime</td>
-                                       
                                     </tr>
                                 }
                             </tbody>
@@ -191,7 +189,6 @@ else
                                 <thead class="sticky-top bg-light">
                                     <tr>
                                         <th class="ps-3 py-2">@Loc["Saat"]</th>
-                                       
                                         <th>@Loc["AciklamaSutun"]</th>
                                         <th class="text-end pe-3">@Loc["Sure"]</th>
                                     </tr>
@@ -201,7 +198,6 @@ else
                                     {
                                         <tr>
                                             <td class="ps-3">@alarm.AlarmTime.ToString("HH:mm:ss")</td>
-                                           
                                             <td>@alarm.AlarmDescription</td>
                                             <td class="text-end pe-3 fw-bold">@alarm.Duration.ToString(@"hh\:mm\:ss")</td>
                                         </tr>
@@ -262,6 +258,10 @@ else
     private bool shouldRenderPieChart = false;
     private bool _chartsDrawn = false;
 
+    // --- DİNAMİK LİMİTLER ---
+    private int _maxTemp = 100;
+    private int _maxWater = 100;
+
     private class PieChartSegment
     {
         public string Label { get; set; } = "";
@@ -288,6 +288,9 @@ else
 
         try
         {
+            // 🚨 DÜZELTME 1: Cache mekanizmasının doldurulmasını garanti altına alıyoruz
+            await ScadaDataService.GetMachinesAsync();
+
             detailData = await ScadaDataService.GetProductionDetailAsync(MachineId, BatchId);
 
             if (detailData != null)
@@ -311,7 +314,6 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // 1. Pasta Grafiği Çizimi (Burada sorun yok)
         if (shouldRenderPieChart && !_chartsDrawn)
         {
             var chartData = pieChartSegments.Select(s => new { label = s.Label, value = s.DurationTimeSpan.TotalSeconds, color = s.Color }).ToList();
@@ -320,28 +322,18 @@ else
             shouldRenderPieChart = false;
         }
 
-        // 2. Trend Grafiği Çizimi (GÜNCELLENDİ)
-        // detailData'nın null olmadığından emin oluyoruz çünkü tarihleri oradan alacağız
         if (shouldRenderTrendChart && trendDataPoints != null && detailData != null)
         {
             shouldRenderTrendChart = false;
 
-            // Batch Başlangıç Zamanı
             string startISO = detailData.Header.StartTime.ToString("yyyy-MM-dd HH:mm:ss");
-
-            // Batch Bitiş Zamanı (Eğer hala devam ediyorsa şu anı bitiş kabul et)
-            DateTime effectiveEnd = detailData.Header.EndTime == DateTime.MinValue
-                                    ? DateTime.Now
-                                    : detailData.Header.EndTime;
-
+            DateTime effectiveEnd = detailData.Header.EndTime == DateTime.MinValue ? DateTime.Now : detailData.Header.EndTime;
             string endISO = effectiveEnd.ToString("yyyy-MM-dd HH:mm:ss");
 
-            // JS Fonksiyonunu Yeni Adıyla ve 3 Parametreyle Çağırıyoruz
-            await JSRuntime.InvokeVoidAsync("plotSyncedChartsWithLimits", trendDataPoints, startISO, endISO);
+            await JSRuntime.InvokeVoidAsync("plotDynamicDetailCharts", trendDataPoints, startISO, endISO);
         }
     }
 
-    // --- PASTA GRAFİK HESAPLAMA (KESİN ÇÖZÜM) ---
     private void CalculatePieChartEfficiency()
     {
         if (detailData == null || detailData.Alarms == null) return;
@@ -350,28 +342,21 @@ else
         DateTime batchStart = detailData.Header.StartTime;
         DateTime batchEnd = detailData.Header.EndTime;
 
-        // Üretim henüz bitmemişse (canlı rapor) son zamanı şu an yap
         if (batchEnd <= batchStart) batchEnd = DateTime.Now;
 
         double totalBatchSeconds = (batchEnd - batchStart).TotalSeconds;
         if (totalBatchSeconds <= 0) return;
 
-        // 1. Kategorizasyon
         var machineAlarms = detailData.Alarms.Where(a => a.AlarmNumber >= 0 && a.AlarmNumber <= 499).ToList();
         var operatorAlarms = detailData.Alarms.Where(a => a.AlarmNumber >= 500 && a.AlarmNumber <= 600).ToList();
 
-        // 2. Net Süreler (Zaman Kesişimli & Batch Sınırlı)
         double netMachineSec = CalculateNetDurationInsideBatch(machineAlarms, batchStart, batchEnd);
         double netOperatorSec = CalculateNetDurationInsideBatch(operatorAlarms, batchStart, batchEnd);
-
-        // 3. Çift Sayma Koruması (Aynı anda hem mola hem arıza varsa)
         double totalDowntimeSec = CalculateNetDurationInsideBatch(detailData.Alarms, batchStart, batchEnd);
 
-        // 4. Aktif Çalışma = Batch Süresi - Toplam Kayıp
         double activeWorkingSec = totalBatchSeconds - totalDowntimeSec;
         if (activeWorkingSec < 0) activeWorkingSec = 0;
 
-        // Listeye Ekle
         pieChartSegments.Add(new PieChartSegment { Label = Loc["AktifCalisma"], Color = "#2ecc71", DurationTimeSpan = TimeSpan.FromSeconds(activeWorkingSec) });
         pieChartSegments.Add(new PieChartSegment { Label = Loc["MakineAlarm"], Color = "#e74c3c", DurationTimeSpan = TimeSpan.FromSeconds(netMachineSec) });
         pieChartSegments.Add(new PieChartSegment { Label = Loc["OperatorDuraklama"], Color = "#f39c12", DurationTimeSpan = TimeSpan.FromSeconds(netOperatorSec) });
@@ -383,17 +368,15 @@ else
     {
         if (alarms == null || !alarms.Any()) return 0;
 
-        // Interval Merging + Batch Clamping (Batch dışına taşan kısımları kırpıyoruz)
         var intervals = alarms
             .Select(a =>
             {
                 DateTime aEnd = a.AlarmTime.Add(a.Duration);
-                // Alarmın gerçekte batch içinde kalan kısmını al
                 DateTime start = a.AlarmTime < bStart ? bStart : a.AlarmTime;
                 DateTime end = aEnd > bEnd ? bEnd : aEnd;
                 return new { start, end };
             })
-            .Where(i => i.start < i.end) // Sadece batch sınırları içinde kalan alarmlar
+            .Where(i => i.start < i.end)
             .OrderBy(i => i.start)
             .ToList();
 
@@ -420,9 +403,17 @@ else
         return totalSec;
     }
 
-    // --- TREND GRAFİĞİ EKSEN SABİTLEME ---
-    
+    // 🚨 DÜZELTME 2: Kurutma Makinesi tanıma kuralı (Database Cache Esaslı)
+    private bool IsDryerMachine()
+    {
+        if (ScadaDataService.MachineDetailsCache.TryGetValue(MachineId, out var dbMachine))
+        {
+            return dbMachine.MachineType == "Kurutma Makinesi";
+        }
+        return false;
+    }
 
+    // 🚨 DÜZELTME 3: Geçmiş trend verileri çekilip deserialize edilirken kurutma bölme kuralı uygulandı
     private async Task GenerateTrendReport()
     {
         if (detailData == null) return;
@@ -431,7 +422,17 @@ else
         if (rawData != null)
         {
             var json = JsonSerializer.Serialize(rawData);
-            trendDataPoints = JsonSerializer.Deserialize<List<TrendProcessDataPoint>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var deserialized = JsonSerializer.Deserialize<List<TrendProcessDataPoint>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            bool isDry = IsDryerMachine();
+            trendDataPoints = deserialized?.Select(d => new TrendProcessDataPoint
+            {
+                Timestamp = d.Timestamp,
+                Temperature = isDry ? d.Temperature / 100.0m : d.Temperature / 10.0m, // 100 vs 10 ayrımı sağlandı
+                WaterLevel = d.WaterLevel,
+                Rpm = d.Rpm
+            }).ToList();
+
             shouldRenderTrendChart = true;
         }
     }
@@ -441,8 +442,8 @@ else
         if (TimeSpan.TryParse(step.WorkingTime, out TimeSpan workingTime) && step.TheoreticalDurationSeconds > 0)
         {
             double diff = workingTime.TotalSeconds - step.TheoreticalDurationSeconds;
-            if (diff > 60) return "background-color: rgba(231, 76, 60, 0.05); color: #c0392b;"; // Gecikme
-            if (diff < -60) return "background-color: rgba(46, 204, 113, 0.05); color: #27ae60;"; // Hızlı
+            if (diff > 60) return "background-color: rgba(231, 76, 60, 0.05); color: #c0392b;";
+            if (diff < -60) return "background-color: rgba(46, 204, 113, 0.05); color: #27ae60;";
         }
         return "";
     }

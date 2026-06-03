@@ -119,7 +119,15 @@
                     <MudText Typo="Typo.caption">@Loc["Adim"]</MudText>
                     <MudTooltip Text="@($"{MachineStatus.AktifAdimNo} - {MachineStatus.AktifAdimAdi}")">
                         <MudText Typo="Typo.body2" Class="ml-auto text-truncate" Style="max-width: 90px;">
-                            <b>@MachineStatus.AktifAdimNo</b> - @MachineStatus.AktifAdimAdi
+                            @if (MachineStatus.manuel_status)
+                            {
+                                <b>Manuel</b>
+                            }
+                            else
+                            {
+                                <b>@MachineStatus.AktifAdimNo</b> 
+                                @("- " + MachineStatus.AktifAdimAdi)
+                            }
                         </MudText>
                     </MudTooltip>
                 </MudStack>
@@ -145,26 +153,23 @@
     [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
     [Parameter] public EventCallback<int> OnInfoClick { get; set; }
 
-    // --- 8. ADIM (GEREKSİZ RENDER ENGELLEYİCİ) ---
     private string _lastRenderedStateHash = "";
 
     protected override bool ShouldRender()
     {
         if (MachineStatus == null) return false;
 
-        // Kartın görünümünü değiştiren "TÜM" metinleri ve durumları birleştiriyoruz
-        string currentStateHash = $"{MachineStatus.ConnectionState}_{MachineStatus.HasActiveAlarm}_{MachineStatus.ActiveAlarmNumber}_{MachineStatus.IsPaused}_{MachineStatus.IsInRecipeMode}_{MachineStatus.ProsesYuzdesi}_{MachineStatus.RecipeName}_{MachineStatus.BatchNumarasi}_{MachineStatus.SiparisNumarasi}_{MachineStatus.MusteriNumarasi}_{MachineStatus.AktifAdimNo}_{MachineStatus.AktifAdimAdi}_{MachineStatus.DisplayOrder}";
+        // 🚨 DÜZELTME 1: manuel_status hash kontrolüne eklenerek arayüz tetiklemesi garantiye alındı
+        string currentStateHash = $"{MachineStatus.ConnectionState}_{MachineStatus.HasActiveAlarm}_{MachineStatus.ActiveAlarmNumber}_{MachineStatus.IsPaused}_{MachineStatus.IsInRecipeMode}_{MachineStatus.ProsesYuzdesi}_{MachineStatus.RecipeName}_{MachineStatus.BatchNumarasi}_{MachineStatus.SiparisNumarasi}_{MachineStatus.MusteriNumarasi}_{MachineStatus.AktifAdimNo}_{MachineStatus.AktifAdimAdi}_{MachineStatus.DisplayOrder}_{MachineStatus.manuel_status}";
 
-        // Veriler bir önceki render ile BİREBİR AYNIYSA kartı yeniden çizmeyi reddediyoruz.
         if (_lastRenderedStateHash != currentStateHash)
         {
             _lastRenderedStateHash = currentStateHash;
-            return true; // Ekrana yansıyacak bir değişiklik var, ÇİZ!
+            return true;
         }
 
-        return false; // Hiçbir değişiklik yok, eski görüntüyü tut (MUAZZAM CPU TASARRUFU)
+        return false;
     }
-    // ----------------------------------------------
 
     private int GetDisplayOrder()
     {
@@ -183,7 +188,9 @@
     {
         if (string.IsNullOrEmpty(MachineStatus.MakineTipi)) return false;
         var type = MachineStatus.MakineTipi.Trim().ToLower();
-        return type.Contains("Kurutma Makinesi");
+
+        // 🚨 DÜZELTME 2: .ToLower() sonrası büyük harfli arama bug'ı temizlendi ("Kurutma Makinesi" -> "kurutma makinesi")
+        return type.Contains("kurutma makinesi");
     }
 
     private Color GetConnectionColor()
@@ -201,7 +208,7 @@
         return MachineStatus.ConnectionState switch
         {
             ConnectionStatus.Connected => Loc["Bagli"],
-            ConnectionStatus.Connecting => Loc["Baglaniyor"],
+            ConnectionStatus.Connecting => Loc["BaglantiKyuyor"],
             _ => Loc["BaglantiYok"]
         };
     }
@@ -211,6 +218,10 @@
         if (MachineStatus.ConnectionState != ConnectionStatus.Connected) return Loc["BaglantiKoptu"];
         if (MachineStatus.HasActiveAlarm) return $"{Loc["Alarm"]}: {MachineStatus.ActiveAlarmNumber}";
         if (MachineStatus.IsPaused) return Loc["Durakladi"];
+
+        // 🚨 DÜZELTME 3: Manuel çalışma metni eklendi
+        if (MachineStatus.manuel_status) return "Working - Manuel";
+
         if (MachineStatus.IsInRecipeMode) return $"{Loc["Calisiyor"]} - {MachineStatus.AktifAdimAdi}";
         return Loc["Bosta"];
     }
@@ -220,7 +231,10 @@
         if (MachineStatus.ConnectionState != ConnectionStatus.Connected) return Color.Dark;
         if (MachineStatus.HasActiveAlarm) return Color.Error;
         if (MachineStatus.IsPaused) return Color.Warning;
-        if (MachineStatus.IsInRecipeMode) return Color.Success;
+
+        // 🚨 DÜZELTME 4: Manuel çalışma durumunda renk Success (Yeşil) olarak set edildi
+        if (MachineStatus.manuel_status || MachineStatus.IsInRecipeMode) return Color.Success;
+
         return Color.Info;
     }
 
@@ -229,7 +243,10 @@
         if (MachineStatus.ConnectionState != ConnectionStatus.Connected) return Icons.Material.Filled.WifiOff;
         if (MachineStatus.HasActiveAlarm) return Icons.Material.Filled.NotificationImportant;
         if (MachineStatus.IsPaused) return Icons.Material.Filled.PauseCircle;
-        if (MachineStatus.IsInRecipeMode) return Icons.Material.Filled.PlayCircle;
+
+        // 🚨 DÜZELTME 5: Manuel çalışma ikonu eklendi
+        if (MachineStatus.manuel_status || MachineStatus.IsInRecipeMode) return Icons.Material.Filled.PlayCircle;
+
         return Icons.Material.Filled.StopCircle;
     }
 

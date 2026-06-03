@@ -1151,7 +1151,7 @@ namespace TekstilScada.Services
         {
             if (_alarmDefinitionsCache.TryGetValue(alarmId, out var closingAlarmDef))
             {
-                // OPTİMİZASYON
+                // Mevcut standart alarm loglama işleminiz (Eski kodunuz korunuyor)
                 var aDefId = closingAlarmDef.Id;
                 _dbOperationsChannel.Writer.TryWrite((sp) =>
                 {
@@ -1159,6 +1159,60 @@ namespace TekstilScada.Services
                     repo.WriteAlarmHistoryEvent(machineId, aDefId, "INACTIVE");
                     return Task.CompletedTask;
                 });
+
+                // --- MÜŞTERİNİN ÖZEL OTOMATİK MOD ALARM ANALİZ LOGLAMASI ---
+                // Makine verisi canlı RAM önbelleğinde var mı ve Otomatik modda mı (IsInRecipeMode)?
+                if (MachineDataCache.TryGetValue(machineId, out var currentStatus) && currentStatus.IsInRecipeMode)
+                {
+                    // Alarmın başlangıç saatini takipçiden (Tracker) güvenle alıyoruz
+                    if (_activeAlarmsTracker.TryGetValue(machineId, out var activeAlarms) && activeAlarms.TryGetValue(alarmId, out DateTime startTime))
+                    {
+                        DateTime endTime = DateTime.Now;
+                        // Süreyi dakika cinsinden hesaplıyoruz (En az 1 dakika olacak şekilde yukarı yuvarlar)
+                        int durationMins = (int)Math.Max(1, Math.Round((endTime - startTime).TotalMinutes));
+
+                        // Makinenin IP adresi vb. sabit ayarlarını çekiyoruz
+                        _activeMachinesConfig.TryGetValue(machineId, out var machineConfig);
+
+                        // --- GÜNCELLEME: Windows Forms uygulamasında o an giriş yapmış olan SCADA kullanıcısını alıyoruz ---
+                        // Eğer kimse giriş yapmadıysa veritabanına boş string ("") basar.
+                        string currentScadaUser = CurrentUser.IsLoggedIn && CurrentUser.User != null ? CurrentUser.User.FullName : "";
+
+                        // İşlemi ana konfigürasyondaki DB yazma kuyruğuna güvenle asenkron olarak fırlatıyoruz
+                        _dbOperationsChannel.Writer.TryWrite(async (sp) =>
+                        {
+                            using var conn = new MySql.Data.MySqlClient.MySqlConnection(AppConfig.ConnectionString);
+                            await conn.OpenAsync();
+
+                            string insertSql = @"
+                                INSERT INTO laundry_machine_reports 
+                                (Date, Machine_ID, Machine_IP, `Machine Name`, Machine_Type, Start_time, End_Time, Duration_mins, Type, `Reason Type`, Reason, Recipe_id, Factory_Order, telematric_user, machine_operator_id, machine_operator_name)
+                                VALUES 
+                                (@Date, @Machine_ID, @Machine_IP, @Machine_Name, @Machine_Type, @Start_time, @End_Time, @Duration_mins, @Type, @Reason_Type, @Reason, @Recipe_id, @Factory_Order, @telematric_user, @machine_operator_id, @machine_operator_name);";
+
+                            using var cmd = new MySql.Data.MySqlClient.MySqlCommand(insertSql, conn);
+                            cmd.Parameters.AddWithValue("@Date", startTime.Date);
+                            cmd.Parameters.AddWithValue("@Machine_ID", machineId.ToString());
+                            cmd.Parameters.AddWithValue("@Machine_IP", machineConfig?.IpAddress ?? "0.0.0.0");
+                            cmd.Parameters.AddWithValue("@Machine_Name", machineConfig?.MachineName ?? machineName);
+                            cmd.Parameters.AddWithValue("@Machine_Type", machineConfig?.MachineSubType ?? "");
+                            cmd.Parameters.AddWithValue("@Start_time", startTime.ToString("HH:mm:ss"));
+                            cmd.Parameters.AddWithValue("@End_Time", endTime.ToString("HH:mm:ss"));
+                            cmd.Parameters.AddWithValue("@Duration_mins", durationMins);
+                            cmd.Parameters.AddWithValue("@Type", "Unplanned"); // Alarmlar doğası gereği planlanmamıştır
+                            cmd.Parameters.AddWithValue("@Reason_Type", "Alarm");
+                            cmd.Parameters.AddWithValue("@Reason", closingAlarmDef.AlarmText);
+                            cmd.Parameters.AddWithValue("@Recipe_id", currentStatus.RecipeName); // İhtiyaca göre reçete numarası atanabilir
+                            cmd.Parameters.AddWithValue("@Factory_Order", currentStatus.BatchNumarasi ?? "");
+                            cmd.Parameters.AddWithValue("@telematric_user", currentScadaUser); // Sabit isim yerine dinamik kullanıcı atandı
+                            cmd.Parameters.AddWithValue("@machine_operator_id", currentStatus.OperatorIsmi ?? "Empty");
+                            cmd.Parameters.AddWithValue("@machine_operator_name", currentStatus.OperatorIsmi ?? "Empty");
+
+                            await cmd.ExecuteNonQueryAsync();
+                        });
+                    }
+                }
+                // -------------------------------------------------------------------------------
 
                 LiveEventAggregator.Instance.Publish(new LiveEvent
                 {

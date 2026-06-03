@@ -190,27 +190,21 @@
                 break;
                 
             case "verimlilik":
-                <!-- 1. FİLTRE PANELİ -->
                 <MudCard Class="mb-4" Elevation="3" Style="background-color: #ffffff;">
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
-                            <!-- BAŞLANGIÇ TARİH VE SAAT -->
                             <MudItem xs="12" sm="6" md="2">
                                 <MudDatePicker Label="@Loc["BaslangicZamani"]" @bind-Date="_effStartDate" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                             </MudItem>
                             <MudItem xs="12" sm="6" md="1">
                                 <MudTimePicker Label="@Loc["SaatLabel"]" @bind-Time="_effStartTime" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                             </MudItem>
-
-                            <!-- BİTİŞ TARİH VE SAAT -->
                             <MudItem xs="12" sm="6" md="2">
                                 <MudDatePicker Label="@Loc["BitisZamani2"]" @bind-Date="_effEndDate" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                             </MudItem>
                             <MudItem xs="12" sm="6" md="1">
                                 <MudTimePicker Label="@Loc["SaatLabel"]" @bind-Time="_effEndTime" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense" />
                             </MudItem>
-
-                            <!-- MAKİNE VE TİP SEÇİMİ -->
                             <MudItem xs="12" sm="6" md="2">
                                 <MudSelect T="int" Label="@Loc["MakineLabel"]" @bind-Value="selectedEfficiencyMachineId" Variant="Variant.Outlined" Margin="MudBlazor.Margin.Dense">
                                     <MudSelectItem Value="0">@Loc["TumMakineler"]</MudSelectItem>
@@ -235,8 +229,6 @@
                                     }
                                 </MudSelect>
                             </MudItem>
-
-                            <!-- BUTON -->
                             <MudItem xs="12" md="2" Class="d-flex justify-end">
                                 <MudButton Variant="Variant.Filled" Style="background-color: #2563EB; color: white; width: 100%;" StartIcon="@Icons.Material.Filled.Search" OnClick="GenerateEfficiencyReport" Disabled="@isLoading">
                                     @(isLoading ? Loc["Hesaplaniyor"].Value : Loc["RaporlaButon"].Value)
@@ -254,7 +246,6 @@
                 {
                     var filteredData = GetFilteredEfficiencyData();
 
-                    <!-- 2. KPI KARTLARI -->
                     <MudGrid Class="mb-4" Spacing="3">
                         <MudItem xs="12" sm="6" md="3">
                             <MudPaper Class="pa-4 d-flex flex-column" Elevation="1" Style="border-left: 6px solid #10B981; height: 100%;">
@@ -282,7 +273,6 @@
                         </MudItem>
                     </MudGrid>
 
-                    <!-- 3. GRAFİKLER BÖLÜMÜ -->
                     <MudGrid Class="mb-4" Spacing="3">
                         <MudItem xs="12" md="8">
                             <MudPaper Class="pa-4" Elevation="2" Style="height: 380px;">
@@ -298,7 +288,6 @@
                         </MudItem>
                     </MudGrid>
 
-                    <!-- 4. DATAGRID BÖLÜMÜ -->
                     <MudDataGrid T="EfficiencyLog" Items="@filteredData" Dense="true" Striped="true" Hover="true" Bordered="false" RowsPerPage="10" Style="background-color: white;">
                         <ToolBarContent>
                             <MudText Typo="Typo.h6">@Loc["VerimlilikDetaylariBaslik"]</MudText>
@@ -332,7 +321,6 @@
                         <PagerContent><MudDataGridPager T="EfficiencyLog" /></PagerContent>
                     </MudDataGrid>
 
-                    <!-- 5. ÖZET BARI -->
                     <MudPaper Class="pa-3 mt-4 d-flex align-center" Elevation="2" Style="background-color: #0f172a; color: white; height: 42px;">
                         <MudText Typo="Typo.body1" Style="font-weight: 600;">
                             @Loc["ToplamKayit"]: @filteredData.Count() &nbsp;&nbsp;|&nbsp;&nbsp;
@@ -348,7 +336,6 @@
                 break;
 
             case "trend":
-                <!-- Trend Kodu Aynen Korundu -->
                 <MudCard Class="mb-4" Elevation="3">
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
@@ -434,7 +421,6 @@
                 break;
 
             case "manuelTuketim":
-                <!-- Manuel Tuketim Kodu Aynen Korundu -->
                 <MudCard Class="mb-4" Elevation="3">
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
@@ -493,7 +479,6 @@
                 break;
 
             case "genelTuketim":
-                <!-- Genel Tuketim Kodu Aynen Korundu -->
                 <MudCard Class="mb-4" Elevation="3">
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
@@ -559,7 +544,6 @@
                 break;
 
             case "eylemKayitlari":
-                <!-- Eylem Kayitlari Kodu Aynen Korundu -->
                 <MudCard Class="mb-4" Elevation="3">
                     <MudCardContent>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
@@ -683,7 +667,6 @@
         public decimal AvgLevel { get; set; }
     }
 
-    // --- Verimlilik Değişkenleri ---
     private DateTime? _effStartDate = DateTime.Now.Date.AddDays(-1);
     private TimeSpan? _effStartTime = new TimeSpan(0, 0, 0);
     private DateTime? _effEndDate = DateTime.Now.Date;
@@ -695,7 +678,6 @@
     private List<string>? machineSubTypes = new List<string>();
     private List<EfficiencyLog>? efficiencyReports;
 
-    // KPI Değişkenleri
     private double totalAutoTime = 0;
     private double totalWaitTime = 0;
     private double totalManualTime = 0;
@@ -724,10 +706,7 @@
             await LoadSavedFilters();
             await InvokeAsync(StateHasChanged);
         }
-        catch (Exception ex)
-        {
-            // Log error
-        }
+        catch (Exception ex) { }
     }
 
     private bool _canLoadAlarmData = false;
@@ -895,7 +874,8 @@
             var effectiveFilters = new ReportFilters
             {
                 StartTime = filters.StartTime.Date,
-                EndTime = GetEndOfDay(trendFilters.EndTime),
+                // 🚨 KESİN DÜZELTME 1: trendFilters copy-paste hatası filters olarak düzeltildi
+                EndTime = GetEndOfDay(filters.EndTime), 
                 MachineId = selectedMachineId == 0 ? (int?)null : selectedMachineId,
                 BatchNo = filters.BatchNo,
                 RecipeName = filters.RecipeName,
@@ -923,6 +903,16 @@
         if (_manualDateRange.End.HasValue) manualFilters.EndTime = _manualDateRange.End.Value;
         if (_generalDateRange.Start.HasValue) generalConsumptionFilters.StartTime = _generalDateRange.Start.Value;
         if (_generalDateRange.End.HasValue) generalConsumptionFilters.EndTime = _generalDateRange.End.Value;
+    }
+
+    // 🚨 KESİN DÜZELTME 2: Kurutma Makinesi tanıma kuralı eklendi
+    private bool IsDryerMachine(int machineId)
+    {
+        if (ScadaDataService.MachineDetailsCache.TryGetValue(machineId, out var dbMachine))
+        {
+            return dbMachine.MachineType == "Kurutma Makinesi";
+        }
+        return false;
     }
 
     private async Task GenerateTrendReport()
@@ -956,7 +946,16 @@
 
                     if (fullData == null || !fullData.Any()) return null;
 
-                    var temps = fullData.Select(x => x.Temperature / 10.0m).ToList();
+                    // 🚨 KESİN DÜZELTME 3: Kurutma ve Yıkama ayrımına göre dinamik bölme kuralı entegre edildi
+                    bool isDry = IsDryerMachine(selectedTrendMachineIdInt);
+                    decimal divisor = isDry ? 100.0m : 10.0m;
+
+                    foreach (var point in fullData)
+                    {
+                        point.Temperature = point.Temperature / divisor;
+                    }
+
+                    var temps = fullData.Select(x => x.Temperature).ToList();
                     var rpms = fullData.Select(x => x.Rpm).ToList();
                     var levels = fullData.Select(x => x.WaterLevel).ToList();
 
@@ -1003,11 +1002,10 @@
                 }
             }
         }
-        catch (Exception ex) { /* Loglama yapılabilir */ }
+        catch (Exception ex) { }
         finally { isLoading = false; StateHasChanged(); }
     }
 
-   
     private void ChangeTab(string tabName)
     {
         activeTab = tabName;
@@ -1055,13 +1053,8 @@
             var results = await Task.WhenAll(fetchTasks);
             manualConsumptionReports = results.Where(r => r != null).ToList();
         }
-        catch (Exception ex)
-        {
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        catch (Exception ex) { }
+        finally { isLoading = false; }
     }
 
     private async Task GenerateGeneralDetailedConsumptionReport()
@@ -1106,7 +1099,6 @@
         {
             StartTime = alarmFilters.StartTime.Date,
             EndTime = GetEndOfDay(alarmFilters.EndTime),
-          
             MachineId = selectedAlarmMachineId == 0 ? (int?)null : selectedAlarmMachineId
         };
 
@@ -1140,7 +1132,6 @@
             Makine = "Total Selected",
             RaporAraligi = manualConsumptionReports.First().RaporAraligi,
             ToplamManuelSure = "-",
-
             ToplamSuTuketimi_Litre = manualConsumptionReports.Sum(x => x?.ToplamSuTuketimi_Litre ?? 0),
             ToplamElektrikTuketimi_kW = manualConsumptionReports.Sum(x => x?.ToplamElektrikTuketimi_kW ?? 0),
             ToplamBuharTuketimi_kg = manualConsumptionReports.Sum(x => x?.ToplamBuharTuketimi_kg ?? 0)
