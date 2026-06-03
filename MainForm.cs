@@ -17,6 +17,7 @@ using Telemetry.UI;
 using Telemetry.UI.Controls;
 using Telemetry.UI.Views;
 using Telemetry.Models;
+
 namespace Telemetry
 {
     public partial class MainForm : Form
