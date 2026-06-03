@@ -23,7 +23,6 @@ namespace Telemetry.UI.Views
             this.pnlMain = new System.Windows.Forms.Panel();
             this.tlpMainLayout = new System.Windows.Forms.TableLayoutPanel();
             this.flpMachineGroups = new System.Windows.Forms.FlowLayoutPanel();
-            this.flpUtilityStrip = new System.Windows.Forms.FlowLayoutPanel();
             this.pnlSidebar = new System.Windows.Forms.Panel();
             this.tlpSidebarLayout = new System.Windows.Forms.TableLayoutPanel();
             this.gbTopAlarms = new System.Windows.Forms.GroupBox();
@@ -36,6 +35,7 @@ namespace Telemetry.UI.Views
             this.formsPlotHourly = new ScottPlot.WinForms.FormsPlot();
             this.gbHourlyOee = new System.Windows.Forms.GroupBox();
             this.formsPlotHourlyOee = new ScottPlot.WinForms.FormsPlot();
+            this.flpUtilityStrip = new System.Windows.Forms.FlowLayoutPanel();
             this.pnlHeader.SuspendLayout();
             this.pnlMain.SuspendLayout();
             this.tlpMainLayout.SuspendLayout();
@@ -74,26 +74,13 @@ namespace Telemetry.UI.Views
             // 
             this.pnlMain.BackColor = System.Drawing.Color.Transparent;
             this.pnlMain.Controls.Add(this.tlpMainLayout);
-            this.pnlMain.Controls.Add(this.flpUtilityStrip); // Z-order yerleşim sırası korundu
+            this.pnlMain.Controls.Add(this.flpUtilityStrip);
             this.pnlMain.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlMain.Location = new System.Drawing.Point(9, 91);
             this.pnlMain.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.pnlMain.Name = "pnlMain";
             this.pnlMain.Size = new System.Drawing.Size(1032, 501);
             this.pnlMain.TabIndex = 2;
-            // 
-            // flpUtilityStrip
-            // 
-            this.flpUtilityStrip.AutoScroll = true;
-            this.flpUtilityStrip.BackColor = System.Drawing.Color.Transparent;
-            this.flpUtilityStrip.Dock = System.Windows.Forms.DockStyle.Top;
-            this.flpUtilityStrip.FlowDirection = System.Windows.Forms.FlowDirection.LeftToRight;
-            this.flpUtilityStrip.Location = new System.Drawing.Point(0, 0);
-            this.flpUtilityStrip.Name = "flpUtilityStrip";
-            this.flpUtilityStrip.Padding = new System.Windows.Forms.Padding(5);
-            this.flpUtilityStrip.Size = new System.Drawing.Size(1032, 135);
-            this.flpUtilityStrip.TabIndex = 3;
-            this.flpUtilityStrip.WrapContents = false;
             // 
             // tlpMainLayout
             // 
@@ -166,6 +153,7 @@ namespace Telemetry.UI.Views
             this.gbTopAlarms.Controls.Add(this.formsPlotTopAlarms);
             this.gbTopAlarms.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gbTopAlarms.Font = new System.Drawing.Font("Segoe UI Semibold", 9.5F, System.Drawing.FontStyle.Bold);
+            this.gbTopAlarms.ForeColor = System.Drawing.Color.WhiteSmoke; // Karanlık Modda sınır ve başlık parlaklığı sağlandı
             this.gbTopAlarms.Location = new System.Drawing.Point(3, 218);
             this.gbTopAlarms.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.gbTopAlarms.Name = "gbTopAlarms";
@@ -191,6 +179,7 @@ namespace Telemetry.UI.Views
             this.gbHourlyConsumptionSteam.Controls.Add(this.formsPlotHourlySteam);
             this.gbHourlyConsumptionSteam.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gbHourlyConsumptionSteam.Font = new System.Drawing.Font("Segoe UI Semibold", 9.5F, System.Drawing.FontStyle.Bold);
+            this.gbHourlyConsumptionSteam.ForeColor = System.Drawing.Color.WhiteSmoke; // Başlık görünürlüğü garanti edildi
             this.gbHourlyConsumptionSteam.Location = new System.Drawing.Point(3, 146);
             this.gbHourlyConsumptionSteam.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.gbHourlyConsumptionSteam.Name = "gbHourlyConsumptionSteam";
@@ -216,6 +205,7 @@ namespace Telemetry.UI.Views
             this.gbHourlyConsumptionWater.Controls.Add(this.formsPlotHourlyWater);
             this.gbHourlyConsumptionWater.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gbHourlyConsumptionWater.Font = new System.Drawing.Font("Segoe UI Semibold", 9.5F, System.Drawing.FontStyle.Bold);
+            this.gbHourlyConsumptionWater.ForeColor = System.Drawing.Color.WhiteSmoke; // Başlık görünürlüğü garanti edildi
             this.gbHourlyConsumptionWater.Location = new System.Drawing.Point(3, 74);
             this.gbHourlyConsumptionWater.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.gbHourlyConsumptionWater.Name = "gbHourlyConsumptionWater";
@@ -241,6 +231,7 @@ namespace Telemetry.UI.Views
             this.gbHourlyConsumption.Controls.Add(this.formsPlotHourly);
             this.gbHourlyConsumption.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gbHourlyConsumption.Font = new System.Drawing.Font("Segoe UI Semibold", 9.5F, System.Drawing.FontStyle.Bold);
+            this.gbHourlyConsumption.ForeColor = System.Drawing.Color.WhiteSmoke; // Başlık görünürlüğü garanti edildi
             this.gbHourlyConsumption.Location = new System.Drawing.Point(3, 2);
             this.gbHourlyConsumption.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.gbHourlyConsumption.Name = "gbHourlyConsumption";
@@ -266,6 +257,7 @@ namespace Telemetry.UI.Views
             this.gbHourlyOee.Controls.Add(this.formsPlotHourlyOee);
             this.gbHourlyOee.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gbHourlyOee.Font = new System.Drawing.Font("Segoe UI Semibold", 9.5F, System.Drawing.FontStyle.Bold);
+            this.gbHourlyOee.ForeColor = System.Drawing.Color.WhiteSmoke;
             this.gbHourlyOee.Location = new System.Drawing.Point(3, 362);
             this.gbHourlyOee.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.gbHourlyOee.Name = "gbHourlyOee";
@@ -287,11 +279,24 @@ namespace Telemetry.UI.Views
             this.formsPlotHourlyOee.TabIndex = 0;
             this.formsPlotHourlyOee.Visible = false;
             // 
+            // flpUtilityStrip
+            // 
+            this.flpUtilityStrip.AutoScroll = true;
+            this.flpUtilityStrip.BackColor = System.Drawing.Color.Transparent;
+            this.flpUtilityStrip.Dock = System.Windows.Forms.DockStyle.Top;
+            this.flpUtilityStrip.FlowDirection = System.Windows.Forms.FlowDirection.LeftToRight;
+            this.flpUtilityStrip.Location = new System.Drawing.Point(0, 0);
+            this.flpUtilityStrip.Name = "flpUtilityStrip";
+            this.flpUtilityStrip.Padding = new System.Windows.Forms.Padding(5);
+            this.flpUtilityStrip.Size = new System.Drawing.Size(1032, 135);
+            this.flpUtilityStrip.TabIndex = 3;
+            this.flpUtilityStrip.WrapContents = false;
+            // 
             // GenelBakis_Control
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.Color.Transparent; // Panel şeffaflığı ile tam uyum
+            this.BackColor = System.Drawing.Color.Transparent; // Ana konteyner tam şeffaflık
             this.Controls.Add(this.pnlMain);
             this.Controls.Add(this.pnlHeader);
             this.Margin = new System.Windows.Forms.Padding(9, 8, 9, 8);

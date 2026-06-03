@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.DependencyInjection; // Kapsam ve DI yönetimi için
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Drawing;
 using System.Linq;
@@ -16,12 +16,11 @@ using Telemetry.Services;
 using Telemetry.UI;
 using Telemetry.UI.Controls;
 using Telemetry.UI.Views;
-using MaterialSkin;          // YENÝ EKLENDÝ: MaterialSkin ana kütüphanesi
-using MaterialSkin.Controls; // YENÝ EKLENDÝ: MaterialForm ve bileþenler için
+using MaterialSkin;
+using MaterialSkin.Controls;
 
 namespace Telemetry
 {
-    // Form yerine MaterialForm'dan türetiyoruz
     public partial class MainForm : MaterialForm
     {
         // --- REPOSITORY VE SERVÝSLER ---
@@ -38,15 +37,12 @@ namespace Telemetry
         private readonly EfficiencyRepository _efficiencyRepository;
         private AutoBackupService _backupService;
 
-        // SignalR Gateway için gerekli ek Repository'ler
         private readonly RecipeConfigurationRepository _recipeConfigRepository;
         private readonly PlcOperatorRepository _plcOperatorRepository;
 
-        // --- YENÝ EKLENDÝ: UTILITY (SENSÖR) REPOSITORY & SERVICE ---
         private readonly UtilityRepository _utilityRepository;
         private readonly UtilityPollingService _utilityPollingService;
 
-        // --- GATEWAY SERVÝSÝ (YENÝ) ---
         private SignalRGatewayService _gatewayService;
 
         // --- ARAYÜZ KONTROLLERÝ (VIEWS) ---
@@ -57,14 +53,12 @@ namespace Telemetry
         private readonly Raporlar_Control _raporlarView;
         private readonly LiveEventPopup_Form _liveEventPopup;
         private readonly GenelBakis_Control _genelBakisView;
+        private readonly UserSettings_Control _user_setting;
 
         private VncViewer_Form _activeVncViewerForm = null;
-        private readonly UserSettings_Control _user_setting;
         private System.Windows.Forms.Timer _trialUsageTimer;
-        // OPTÝMÝZASYON: UI darboðazýný (Kilitlenmeyi) önleyecek Alarm Timer'ý
         private System.Windows.Forms.Timer _alarmUpdateTimer;
 
-        // YENÝ: Makine ID'sine göre çalýþan sunucularý tutar
         private Dictionary<int, VncProxyServer> _activeVncServers = new Dictionary<int, VncProxyServer>();
         string apiKey = LicenseManager.GenerateHardwareKey();
 
@@ -73,30 +67,39 @@ namespace Telemetry
             InitializeComponent();
 
             // =========================================================================
-            // MATERIALSKIN TEMALANDIRMA MOTORU BAÞLANGICI
-            // SCADA sistemlerine uygun göz yormayan Dark (Karanlýk) tema konfigürasyonu
+            // MATERIALSKIN TEMALANDIRMA MOTORU
             // =========================================================================
             var materialSkinManager = MaterialSkinManager.Instance;
             materialSkinManager.AddFormToManage(this);
-            materialSkinManager.Theme = MaterialSkinManager.Themes.DARK; // Karanlýk Tema
+            materialSkinManager.Theme = MaterialSkinManager.Themes.DARK;
             materialSkinManager.ColorScheme = new ColorScheme(
                 Primary.BlueGrey800,   // Ana Renk (Üst Baþlýk Barý)
                 Primary.BlueGrey900,   // Koyu Ana Renk
                 Primary.BlueGrey500,   // Açýk Ana Renk
-                Accent.LightBlue200,   // Vurgu Rengi (Switch/Checkbox öðeleri için)
+                Accent.LightBlue200,   // Vurgu Rengi
                 TextShade.WHITE        // Yazý Rengi
             );
 
-            // Arayüz render hýzýný artýrmak ve kýrpýþmayý önlemek için DoubleBuffering aktif
+            // =========================================================================
+            // ÇÖZÜM 1: RENK KARMAÞASI DÜZELTÝCÝ
+            // MaterialSkin'in boyayamadýðý WinForms parçalarýný manuel olarak Koyu Moda zorlar
+            // =========================================================================
+            menuStrip1.BackColor = Color.FromArgb(55, 71, 79);
+            menuStrip1.ForeColor = Color.White;
+            statusStrip1.BackColor = Color.FromArgb(55, 71, 79);
+            statusStrip1.ForeColor = Color.White;
+            pnlNavigation.BackColor = Color.FromArgb(38, 50, 56); // Yan menü þýk koyu lacivert yapýldý
+
+            // Alt menü öðelerinin yazý renklerini de beyaz yap
+            foreach (ToolStripItem item in menuStrip1.Items)
+            {
+                item.ForeColor = Color.White;
+            }
+
             this.DoubleBuffered = true;
 
-            // =========================================================================
-            // 1. ADIM: WINFORMS ÝÇÝN LOKAL DEPENDENCY INJECTION (DI) KURULUMU
-            // Arka planda çalýþan Thread'lerin (PlcPollingService) MySQL baðlantý havuzunu 
-            // týkamasýný önlemek için Repository'leri Transient (Geçici) olarak kaydediyoruz.
-            // =========================================================================
+            // DI KURULUMU
             var services = new ServiceCollection();
-
             services.AddTransient<MachineRepository>();
             services.AddTransient<RecipeRepository>();
             services.AddTransient<ProcessLogRepository>();
@@ -110,9 +113,6 @@ namespace Telemetry
             var serviceProvider = services.BuildServiceProvider();
             var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
 
-            // =========================================================================
-            // 2. ADIM: NESNELERÝN OLUÞTURULMASI (DI Provider Üzerinden)
-            // =========================================================================
             _machineRepository = serviceProvider.GetRequiredService<MachineRepository>();
             _recipeRepository = serviceProvider.GetRequiredService<RecipeRepository>();
             _processLogRepository = serviceProvider.GetRequiredService<ProcessLogRepository>();
@@ -131,19 +131,11 @@ namespace Telemetry
                 _efficiencyRepository.EnsureDowntimeDefinitionsTableCreated();
             }
             catch { /* Hata yönetimi */ }
-            // --- UTILITY NESNELERÝNÝ OLUÞTURMA ---
+
             try
             {
-                // 1. Repository oluþtur
                 _utilityRepository = new UtilityRepository();
-
-                // 2. Servisi oluþtur (Logger olmadýðý için NullLogger kullanýyoruz)
-                _utilityPollingService = new UtilityPollingService(
-                    _utilityRepository,
-                    new NullLogger<UtilityPollingService>()
-                );
-
-                // 3. Servisi Baþlat (Arka planda okumaya baþlar)
+                _utilityPollingService = new UtilityPollingService(_utilityRepository, new NullLogger<UtilityPollingService>());
                 _utilityPollingService.Start();
             }
             catch (Exception ex)
@@ -151,10 +143,6 @@ namespace Telemetry
                 MessageBox.Show($"Sensör servisi baþlatýlamadý: {ex.Message}");
             }
 
-            // =========================================================================
-            // 3. ADIM: PLC SERVÝSÝ VE FTP SERVÝSÝ
-            // PlcPollingService'e scopeFactory parametresini yolluyoruz
-            // =========================================================================
             _pollingService = new PlcPollingService(
                 _alarmRepository,
                 _processLogRepository,
@@ -165,12 +153,8 @@ namespace Telemetry
                 scopeFactory
             );
 
-            // FTP Servisi
             _ftpTransferService = new FtpTransferService(_pollingService);
 
-            // =========================================================================
-            // 4. ADIM: ARAYÜZ (VIEWS) KONTROLLERÝ VE ABONELÝKLER
-            // =========================================================================
             _prosesIzlemeView = new ProsesÝzleme_Control();
             _prosesKontrolView = new ProsesKontrol_Control();
             _ayarlarView = new Ayarlar_Control();
@@ -180,12 +164,10 @@ namespace Telemetry
             _genelBakisView = new GenelBakis_Control();
             _user_setting = new UserSettings_Control();
 
-            // OPTÝMÝZASYON: UI kilitlenmesini engellemek için Alarm Timer'ý ayarlanýyor
             _alarmUpdateTimer = new System.Windows.Forms.Timer();
-            _alarmUpdateTimer.Interval = 1000; // Saniyede sadece 1 kere çalýþýr
+            _alarmUpdateTimer.Interval = 1000;
             _alarmUpdateTimer.Tick += AlarmUpdateTimer_Tick;
 
-            // Olay Abonelikleri
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
             _ayarlarView.MachineListChanged += OnMachineListChanged;
             _prosesIzlemeView.MachineDetailsRequested += OnMachineDetailsRequested;
@@ -195,7 +177,6 @@ namespace Telemetry
 
         private async void MainForm_Load(object sender, EventArgs e)
         {
-            // === LÝSANS DOÐRULAMA KODU ===
             var (isValid, message, licenseData) = LicenseManager.ValidateLicense();
 
             if (!isValid)
@@ -207,12 +188,11 @@ namespace Telemetry
             if (licenseData.TrialMinutes.HasValue)
             {
                 _trialUsageTimer = new System.Windows.Forms.Timer();
-                _trialUsageTimer.Interval = 60000; // 1 Dakika
+                _trialUsageTimer.Interval = 60000;
                 _trialUsageTimer.Tick += TrialUsageTimer_Tick;
                 _trialUsageTimer.Start();
             }
 
-            // Makine Sayýsý Kontrolü
             var machines = _machineRepository.GetAllMachines();
             if (machines.Count > licenseData.MachineLimit)
             {
@@ -238,7 +218,6 @@ namespace Telemetry
                 }
             }
 
-            // === SÝSTEM BAÞLATMA ===
             ApplyLocalization();
             UpdateUserInfoAndPermissions();
             ReloadSystem(_genelBakisView);
@@ -255,29 +234,16 @@ namespace Telemetry
                 return;
             }
 
-            // Gateway Servisini Baþlat
             try
             {
                 string hubUrl = "https://api.yilmaktelemetry.com/scadaHub";
                 string jwtToken = null;
 
                 _gatewayService = new SignalRGatewayService(
-                    hubUrl,
-                    jwtToken,
-                    _machineRepository,
-                    _efficiencyRepository,
-                    _recipeRepository,
-                    _userRepository,
-                    _costRepository,
-                    _alarmRepository,
-                    _dashboardRepository,
-                    _productionRepository,
-                    _processLogRepository,
-                    _recipeConfigRepository,
-                    _plcOperatorRepository,
-                    _pollingService,
-                    _ftpTransferService,
-                    hardwareKey
+                    hubUrl, jwtToken, _machineRepository, _efficiencyRepository, _recipeRepository,
+                    _userRepository, _costRepository, _alarmRepository, _dashboardRepository,
+                    _productionRepository, _processLogRepository, _recipeConfigRepository,
+                    _plcOperatorRepository, _pollingService, _ftpTransferService, hardwareKey
                 );
 
                 _gatewayService.OnRemoteCommandReceived += CloudSyncService_OnRemoteCommandReceived;
@@ -357,14 +323,8 @@ namespace Telemetry
             _ayarlarView.InitializeControl(_machineRepository, _efficiencyRepository, plcManagers, _pollingService);
 
             _raporlarView.InitializeControl(
-                _machineRepository,
-                _alarmRepository,
-                _productionRepository,
-                _dashboardRepository,
-                _processLogRepository,
-                _recipeRepository,
-                _costRepository,
-                _efficiencyRepository
+                _machineRepository, _alarmRepository, _productionRepository, _dashboardRepository,
+                _processLogRepository, _recipeRepository, _costRepository, _efficiencyRepository
             );
             _genelBakisView.InitializeControl(_pollingService, _machineRepository, _dashboardRepository, _alarmRepository, _processLogRepository, _productionRepository, _utilityRepository, _utilityPollingService);
 
@@ -420,14 +380,26 @@ namespace Telemetry
             ApplyPermissions();
         }
 
-        // SPEED OPTÝMÝZASYON: Görünüm geçiþleri esnasýnda anlýk donmayý engeller
+        // =========================================================================
+        // ÇÖZÜM 2: KÜRESEL ÞEFFAFLIK (TRANSPARENT) BUG ÇÖZÜCÜSÜ
+        // Alt sayfalar geçiþ yaparken siyah arka plan olmasýný KESÝN olarak engeller.
+        // =========================================================================
         private void ShowView(UserControl view)
         {
-            pnlContent.SuspendLayout(); // Form yerleþim hesaplamalarýný durdur
+            pnlContent.SuspendLayout();
             pnlContent.Controls.Clear();
             view.Dock = DockStyle.Fill;
+
+            // Eðer sistem karanlýk moddaysa arka planý zorla Material Koyu Gri yap, deðilse beyaz yap.
+            // Bu sayede þeffaflýk kaynaklý render çuvallamalarý ortadan kalkar.
+            bool isDark = MaterialSkinManager.Instance.Theme == MaterialSkinManager.Themes.DARK;
+            Color safeBackColor = isDark ? Color.FromArgb(51, 51, 51) : Color.White;
+
+            view.BackColor = safeBackColor;
+            pnlContent.BackColor = safeBackColor;
+
             pnlContent.Controls.Add(view);
-            pnlContent.ResumeLayout(true); // Deðiþiklikleri tek bir frame'de ekrana çiz
+            pnlContent.ResumeLayout(true);
         }
 
         #endregion
@@ -538,8 +510,9 @@ namespace Telemetry
                 else
                 {
                     lblStatusLiveEvents.Text = Resources.Livelogsee;
-                    lblStatusLiveEvents.BackColor = SystemColors.Control;
-                    lblStatusLiveEvents.ForeColor = SystemColors.ControlText;
+                    // Durum çubuðu orijinal rengine geri döner
+                    lblStatusLiveEvents.BackColor = Color.FromArgb(55, 71, 79);
+                    lblStatusLiveEvents.ForeColor = Color.White;
                 }
             }
             catch (Exception) { }

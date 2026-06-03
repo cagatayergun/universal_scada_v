@@ -1,13 +1,12 @@
-﻿using System;
+﻿// UI/Controls/DashboardMachineCard_Control.cs
+using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Telemetry.Models;
 using Telemetry.Repositories;
-using System.Threading.Tasks;
-using System.Text.Json;
 using static Telemetry.Repositories.ProcessLogRepository;
 
 namespace Telemetry.UI.Controls
@@ -16,16 +15,11 @@ namespace Telemetry.UI.Controls
     {
         private readonly Machine _machine;
         private readonly RecipeConfigurationRepository _configRepo = new RecipeConfigurationRepository();
-        private List<PointF> _sparklinePoints = new List<PointF>();
 
-        // =========================================================================
-        // MODERNİZASYON: GOOGLE MATERIAL DESIGN SOFT DURUM RENKLERİ
-        // Koyu tema (Dark Mode) zemininde gözü yormayan mat ve pürüzsüz tonlar
-        // =========================================================================
-        private readonly Color _colorAlarm = Color.FromArgb(239, 83, 80);      // Soft Pastel Kırmızı
-        private readonly Color _colorRunning = Color.FromArgb(102, 187, 106);  // Soft Pastel Yeşil
-        private readonly Color _colorIdle = Color.FromArgb(255, 167, 38);       // Soft Pastel Turuncu
-        private readonly Color _colorStopped = Color.FromArgb(144, 164, 174);   // Mat Mavi Gri
+        private readonly Color _colorAlarm = Color.FromArgb(239, 83, 80);
+        private readonly Color _colorRunning = Color.FromArgb(102, 187, 106);
+        private readonly Color _colorIdle = Color.FromArgb(255, 167, 38);
+        private readonly Color _colorStopped = Color.FromArgb(144, 164, 174);
         private int _lastValidProgress = 0;
 
         public DashboardMachineCard_Control(Machine machine)
@@ -34,15 +28,18 @@ namespace Telemetry.UI.Controls
             _machine = machine;
             lblMachineName.Text = _machine.MachineName;
 
-            // SPEED OPTİMİZASYON: Kart üzerindeki anlık RPM ve Sıcaklık değişimlerinde titremeyi (Flickering) sıfırlar
             this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
 
             // =========================================================================
-            // MODERNİZASYON: DARK MODE YAZI RENK UYARLAMALARI
-            // Eski 'Color.Black' atamaları koyu temada görünmez olacağı için açık gri tonlara çekildi.
+            // GÜVENLİK YAMASI: CIRCULAR PROGRESS BAR ÇÖKME ENGELLEYİCİ
+            // Ebeveynin arka plan rengini zorla kopyalayarak şeffaflık (Transparent) krizini çözer
             // =========================================================================
-            Color textLight = Color.FromArgb(240, 240, 240); // Ana metinler için açık beyaz/gri
-            Color textMuted = Color.FromArgb(176, 190, 197); // İkincil başlıklar için soluk gri
+            Color solidBgColor = Color.FromArgb(44, 52, 64);
+            this.materialCard1.BackColor = solidBgColor;
+            this.gaugeRpm.BackColor = solidBgColor;
+
+            Color textLight = Color.FromArgb(240, 240, 240);
+            Color textMuted = Color.FromArgb(176, 190, 197);
 
             lblMachineName.ForeColor = textLight;
             lblRecipeName.ForeColor = textMuted;
@@ -50,13 +47,10 @@ namespace Telemetry.UI.Controls
             lblPercentage.ForeColor = textLight;
             lblhumudity.ForeColor = textMuted;
             label2.ForeColor = textMuted;
-
-            // Kadran (Gauge) metin rengini temaya uyarla
             gaugeRpm.ForeColor = textLight;
 
-            // Değer vurgularını pürüzsüz pastel tonlara taşıyoruz
-            lblTemperature.ForeColor = Color.FromArgb(255, 110, 110); // Pastel Canlı Kırmızı
-            lblHumidity.ForeColor = Color.FromArgb(100, 181, 246);    // Pastel Canlı Mavi
+            lblTemperature.ForeColor = Color.FromArgb(255, 110, 110);
+            lblHumidity.ForeColor = Color.FromArgb(100, 181, 246);
 
             SetRpmGaugeLimitAsync();
         }
@@ -128,7 +122,6 @@ namespace Telemetry.UI.Controls
                 return;
             }
 
-            // SPEED OPTİMİZASYON: Kontroller gizlenip gösterilirken kartın anlık donmasını ve kasılmasını engeller
             this.SuspendLayout();
 
             lblRecipeName.Text = $"Recipe: {status.RecipeName ?? "-"}";
@@ -141,19 +134,17 @@ namespace Telemetry.UI.Controls
             }
             catch (Exception ex) { }
 
-            // --- Kurutma Makinesi Kontrolü ---
             bool isDrying = _machine.MachineType == "Kurutma Makinesi";
             if (!isDrying)
             {
-                lblTemperature.Text = $"{status.AnlikSicaklik / 10.0m}°C";
+                lblTemperature.Text = $"{status.AnlikSicaklik / 10.0m:F1}°C";
             }
             else
             {
                 lblTemperature.Text = $"{status.AnlikSicaklik / 100.0m:F1}°C";
             }
 
-            // Kurutma makinesi ise barı gizle, nemi göster
-            if (progressBar.Visible == isDrying) // Sadece durum değiştiyse görünürlüğü tetikle (Gereksiz render'ı önler)
+            if (progressBar.Visible == isDrying)
             {
                 progressBar.Visible = !isDrying;
                 lblPercentage.Visible = !isDrying;
@@ -206,7 +197,6 @@ namespace Telemetry.UI.Controls
                 }
             }
 
-            // Düzenleme kilidini kaldır ve değişiklikleri tek frame'de ekrana çiz
             this.ResumeLayout(true);
         }
     }
