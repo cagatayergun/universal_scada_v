@@ -1,7 +1,7 @@
 ﻿using MySql.Data.MySqlClient;
 using Telemetry.Core;
 using Telemetry.Models;
-using TelemetryScada.Models;
+using Telemetry.Models;
 namespace Telemetry.Repositories
 {
     public class OrganizationRepository

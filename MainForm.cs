@@ -6,15 +6,17 @@ using System.Linq;
 using System.Windows.Forms;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Telemetry.Core;
-using Telemetry.forms.Localization;
-using Telemetry.Models;
+using Telemetry;
+using Telemetry.Localization1;
 using Telemetry.Properties;
+using Telemetry.Core;
+using Telemetry.Models;
 using Telemetry.Repositories;
 using Telemetry.Services;
 using Telemetry.UI;
 using Telemetry.UI.Controls;
 using Telemetry.UI.Views;
+using Telemetry.Models;
 
 namespace Telemetry
 {
@@ -382,13 +384,13 @@ namespace Telemetry
         }
 
         private void ApplyLocalization()
-        {
-            this.Text = Telemetry.Localization.Strings.ApplicationTitle;
-            btnGenelBakis.Text = Telemetry.Localization.Strings.MainMenu_GeneralOverview;
-            btnProsesIzleme.Text = Telemetry.Localization.Strings.MainMenu_ProcessMonitoring;
-            btnProsesKontrol.Text = Telemetry.Localization.Strings.MainMenu_ProcessControl;
-            btnRaporlar.Text = Telemetry.Localization.Strings.MainMenu_Reports;
-            btnAyarlar.Text = Telemetry.Localization.Strings.MainMenu_Settings;
+        { 
+            this.Text = Telemetry.Localization1.Strings.ApplicationTitle;
+            btnGenelBakis.Text = Telemetry.Localization1.Strings.MainMenu_GeneralOverview;
+            btnProsesIzleme.Text = Telemetry.Localization1.Strings.MainMenu_ProcessMonitoring;
+            btnProsesKontrol.Text = Telemetry.Localization1.Strings.MainMenu_ProcessControl;
+            btnRaporlar.Text = Telemetry.Localization1.Strings.MainMenu_Reports;
+            btnAyarlar.Text = Telemetry.Localization1.Strings.MainMenu_Settings;
 
             dilToolStripMenuItem.Text = Resources.Language;
             oturumToolStripMenuItem.Text = Resources.Session;

@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.2.11408.102
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Telemetry.forms", "Telemetry.forms.csproj", "{DD00EB64-A4F9-4B50-ABC2-73251A79E4A6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Telemetry", "Telemetry.csproj", "{DD00EB64-A4F9-4B50-ABC2-73251A79E4A6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telemetry.Core", "TekstilScada.Core\Telemetry.Core.csproj", "{07ABAC97-98C8-4612-AA26-A8FFB991B060}"
 EndProject

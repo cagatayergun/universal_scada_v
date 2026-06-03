@@ -15,6 +15,7 @@
 		<Title>Telemetry SCADA Sistemi</Title>
 		<Copyright>Copyright © 2025</Copyright>
 		<AssemblyName>$(MSBuildProjectName)</AssemblyName>
+		<AppDesignerFolder>Properties</AppDesignerFolder>
 	</PropertyGroup>
 
 	<PropertyGroup Label="Avalonia">
@@ -112,12 +113,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Compile Remove="Localization1\Strings.Designer.cs" />
-	  <Compile Remove="Properties\Resource1.Designer.cs" />
-	  <Compile Remove="Properties\Resources.Designer.cs" />
-	</ItemGroup>
-
-	<ItemGroup>
 	  <None Remove="appsettings.json" />
 	</ItemGroup>
 
@@ -150,6 +145,24 @@
 		<Reference Include="VncSharpCore">
 			<HintPath>..\..\..\Lib\VncSharpCore.dll</HintPath>
 		</Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="Localization1\Strings.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>Strings.resx</DependentUpon>
+	  </Compile>
+	  <Compile Update="Properties\Resource1.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>Resource1.resx</DependentUpon>
+	  </Compile>
+	  <Compile Update="Properties\Resources.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>Resources.resx</DependentUpon>
+	  </Compile>
 	</ItemGroup>
 
 	<ItemGroup>

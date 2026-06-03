@@ -4,7 +4,7 @@ using System.Drawing; // Color için eklendi
 using System.Linq;
 using System.Windows.Forms;
 using Telemetry.Core;
-using Telemetry.Localization;
+using Telemetry.Localization1;
 using Telemetry.Models;
 using Telemetry.Properties;
 using Telemetry.Repositories;

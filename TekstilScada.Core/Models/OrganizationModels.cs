@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace TelemetryScada.Models
+namespace Telemetry.Models
 {
     // Firma (Örn: A Telemetry, B İplik)
     public class Company
