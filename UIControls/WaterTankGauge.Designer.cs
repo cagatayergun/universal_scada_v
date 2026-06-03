@@ -1,17 +1,10 @@
-﻿// WaterTankGauge.Designer.cs
+﻿// UI/Controls/WaterTankGauge.Designer.cs
 namespace Telemetry.UI.Controls
 {
     partial class WaterTankGauge
     {
-        /// <summary> 
-        /// Required designer variable.
-        /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
-        /// Clean up any resources being used.
-        /// </summary>
-        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -23,20 +16,17 @@ namespace Telemetry.UI.Controls
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
-        /// the contents of this method with the code editor.
-        /// </summary>
         private void InitializeComponent()
         {
             this.SuspendLayout();
             // 
             // WaterTankGauge
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.Transparent; // Tasarım anında arkasında çirkin gri kutu oluşmasını önler
             this.Name = "WaterTankGauge";
-            this.Size = new System.Drawing.Size(150, 150);
+            this.Size = new System.Drawing.Size(150, 190); // Alttaki KPI metinlerinin sığması için dikey boyutu 190'a genişletildi
             this.ResumeLayout(false);
         }
 

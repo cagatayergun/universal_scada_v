@@ -9,7 +9,10 @@ using Telemetry.Repositories;
 using System.Data;
 using System.Drawing;
 using System.Linq;
-using System.Threading.Tasks; // Task kullanımı için gerekli
+using System.Threading.Tasks;
+using MaterialSkin;          // YENİ EKLENDİ
+using MaterialSkin.Controls; // YENİ EKLENDİ
+
 namespace Telemetry.UI.Views
 {
     public partial class ManualUsageReport_Control : UserControl
@@ -17,13 +20,20 @@ namespace Telemetry.UI.Views
         private MachineRepository _machineRepository;
         private ProcessLogRepository _processLogRepository;
         private List<Machine> _selectedMachinesCache = new List<Machine>();
+
         public ManualUsageReport_Control()
         {
-            InitializeComponent();
+            // Dil değişim olayına kayıt
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
 
+            InitializeComponent();
+
+            // SPEED OPTİMİZASYON: Kontrol sekme geçişlerinde arayüzün titremesini engeller
+            this.DoubleBuffered = true;
+            this.BackColor = Color.Transparent; // Arka plan yönetimi üst ebeveyne devredildi
+
             // Hücre formatlama olayını (Birim dönüşümü için) bağlıyoruz
-            dgvManualUsage.CellFormatting += DgvManualUsage_CellFormatting;
+            dgvManualUsage.CellFormatting += dgvManualUsage_CellFormatting;
         }
 
         public void InitializeControl(MachineRepository machineRepo, ProcessLogRepository processLogRepo)
@@ -40,24 +50,21 @@ namespace Telemetry.UI.Views
         public void ApplyLocalization()
         {
             label1.Text = Resources.DateRange;
-            //label3.Text = Resources.Machine;
             btnGenerateReport.Text = Resources.Reports;
             btnExportToExcel.Text = Resources.ExportToExcel;
         }
+
         private List<Machine> GetSelectedMachines()
         {
             var selectedList = new List<Machine>();
 
-            // FlowLayoutPanel içindeki her kontrolü (GroupBox) gez
             foreach (Control ctrl in flpMachineGroups.Controls)
             {
                 if (ctrl is GroupBox grp)
                 {
-                    // GroupBox içindeki CheckedListBox'ı bul
                     var chkList = grp.Controls.OfType<CheckedListBox>().FirstOrDefault();
                     if (chkList != null)
                     {
-                        // Seçili olanları listeye ekle
                         foreach (var item in chkList.CheckedItems)
                         {
                             if (item is Machine machine)
@@ -70,56 +77,69 @@ namespace Telemetry.UI.Views
             }
             return selectedList;
         }
+
+        // =========================================================================
+        // MODERNİZASYON & SPEED OPTİMİZASYON: DİNAMİK KONTROL ÜRETİM ADAPTÖRÜ
+        // Yerleşim motoru donduruldu ve Dark Mode renk uyum blokları mühürlendi.
+        // =========================================================================
         private void LoadMachineGroups()
         {
+            if (_machineRepository == null || this.IsDisposed) return;
+
+            // Performans için arayüz yerleşim hesaplamalarını askıya alıyoruz
+            this.SuspendLayout();
+            flpMachineGroups.SuspendLayout();
+
             try
             {
-                // Paneli temizle
                 flpMachineGroups.Controls.Clear();
 
-                // Tüm aktif makineleri getir
                 var allMachines = _machineRepository.GetAllEnabledMachines();
-
                 if (allMachines == null || !allMachines.Any()) return;
 
-                // Makineleri Alt Tipe (SubType) göre grupla. 
-                // Eğer SubType boşsa, Ana Tipi (Type) kullan.
-
-                // --- DEĞİŞİKLİK BURADA: Kurutma Makinesi tipindeki makineleri filtreliyoruz ---
+                // Kurutma Makinesi tipindeki makineleri filtreliyoruz
                 var groupedMachines = allMachines
-                    .Where(m => m.MachineType != "Kurutma Makinesi") // Kurutma makinelerini hariç tut
+                    .Where(m => m.MachineType != "Kurutma Makinesi")
                     .GroupBy(m => !string.IsNullOrEmpty(m.MachineSubType) ? m.MachineSubType : m.MachineType)
-                    .OrderBy(g => g.Key); // Alfabetik sırala
-                // -----------------------------------------------------------------------------
+                    .OrderBy(g => g.Key);
+
+                // Merkezi tema motorundan anlık Dark Mode kontrolü yapıyoruz
+                bool isDark = MaterialSkinManager.Instance.Theme == MaterialSkinManager.Themes.DARK;
+
+                Color containerBg = isDark ? Color.FromArgb(44, 52, 64) : Color.FromArgb(241, 245, 249);
+                Color textFg = isDark ? Color.FromArgb(230, 230, 230) : Color.FromArgb(51, 65, 85);
+                Color listBg = isDark ? Color.FromArgb(30, 41, 59) : Color.White;
 
                 foreach (var group in groupedMachines)
                 {
-                    // 1. Her grup için bir GroupBox oluştur
-                    GroupBox grpBox = new GroupBox();
-                    grpBox.Text = group.Key; // Grup Başlığı (Örn: "Boyama-Tip1")
-                    grpBox.Width = 200;      // Genişlik ayarı
-                    grpBox.Height = 150;     // Yükseklik ayarı
-                    grpBox.Font = new Font("Segoe UI", 9, FontStyle.Bold);
-                    grpBox.Margin = new Padding(5); // Kutular arası boşluk
+                    GroupBox grpBox = new GroupBox
+                    {
+                        Text = group.Key,
+                        Width = 200,
+                        Height = 150,
+                        Font = new Font("Segoe UI Semibold", 9, FontStyle.Bold),
+                        Margin = new Padding(6),
+                        BackColor = containerBg,
+                        ForeColor = textFg
+                    };
 
-                    // 2. İçine CheckedListBox ekle
-                    CheckedListBox chkList = new CheckedListBox();
-                    chkList.Dock = DockStyle.Fill; // Kutuyu doldur
-                    chkList.CheckOnClick = true;   // Tek tıkla seç
-                    chkList.BorderStyle = BorderStyle.None;
-                    chkList.BackColor = SystemColors.Control; // Arka plan rengi
-                    chkList.Font = new Font("Segoe UI", 9, FontStyle.Regular);
+                    CheckedListBox chkList = new CheckedListBox
+                    {
+                        Dock = DockStyle.Fill,
+                        CheckOnClick = true,
+                        BorderStyle = BorderStyle.None,
+                        BackColor = listBg,
+                        ForeColor = textFg,
+                        Font = new Font("Segoe UI", 9, FontStyle.Regular)
+                    };
 
-                    // 3. Makineleri listeye ekle
                     foreach (var machine in group)
                     {
-                        chkList.Items.Add(machine, false); // Varsayılan olarak seçili değil
+                        chkList.Items.Add(machine, false);
                     }
 
-                    // DisplayMember ayarı (Listede ne görünecek)
-                    chkList.DisplayMember = "MachineName"; // Machine nesnesindeki özellik adı
+                    chkList.DisplayMember = "MachineName";
 
-                    // 4. Kontrolleri birbirine ekle
                     grpBox.Controls.Add(chkList);
                     flpMachineGroups.Controls.Add(grpBox);
                 }
@@ -128,23 +148,30 @@ namespace Telemetry.UI.Views
             {
                 MessageBox.Show($"Makine listesi yüklenirken hata oluştu: {ex.Message}", "Hata");
             }
+            finally
+            {
+                // Toplu çizimi ekrana yansıtıp kilitleri açıyoruz
+                flpMachineGroups.ResumeLayout(true);
+                this.ResumeLayout(true);
+            }
         }
+
         private void ManualUsageReport_Control_Load(object sender, EventArgs e)
         {
             dtpStartTime.Value = DateTime.Today;
             dtpEndTime.Value = DateTime.Today.AddDays(1).AddSeconds(-1);
 
-            var machines = _machineRepository.GetAllMachines();
             LoadMachineGroups();
-           
+            EnableDoubleBuffer(dgvManualUsage); // Tablo kaydırma hızlandırıcısı açıldı
         }
 
         private async void btnGenerateReport_Click(object sender, EventArgs e)
         {
+            if (this.IsDisposed) return;
+
             DateTime startTime = dtpStartTime.Value;
             DateTime endTime = dtpEndTime.Value;
 
-            // Çoklu seçim fonksiyonunu çağır
             var selectedMachines = GetSelectedMachines();
 
             if (selectedMachines.Count == 0)
@@ -158,43 +185,40 @@ namespace Telemetry.UI.Views
                 this.Cursor = Cursors.WaitCursor;
                 btnGenerateReport.Enabled = false;
 
-                // Rapor verilerini tutacak liste
+                // SPEED OPTİMİZASYON: Tablo veri kaynağı yenilenirken arayüz yerleşim motorunu dondurur
+                this.SuspendLayout();
+
                 var reportData = new List<ManualConsumptionSummary>();
 
-                // Seçili her makine için veriyi çek (Paralel çalıştırılabilir veya döngü ile)
-                // UI donmaması için Task.Run içinde yapıyoruz
+                // Ağır log tarama döngüsünü arka planda (Thread-pool) asenkron çalıştırıyoruz
                 await Task.Run(() =>
                 {
                     foreach (var machine in selectedMachines)
                     {
-                        // Repository'deki mevcut metodunuzu her makine için çağırıyoruz
                         var summary = _processLogRepository.GetManualConsumptionSummary(machine.Id, machine.MachineName, startTime, endTime);
-
                         if (summary != null)
                         {
                             reportData.Add(summary);
                         }
                     }
                 });
+
                 foreach (var item in reportData)
                 {
-                    // Makine adından ID veya Tip bulmak zor olabilir, bu yüzden 'selectedMachines' listesinden eşleştiriyoruz.
                     var machineInfo = selectedMachines.FirstOrDefault(m => m.MachineName == item.Makine);
-
-                    if (machineInfo != null &&
-                       (machineInfo.MachineType == "Kurutma Makinesi"))
+                    if (machineInfo != null && machineInfo.MachineType == "Kurutma Makinesi")
                     {
                         item.ToplamSuTuketimi_Litre = 0;
                     }
                 }
-                // Grid'i doldur
+
                 dgvManualUsage.DataSource = null;
-                dgvManualUsage.DataSource = reportData;
+                if (reportData.Any())
+                {
+                    dgvManualUsage.DataSource = reportData;
+                }
 
                 CustomizeGridAppearance();
-
-                // Toplam özeti bir Label'a veya mesaja yazdırmak isterseniz burada hesaplayabilirsiniz
-                // UpdateTotalSummary(reportData); 
             }
             catch (Exception ex)
             {
@@ -202,83 +226,89 @@ namespace Telemetry.UI.Views
             }
             finally
             {
+                // Çizim kilidini çözüp toplu render ediyoruz
+                this.ResumeLayout(true);
+
                 this.Cursor = Cursors.Default;
                 btnGenerateReport.Enabled = true;
             }
         }
 
+        // =========================================================================
+        // MODERNİZASYON: ANALİZ TABLOSU GÖRSEL MAT KONTRAST DÜZENLEMESİ
+        // DataGrid renk ve çizgi matrisleri merkezi temayla tam eşitlendi.
+        // =========================================================================
         private void CustomizeGridAppearance()
         {
             if (dgvManualUsage.DataSource == null) return;
 
-            // 1. İstenmeyen kolonları gizle
-            if (dgvManualUsage.Columns["OrtalamaSicaklik"] != null)
-                dgvManualUsage.Columns["OrtalamaSicaklik"].Visible = false;
+            if (dgvManualUsage.Columns["OrtalamaSicaklik"] != null) dgvManualUsage.Columns["OrtalamaSicaklik"].Visible = false;
+            if (dgvManualUsage.Columns["OrtalamaDevir"] != null) dgvManualUsage.Columns["OrtalamaDevir"].Visible = false;
 
-            if (dgvManualUsage.Columns["OrtalamaDevir"] != null)
-                dgvManualUsage.Columns["OrtalamaDevir"].Visible = false;
+            if (dgvManualUsage.Columns["Makine"] != null) dgvManualUsage.Columns["Makine"].HeaderText = "Machine Name";
+            if (dgvManualUsage.Columns["RaporAraligi"] != null) dgvManualUsage.Columns["RaporAraligi"].HeaderText = "Report Interval";
+            if (dgvManualUsage.Columns["ToplamManuelSure"] != null) dgvManualUsage.Columns["ToplamManuelSure"].HeaderText = "Total Manual Time";
 
-            // 2. Başlıkları İngilizce yap ve Birimleri Ekle
-            if (dgvManualUsage.Columns["Makine"] != null)
-                dgvManualUsage.Columns["Makine"].HeaderText = "Machine Name";
-            if (dgvManualUsage.Columns["RaporAraligi"] != null)
-                dgvManualUsage.Columns["RaporAraligi"].HeaderText = "Report Interval";
-            if (dgvManualUsage.Columns["ToplamManuelSure"] != null)
-                dgvManualUsage.Columns["ToplamManuelSure"].HeaderText = "Total Manual Time";
-            if (dgvManualUsage.Columns["ToplamSuTuketimi_Litre"] != null)
-                dgvManualUsage.Columns["ToplamSuTuketimi_Litre"].HeaderText = "Total Water (m³)";
+            if (dgvManualUsage.Columns["ToplamSuTuketimi_Litre"] != null) dgvManualUsage.Columns["ToplamSuTuketimi_Litre"].HeaderText = "Total Water (m³)";
+            if (dgvManualUsage.Columns["ToplamElektrikTuketimi_kW"] != null) dgvManualUsage.Columns["ToplamElektrikTuketimi_kW"].HeaderText = "Total Electricity (kWh)";
+            if (dgvManualUsage.Columns["ToplamBuharTuketimi_kg"] != null) dgvManualUsage.Columns["ToplamBuharTuketimi_kg"].HeaderText = "Total Steam (kg)";
+            if (dgvManualUsage.Columns["DurationMinutes"] != null) dgvManualUsage.Columns["DurationMinutes"].HeaderText = "Duration (Minutes)";
 
-            if (dgvManualUsage.Columns["ToplamElektrikTuketimi_kW"] != null)
-                dgvManualUsage.Columns["ToplamElektrikTuketimi_kW"].HeaderText = "Total Electricity (kWh)";
+            dgvManualUsage.BorderStyle = BorderStyle.None;
+            dgvManualUsage.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            dgvManualUsage.EnableHeadersVisualStyles = false;
+            
+            dgvManualUsage.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
 
-            if (dgvManualUsage.Columns["ToplamBuharTuketimi_kg"] != null)
-                dgvManualUsage.Columns["ToplamBuharTuketimi_kg"].HeaderText = "Total Steam (kg)";
+            bool isDark = MaterialSkinManager.Instance.Theme == MaterialSkinManager.Themes.DARK;
 
-            if (dgvManualUsage.Columns["DurationMinutes"] != null)
-                dgvManualUsage.Columns["DurationMinutes"].HeaderText = "Duration (Minutes)";
+            // Tablo Renk Uyumluluğu (Koyu/Açık Tema Koruyucu)
+            dgvManualUsage.BackgroundColor = isDark ? Color.FromArgb(30, 41, 59) : Color.White;
+            dgvManualUsage.DefaultCellStyle.SelectionBackColor = isDark ? Color.FromArgb(51, 65, 85) : Color.FromArgb(219, 234, 254);
+            dgvManualUsage.DefaultCellStyle.SelectionForeColor = isDark ? Color.FromArgb(240, 240, 240) : Color.FromArgb(15, 23, 42);
+            dgvManualUsage.AlternatingRowsDefaultCellStyle.BackColor = isDark ? Color.FromArgb(38, 50, 68) : Color.FromArgb(248, 250, 252);
 
-            // 3. Sayı formatı (Virgülden sonra 2 basamak)
+            dgvManualUsage.ColumnHeadersDefaultCellStyle.BackColor = isDark ? Color.FromArgb(15, 23, 42) : Color.FromArgb(241, 245, 249);
+            dgvManualUsage.ColumnHeadersDefaultCellStyle.ForeColor = isDark ? Color.FromArgb(148, 163, 184) : Color.FromArgb(71, 85, 105);
+            dgvManualUsage.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 10F);
+            dgvManualUsage.ColumnHeadersHeight = 45;
+            dgvManualUsage.RowTemplate.Height = 36;
+
             dgvManualUsage.DefaultCellStyle.Format = "N3";
         }
 
-        // Verileri dönüştürmek için (Litre -> m³, Watt -> kW) kullanılan olay
-        // Verileri dönüştürmek için (Litre -> m³, Watt -> kW) kullanılan olay
-        private void DgvManualUsage_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        private void dgvManualUsage_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
-            // Satır indeksi geçersizse veya değer boşsa işlem yapma
             if (e.RowIndex < 0 || e.Value == null || e.Value == DBNull.Value) return;
 
             string colName = dgvManualUsage.Columns[e.ColumnIndex].Name;
 
             try
             {
-                // Değeri double'a çevir (Her iki durum için de gerekli)
                 double val = Convert.ToDouble(e.Value);
 
-                // 1. GRUP: 1000'e bölünüp, N2 (virgülden sonra 2 hane) gösterilecekler
                 if (colName == "ToplamSuTuketimi_Litre" || colName == "ToplamElektrikTuketimi_kW")
                 {
                     double result = val / 1000.0;
                     e.Value = result.ToString("N3");
                     e.FormattingApplied = true;
                 }
-                // 2. GRUP: Bölünmeden, N0 (tamsayı, binlik ayraçlı) gösterilecekler (BUHAR)
                 else if (colName == "ToplamBuharTuketimi_kg")
                 {
-                    // Burada bölme işlemi YOK
-                    // N0 formatı: 1.234 şeklinde gösterir, kuruş hanesi göstermez.
                     e.Value = val.ToString("N0");
                     e.FormattingApplied = true;
                 }
             }
             catch
             {
-                // Eğer sayısal bir değer değilse dokunma
+                // Sayısal format hatası koruması
             }
         }
 
-        private async void btnExportToExcel_Click(object sender, EventArgs e)
+        private void btnExportToExcel_Click(object sender, EventArgs e)
         {
+            if (dgvManualUsage.Rows.Count == 0) return;
+
             this.Cursor = Cursors.WaitCursor;
             try
             {
@@ -291,6 +321,33 @@ namespace Telemetry.UI.Views
             finally
             {
                 this.Cursor = Cursors.Default;
+            }
+        }
+
+        // =========================================================================
+        // KUSURSUZ BELLEK TEMİZLİĞİ: STATİK EVENT ABONELİK BAĞLANTISI KOPARILDI
+        // Kontrolün RAM'de asılı kalarak hafıza sızıntısı yapmasını kesin önler.
+        // =========================================================================
+        protected override void OnHandleDestroyed(EventArgs e)
+        {
+            LanguageManager.LanguageChanged -= LanguageManager_LanguageChanged;
+            base.OnHandleDestroyed(e);
+        }
+
+        // SPEED OPTİMİZASYON: DataGrid kaydırma (scroll) ivmesini artıran yansıtma metodu
+        private void EnableDoubleBuffer(Control control)
+        {
+            try
+            {
+                typeof(Control).InvokeMember("DoubleBuffered",
+                    System.Reflection.BindingFlags.SetProperty |
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.NonPublic,
+                    null, control, new object[] { true });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DoubleBuffering could not be enabled: {ex.Message}");
             }
         }
     }

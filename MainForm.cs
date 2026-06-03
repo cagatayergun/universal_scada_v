@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.DependencyInjection; // YENÝ EKLENDÝ: Kapsam ve DI yönetimi için
+using Microsoft.Extensions.DependencyInjection; // Kapsam ve DI yönetimi için
 using System;
 using System.Drawing;
 using System.Linq;
@@ -16,11 +16,13 @@ using Telemetry.Services;
 using Telemetry.UI;
 using Telemetry.UI.Controls;
 using Telemetry.UI.Views;
-using Telemetry.Models;
+using MaterialSkin;          // YENÝ EKLENDÝ: MaterialSkin ana kütüphanesi
+using MaterialSkin.Controls; // YENÝ EKLENDÝ: MaterialForm ve bileþenler için
 
 namespace Telemetry
 {
-    public partial class MainForm : Form
+    // Form yerine MaterialForm'dan türetiyoruz
+    public partial class MainForm : MaterialForm
     {
         // --- REPOSITORY VE SERVÝSLER ---
         private readonly FtpTransferService _ftpTransferService;
@@ -69,6 +71,24 @@ namespace Telemetry
         public MainForm()
         {
             InitializeComponent();
+
+            // =========================================================================
+            // MATERIALSKIN TEMALANDIRMA MOTORU BAÞLANGICI
+            // SCADA sistemlerine uygun göz yormayan Dark (Karanlýk) tema konfigürasyonu
+            // =========================================================================
+            var materialSkinManager = MaterialSkinManager.Instance;
+            materialSkinManager.AddFormToManage(this);
+            materialSkinManager.Theme = MaterialSkinManager.Themes.DARK; // Karanlýk Tema
+            materialSkinManager.ColorScheme = new ColorScheme(
+                Primary.BlueGrey800,   // Ana Renk (Üst Baþlýk Barý)
+                Primary.BlueGrey900,   // Koyu Ana Renk
+                Primary.BlueGrey500,   // Açýk Ana Renk
+                Accent.LightBlue200,   // Vurgu Rengi (Switch/Checkbox öðeleri için)
+                TextShade.WHITE        // Yazý Rengi
+            );
+
+            // Arayüz render hýzýný artýrmak ve kýrpýþmayý önlemek için DoubleBuffering aktif
+            this.DoubleBuffered = true;
 
             // =========================================================================
             // 1. ADIM: WINFORMS ÝÇÝN LOKAL DEPENDENCY INJECTION (DI) KURULUMU
@@ -173,7 +193,6 @@ namespace Telemetry
             _makineDetayView.BackRequested += OnBackRequested;
         }
 
-        // 'async' keyword'ü eklendi çünkü Gateway'i await ile baþlatacaðýz
         private async void MainForm_Load(object sender, EventArgs e)
         {
             // === LÝSANS DOÐRULAMA KODU ===
@@ -188,7 +207,7 @@ namespace Telemetry
             if (licenseData.TrialMinutes.HasValue)
             {
                 _trialUsageTimer = new System.Windows.Forms.Timer();
-                _trialUsageTimer.Interval = 60000; // 60,000 milisaniye = 1 Dakika
+                _trialUsageTimer.Interval = 60000; // 1 Dakika
                 _trialUsageTimer.Tick += TrialUsageTimer_Tick;
                 _trialUsageTimer.Start();
             }
@@ -209,7 +228,6 @@ namespace Telemetry
                     {
                         _machineRepository.DeleteMachine(machines[i].Id);
                     }
-                    // Listeyi yenile
                     machines = _machineRepository.GetAllMachines();
                     MessageBox.Show("Fazla makineler silindi.", "Ýþlem Tamamlandý");
                 }
@@ -226,7 +244,6 @@ namespace Telemetry
             ReloadSystem(_genelBakisView);
             LanguageManager.SetLanguage("en-US");
 
-            // Alarm Timer'ý Baþlat (UI'ý Yormadan Alarmlarý Çeker)
             _alarmUpdateTimer.Start();
 
             string hardwareKey = LicenseManager.GenerateHardwareKey();
@@ -238,12 +255,11 @@ namespace Telemetry
                 return;
             }
 
-            // 2. Gateway Servisini Baþlat
+            // Gateway Servisini Baþlat
             try
             {
-                string hubUrl = "https://api.yilmaktelemetry.com/scadaHub"; // API Adresiniz
-                // string hubUrl = "http://localhost:7039/scadaHub"; // API Adresiniz
-                string jwtToken = null; // Gateway için token þu an null kalabilir
+                string hubUrl = "https://api.yilmaktelemetry.com/scadaHub";
+                string jwtToken = null;
 
                 _gatewayService = new SignalRGatewayService(
                     hubUrl,
@@ -264,9 +280,7 @@ namespace Telemetry
                     hardwareKey
                 );
 
-                // VNC Sunucusunu Baþlat
                 _gatewayService.OnRemoteCommandReceived += CloudSyncService_OnRemoteCommandReceived;
-
                 await _gatewayService.StartAsync();
             }
             catch (Exception ex)
@@ -274,29 +288,25 @@ namespace Telemetry
                 MessageBox.Show($"Gateway Hatasý: {ex.Message}", "Baðlantý", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
-            // Yedekleme servisini baþlat
             _backupService = new AutoBackupService();
             _backupService.Start();
         }
+
         private void TrialUsageTimer_Tick(object sender, EventArgs e)
         {
-            // 1. Kullaným süresine 1 dakika ekle ve diske kaydet
             LicenseManager.AddUsedMinute();
-
-            // 2. Sýnýrý aþýp aþmadýðýný kontrol et
             var check = LicenseManager.ValidateLicense();
             if (!check.IsValid)
             {
                 _trialUsageTimer.Stop();
-                // Süre dolduðunda ekrana uyarýyý ver ve arka plandaki iþlemleri kes
                 MessageBox.Show(check.Message, "Deneme Süresi Doldu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                Environment.Exit(0); // Programý anýnda kitle ve kapat
+                Environment.Exit(0);
             }
         }
+
         private void ApplyPermissions()
         {
-            // === ANA MENÜ YETKÝLENDÝRME ===
-            bool isMaster = PermissionService.HasAnyPermission(new List<int> { 1000 }); // Master Admin
+            bool isMaster = PermissionService.HasAnyPermission(new List<int> { 1000 });
 
             if (isMaster)
             {
@@ -311,7 +321,6 @@ namespace Telemetry
             }
             else
             {
-                // Normal Yetkilendirme
                 btnProsesKontrol.Visible = PermissionService.HasAnyPermission(new List<int> { 1 });
                 btnProsesKontrol.Enabled = btnProsesKontrol.Visible;
 
@@ -333,7 +342,6 @@ namespace Telemetry
         {
             _pollingService.Stop();
 
-            // Makine Listesini Yenile
             List<Machine> machines = _machineRepository.GetAllEnabledMachines();
             if (machines == null)
             {
@@ -341,16 +349,13 @@ namespace Telemetry
                 return;
             }
 
-            // Polling Servisini Baþlat
             _pollingService.Start(machines);
             var plcManagers = _pollingService.GetPlcManagers();
 
-            // Kontrolleri Initialize Et
             _prosesIzlemeView.InitializeView(machines, _pollingService);
             _prosesKontrolView.InitializeControl(_recipeRepository, _machineRepository, plcManagers, _pollingService, _ftpTransferService, _userRepository);
             _ayarlarView.InitializeControl(_machineRepository, _efficiencyRepository, plcManagers, _pollingService);
 
-            // RAPORLAR GÜNCELLEME: EfficiencyRepository eklendi
             _raporlarView.InitializeControl(
                 _machineRepository,
                 _alarmRepository,
@@ -359,7 +364,7 @@ namespace Telemetry
                 _processLogRepository,
                 _recipeRepository,
                 _costRepository,
-                _efficiencyRepository // YENÝ
+                _efficiencyRepository
             );
             _genelBakisView.InitializeControl(_pollingService, _machineRepository, _dashboardRepository, _alarmRepository, _processLogRepository, _productionRepository, _utilityRepository, _utilityPollingService);
 
@@ -384,7 +389,7 @@ namespace Telemetry
         }
 
         private void ApplyLocalization()
-        { 
+        {
             this.Text = Telemetry.Localization1.Strings.ApplicationTitle;
             btnGenelBakis.Text = Telemetry.Localization1.Strings.MainMenu_GeneralOverview;
             btnProsesIzleme.Text = Telemetry.Localization1.Strings.MainMenu_ProcessMonitoring;
@@ -403,14 +408,7 @@ namespace Telemetry
             if (CurrentUser.IsLoggedIn && CurrentUser.User != null)
             {
                 lblStatusCurrentUser.Text = $"{Resources.Loggedin}: {CurrentUser.User.FullName}";
-                try
-                {
-                    _userRepository.LogAction(CurrentUser.User.Id, "Log", "Session Login");
-                }
-                catch (Exception logEx)
-                {
-                    // Sessiz kal
-                }
+                try { _userRepository.LogAction(CurrentUser.User.Id, "Log", "Session Login"); } catch { }
             }
             else
             {
@@ -422,11 +420,14 @@ namespace Telemetry
             ApplyPermissions();
         }
 
+        // SPEED OPTÝMÝZASYON: Görünüm geçiþleri esnasýnda anlýk donmayý engeller
         private void ShowView(UserControl view)
         {
+            pnlContent.SuspendLayout(); // Form yerleþim hesaplamalarýný durdur
             pnlContent.Controls.Clear();
             view.Dock = DockStyle.Fill;
             pnlContent.Controls.Add(view);
+            pnlContent.ResumeLayout(true); // Deðiþiklikleri tek bir frame'de ekrana çiz
         }
 
         #endregion
@@ -511,7 +512,6 @@ namespace Telemetry
             }
         }
 
-        // OPTÝMÝZASYON: Event (this.Invoke) Yerine Windows Form Timer kullanýlarak UI Thread serbest býrakýldý.
         private void AlarmUpdateTimer_Tick(object sender, EventArgs e)
         {
             if (!this.IsHandleCreated || this.IsDisposed) return;
@@ -542,10 +542,7 @@ namespace Telemetry
                     lblStatusLiveEvents.ForeColor = SystemColors.ControlText;
                 }
             }
-            catch (Exception)
-            {
-                // UI akýþýný engellememek için hatayý yut
-            }
+            catch (Exception) { }
         }
 
         private void lblStatusLiveEvents_Click(object sender, EventArgs e)
@@ -559,14 +556,12 @@ namespace Telemetry
             LanguageManager.LanguageChanged -= LanguageManager_LanguageChanged;
             _pollingService.Stop();
 
-            // Timer Temizliði
             if (_alarmUpdateTimer != null)
             {
                 _alarmUpdateTimer.Stop();
                 _alarmUpdateTimer.Dispose();
             }
 
-            // --- UTILITY SERVÝSÝNÝ DURDUR ---
             if (_utilityPollingService != null)
             {
                 _utilityPollingService.Stop();
@@ -599,7 +594,6 @@ namespace Telemetry
 
             try
             {
-                // START_VNC KOMUTU
                 if (command == "START_VNC")
                 {
                     var parts = parameters.Split(';');
@@ -617,7 +611,6 @@ namespace Telemetry
 
                     _activeVncServers.Add(machineId, newVnc);
                 }
-                // STOP_VNC KOMUTU
                 else if (command == "STOP_VNC")
                 {
                     if (_activeVncServers.ContainsKey(machineId))
@@ -626,7 +619,6 @@ namespace Telemetry
                         _activeVncServers.Remove(machineId);
                     }
                 }
-                // CLICK KOMUTU
                 else if (command == "CLICK")
                 {
                     if (_activeVncServers.TryGetValue(machineId, out var server))
@@ -637,13 +629,10 @@ namespace Telemetry
                     }
                 }
             }
-            catch (Exception ex) { /* Loglama */ }
+            catch (Exception ex) { }
         }
 
-        private void AppendLog(string message)
-        {
-            //(message);
-        }
+        private void AppendLog(string message) { }
 
         #endregion
     }

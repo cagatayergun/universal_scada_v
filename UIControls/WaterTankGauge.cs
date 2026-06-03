@@ -4,7 +4,6 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
-// Namespace'i kendi projenize göre düzenleyebilirsiniz.
 namespace Telemetry.UI.Controls
 {
     public partial class WaterTankGauge : UserControl
@@ -20,7 +19,7 @@ namespace Telemetry.UI.Controls
             set
             {
                 _value = Math.Max(0, Math.Min(_maximum, value));
-                this.Invalidate(); // Değer değiştiğinde kontrolü yeniden çizdir.
+                this.Invalidate(); // Değer değiştiğinde kontrolü asenkron olarak yeniden çizdir.
             }
         }
 
@@ -37,7 +36,11 @@ namespace Telemetry.UI.Controls
         public WaterTankGauge()
         {
             InitializeComponent();
-            // Daha akıcı çizimler için DoubleBuffering'i etkinleştir.
+
+            // UX OPTMİZASYONU: Kartın arkasında beyaz kare kutular kalmaması için şeffaflığı açıyoruz
+            this.BackColor = Color.Transparent;
+
+            // Daha akıcı çizimler ve sıfır titreme (flickering) için donanımsal DoubleBuffering'i etkinleştir.
             this.SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint, true);
         }
 
@@ -45,16 +48,17 @@ namespace Telemetry.UI.Controls
         {
             base.OnPaint(e);
             Graphics g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.SmoothingMode = SmoothingMode.AntiAlias; // Eğrisel kenarları pürüzsüzleştir (Anti-Aliasing)
 
             int panelWidth = this.Width;
             int panelHeight = this.Height;
             int padding = 10;
+
             // Alttaki metinler için 40px boşluk bırak
             RectangleF tankBounds = new RectangleF(padding, padding, panelWidth - 2 * padding, panelHeight - 2 * padding - 40);
 
-            // 1. Tankın dış çerçevesini çiz
-            using (Pen tankOutlinePen = new Pen(Color.FromArgb(100, 100, 100), 3))
+            // 1. Tankın dış çerçevesini çiz (Koyu Mode uyumlu Slate Gray)
+            using (Pen tankOutlinePen = new Pen(Color.FromArgb(74, 85, 104), 3))
             {
                 g.DrawEllipse(tankOutlinePen, tankBounds);
             }
@@ -78,33 +82,41 @@ namespace Telemetry.UI.Controls
                     );
 
                     // 5. Elips ile su dikdörtgeninin kesişimini al
-                    Region suBolgesi = new Region(suDikdortgeni);
-                    suBolgesi.Intersect(tankPath);
-
-                    // 6. Kesişim bölgesini mavi renkle doldur
-                    using (SolidBrush suBrush = new SolidBrush(Color.FromArgb(52, 152, 219)))
+                    using (Region suBolgesi = new Region(suDikdortgeni))
                     {
-                        g.FillRegion(suBrush, suBolgesi);
+                        suBolgesi.Intersect(tankPath);
+
+                        // 6. Kesişim bölgesini yumuşak mavi renkle doldur (Material Blue)
+                        using (SolidBrush suBrush = new SolidBrush(Color.FromArgb(33, 150, 243)))
+                        {
+                            g.FillRegion(suBrush, suBolgesi);
+                        }
                     }
-                    suBolgesi.Dispose();
                 }
             }
 
             // 7. Metinleri çiz
             using (StringFormat sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
             {
+                // =========================================================================
+                // MODERNİZASYON: KOYU MOD YAZI VE BELLEK OPTİMİZASYONU
+                // Brushes.Black yerine koyu zeminde parlayan soft beyaz fırçalar kullanıldı.
+                // =========================================================================
+
                 // Değer Metni (Örn: "1234 L")
-                RectangleF valueRect = new RectangleF(0, tankBounds.Bottom, panelWidth, 25);
-                using (Font valueFont = new Font("Segoe UI", 12F, FontStyle.Bold))
+                RectangleF valueRect = new RectangleF(0, tankBounds.Bottom + 4, panelWidth, 25);
+                using (SolidBrush valueBrush = new SolidBrush(Color.FromArgb(240, 240, 240))) // Parlak Açık Gri
+                using (Font valueFont = new Font("Segoe UI Semibold", 12F, FontStyle.Bold))
                 {
-                    g.DrawString($"{_value} {_unit}", valueFont, Brushes.Black, valueRect, sf);
+                    g.DrawString($"{_value} {_unit}", valueFont, valueBrush, valueRect, sf);
                 }
 
                 // Başlık Metni (Örn: "SU MİKTARI")
-                RectangleF titleRect = new RectangleF(0, tankBounds.Bottom + 20, panelWidth, 20);
-                using (Font titleFont = new Font("Segoe UI", 9F))
+                RectangleF titleRect = new RectangleF(0, tankBounds.Bottom + 24, panelWidth, 20);
+                using (SolidBrush titleBrush = new SolidBrush(Color.FromArgb(144, 164, 174))) // Soluk Mat Mavi-Gri
+                using (Font titleFont = new Font("Segoe UI", 8.5F, FontStyle.Regular))
                 {
-                    g.DrawString(_title, titleFont, Brushes.Gray, titleRect, sf);
+                    g.DrawString(_title, titleFont, titleBrush, titleRect, sf);
                 }
             }
         }

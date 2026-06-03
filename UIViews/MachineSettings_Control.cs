@@ -1,13 +1,16 @@
 ﻿// UI/Views/MachineSettings_Control.cs
 using System;
 using System.Collections.Generic;
-using System.Reflection.PortableExecutable;
+using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using Telemetry.Core;
 using Telemetry.Models;
 using Telemetry.Properties;
 using Telemetry.Repositories;
 using Telemetry.Services;
+using MaterialSkin;          // YENİ EKLENDİ
+using MaterialSkin.Controls; // YENİ EKLENDİ
 
 namespace Telemetry.UI.Views
 {
@@ -22,10 +25,42 @@ namespace Telemetry.UI.Views
 
         public MachineSettings_Control()
         {
+            // Statik dil değişim olayına kayıt
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
+
             InitializeComponent();
+
             _repository = new MachineRepository();
             _userRepository = new UserRepository();
+
+            // SPEED OPTİMİZASYON: Listeler yüklenirken ve pencereler kaydırılırken (scroll) titremeyi engeller
+            this.DoubleBuffered = true;
+            this.BackColor = Color.Transparent; // Arka plan yönetimi üst ebeveyne devredildi
+            EnableDoubleBuffer(dgvMachines);
+
+            // =========================================================================
+            // MODERNİZASYON: STANDART METİN KUTULARINI DARK MODE UYARLAMA ADAPTÖRÜ
+            // Giriş ve parametre kutularını koyu tema arka planıyla kusursuz eşitler.
+            // =========================================================================
+            Color controlBg = Color.FromArgb(44, 52, 64);    // Koyu grafit gri
+            Color controlFg = Color.FromArgb(240, 240, 240); // Soft mat beyaz
+
+            var textControls = new List<TextBox>
+            {
+                txtMachineId, txtMachineName, txtIpAddress, txtPort,
+                txtVncAddress, txtFtpUsername, txtFtpPassword,
+                txtMachineSubType, displaybox, textdisplayname
+            };
+
+            foreach (var txt in textControls)
+            {
+                if (txt != null)
+                {
+                    txt.BackColor = controlBg;
+                    txt.ForeColor = controlFg;
+                    txt.BorderStyle = BorderStyle.FixedSingle;
+                }
+            }
         }
 
         private void LanguageManager_LanguageChanged(object sender, EventArgs e)
@@ -49,50 +84,53 @@ namespace Telemetry.UI.Views
             btnDelete.Text = Resources.Delete;
             btnNew.Text = Resources.New;
             btnSave.Text = Resources.Save;
-
-            // YENİ: Eğer Resources içinde makinehol tanımı varsa label'a uygula (Yoksa hata vermemesi için try-catch veya direkt string yazılabilir)
-           // try { lblMachineHall.Text = Resources.makinehol; } catch { try { lblMachineHall.Text = "Makine Holü"; } catch { } }
         }
 
         private void MachineSettings_Control_Load(object sender, EventArgs e)
         {
-            // ComboBox'ı ilk defa doldur ve makineleri listele.
             PopulateMachineTypeComboBox();
             RefreshMachineList();
-            ApplyLocalization(); // Metinleri ilk yüklemede de uygula
+            ApplyLocalization();
         }
 
         private void PopulateMachineTypeComboBox()
         {
-            // 1. Dilden bağımsız anahtarları ("Value") ve çevrilmiş metinleri ("Display") içeren listeyi oluştur.
             _machineTypeOptions = new List<object>
             {
                 new { Display = Resources.bymakinesi,       Value = "BYMakinesi" },
                 new { Display = Resources.kurutmamakinesi,  Value = "Kurutma Makinesi" }
             };
 
-            // 2. ComboBox'ı bu listeye bağla.
-            cmbMachineType.DataSource = null; // Önceki bağlantıyı temizle
+            cmbMachineType.DataSource = null;
             cmbMachineType.DataSource = _machineTypeOptions;
-            cmbMachineType.DisplayMember = "Display"; // Kullanıcı çevrilmiş metni görecek
-            cmbMachineType.ValueMember = "Value";     // Arka planda dilden bağımsız anahtar tutulacak
+            cmbMachineType.DisplayMember = "Display";
+            cmbMachineType.ValueMember = "Value";
         }
 
         public void RefreshMachineList()
         {
+            if (this.IsDisposed) return;
+
+            // SPEED OPTİMİZASYON: Veriler grid üzerine bind edilirken ekranda dalgalanma oluşmasını engeller
+            this.SuspendLayout();
+
             try
             {
                 _machines = _repository.GetAllMachines();
                 dgvMachines.DataSource = null;
                 dgvMachines.DataSource = _machines;
+
                 if (dgvMachines.Columns["Id"] != null) dgvMachines.Columns["Id"].Visible = false;
-                // GEREKSİZ SÜTUNLARI GİZLE
                 if (dgvMachines.Columns["VncPassword"] != null) dgvMachines.Columns["VncPassword"].Visible = false;
                 if (dgvMachines.Columns["FtpPassword"] != null) dgvMachines.Columns["FtpPassword"].Visible = false;
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"{Resources.makineyüklemehatası} {ex.Message}", $"{Resources.DatabaseError}", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                this.ResumeLayout(true);
             }
         }
 
@@ -117,13 +155,10 @@ namespace Telemetry.UI.Views
             txtVncAddress.Text = machine.VncAddress;
             chkIsEnabled.Checked = machine.IsEnabled;
             cmbMachineType.SelectedValue = machine.MachineType;
-            // FTP alanlarını doldur
             txtFtpUsername.Text = machine.FtpUsername;
             txtFtpPassword.Text = machine.FtpPassword;
             txtMachineSubType.Text = machine.MachineSubType;
             displaybox.Text = machine.DisplayOrder.ToString();
-
-            // YENİ SATIR: Veritabanından gelen Hol parametresini Textbox'a dolduruyoruz
             textdisplayname.Text = string.IsNullOrEmpty(machine.MachineHall) ? "Empty" : machine.MachineHall;
         }
 
@@ -138,28 +173,21 @@ namespace Telemetry.UI.Views
             txtVncAddress.Text = "";
             chkIsEnabled.Checked = true;
             cmbMachineType.SelectedIndex = 0;
-            // FTP alanlarını temizle
             txtFtpUsername.Text = "";
             txtFtpPassword.Text = "";
             txtMachineSubType.Text = "";
             displaybox.Text = "";
-
-            // YENİ SATIR: Yeni kayıt butonuna basınca veya temizlenince varsayılan değer atar
             textdisplayname.Text = "Empty";
         }
 
         private void btnNew_Click(object sender, EventArgs e)
         {
-            // Olayı geçici olarak devre dışı bırak
             dgvMachines.SelectionChanged -= dgvMachines_SelectionChanged;
-
             ClearFields();
-
-            // Olayı tekrar etkinleştir
             dgvMachines.SelectionChanged += dgvMachines_SelectionChanged;
         }
 
-        private async void btnSave_Click(object sender, EventArgs e)
+        private void btnSave_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtMachineId.Text) || string.IsNullOrWhiteSpace(txtIpAddress.Text) || string.IsNullOrWhiteSpace(txtMachineSubType.Text))
             {
@@ -167,7 +195,6 @@ namespace Telemetry.UI.Views
                 return;
             }
 
-            // Hol alanı boş geçildiyse varsayılan değer ata
             string hallName = string.IsNullOrWhiteSpace(textdisplayname.Text) ? "Empty" : textdisplayname.Text;
 
             try
@@ -187,12 +214,11 @@ namespace Telemetry.UI.Views
                         FtpPassword = txtFtpPassword.Text,
                         MachineSubType = txtMachineSubType.Text,
                         DisplayOrder = string.IsNullOrWhiteSpace(displaybox.Text) ? 0 : int.Parse(displaybox.Text),
-
-                        // YENİ PARAMETRE: Veritabanına yeni kaydı eklerken hol bilgisini gönderiyoruz
                         MachineHall = hallName
                     };
                     _repository.AddMachine(newMachine);
                     MessageBox.Show($"{Resources.yenimakinebasarili}", $"{Resources.Confirim}", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
                     if (CurrentUser.IsLoggedIn)
                     {
                         _userRepository.LogAction(CurrentUser.User.Id, "Machine Settings", $"'{newMachine.MachineName}' Added new machine called.");
@@ -211,18 +237,18 @@ namespace Telemetry.UI.Views
                     _selectedMachine.FtpPassword = txtFtpPassword.Text;
                     _selectedMachine.MachineSubType = txtMachineSubType.Text;
                     _selectedMachine.DisplayOrder = string.IsNullOrWhiteSpace(displaybox.Text) ? 0 : int.Parse(displaybox.Text);
-
-                    // YENİ PARAMETRE: Mevcut makineyi güncellerken yeni hol bilgisini kaydediyoruz
                     _selectedMachine.MachineHall = hallName;
 
                     _repository.UpdateMachine(_selectedMachine);
 
                     MessageBox.Show($"{Resources.makinebilgilerigüncellendi}", $"{Resources.Confirim}", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
                     if (CurrentUser.IsLoggedIn)
                     {
                         _userRepository.LogAction(CurrentUser.User.Id, "Machine Settings", $"The settings for the machine '{_selectedMachine.MachineName}' have been updated.");
                     }
                 }
+
                 dgvMachines.SelectionChanged -= dgvMachines_SelectionChanged;
                 RefreshMachineList();
                 ClearFields();
@@ -257,6 +283,33 @@ namespace Telemetry.UI.Views
                 {
                     MessageBox.Show($"{Resources.Silmesırasındahata} {ex.Message}", $"{Resources.Error}", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
+            }
+        }
+
+        // =========================================================================
+        // BELLEK SIZINTISI KORUMASI: STATİK EVENT BAĞLANTI TEMİZLİĞİ
+        // Kontrolün RAM'de asılı kalarak şişme yapmasını kesin olarak engeller.
+        // =========================================================================
+        protected override void OnHandleDestroyed(EventArgs e)
+        {
+            LanguageManager.LanguageChanged -= LanguageManager_LanguageChanged;
+            base.OnHandleDestroyed(e);
+        }
+
+        // SPEED OPTİMİZASYON: DataGrid akıcılığını sağlayan yansıtma (Reflection) metodu
+        private void EnableDoubleBuffer(Control control)
+        {
+            try
+            {
+                typeof(Control).InvokeMember("DoubleBuffered",
+                    System.Reflection.BindingFlags.SetProperty |
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.NonPublic,
+                    null, control, new object[] { true });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DoubleBuffering error: {ex.Message}");
             }
         }
     }

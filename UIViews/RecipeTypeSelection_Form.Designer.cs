@@ -1,4 +1,5 @@
-﻿namespace Telemetry.UIViews
+﻿// UIViews/RecipeTypeSelection_Form.Designer.cs
+namespace Telemetry.UIViews
 {
     partial class RecipeTypeSelection_Form
     {
@@ -28,58 +29,78 @@
         /// </summary>
         private void InitializeComponent()
         {
-            makinetip = new Label();
-            cmbRecipeType = new ComboBox();
-            btnOk = new Button();
-            SuspendLayout();
+            this.makinetip = new MaterialSkin.Controls.MaterialLabel();      // MaterialLabel yapıldı
+            this.cmbRecipeType = new System.Windows.Forms.ComboBox();
+            this.btnOk = new MaterialSkin.Controls.MaterialButton();        // MaterialButton yapıldı
+            this.SuspendLayout();
             // 
             // makinetip
             // 
-            makinetip.AutoSize = true;
-            makinetip.Font = new Font("Segoe UI", 18F);
-            makinetip.Location = new Point(111, 30);
-            makinetip.Name = "makinetip";
-            makinetip.Size = new Size(240, 32);
-            makinetip.TabIndex = 0;
-            makinetip.Text = "Makine Tipini Seçiniz";
+            this.makinetip.Depth = 0;
+            this.makinetip.Font = new System.Drawing.Font("Roboto", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Pixel);
+            this.makinetip.FontType = MaterialSkin.MaterialSkinManager.fontType.H5; // Modern başlık tipografisi
+            this.makinetip.Location = new System.Drawing.Point(50, 25); // Tam yatay merkezleme koordinatı
+            this.makinetip.MouseState = MaterialSkin.MouseState.HOVER;
+            this.makinetip.Name = "makinetip";
+            this.makinetip.Size = new System.Drawing.Size(362, 32);
+            this.makinetip.TabIndex = 0;
+            this.makinetip.Text = "Select Machine Type";
+            this.makinetip.TextAlign = System.Drawing.ContentAlignment.MiddleCenter; // Yazı merkezlendi
             // 
             // cmbRecipeType
             // 
-            cmbRecipeType.Font = new Font("Segoe UI", 16F);
-            cmbRecipeType.FormattingEnabled = true;
-            cmbRecipeType.Location = new Point(106, 98);
-            cmbRecipeType.Name = "cmbRecipeType";
-            cmbRecipeType.Size = new Size(250, 38);
-            cmbRecipeType.TabIndex = 1;
+            this.cmbRecipeType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbRecipeType.Font = new System.Drawing.Font("Segoe UI", 11F); // Material stiline uygun yumuşak font boyutu
+            this.cmbRecipeType.FormattingEnabled = true;
+            this.cmbRecipeType.Location = new System.Drawing.Point(106, 80);
+            this.cmbRecipeType.Name = "cmbRecipeType";
+            this.cmbRecipeType.Size = new System.Drawing.Size(250, 28);
+            this.cmbRecipeType.TabIndex = 1;
             // 
             // btnOk
             // 
-            btnOk.Location = new Point(150, 173);
-            btnOk.Name = "btnOk";
-            btnOk.Size = new Size(162, 61);
-            btnOk.TabIndex = 2;
-            btnOk.Text = "TAMAM";
-            btnOk.UseVisualStyleBackColor = true;
-            btnOk.Click += btnOk_Click;
+            this.btnOk.AutoSize = false;
+            this.btnOk.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnOk.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnOk.Depth = 0;
+            this.btnOk.HighEmphasis = true; // Baskın aksiyon vurgusu aktif
+            this.btnOk.Icon = null;
+            this.btnOk.Location = new System.Drawing.Point(150, 135); // Yeni dikey eksen yerleşimi
+            this.btnOk.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnOk.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnOk.Name = "btnOk";
+            this.btnOk.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnOk.Size = new System.Drawing.Size(162, 36); // Yükseklik flat buton standardı olan 36px'e çekildi
+            this.btnOk.TabIndex = 2;
+            this.btnOk.Text = "OK";
+            this.btnOk.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained; // Dolgulu baskın stil
+            this.btnOk.UseAccentColor = true; // Dikkat çekici vurgu rengi
+            this.btnOk.UseVisualStyleBackColor = true;
+            this.btnOk.Click += new System.EventHandler(this.btnOk_Click);
             // 
             // RecipeTypeSelection_Form
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(462, 273);
-            Controls.Add(btnOk);
-            Controls.Add(cmbRecipeType);
-            Controls.Add(makinetip);
-            Name = "RecipeTypeSelection_Form";
-            Text = "RecipeTypeSelection_Form";
-            ResumeLayout(false);
-            PerformLayout();
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.ClientSize = new System.Drawing.Size(462, 200); // 36px buton düzenine göre form yüksekliği dengelendi
+            this.Controls.Add(this.btnOk);
+            this.Controls.Add(this.cmbRecipeType);
+            this.Controls.Add(this.makinetip);
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
+            this.Name = "RecipeTypeSelection_Form";
+            this.ShowIcon = false;
+            this.ShowInTaskbar = false;
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
+            this.Text = "RecipeTypeSelection_Form";
+            this.ResumeLayout(false);
+
         }
 
         #endregion
 
-        private Label makinetip;
-        private ComboBox cmbRecipeType;
-        private Button btnOk;
+        private MaterialSkin.Controls.MaterialLabel makinetip;       // Tür güncellendi
+        private System.Windows.Forms.ComboBox cmbRecipeType;
+        private MaterialSkin.Controls.MaterialButton btnOk;           // Tür güncellendi
     }
 }

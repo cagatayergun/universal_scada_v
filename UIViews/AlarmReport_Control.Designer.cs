@@ -1,4 +1,5 @@
-﻿namespace Telemetry.UI.Views
+﻿// UI/Views/AlarmReport_Control.Designer.cs
+namespace Telemetry.UI.Views
 {
     partial class AlarmReport_Control
     {
@@ -6,221 +7,282 @@
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing && (components != null)) { components.Dispose(); }
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
             base.Dispose(disposing);
         }
 
         #region Component Designer generated code
         private void InitializeComponent()
         {
-            pnlFilters = new Panel();
-            btnGenerateReport = new Button();
-            cmbMachines = new ComboBox();
-            label3 = new Label();
-            dtpEndTime = new DateTimePicker();
-            label2 = new Label();
-            dtpStartTime = new DateTimePicker();
-            label1 = new Label();
-            btnExportToExcel = new Button();
-            dgvAlarmReport = new DataGridView();
-            pnlPagination = new Panel();
-            btnPrev = new Button();
-            lblPageInfo = new Label();
-            btnNext = new Button();
-            pnlFilters.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)dgvAlarmReport).BeginInit();
-            pnlPagination.SuspendLayout();
-            SuspendLayout();
+            this.pnlFilters = new System.Windows.Forms.Panel();
+            this.btnGenerateReport = new MaterialSkin.Controls.MaterialButton(); // MaterialButton yapıldı
+            this.cmbMachines = new System.Windows.Forms.ComboBox();
+            this.label3 = new MaterialSkin.Controls.MaterialLabel();            // MaterialLabel yapıldı
+            this.dtpEndTime = new System.Windows.Forms.DateTimePicker();
+            this.label2 = new MaterialSkin.Controls.MaterialLabel();
+            this.dtpStartTime = new System.Windows.Forms.DateTimePicker();
+            this.label1 = new MaterialSkin.Controls.MaterialLabel();
+            this.btnExportToExcel = new MaterialSkin.Controls.MaterialButton(); // MaterialButton yapıldı
+            this.dgvAlarmReport = new System.Windows.Forms.DataGridView();
+            this.pnlPagination = new System.Windows.Forms.Panel();
+            this.btnPrev = new MaterialSkin.Controls.MaterialButton();          // MaterialButton yapıldı
+            this.lblPageInfo = new MaterialSkin.Controls.MaterialLabel();         // MaterialLabel yapıldı
+            this.btnNext = new MaterialSkin.Controls.MaterialButton();          // MaterialButton yapıldı
+            this.pnlFilters.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvAlarmReport)).BeginInit();
+            this.pnlPagination.SuspendLayout();
+            this.SuspendLayout();
             // 
             // pnlFilters
             // 
-            pnlFilters.Controls.Add(btnGenerateReport);
-            pnlFilters.Controls.Add(cmbMachines);
-            pnlFilters.Controls.Add(label3);
-            pnlFilters.Controls.Add(dtpEndTime);
-            pnlFilters.Controls.Add(label2);
-            pnlFilters.Controls.Add(dtpStartTime);
-            pnlFilters.Controls.Add(label1);
-            pnlFilters.Controls.Add(btnExportToExcel);
-            pnlFilters.Dock = DockStyle.Top;
-            pnlFilters.Location = new Point(0, 0);
-            pnlFilters.Margin = new Padding(3, 2, 3, 2);
-            pnlFilters.Name = "pnlFilters";
-            pnlFilters.Size = new Size(929, 45);
-            pnlFilters.TabIndex = 0;
+            this.pnlFilters.BackColor = System.Drawing.Color.Transparent;
+            this.pnlFilters.Controls.Add(this.btnGenerateReport);
+            this.pnlFilters.Controls.Add(this.cmbMachines);
+            this.pnlFilters.Controls.Add(this.label3);
+            this.pnlFilters.Controls.Add(this.dtpEndTime);
+            this.pnlFilters.Controls.Add(this.label2);
+            this.pnlFilters.Controls.Add(this.dtpStartTime);
+            this.pnlFilters.Controls.Add(this.label1);
+            this.pnlFilters.Controls.Add(this.btnExportToExcel);
+            this.pnlFilters.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlFilters.Location = new System.Drawing.Point(0, 0);
+            this.pnlFilters.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.pnlFilters.Name = "pnlFilters";
+            this.pnlFilters.Size = new System.Drawing.Size(929, 45);
+            this.pnlFilters.TabIndex = 0;
             // 
             // btnGenerateReport
             // 
-            btnGenerateReport.Location = new Point(625, 11);
-            btnGenerateReport.Margin = new Padding(3, 2, 3, 2);
-            btnGenerateReport.Name = "btnGenerateReport";
-            btnGenerateReport.Size = new Size(88, 22);
-            btnGenerateReport.TabIndex = 6;
-            btnGenerateReport.Text = "Report";
-            btnGenerateReport.UseVisualStyleBackColor = true;
-            btnGenerateReport.Click += btnGenerateReport_Click;
+            this.btnGenerateReport.AutoSize = false;
+            this.btnGenerateReport.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnGenerateReport.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnGenerateReport.Depth = 0;
+            this.btnGenerateReport.HighEmphasis = true;
+            this.btnGenerateReport.Icon = null;
+            this.btnGenerateReport.Location = new System.Drawing.Point(620, 6); // Dikey basamak eşitlemesi yapıldı
+            this.btnGenerateReport.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnGenerateReport.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnGenerateReport.Name = "btnGenerateReport";
+            this.btnGenerateReport.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnGenerateReport.Size = new System.Drawing.Size(88, 34);
+            this.btnGenerateReport.TabIndex = 6;
+            this.btnGenerateReport.Text = "Report";
+            this.btnGenerateReport.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained; // Dolgulu baskın stil
+            this.btnGenerateReport.UseAccentColor = true; // Aksan rengi vurgusu
+            this.btnGenerateReport.UseVisualStyleBackColor = true;
+            this.btnGenerateReport.Click += new System.EventHandler(this.btnGenerateReport_Click);
             // 
             // cmbMachines
             // 
-            cmbMachines.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbMachines.FormattingEnabled = true;
-            cmbMachines.Location = new Point(441, 11);
-            cmbMachines.Margin = new Padding(3, 2, 3, 2);
-            cmbMachines.Name = "cmbMachines";
-            cmbMachines.Size = new Size(176, 23);
-            cmbMachines.TabIndex = 5;
+            this.cmbMachines.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbMachines.FormattingEnabled = true;
+            this.cmbMachines.Location = new System.Drawing.Point(445, 11);
+            this.cmbMachines.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.cmbMachines.Name = "cmbMachines";
+            this.cmbMachines.Size = new System.Drawing.Size(165, 23);
+            this.cmbMachines.TabIndex = 5;
             // 
             // label3
             // 
-            label3.AutoSize = true;
-            label3.Location = new Point(384, 15);
-            label3.Name = "label3";
-            label3.Size = new Size(56, 15);
-            label3.TabIndex = 4;
-            label3.Text = "Machine:";
+            this.label3.AutoSize = true;
+            this.label3.Depth = 0;
+            this.label3.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label3.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label3.Location = new System.Drawing.Point(384, 15);
+            this.label3.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(55, 17);
+            this.label3.TabIndex = 4;
+            this.label3.Text = "Machine:";
             // 
             // dtpEndTime
             // 
-            dtpEndTime.CustomFormat = "dd.MM.yyyy HH:mm";
-            dtpEndTime.Format = DateTimePickerFormat.Custom;
-            dtpEndTime.Location = new Point(244, 11);
-            dtpEndTime.Margin = new Padding(3, 2, 3, 2);
-            dtpEndTime.Name = "dtpEndTime";
-            dtpEndTime.Size = new Size(132, 23);
-            dtpEndTime.TabIndex = 3;
+            this.dtpEndTime.CustomFormat = "dd.MM.yyyy HH:mm";
+            this.dtpEndTime.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
+            this.dtpEndTime.Location = new System.Drawing.Point(242, 11);
+            this.dtpEndTime.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.dtpEndTime.Name = "dtpEndTime";
+            this.dtpEndTime.Size = new System.Drawing.Size(132, 23);
+            this.dtpEndTime.TabIndex = 3;
             // 
             // label2
             // 
-            label2.AutoSize = true;
-            label2.Location = new Point(224, 15);
-            label2.Name = "label2";
-            label2.Size = new Size(12, 15);
-            label2.TabIndex = 2;
-            label2.Text = "-";
+            this.label2.AutoSize = true;
+            this.label2.Depth = 0;
+            this.label2.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label2.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label2.Location = new System.Drawing.Point(224, 15);
+            this.label2.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(5, 17);
+            this.label2.TabIndex = 2;
+            this.label2.Text = "-";
             // 
             // dtpStartTime
             // 
-            dtpStartTime.CustomFormat = "dd.MM.yyyy HH:mm";
-            dtpStartTime.Format = DateTimePickerFormat.Custom;
-            dtpStartTime.Location = new Point(84, 11);
-            dtpStartTime.Margin = new Padding(3, 2, 3, 2);
-            dtpStartTime.Name = "dtpStartTime";
-            dtpStartTime.Size = new Size(132, 23);
-            dtpStartTime.TabIndex = 1;
+            this.dtpStartTime.CustomFormat = "dd.MM.yyyy HH:mm";
+            this.dtpStartTime.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
+            this.dtpStartTime.Location = new System.Drawing.Point(84, 11);
+            this.dtpStartTime.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.dtpStartTime.Name = "dtpStartTime";
+            this.dtpStartTime.Size = new System.Drawing.Size(132, 23);
+            this.dtpStartTime.TabIndex = 1;
             // 
             // label1
             // 
-            label1.AutoSize = true;
-            label1.Location = new Point(4, 15);
-            label1.Name = "label1";
-            label1.Size = new Size(70, 15);
-            label1.TabIndex = 0;
-            label1.Text = "Date Range:";
+            this.label1.AutoSize = true;
+            this.label1.Depth = 0;
+            this.label1.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label1.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label1.Location = new System.Drawing.Point(4, 15);
+            this.label1.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(73, 17);
+            this.label1.TabIndex = 0;
+            this.label1.Text = "Date Range:";
             // 
             // btnExportToExcel
             // 
-            btnExportToExcel.Location = new Point(721, 11);
-            btnExportToExcel.Margin = new Padding(3, 2, 3, 2);
-            btnExportToExcel.Name = "btnExportToExcel";
-            btnExportToExcel.Size = new Size(105, 22);
-            btnExportToExcel.TabIndex = 7;
-            btnExportToExcel.Text = "Export to Excel";
-            btnExportToExcel.UseVisualStyleBackColor = true;
-            btnExportToExcel.Click += btnExportToExcel_Click;
+            this.btnExportToExcel.AutoSize = false;
+            this.btnExportToExcel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnExportToExcel.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnExportToExcel.Depth = 0;
+            this.btnExportToExcel.HighEmphasis = false;
+            this.btnExportToExcel.Icon = null;
+            this.btnExportToExcel.Location = new System.Drawing.Point(714, 6);
+            this.btnExportToExcel.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnExportToExcel.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnExportToExcel.Name = "btnExportToExcel";
+            this.btnExportToExcel.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnExportToExcel.Size = new System.Drawing.Size(130, 34);
+            this.btnExportToExcel.TabIndex = 7;
+            this.btnExportToExcel.Text = "Export to Excel";
+            this.btnExportToExcel.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Outlined; // Çizgili ikincil aksiyon stili
+            this.btnExportToExcel.UseAccentColor = false;
+            this.btnExportToExcel.UseVisualStyleBackColor = true;
+            this.btnExportToExcel.Click += new System.EventHandler(this.btnExportToExcel_Click);
             // 
             // dgvAlarmReport
             // 
-            dgvAlarmReport.AllowUserToAddRows = false;
-            dgvAlarmReport.AllowUserToDeleteRows = false;
-            dgvAlarmReport.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgvAlarmReport.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvAlarmReport.Dock = DockStyle.Fill;
-            dgvAlarmReport.Location = new Point(0, 45);
-            dgvAlarmReport.Margin = new Padding(3, 2, 3, 2);
-            dgvAlarmReport.Name = "dgvAlarmReport";
-            dgvAlarmReport.ReadOnly = true;
-            dgvAlarmReport.RowHeadersWidth = 51;
-            dgvAlarmReport.RowTemplate.Height = 29;
-            dgvAlarmReport.Size = new Size(929, 365);
-            dgvAlarmReport.TabIndex = 1;
+            this.dgvAlarmReport.AllowUserToAddRows = false;
+            this.dgvAlarmReport.AllowUserToDeleteRows = false;
+            this.dgvAlarmReport.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dgvAlarmReport.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvAlarmReport.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dgvAlarmReport.Location = new System.Drawing.Point(0, 45);
+            this.dgvAlarmReport.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.dgvAlarmReport.Name = "dgvAlarmReport";
+            this.dgvAlarmReport.ReadOnly = true;
+            this.dgvAlarmReport.RowHeadersWidth = 51;
+            this.dgvAlarmReport.RowTemplate.Height = 26;
+            this.dgvAlarmReport.Size = new System.Drawing.Size(929, 365);
+            this.dgvAlarmReport.TabIndex = 1;
             // 
             // pnlPagination
             // 
-            pnlPagination.Controls.Add(btnPrev);
-            pnlPagination.Controls.Add(lblPageInfo);
-            pnlPagination.Controls.Add(btnNext);
-            pnlPagination.Dock = DockStyle.Bottom;
-            pnlPagination.Location = new Point(0, 410);
-            pnlPagination.Margin = new Padding(3, 2, 3, 2);
-            pnlPagination.Name = "pnlPagination";
-            pnlPagination.Size = new Size(929, 40);
-            pnlPagination.TabIndex = 2;
+            this.pnlPagination.BackColor = System.Drawing.Color.Transparent;
+            this.pnlPagination.Controls.Add(this.btnPrev);
+            this.pnlPagination.Controls.Add(this.lblPageInfo);
+            this.pnlPagination.Controls.Add(this.btnNext);
+            this.pnlPagination.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.pnlPagination.Location = new System.Drawing.Point(0, 410);
+            this.pnlPagination.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.pnlPagination.Name = "pnlPagination";
+            this.pnlPagination.Size = new System.Drawing.Size(929, 40);
+            this.pnlPagination.TabIndex = 2;
             // 
             // btnPrev
             // 
-            btnPrev.Location = new Point(6, 9);
-            btnPrev.Name = "btnPrev";
-            btnPrev.Size = new Size(88, 23);
-            btnPrev.TabIndex = 0;
-            btnPrev.Text = "< Back";
-            btnPrev.UseVisualStyleBackColor = true;
-            btnPrev.Click += btnPrev_Click;
+            this.btnPrev.AutoSize = false;
+            this.btnPrev.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnPrev.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnPrev.Depth = 0;
+            this.btnPrev.HighEmphasis = false;
+            this.btnPrev.Icon = null;
+            this.btnPrev.Location = new System.Drawing.Point(6, 4);
+            this.btnPrev.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnPrev.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnPrev.Name = "btnPrev";
+            this.btnPrev.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnPrev.Size = new System.Drawing.Size(88, 32);
+            this.btnPrev.TabIndex = 0;
+            this.btnPrev.Text = "< Back";
+            this.btnPrev.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Outlined;
+            this.btnPrev.UseAccentColor = false;
+            this.btnPrev.UseVisualStyleBackColor = true;
+            this.btnPrev.Click += new System.EventHandler(this.btnPrev_Click);
             // 
             // lblPageInfo
             // 
-            lblPageInfo.AutoSize = true;
-            lblPageInfo.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblPageInfo.Location = new Point(105, 13);
-            lblPageInfo.Name = "lblPageInfo";
-            lblPageInfo.Size = new Size(132, 15);
-            lblPageInfo.TabIndex = 1;
-            lblPageInfo.Text = "Sayfa: 1 / 1 (Toplam: 0)";
+            this.lblPageInfo.AutoSize = true;
+            this.lblPageInfo.Depth = 0;
+            this.lblPageInfo.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.lblPageInfo.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.lblPageInfo.Location = new System.Drawing.Point(105, 12);
+            this.lblPageInfo.MouseState = MaterialSkin.MouseState.HOVER;
+            this.lblPageInfo.Name = "lblPageInfo";
+            this.lblPageInfo.Size = new System.Drawing.Size(130, 17);
+            this.lblPageInfo.TabIndex = 1;
+            this.lblPageInfo.Text = "Page: 1 / 1 (Total: 0)";
             // 
             // btnNext
             // 
-            btnNext.Location = new Point(320, 9);
-            btnNext.Name = "btnNext";
-            btnNext.Size = new Size(88, 23);
-            btnNext.TabIndex = 2;
-            btnNext.Text = "Next >";
-            btnNext.UseVisualStyleBackColor = true;
-            btnNext.Click += btnNext_Click;
+            this.btnNext.AutoSize = false;
+            this.btnNext.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnNext.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnNext.Depth = 0;
+            this.btnNext.HighEmphasis = false;
+            this.btnNext.Icon = null;
+            this.btnNext.Location = new System.Drawing.Point(320, 4);
+            this.btnNext.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnNext.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnNext.Name = "btnNext";
+            this.btnNext.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnNext.Size = new System.Drawing.Size(88, 32);
+            this.btnNext.TabIndex = 2;
+            this.btnNext.Text = "Next >";
+            this.btnNext.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Outlined;
+            this.btnNext.UseAccentColor = false;
+            this.btnNext.UseVisualStyleBackColor = true;
+            this.btnNext.Click += new System.EventHandler(this.btnNext_Click);
             // 
             // AlarmReport_Control
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            Controls.Add(dgvAlarmReport);
-            Controls.Add(pnlPagination);
-            Controls.Add(pnlFilters);
-            Margin = new Padding(3, 2, 3, 2);
-            Name = "AlarmReport_Control";
-            Size = new Size(929, 450);
-            Load += AlarmReport_Control_Load;
-            pnlFilters.ResumeLayout(false);
-            pnlFilters.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)dgvAlarmReport).EndInit();
-            pnlPagination.ResumeLayout(false);
-            pnlPagination.PerformLayout();
-            ResumeLayout(false);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.Transparent;
+            this.Controls.Add(this.dgvAlarmReport);
+            this.Controls.Add(this.pnlPagination);
+            this.Controls.Add(this.pnlFilters);
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.Name = "AlarmReport_Control";
+            this.Size = new System.Drawing.Size(929, 450);
+            this.Load += new System.EventHandler(this.AlarmReport_Control_Load);
+            this.pnlFilters.ResumeLayout(false);
+            this.pnlFilters.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvAlarmReport)).EndInit();
+            this.pnlPagination.ResumeLayout(false);
+            this.pnlPagination.PerformLayout();
+            this.ResumeLayout(false);
         }
         #endregion
 
         private System.Windows.Forms.Panel pnlFilters;
-        private System.Windows.Forms.Button btnGenerateReport;
+        private MaterialSkin.Controls.MaterialButton btnGenerateReport; // Tür güncellendi
         private System.Windows.Forms.ComboBox cmbMachines;
-        private System.Windows.Forms.Label label3;
+        private MaterialSkin.Controls.MaterialLabel label3;            // Tür güncellendi
         private System.Windows.Forms.DateTimePicker dtpEndTime;
-        private System.Windows.Forms.Label label2;
+        private MaterialSkin.Controls.MaterialLabel label2;            // Tür güncellendi
         private System.Windows.Forms.DateTimePicker dtpStartTime;
-        private System.Windows.Forms.Label label1;
+        private MaterialSkin.Controls.MaterialLabel label1;            // Tür güncellendi
         private System.Windows.Forms.DataGridView dgvAlarmReport;
-        private System.Windows.Forms.Button btnExportToExcel;
-
-        // YENİ: Sayfalama Kontrollerinin Private Tanımlamaları
+        private MaterialSkin.Controls.MaterialButton btnExportToExcel;  // Tür güncellendi
         private System.Windows.Forms.Panel pnlPagination;
-        private System.Windows.Forms.Button btnPrev;
-        private System.Windows.Forms.Button btnNext;
-        private System.Windows.Forms.Label lblPageInfo;
+        private MaterialSkin.Controls.MaterialButton btnPrev;           // Tür güncellendi
+        private MaterialSkin.Controls.MaterialButton btnNext;           // Tür güncellendi
+        private MaterialSkin.Controls.MaterialLabel lblPageInfo;         // Tür güncellendi
     }
 }

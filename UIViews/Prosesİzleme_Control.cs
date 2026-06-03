@@ -1,4 +1,5 @@
-﻿using System;
+﻿// UI/Views/Prosesİzleme_Control.cs
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -7,6 +8,8 @@ using Telemetry.Models;
 using Telemetry.Properties;
 using Telemetry.Services;
 using Telemetry.UI.Controls;
+using MaterialSkin;          // YENİ EKLENDİ
+using MaterialSkin.Controls; // YENİ EKLENDİ
 
 namespace Telemetry.UI.Views
 {
@@ -18,7 +21,7 @@ namespace Telemetry.UI.Views
         private PlcPollingService _pollingService;
         private readonly Dictionary<int, MachineCard_Control> _machineCards = new Dictionary<int, MachineCard_Control>();
 
-        // OPTİMİZASYON: Tek bir merkezi UI Timer hem kartları hem KPI'ları throttle (frenleme) mantığıyla günceller
+        // Merkezi UI Timer frenleme (throttle) düzeneği korundu
         private System.Windows.Forms.Timer _uiRefreshTimer;
         private int _kpiTickCounter = 0;
 
@@ -33,8 +36,14 @@ namespace Telemetry.UI.Views
         public Prosesİzleme_Control()
         {
             InitializeComponent();
-            // Çizim performansını artırmak ve anlık kırpışmaları (flickering) önlemek için DoubleBuffered açıyoruz
+
+            // SPEED OPTİMİZASYON: Genel arayüzün ve sekmelerin geçişlerde titremesini engeller
             this.DoubleBuffered = true;
+            this.BackColor = Color.Transparent; // Arka plan yönetimini üst ebeveyn forma devret
+
+            // SPEED OPTİMİZASYON: Kart matrisinin kaydırma (scroll) ivmesini en üst seviyeye çıkartır
+            EnableDoubleBuffer(flowLayoutPanelMachines);
+            EnableDoubleBuffer(flpTopKpis);
         }
 
         public void InitializeView(List<Machine> machines, PlcPollingService service)
@@ -42,16 +51,13 @@ namespace Telemetry.UI.Views
             ClearView();
             _pollingService = service;
 
-            // KRİTİK KRİTER: Event abonelikleri tamamen KAlDIRILDI. 
-            // Saniyede 400 makineden gelen push trafiği UI thread'i kilitlemeyecektir.
-
             // KPI Kartlarını oluştur
             InitializeKpiCards();
             var sortedMachines = machines.OrderBy(m => m.DisplayOrder).ToList();
 
             int displayCounter = 1;
 
-            // Performans için paneli askıya al (Arayüz çizimini dondur)
+            // Performans için paneli askıya al (Arayüz çizim hesaplamalarını dondur)
             flowLayoutPanelMachines.SuspendLayout();
 
             foreach (var machine in sortedMachines)
@@ -64,18 +70,18 @@ namespace Telemetry.UI.Views
                 flowLayoutPanelMachines.Controls.Add(card);
             }
 
-            // Çizimi tek seferde serbest bırak
-            flowLayoutPanelMachines.ResumeLayout();
+            // Çizimi tek bir karede (frame) serbest bırak
+            flowLayoutPanelMachines.ResumeLayout(true);
 
-            // İlk açılışta verileri bir kez manuel güncelle
+            // İlk açılış RAM verileriyle hızlı dolum
             UpdateKpiCards();
             UpdateAllMachineCards();
 
-            // --- OPTİMİZASYON AYARI: Throttled Pull UI Timer ---
+            // Throttled Pull UI Timer Başlatma
             if (_uiRefreshTimer == null)
             {
                 _uiRefreshTimer = new System.Windows.Forms.Timer();
-                _uiRefreshTimer.Interval = 300; // Saniyede ~3 kez çalışır (İnsan gözü için tamamen akıcı ve gecikmesizdir)
+                _uiRefreshTimer.Interval = 300; // Saniyede ~3 kez çalışarak gözü yormayan akıcılık sunar
                 _uiRefreshTimer.Tick += UiRefreshTimer_Tick;
             }
             _uiRefreshTimer.Start();
@@ -85,10 +91,10 @@ namespace Telemetry.UI.Views
         {
             if (_pollingService == null || this.IsDisposed || !this.IsHandleCreated) return;
 
-            // 1. ADIM: Tüm kartları BATCH (Toplu) olarak güncelle (Invoke GEREKMEZ, zaten UI thread'deyiz)
+            // 1. ADIM: Tüm kartları Invoke maliyeti olmadan doğrudan UI thread üzerinde toplu güncelle
             UpdateAllMachineCards();
 
-            // 2. ADIM: Ağır LINQ sorguları barındıran KPI kartlarını saniyede sadece 1 kez güncelle (300ms * 3 = ~900ms)
+            // 2. ADIM: Frenleme (Throttle) mantığıyla saniyede 1 kez KPI hesaplama tetiği (~900ms)
             _kpiTickCounter++;
             if (_kpiTickCounter >= 3)
             {
@@ -101,7 +107,6 @@ namespace Telemetry.UI.Views
         {
             try
             {
-                // UI kilitlenmesini önlemek için doğrudan hafızadaki thread-safe Cache yapısından okuyoruz
                 var cache = _pollingService.MachineDataCache;
                 if (cache == null || cache.IsEmpty) return;
 
@@ -112,14 +117,14 @@ namespace Telemetry.UI.Views
 
                     if (!card.IsDisposed && cache.TryGetValue(machineId, out var status))
                     {
-                        // Kartın text ve grafik arayüzünü doğrudan RAM verisiyle sarsıntısız güncelle
+                        // Kartın text ve grafik motorunu doğrudan RAM verisiyle sarsıntısız güncelle
                         card.UpdateView(status);
                     }
                 }
             }
             catch (Exception)
             {
-                // Döngü içi anlık hataların UI akışını bozmasını engelle
+                // UI akış işleyiş koruması
             }
         }
 
@@ -143,6 +148,10 @@ namespace Telemetry.UI.Views
             flpTopKpis.Controls.Add(_kpiIdleMachines);
         }
 
+        // =========================================================================
+        // SPEED OPTİMİZASYON: TEK GEÇİŞLİ (O(n)) KPI İSTATİSTİK MOTORU
+        // Önceden RAM cache listesini 5 defa tarayan yapı tek döngüye indirgenmiştir.
+        // =========================================================================
         private void UpdateKpiCards()
         {
             if (_pollingService == null || _kpiTotalMachines == null || this.IsDisposed || !this.IsHandleCreated) return;
@@ -150,25 +159,54 @@ namespace Telemetry.UI.Views
             try
             {
                 var allStatuses = _pollingService.MachineDataCache.Values;
+                if (allStatuses == null || !allStatuses.Any()) return;
 
-                // İstatistikleri tek bir döngüde veya optimize edilmiş LINQ ile hesapla
-                int totalMachines = allStatuses.Count;
-                int offlineMachines = allStatuses.Count(s => s.ConnectionState != ConnectionStatus.Connected);
-                int runningMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.IsInRecipeMode && !s.HasActiveAlarm);
-                int alarmMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.HasActiveAlarm);
-                int manualMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
-                int idleMachines = allStatuses.Count(s => s.ConnectionState == ConnectionStatus.Connected && !s.manuel_status && !s.IsInRecipeMode && !s.HasActiveAlarm);
+                int totalMachines = 0;
+                int offlineMachines = 0;
+                int runningMachines = 0;
+                int alarmMachines = 0;
+                int manualMachines = 0;
+                int idleMachines = 0;
+
+                // İşlemci dostu ham döngü taraması
+                foreach (var s in allStatuses)
+                {
+                    totalMachines++;
+                    if (s.ConnectionState != ConnectionStatus.Connected)
+                    {
+                        offlineMachines++;
+                    }
+                    else
+                    {
+                        if (s.HasActiveAlarm)
+                        {
+                            alarmMachines++;
+                        }
+                        else if (s.IsInRecipeMode)
+                        {
+                            runningMachines++;
+                        }
+                        else if (s.manuel_status)
+                        {
+                            manualMachines++;
+                        }
+                        else
+                        {
+                            idleMachines++;
+                        }
+                    }
+                }
 
                 _kpiTotalMachines.SetData(Resources.AllMachines ?? "Total", totalMachines.ToString(), Color.FromArgb(41, 128, 185));
-                _kpiOfflineMachines.SetData("Offline Status", offlineMachines.ToString(), Color.FromArgb(149, 165, 166));
-                _kpiRunningMachines.SetData(Resources.aktifüretim ?? "Running", runningMachines.ToString(), Color.FromArgb(46, 204, 113));
-                _kpiAlarmMachines.SetData(Resources.alarmdurum ?? "Alarm", alarmMachines.ToString(), Color.FromArgb(231, 76, 60));
-                _kpiManualMachines.SetData("Manuel Mode", manualMachines.ToString(), Color.FromArgb(155, 89, 182));
-                _kpiIdleMachines.SetData(Resources.bosbekleyen ?? "Idle", idleMachines.ToString(), Color.FromArgb(243, 156, 18));
+                _kpiOfflineMachines.SetData("Offline Status", offlineMachines.ToString(), Color.FromArgb(144, 164, 174));
+                _kpiRunningMachines.SetData(Resources.aktifüretim ?? "Running", runningMachines.ToString(), Color.FromArgb(76, 175, 80));
+                _kpiAlarmMachines.SetData(Resources.alarmdurum ?? "Alarm", alarmMachines.ToString(), Color.FromArgb(211, 47, 47));
+                _kpiManualMachines.SetData("Manuel Mode", manualMachines.ToString(), Color.FromArgb(142, 68, 173));
+                _kpiIdleMachines.SetData(Resources.bosbekleyen ?? "Idle", idleMachines.ToString(), Color.FromArgb(230, 126, 34));
             }
             catch (Exception)
             {
-                // UI çökmemesi için anlık istisna koruması
+                // UI çökme koruması
             }
         }
 
@@ -190,7 +228,6 @@ namespace Telemetry.UI.Views
 
         private void ClearView()
         {
-            // Önce Timer'ı durdur ve temizle
             _uiRefreshTimer?.Stop();
             _kpiTickCounter = 0;
 
@@ -205,14 +242,37 @@ namespace Telemetry.UI.Views
             _kpiTotalMachines = null;
         }
 
+        // =========================================================================
+        // MEMORY LEAK (BELLEK SIZINTISI) KORUMASI
+        // Kontrolün RAM'de asılı kalmasını ve arka plan sızıntılarını kesin önler.
+        // =========================================================================
         protected override void OnHandleDestroyed(EventArgs e)
         {
-            // Nesne yok edilirken hafıza sızıntılarını (Memory Leak) önlemek için timer'ı temizle
-            _uiRefreshTimer?.Stop();
-            _uiRefreshTimer?.Dispose();
-            _uiRefreshTimer = null;
+            if (_uiRefreshTimer != null)
+            {
+                _uiRefreshTimer.Stop();
+                _uiRefreshTimer.Dispose();
+                _uiRefreshTimer = null;
+            }
 
             base.OnHandleDestroyed(e);
+        }
+
+        // SPEED OPTİMİZASYON: Kaydırma (scroll) akıcılığını sağlayan yansıtma (Reflection) metodu
+        private void EnableDoubleBuffer(Control control)
+        {
+            try
+            {
+                typeof(Control).InvokeMember("DoubleBuffered",
+                    System.Reflection.BindingFlags.SetProperty |
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.NonPublic,
+                    null, control, new object[] { true });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DoubleBuffering could not be enabled: {ex.Message}");
+            }
         }
 
         private void flpTopKpis_Paint(object sender, PaintEventArgs e) { }

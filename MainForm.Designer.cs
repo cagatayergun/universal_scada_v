@@ -19,285 +19,309 @@ namespace Telemetry
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
-            pnlNavigation = new Panel();
-            pictureBox2 = new PictureBox();
-            pictureBox1 = new PictureBox();
-            btnAyarlar = new Button();
-            btnRaporlar = new Button();
-            btnProsesKontrol = new Button();
-            btnProsesIzleme = new Button();
-            btnGenelBakis = new Button();
-            pnlContent = new Panel();
-            menuStrip1 = new MenuStrip();
-            dilToolStripMenuItem = new ToolStripMenuItem();
-            türkçeToolStripMenuItem = new ToolStripMenuItem();
-            englishToolStripMenuItem = new ToolStripMenuItem();
-            oturumToolStripMenuItem = new ToolStripMenuItem();
-            çıkışYapToolStripMenuItem = new ToolStripMenuItem();
-            statusStrip1 = new StatusStrip();
-            lblStatusCurrentUser = new ToolStripStatusLabel();
-            springLabel = new ToolStripStatusLabel();
-            lblStatusLiveEvents = new ToolStripStatusLabel();
-            pnlNavigation.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
-            menuStrip1.SuspendLayout();
-            statusStrip1.SuspendLayout();
-            SuspendLayout();
+            this.pnlNavigation = new System.Windows.Forms.Panel();
+            this.pictureBox2 = new System.Windows.Forms.PictureBox();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.btnAyarlar = new MaterialSkin.Controls.MaterialButton();       // MaterialButton yapıldı
+            this.btnRaporlar = new MaterialSkin.Controls.MaterialButton();      // MaterialButton yapıldı
+            this.btnProsesKontrol = new MaterialSkin.Controls.MaterialButton(); // MaterialButton yapıldı
+            this.btnProsesIzleme = new MaterialSkin.Controls.MaterialButton();  // MaterialButton yapıldı
+            this.btnGenelBakis = new MaterialSkin.Controls.MaterialButton();    // MaterialButton yapıldı
+            this.pnlContent = new System.Windows.Forms.Panel();
+            this.menuStrip1 = new System.Windows.Forms.MenuStrip();
+            this.dilToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.türkçeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.englishToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.oturumToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.çıkışYapToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.statusStrip1 = new System.Windows.Forms.StatusStrip();
+            this.lblStatusCurrentUser = new System.Windows.Forms.ToolStripStatusLabel();
+            this.springLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            this.lblStatusLiveEvents = new System.Windows.Forms.ToolStripStatusLabel();
+            this.pnlNavigation.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
+            this.menuStrip1.SuspendLayout();
+            this.statusStrip1.SuspendLayout();
+            this.SuspendLayout();
             // 
             // pnlNavigation
             // 
-            pnlNavigation.BackColor = Color.FromArgb(0, 0, 64);
-            pnlNavigation.Controls.Add(pictureBox2);
-            pnlNavigation.Controls.Add(pictureBox1);
-            pnlNavigation.Controls.Add(btnAyarlar);
-            pnlNavigation.Controls.Add(btnRaporlar);
-            pnlNavigation.Controls.Add(btnProsesKontrol);
-            pnlNavigation.Controls.Add(btnProsesIzleme);
-            pnlNavigation.Controls.Add(btnGenelBakis);
-            pnlNavigation.Dock = DockStyle.Left;
-            pnlNavigation.ForeColor = Color.Navy;
-            pnlNavigation.Location = new Point(0, 24);
-            pnlNavigation.Margin = new Padding(3, 2, 3, 2);
-            pnlNavigation.Name = "pnlNavigation";
-            pnlNavigation.Size = new Size(175, 369);
-            pnlNavigation.TabIndex = 0;
-            // 
-            // pictureBox2
-            // 
-            pictureBox2.Anchor = AnchorStyles.Bottom;
-            pictureBox2.Image = Properties.Resource1.yilmak;
-            pictureBox2.Location = new Point(0, 329);
-            pictureBox2.Name = "pictureBox2";
-            pictureBox2.Size = new Size(175, 40);
-            pictureBox2.SizeMode = PictureBoxSizeMode.StretchImage;
-            pictureBox2.TabIndex = 6;
-            pictureBox2.TabStop = false;
-            // 
-            // pictureBox1
-            // 
-            pictureBox1.Anchor = AnchorStyles.Bottom;
-            pictureBox1.Image = Properties.Resource1.yilmak2___Kopya;
-            pictureBox1.Location = new Point(56, 274);
-            pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(63, 55);
-            pictureBox1.SizeMode = PictureBoxSizeMode.StretchImage;
-            pictureBox1.TabIndex = 5;
-            pictureBox1.TabStop = false;
-            // 
-            // btnAyarlar
-            // 
-            btnAyarlar.Dock = DockStyle.Top;
-            btnAyarlar.FlatAppearance.BorderSize = 0;
-            btnAyarlar.FlatStyle = FlatStyle.Flat;
-            btnAyarlar.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold);
-            btnAyarlar.ForeColor = Color.White;
-            btnAyarlar.Location = new Point(0, 136);
-            btnAyarlar.Margin = new Padding(3, 2, 3, 2);
-            btnAyarlar.Name = "btnAyarlar";
-            btnAyarlar.Padding = new Padding(9, 0, 0, 0);
-            btnAyarlar.Size = new Size(175, 34);
-            btnAyarlar.TabIndex = 3;
-            btnAyarlar.Text = "Ayarlar";
-            btnAyarlar.TextAlign = ContentAlignment.MiddleLeft;
-            btnAyarlar.UseVisualStyleBackColor = true;
-            btnAyarlar.Click += btnAyarlar_Click;
-            // 
-            // btnRaporlar
-            // 
-            btnRaporlar.Dock = DockStyle.Top;
-            btnRaporlar.FlatAppearance.BorderSize = 0;
-            btnRaporlar.FlatStyle = FlatStyle.Flat;
-            btnRaporlar.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold);
-            btnRaporlar.ForeColor = Color.White;
-            btnRaporlar.Location = new Point(0, 102);
-            btnRaporlar.Margin = new Padding(3, 2, 3, 2);
-            btnRaporlar.Name = "btnRaporlar";
-            btnRaporlar.Padding = new Padding(9, 0, 0, 0);
-            btnRaporlar.Size = new Size(175, 34);
-            btnRaporlar.TabIndex = 2;
-            btnRaporlar.Text = "Raporlar";
-            btnRaporlar.TextAlign = ContentAlignment.MiddleLeft;
-            btnRaporlar.UseVisualStyleBackColor = true;
-            btnRaporlar.Click += btnRaporlar_Click;
-            // 
-            // btnProsesKontrol
-            // 
-            btnProsesKontrol.Dock = DockStyle.Top;
-            btnProsesKontrol.FlatAppearance.BorderSize = 0;
-            btnProsesKontrol.FlatStyle = FlatStyle.Flat;
-            btnProsesKontrol.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold);
-            btnProsesKontrol.ForeColor = Color.White;
-            btnProsesKontrol.Location = new Point(0, 68);
-            btnProsesKontrol.Margin = new Padding(3, 2, 3, 2);
-            btnProsesKontrol.Name = "btnProsesKontrol";
-            btnProsesKontrol.Padding = new Padding(9, 0, 0, 0);
-            btnProsesKontrol.Size = new Size(175, 34);
-            btnProsesKontrol.TabIndex = 1;
-            btnProsesKontrol.Text = "Proses Kontrol";
-            btnProsesKontrol.TextAlign = ContentAlignment.MiddleLeft;
-            btnProsesKontrol.UseVisualStyleBackColor = true;
-            btnProsesKontrol.Click += btnProsesKontrol_Click;
-            // 
-            // btnProsesIzleme
-            // 
-            btnProsesIzleme.Dock = DockStyle.Top;
-            btnProsesIzleme.FlatAppearance.BorderSize = 0;
-            btnProsesIzleme.FlatStyle = FlatStyle.Flat;
-            btnProsesIzleme.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold);
-            btnProsesIzleme.ForeColor = Color.White;
-            btnProsesIzleme.Location = new Point(0, 34);
-            btnProsesIzleme.Margin = new Padding(3, 2, 3, 2);
-            btnProsesIzleme.Name = "btnProsesIzleme";
-            btnProsesIzleme.Padding = new Padding(9, 0, 0, 0);
-            btnProsesIzleme.Size = new Size(175, 34);
-            btnProsesIzleme.TabIndex = 0;
-            btnProsesIzleme.Text = "Proses İzleme";
-            btnProsesIzleme.TextAlign = ContentAlignment.MiddleLeft;
-            btnProsesIzleme.UseVisualStyleBackColor = true;
-            btnProsesIzleme.Click += btnProsesIzleme_Click;
+            this.pnlNavigation.BackColor = System.Drawing.Color.Transparent; // Koyu mod panel parlamasını engelleyen şeffaflık
+            this.pnlNavigation.Controls.Add(this.pictureBox2);
+            this.pnlNavigation.Controls.Add(this.pictureBox1);
+            this.pnlNavigation.Controls.Add(this.btnAyarlar);
+            this.pnlNavigation.Controls.Add(this.btnRaporlar);
+            this.pnlNavigation.Controls.Add(this.btnProsesKontrol);
+            this.pnlNavigation.Controls.Add(this.btnProsesIzleme);
+            this.pnlNavigation.Controls.Add(this.btnGenelBakis);
+            this.pnlNavigation.Dock = System.Windows.Forms.DockStyle.Left;
+            this.pnlNavigation.Location = new System.Drawing.Point(3, 88); // MaterialForm üst padding payı dengelendi
+            this.pnlNavigation.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.pnlNavigation.Name = "pnlNavigation";
+            this.pnlNavigation.Size = new System.Drawing.Size(185, 305); // Buton genişlik sınırları için 185px yapıldı
+            this.pnlNavigation.TabIndex = 0;
             // 
             // btnGenelBakis
             // 
-            btnGenelBakis.Dock = DockStyle.Top;
-            btnGenelBakis.FlatAppearance.BorderSize = 0;
-            btnGenelBakis.FlatStyle = FlatStyle.Flat;
-            btnGenelBakis.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold);
-            btnGenelBakis.ForeColor = Color.White;
-            btnGenelBakis.Location = new Point(0, 0);
-            btnGenelBakis.Margin = new Padding(3, 2, 3, 2);
-            btnGenelBakis.Name = "btnGenelBakis";
-            btnGenelBakis.Padding = new Padding(9, 0, 0, 0);
-            btnGenelBakis.Size = new Size(175, 34);
-            btnGenelBakis.TabIndex = 4;
-            btnGenelBakis.Text = "Genel Bakış";
-            btnGenelBakis.TextAlign = ContentAlignment.MiddleLeft;
-            btnGenelBakis.UseVisualStyleBackColor = true;
-            btnGenelBakis.Click += btnGenelBakis_Click;
+            this.btnGenelBakis.AutoSize = false;
+            this.btnGenelBakis.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnGenelBakis.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnGenelBakis.Depth = 0;
+            this.btnGenelBakis.HighEmphasis = false;
+            this.btnGenelBakis.Icon = null;
+            this.btnGenelBakis.Location = new System.Drawing.Point(5, 5);
+            this.btnGenelBakis.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnGenelBakis.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnGenelBakis.Name = "btnGenelBakis";
+            this.btnGenelBakis.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnGenelBakis.Size = new System.Drawing.Size(175, 36); // Dikey 36px material standardına eşitlendi
+            this.btnGenelBakis.TabIndex = 4;
+            this.btnGenelBakis.Text = "Genel Bakış";
+            this.btnGenelBakis.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Text; // Flat şeffaf stil
+            this.btnGenelBakis.UseAccentColor = false;
+            this.btnGenelBakis.UseVisualStyleBackColor = true;
+            this.btnGenelBakis.Click += new System.EventHandler(this.btnGenelBakis_Click);
+            // 
+            // btnProsesIzleme
+            // 
+            this.btnProsesIzleme.AutoSize = false;
+            this.btnProsesIzleme.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnProsesIzleme.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnProsesIzleme.Depth = 0;
+            this.btnProsesIzleme.HighEmphasis = false;
+            this.btnProsesIzleme.Icon = null;
+            this.btnProsesIzleme.Location = new System.Drawing.Point(5, 46); // Buton konumları dikeyde simetrikleştirildi
+            this.btnProsesIzleme.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnProsesIzleme.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnProsesIzleme.Name = "btnProsesIzleme";
+            this.btnProsesIzleme.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnProsesIzleme.Size = new System.Drawing.Size(175, 36);
+            this.btnProsesIzleme.TabIndex = 0;
+            this.btnProsesIzleme.Text = "Proses İzleme";
+            this.btnProsesIzleme.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Text;
+            this.btnProsesIzleme.UseAccentColor = false;
+            this.btnProsesIzleme.UseVisualStyleBackColor = true;
+            this.btnProsesIzleme.Click += new System.EventHandler(this.btnProsesIzleme_Click);
+            // 
+            // btnProsesKontrol
+            // 
+            this.btnProsesKontrol.AutoSize = false;
+            this.btnProsesKontrol.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnProsesKontrol.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnProsesKontrol.Depth = 0;
+            this.btnProsesKontrol.HighEmphasis = false;
+            this.btnProsesKontrol.Icon = null;
+            this.btnProsesKontrol.Location = new System.Drawing.Point(5, 87);
+            this.btnProsesKontrol.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnProsesKontrol.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnProsesKontrol.Name = "btnProsesKontrol";
+            this.btnProsesKontrol.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnProsesKontrol.Size = new System.Drawing.Size(175, 36);
+            this.btnProsesKontrol.TabIndex = 1;
+            this.btnProsesKontrol.Text = "Proses Kontrol";
+            this.btnProsesKontrol.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Text;
+            this.btnProsesKontrol.UseAccentColor = false;
+            this.btnProsesKontrol.UseVisualStyleBackColor = true;
+            this.btnProsesKontrol.Click += new System.EventHandler(this.btnProsesKontrol_Click);
+            // 
+            // btnRaporlar
+            // 
+            this.btnRaporlar.AutoSize = false;
+            this.btnRaporlar.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnRaporlar.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnRaporlar.Depth = 0;
+            this.btnRaporlar.HighEmphasis = false;
+            this.btnRaporlar.Icon = null;
+            this.btnRaporlar.Location = new System.Drawing.Point(5, 128);
+            this.btnRaporlar.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnRaporlar.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnRaporlar.Name = "btnRaporlar";
+            this.btnRaporlar.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnRaporlar.Size = new System.Drawing.Size(175, 36);
+            this.btnRaporlar.TabIndex = 2;
+            this.btnRaporlar.Text = "Raporlar";
+            this.btnRaporlar.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Text;
+            this.btnRaporlar.UseAccentColor = false;
+            this.btnRaporlar.UseVisualStyleBackColor = true;
+            this.btnRaporlar.Click += new System.EventHandler(this.btnRaporlar_Click);
+            // 
+            // btnAyarlar
+            // 
+            this.btnAyarlar.AutoSize = false;
+            this.btnAyarlar.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnAyarlar.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnAyarlar.Depth = 0;
+            this.btnAyarlar.HighEmphasis = false;
+            this.btnAyarlar.Icon = null;
+            this.btnAyarlar.Location = new System.Drawing.Point(5, 169);
+            this.btnAyarlar.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnAyarlar.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnAyarlar.Name = "btnAyarlar";
+            this.btnAyarlar.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnAyarlar.Size = new System.Drawing.Size(175, 36);
+            this.btnAyarlar.TabIndex = 3;
+            this.btnAyarlar.Text = "Ayarlar";
+            this.btnAyarlar.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Text;
+            this.btnAyarlar.UseAccentColor = false;
+            this.btnAyarlar.UseVisualStyleBackColor = true;
+            this.btnAyarlar.Click += new System.EventHandler(this.btnAyarlar_Click);
+            // 
+            // pictureBox1
+            // 
+            this.pictureBox1.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
+            this.pictureBox1.Image = global::Telemetry.Properties.Resource1.yilmak2___Kopya;
+            this.pictureBox1.Location = new System.Drawing.Point(61, 210);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(63, 55);
+            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox1.TabIndex = 5;
+            this.pictureBox1.TabStop = false;
+            // 
+            // pictureBox2
+            // 
+            this.pictureBox2.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
+            this.pictureBox2.Image = global::Telemetry.Properties.Resource1.yilmak;
+            this.pictureBox2.Location = new System.Drawing.Point(5, 265);
+            this.pictureBox2.Name = "pictureBox2";
+            this.pictureBox2.Size = new System.Drawing.Size(175, 40);
+            this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox2.TabIndex = 6;
+            this.pictureBox2.TabStop = false;
             // 
             // pnlContent
             // 
-            pnlContent.Dock = DockStyle.Fill;
-            pnlContent.Location = new Point(175, 24);
-            pnlContent.Margin = new Padding(3, 2, 3, 2);
-            pnlContent.Name = "pnlContent";
-            pnlContent.Size = new Size(719, 369);
-            pnlContent.TabIndex = 1;
+            this.pnlContent.BackColor = System.Drawing.Color.Transparent;
+            this.pnlContent.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pnlContent.Location = new System.Drawing.Point(188, 88);
+            this.pnlContent.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.pnlContent.Name = "pnlContent";
+            this.pnlContent.Size = new System.Drawing.Size(703, 305);
+            this.pnlContent.TabIndex = 1;
             // 
             // menuStrip1
             // 
-            menuStrip1.ImageScalingSize = new Size(20, 20);
-            menuStrip1.Items.AddRange(new ToolStripItem[] { dilToolStripMenuItem, oturumToolStripMenuItem });
-            menuStrip1.Location = new Point(0, 0);
-            menuStrip1.Name = "menuStrip1";
-            menuStrip1.Padding = new Padding(5, 2, 0, 2);
-            menuStrip1.Size = new Size(894, 24);
-            menuStrip1.TabIndex = 2;
-            menuStrip1.Text = "menuStrip1";
+            this.menuStrip1.ImageScalingSize = new System.Drawing.Size(20, 20);
+            this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.dilToolStripMenuItem,
+            this.oturumToolStripMenuItem});
+            this.menuStrip1.Location = new System.Drawing.Point(3, 64); // MaterialForm üst bar hizalaması
+            this.menuStrip1.Name = "menuStrip1";
+            this.menuStrip1.Padding = new System.Windows.Forms.Padding(5, 2, 0, 2);
+            this.menuStrip1.Size = new System.Drawing.Size(888, 24);
+            this.menuStrip1.TabIndex = 2;
+            this.menuStrip1.Text = "menuStrip1";
             // 
             // dilToolStripMenuItem
             // 
-            dilToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { türkçeToolStripMenuItem, englishToolStripMenuItem });
-            dilToolStripMenuItem.Name = "dilToolStripMenuItem";
-            dilToolStripMenuItem.Size = new Size(33, 20);
-            dilToolStripMenuItem.Text = "Dil";
+            this.dilToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.türkçeToolStripMenuItem,
+            this.englishToolStripMenuItem});
+            this.dilToolStripMenuItem.Name = "dilToolStripMenuItem";
+            this.dilToolStripMenuItem.Size = new System.Drawing.Size(33, 20);
+            this.dilToolStripMenuItem.Text = "Dil";
             // 
             // türkçeToolStripMenuItem
             // 
-            türkçeToolStripMenuItem.Name = "türkçeToolStripMenuItem";
-            türkçeToolStripMenuItem.Size = new Size(112, 22);
-            türkçeToolStripMenuItem.Text = "Türkçe";
-            türkçeToolStripMenuItem.Click += türkçeToolStripMenuItem_Click;
+            this.türkçeToolStripMenuItem.Name = "türkçeToolStripMenuItem";
+            this.türkçeToolStripMenuItem.Size = new System.Drawing.Size(112, 22);
+            this.türkçeToolStripMenuItem.Text = "Türkçe";
+            this.türkçeToolStripMenuItem.Click += new System.EventHandler(this.türkçeToolStripMenuItem_Click);
             // 
             // englishToolStripMenuItem
             // 
-            englishToolStripMenuItem.Name = "englishToolStripMenuItem";
-            englishToolStripMenuItem.Size = new Size(112, 22);
-            englishToolStripMenuItem.Text = "English";
-            englishToolStripMenuItem.Click += englishToolStripMenuItem_Click;
+            this.englishToolStripMenuItem.Name = "englishToolStripMenuItem";
+            this.englishToolStripMenuItem.Size = new System.Drawing.Size(112, 22);
+            this.englishToolStripMenuItem.Text = "English";
+            this.englishToolStripMenuItem.Click += new System.EventHandler(this.englishToolStripMenuItem_Click);
             // 
             // oturumToolStripMenuItem
             // 
-            oturumToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { çıkışYapToolStripMenuItem });
-            oturumToolStripMenuItem.Name = "oturumToolStripMenuItem";
-            oturumToolStripMenuItem.Size = new Size(61, 20);
-            oturumToolStripMenuItem.Text = "Oturum";
+            this.oturumToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.çıkışYapToolStripMenuItem});
+            this.oturumToolStripMenuItem.Name = "oturumToolStripMenuItem";
+            this.oturumToolStripMenuItem.Size = new System.Drawing.Size(61, 20);
+            this.oturumToolStripMenuItem.Text = "Oturum";
             // 
             // çıkışYapToolStripMenuItem
             // 
-            çıkışYapToolStripMenuItem.Name = "çıkışYapToolStripMenuItem";
-            çıkışYapToolStripMenuItem.Size = new Size(116, 22);
-            çıkışYapToolStripMenuItem.Text = "Oturum";
-            çıkışYapToolStripMenuItem.Click += çıkışYapToolStripMenuItem_Click;
+            this.çıkışYapToolStripMenuItem.Name = "çıkışYapToolStripMenuItem";
+            this.çıkışYapToolStripMenuItem.Size = new System.Drawing.Size(116, 22);
+            this.çıkışYapToolStripMenuItem.Text = "Oturum";
+            this.çıkışYapToolStripMenuItem.Click += new System.EventHandler(this.çıkışYapToolStripMenuItem_Click);
             // 
             // statusStrip1
             // 
-            statusStrip1.ImageScalingSize = new Size(20, 20);
-            statusStrip1.Items.AddRange(new ToolStripItem[] { lblStatusCurrentUser, springLabel, lblStatusLiveEvents });
-            statusStrip1.Location = new Point(0, 393);
-            statusStrip1.Name = "statusStrip1";
-            statusStrip1.Padding = new Padding(1, 0, 12, 0);
-            statusStrip1.Size = new Size(894, 22);
-            statusStrip1.TabIndex = 3;
-            statusStrip1.Text = "statusStrip1";
+            this.statusStrip1.ImageScalingSize = new System.Drawing.Size(20, 20);
+            this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.lblStatusCurrentUser,
+            this.springLabel,
+            this.lblStatusLiveEvents});
+            this.statusStrip1.Location = new System.Drawing.Point(3, 393);
+            this.statusStrip1.Name = "statusStrip1";
+            this.statusStrip1.Padding = new System.Windows.Forms.Padding(1, 0, 12, 0);
+            this.statusStrip1.Size = new System.Drawing.Size(888, 22);
+            this.statusStrip1.TabIndex = 3;
+            this.statusStrip1.Text = "statusStrip1";
             // 
             // lblStatusCurrentUser
             // 
-            lblStatusCurrentUser.Name = "lblStatusCurrentUser";
-            lblStatusCurrentUser.Size = new Size(76, 17);
-            lblStatusCurrentUser.Text = "Giriş Yapan: -";
+            this.lblStatusCurrentUser.Name = "lblStatusCurrentUser";
+            this.lblStatusCurrentUser.Size = new System.Drawing.Size(76, 17);
+            this.lblStatusCurrentUser.Text = "Giriş Yapan: -";
             // 
             // springLabel
             // 
-            springLabel.Name = "springLabel";
-            springLabel.Size = new Size(679, 17);
-            springLabel.Spring = true;
+            this.springLabel.Name = "springLabel";
+            this.springLabel.Size = new System.Drawing.Size(673, 17);
+            this.springLabel.Spring = true;
             // 
             // lblStatusLiveEvents
             // 
-            lblStatusLiveEvents.IsLink = true;
-            lblStatusLiveEvents.Name = "lblStatusLiveEvents";
-            lblStatusLiveEvents.Size = new Size(126, 17);
-            lblStatusLiveEvents.Text = "Canlı Olay Akışı Göster";
-            lblStatusLiveEvents.Click += lblStatusLiveEvents_Click;
+            this.lblStatusLiveEvents.IsLink = true;
+            this.lblStatusLiveEvents.Name = "lblStatusLiveEvents";
+            this.lblStatusLiveEvents.Size = new System.Drawing.Size(126, 17);
+            this.lblStatusLiveEvents.Text = "Canlı Olay Akışı Göster";
+            this.lblStatusLiveEvents.Click += new System.EventHandler(this.lblStatusLiveEvents_Click);
             // 
             // MainForm
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(894, 415);
-            Controls.Add(pnlContent);
-            Controls.Add(pnlNavigation);
-            Controls.Add(statusStrip1);
-            Controls.Add(menuStrip1);
-            Icon = (Icon)resources.GetObject("$this.Icon");
-            MainMenuStrip = menuStrip1;
-            Margin = new Padding(3, 2, 3, 2);
-            Name = "MainForm";
-            Text = "Telemetry SCADA Sistemi";
-            WindowState = FormWindowState.Maximized;
-            FormClosing += MainForm_FormClosing;
-            Load += MainForm_Load;
-            pnlNavigation.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)pictureBox2).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
-            menuStrip1.ResumeLayout(false);
-            menuStrip1.PerformLayout();
-            statusStrip1.ResumeLayout(false);
-            statusStrip1.PerformLayout();
-            ResumeLayout(false);
-            PerformLayout();
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.ClientSize = new System.Drawing.Size(894, 418);
+            this.Controls.Add(this.pnlContent);
+            this.Controls.Add(this.pnlNavigation);
+            this.Controls.Add(this.statusStrip1);
+            this.Controls.Add(this.menuStrip1);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.MainMenuStrip = this.menuStrip1;
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.Name = "MainForm";
+            this.Text = "Telemetry SCADA Sistemi";
+            this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
+            this.Load += new System.EventHandler(this.MainForm_Load);
+            this.pnlNavigation.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
+            this.menuStrip1.ResumeLayout(false);
+            this.menuStrip1.PerformLayout();
+            this.statusStrip1.ResumeLayout(false);
+            this.statusStrip1.PerformLayout();
+            this.ResumeLayout(false);
+            this.PerformLayout();
+
         }
 
         #endregion
 
         private System.Windows.Forms.Panel pnlNavigation;
-        private System.Windows.Forms.Button btnAyarlar;
-        private System.Windows.Forms.Button btnRaporlar;
-        private System.Windows.Forms.Button btnProsesKontrol;
-        private System.Windows.Forms.Button btnProsesIzleme;
+        private MaterialSkin.Controls.MaterialButton btnAyarlar;         // Tür güncellendi
+        private MaterialSkin.Controls.MaterialButton btnRaporlar;        // Tür güncellendi
+        private MaterialSkin.Controls.MaterialButton btnProsesKontrol;   // Tür güncellendi
+        private MaterialSkin.Controls.MaterialButton btnProsesIzleme;    // Tür güncellendi
         private System.Windows.Forms.Panel pnlContent;
-        private System.Windows.Forms.Button btnGenelBakis;
+        private MaterialSkin.Controls.MaterialButton btnGenelBakis;      // Tür güncellendi
         private System.Windows.Forms.MenuStrip menuStrip1;
         private System.Windows.Forms.ToolStripMenuItem dilToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem türkçeToolStripMenuItem;
@@ -308,7 +332,7 @@ namespace Telemetry
         private System.Windows.Forms.ToolStripStatusLabel lblStatusLiveEvents;
         private System.Windows.Forms.ToolStripMenuItem oturumToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem çıkışYapToolStripMenuItem;
-        private PictureBox pictureBox1;
-        private PictureBox pictureBox2;
+        private System.Windows.Forms.PictureBox pictureBox1;
+        private System.Windows.Forms.PictureBox pictureBox2;
     }
 }

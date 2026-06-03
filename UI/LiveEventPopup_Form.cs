@@ -3,16 +3,33 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using Telemetry.Services;
+using MaterialSkin;          // YENİ EKLENDİ: MaterialSkin ana kütüphanesi
+using MaterialSkin.Controls; // YENİ EKLENDİ: MaterialForm bileşenleri için
 
 namespace Telemetry.UI
 {
-    public partial class LiveEventPopup_Form : Form
+    // Form yerine MaterialForm'dan türetiyoruz
+    public partial class LiveEventPopup_Form : MaterialForm
     {
         private const int MAX_EVENTS = 100; // Ekranda gösterilecek maksimum olay sayısı
 
         public LiveEventPopup_Form()
         {
             InitializeComponent();
+
+            // =========================================================================
+            // MATERIALSKIN ENTEGRASYONU VE PERFORMANS AYARLARI
+            // =========================================================================
+            var materialSkinManager = MaterialSkinManager.Instance;
+            materialSkinManager.AddFormToManage(this); // Formu temalandırma motoruna bağla
+
+            this.DoubleBuffered = true; // Formun kendi çizim kırpışmalarını engelle
+
+            // SPEED OPTİMİZASYON: Satır eklendikçe ListView'de oluşan beyaz dalgalanma/titremeyi önler
+            if (lstEvents != null)
+            {
+                EnableDoubleBuffer(lstEvents);
+            }
 
             try
             {
@@ -29,7 +46,7 @@ namespace Telemetry.UI
         {
             try
             {
-                // 1. GÜVENLİK KONTROLÜ: Form kapandıysa veya handle oluşmadıysa işlem yapma.
+                // GÜVENLİK KONTROLÜ: Form kapandıysa veya handle oluşmadıysa işlem yapma.
                 if (this.IsDisposed || !this.IsHandleCreated) return;
 
                 // Bu olay arka plan thread'inden gelebilir, bu yüzden Invoke kullanmak zorunludur.
@@ -62,34 +79,38 @@ namespace Telemetry.UI
                 // UI elemanına erişmeden önce tekrar kontrol (Thread güvenliği için)
                 if (lstEvents.IsDisposed) return;
 
-                // Performans için BeginUpdate kullanıyoruz (Titreşimi önler)
+                // Performans için BeginUpdate kullanıyoruz (Arayüz kilitlenmesini önler)
                 lstEvents.BeginUpdate();
 
                 var item = new ListViewItem(liveEvent.Timestamp.ToString("HH:mm:ss"));
-                item.SubItems.Add(liveEvent.Source ?? "-"); // Null check eklendi
+                item.SubItems.Add(liveEvent.Source ?? "-"); // Null check
                 item.SubItems.Add(liveEvent.Message ?? "-");
 
-                // Olay türüne göre renklendir
+                // =========================================================================
+                // MODERNİZASYON: GOOGLE MATERIAL DARK THEME UYUMLU SATIR RENKLERİ
+                // Eski çiğ renkler yerine Dark Mode arka planında gözü yormayan pastel tonlar seçildi.
+                // =========================================================================
                 switch (liveEvent.Type)
                 {
                     case EventType.Alarm:
                         item.ForeColor = Color.White;
-                        item.BackColor = Color.FromArgb(192, 57, 43); // Kırmızı
+                        item.BackColor = Color.FromArgb(183, 28, 28); // Material Red 900 (Koyu Kırmızı)
                         break;
                     case EventType.Process:
-                        item.ForeColor = Color.Black;
-                        item.BackColor = Color.FromArgb(178, 235, 242); // Açık Mavi
+                        item.ForeColor = Color.White;
+                        item.BackColor = Color.FromArgb(0, 121, 107); // Material Teal 700 (Koyu Camgöbeği)
                         break;
                     case EventType.SystemSuccess:
                         item.ForeColor = Color.White;
-                        item.BackColor = Color.FromArgb(39, 174, 96); // Yeşil
+                        item.BackColor = Color.FromArgb(46, 125, 50); // Material Green 800 (Yumuşak Yeşil)
                         break;
                     case EventType.SystemWarning:
                         item.ForeColor = Color.White;
-                        item.BackColor = Color.FromArgb(243, 156, 18); // Turuncu
+                        item.BackColor = Color.FromArgb(230, 81, 0); // Material Orange 900 (Yumuşak Turuncu)
                         break;
                     default:
-                        item.ForeColor = Color.Black;
+                        // Varsayılan satırlarda Dark Mode uyumu için yazı rengi açık gri/beyaz kalmalı
+                        item.ForeColor = Color.FromArgb(220, 220, 220);
                         break;
                 }
 
@@ -116,7 +137,7 @@ namespace Telemetry.UI
             }
         }
 
-        // GÜNCELLENDİ: Formu kapatmak yerine gizle
+        // Formu kapatmak yerine gizle
         private void LiveEventPopup_Form_FormClosing(object sender, FormClosingEventArgs e)
         {
             try
@@ -152,6 +173,16 @@ namespace Telemetry.UI
             {
                 base.OnFormClosed(e);
             }
+        }
+
+        // SPEED OPTİMİZASYON: Kontrolün korumalı (protected) DoubleBuffered özelliğini aktif eden yardımcı metot
+        private void EnableDoubleBuffer(Control control)
+        {
+            typeof(Control).InvokeMember("DoubleBuffered",
+                System.Reflection.BindingFlags.SetProperty |
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.NonPublic,
+                null, control, new object[] { true });
         }
     }
 }

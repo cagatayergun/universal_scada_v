@@ -1,12 +1,15 @@
-﻿// VncViewer_Form.cs
+﻿// UI/VncViewer_Form.cs
 using System;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using VncSharpCore; // RemoteDesktop sınıfı için
+using MaterialSkin;          // YENİ EKLENDİ: MaterialSkin ana kütüphanesi
+using MaterialSkin.Controls; // YENİ EKLENDİ: MaterialForm bileşenleri için
 
 namespace Telemetry.UI
 {
-    public partial class VncViewer_Form : Form
+    // Form yerine MaterialForm sınıfından türetiyoruz
+    public partial class VncViewer_Form : MaterialForm
     {
         private readonly string _address;
         private readonly string _password;
@@ -17,12 +20,21 @@ namespace Telemetry.UI
         {
             InitializeComponent();
 
+            // =========================================================================
+            // MATERIALSKIN FORM ENTEGRASYONU VE CANLI AKIŞ PERFORMANS AYARLARI
+            // =========================================================================
+            var materialSkinManager = MaterialSkinManager.Instance;
+            materialSkinManager.AddFormToManage(this); // Formu merkezi temaya bağla
+
+            // CANLI YAYIN OPTİMİZASYONU: VNC üzerinden gelen pikseller ekrana basılırken 
+            // arayüzün titremesini, yırtılmasını (tearing) ve donmasını tamamen engeller.
+            this.DoubleBuffered = true;
+
             // Adres ve Port ayrıştırma işlemi
             if (address.Contains(":"))
             {
                 var parts = address.Split(':');
                 _address = parts[0];
-                // Port ayrıştırma başarılı olmazsa _port varsayılan değeri (5900) korur
                 if (parts.Length > 1 && !int.TryParse(parts[1], out _port))
                 {
                     System.Diagnostics.Debug.WriteLine($"Warning: Invalid port number detected: '{parts[1]}'. The default port (5900) will be used.");
@@ -46,19 +58,22 @@ namespace Telemetry.UI
         private async void VncViewer_Form_Load(object sender, EventArgs e)
         {
             this.Text = $"{_address}:{_port} - Connecting...";
+
+            // UX DÜZELTMESİ: VNC ekranı bağlanana kadar arka planda beyaz boşluk kalmaması için
+            // tuval (canvas) rengini asenkron olarak koyu gri/siyah yapıyoruz.
+            remoteDesktop1.BackColor = System.Drawing.Color.FromArgb(17, 24, 39);
+
             try
             {
-                // Bağlantıyı arka planda başlatıyoruz.
+                // Bağlantıyı arka planda thread kilitlemeden (Non-blocking) başlatıyoruz
                 await Task.Run(() => remoteDesktop1.Connect(_address));
             }
             catch (Exception ex)
             {
-                // Bağlantı başlatılırken bir hata oluşursa:
                 System.Diagnostics.Debug.WriteLine($"VNC connection initialization error: {ex.Message}");
                 MessageBox.Show($"Error initializing VNC connection: {ex.Message}", "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-                // Hata durumunda formu kapatma işlemine başla
-                _isClosingInitiated = true; // Kapanma işleminin bu hata nedeniyle başladığını işaretle
+                _isClosingInitiated = true;
                 this.Close();
             }
         }
@@ -100,6 +115,11 @@ namespace Telemetry.UI
 
             _isClosingInitiated = true;
 
+            // GÜVENLİK OPTİMİZASYONU: VNC bağlantısı koparılırken formun tamamen bellekten 
+            // silinmesini garantiye almak için olay aboneliklerini en başta temizliyoruz
+            remoteDesktop1.ConnectComplete -= VncControl_ConnectComplete;
+            remoteDesktop1.ConnectionLost -= VncControl_ConnectionLost;
+
             if (remoteDesktop1.IsConnected)
             {
                 try
@@ -116,10 +136,6 @@ namespace Telemetry.UI
             {
                 System.Diagnostics.Debug.WriteLine("VncViewer_Form_FormClosing: The connection is already disconnected.");
             }
-
-            remoteDesktop1.ConnectComplete -= VncControl_ConnectComplete;
-            remoteDesktop1.ConnectionLost -= VncControl_ConnectionLost;
-            System.Diagnostics.Debug.WriteLine("VncViewer_Form_FormClosing: The connection is already disconnected.");
         }
     }
 }

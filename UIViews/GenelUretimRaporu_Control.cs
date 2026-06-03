@@ -10,6 +10,8 @@ using Telemetry.Core;
 using Telemetry.Models;
 using Telemetry.Properties;
 using Telemetry.Repositories;
+using MaterialSkin;          // YENİ EKLENDİ
+using MaterialSkin.Controls; // YENİ EKLENDİ
 
 namespace Telemetry.UI.Views
 {
@@ -21,8 +23,14 @@ namespace Telemetry.UI.Views
 
         public GenelUretimRaporu_Control()
         {
-            InitializeComponent();
+            // Statik dil değişim olayına kayıt
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
+
+            InitializeComponent();
+
+            // SPEED OPTİMİZASYON: Sekme geçişlerinde ve filtre yüklemelerinde arayüzün titremesini engeller
+            this.DoubleBuffered = true;
+            this.BackColor = Color.Transparent; // Arka plan yönetimini üst ebeveyne devret
         }
 
         public void InitializeControl(MachineRepository machineRepo, ProductionRepository productionRepo)
@@ -57,58 +65,74 @@ namespace Telemetry.UI.Views
             // Makineleri dinamik olarak yükle
             LoadMachineGroups();
 
-            // Tablo görünüm ayarları
+            // Tablo görünüm ve hız ayarları
             dgvReport.Dock = DockStyle.Fill;
             dgvReport.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
+            // Tablo kaydırma ivmesini artıran donanımsal çift tamponlama tetikleyicisi
+            EnableDoubleBuffer(dgvReport);
         }
 
-        // --- YENİ: DİNAMİK GRUPLAMA VE LİSTELEME METODU ---
+        // =========================================================================
+        // MODERNİZASYON & SPEED OPTİMİZASYON: DİNAMİK KONTROL ÜRETİM ADAPTÖRÜ
+        // Yerleşim motoru donduruldu ve Dark Mode renk uyum blokları mühürlendi.
+        // =========================================================================
         private void LoadMachineGroups()
         {
+            if (_machineRepository == null || this.IsDisposed) return;
+
+            // Performans için arayüz yerleşim hesaplamalarını askıya alıyoruz
+            this.SuspendLayout();
+            flpMachineGroups.SuspendLayout();
+
             try
             {
-                // Paneli temizle
                 flpMachineGroups.Controls.Clear();
 
-                // Tüm aktif makineleri getir
                 var allMachines = _machineRepository.GetAllEnabledMachines();
-
                 if (allMachines == null || !allMachines.Any()) return;
 
-                // Makineleri Alt Tipe (SubType) göre grupla. 
-                // Eğer SubType boşsa, Ana Tipi (Type) kullan.
                 var groupedMachines = allMachines
                     .GroupBy(m => !string.IsNullOrEmpty(m.MachineSubType) ? m.MachineSubType : m.MachineType)
-                    .OrderBy(g => g.Key); // Alfabetik sırala
+                    .OrderBy(g => g.Key);
+
+                // Merkezi tema motorundan anlık Dark Mode kontrolü yapıyoruz
+                bool isDark = MaterialSkinManager.Instance.Theme == MaterialSkinManager.Themes.DARK;
+
+                Color containerBg = isDark ? Color.FromArgb(44, 52, 64) : Color.FromArgb(241, 245, 249);
+                Color textFg = isDark ? Color.FromArgb(230, 230, 230) : Color.FromArgb(51, 65, 85);
+                Color listBg = isDark ? Color.FromArgb(30, 41, 59) : Color.White;
 
                 foreach (var group in groupedMachines)
                 {
-                    // 1. Her grup için bir GroupBox oluştur
-                    GroupBox grpBox = new GroupBox();
-                    grpBox.Text = group.Key; // Grup Başlığı (Örn: "Kurutma-Tip1")
-                    grpBox.Width = 200;      // Genişlik ayarı
-                    grpBox.Height = 150;     // Yükseklik ayarı
-                    grpBox.Font = new Font("Segoe UI", 9, FontStyle.Bold);
-                    grpBox.Margin = new Padding(5); // Kutular arası boşluk
+                    GroupBox grpBox = new GroupBox
+                    {
+                        Text = group.Key,
+                        Width = 200,
+                        Height = 150,
+                        Font = new Font("Segoe UI Semibold", 9, FontStyle.Bold),
+                        Margin = new Padding(6),
+                        BackColor = containerBg,
+                        ForeColor = textFg
+                    };
 
-                    // 2. İçine CheckedListBox ekle
-                    CheckedListBox chkList = new CheckedListBox();
-                    chkList.Dock = DockStyle.Fill; // Kutuyu doldur
-                    chkList.CheckOnClick = true;   // Tek tıkla seç
-                    chkList.BorderStyle = BorderStyle.None;
-                    chkList.BackColor = SystemColors.Control; // Arka plan rengi
-                    chkList.Font = new Font("Segoe UI", 9, FontStyle.Regular);
+                    CheckedListBox chkList = new CheckedListBox
+                    {
+                        Dock = DockStyle.Fill,
+                        CheckOnClick = true,
+                        BorderStyle = BorderStyle.None,
+                        BackColor = listBg,
+                        ForeColor = textFg,
+                        Font = new Font("Segoe UI", 9, FontStyle.Regular)
+                    };
 
-                    // 3. Makineleri listeye ekle
                     foreach (var machine in group)
                     {
-                        chkList.Items.Add(machine, false); // Varsayılan olarak seçili değil
+                        chkList.Items.Add(machine, false);
                     }
 
-                    // DisplayMember ayarı (Listede ne görünecek)
                     chkList.DisplayMember = "MachineName";
 
-                    // 4. Kontrolleri birbirine ekle
                     grpBox.Controls.Add(chkList);
                     flpMachineGroups.Controls.Add(grpBox);
                 }
@@ -117,23 +141,25 @@ namespace Telemetry.UI.Views
             {
                 MessageBox.Show($"Makine listesi yüklenirken hata oluştu: {ex.Message}", "Hata");
             }
+            finally
+            {
+                // Toplu çizimi ekrana yansıtıp kilitleri açıyoruz
+                flpMachineGroups.ResumeLayout(true);
+                this.ResumeLayout(true);
+            }
         }
 
-        // --- YENİ: SEÇİLİ MAKİNELERİ TOPLAYAN METOT ---
         private List<Machine> GetSelectedMachines()
         {
             var selectedList = new List<Machine>();
 
-            // FlowLayoutPanel içindeki her kontrolü (GroupBox) gez
             foreach (Control ctrl in flpMachineGroups.Controls)
             {
                 if (ctrl is GroupBox grp)
                 {
-                    // GroupBox içindeki CheckedListBox'ı bul
                     var chkList = grp.Controls.OfType<CheckedListBox>().FirstOrDefault();
                     if (chkList != null)
                     {
-                        // Seçili olanları listeye ekle
                         foreach (var item in chkList.CheckedItems)
                         {
                             if (item is Machine machine)
@@ -149,7 +175,8 @@ namespace Telemetry.UI.Views
 
         private async void btnRaporOlustur_Click(object sender, EventArgs e)
         {
-            // Yeni çoklu seçim fonksiyonunu kullan
+            if (this.IsDisposed) return;
+
             var selectedMachineObjects = GetSelectedMachines();
             var selectedMachineNames = selectedMachineObjects.Select(m => m.MachineName).ToList();
 
@@ -164,49 +191,45 @@ namespace Telemetry.UI.Views
                 this.Cursor = Cursors.WaitCursor;
                 btnRaporOlustur.Enabled = false;
 
-                // Veriyi asenkron olarak çek (UI donmaması için)
+                // SPEED OPTİMİZASYON: Tablo veri kaynağı yenilenirken arayüz yerleşim motorunu dondurur
+                this.SuspendLayout();
+
+                // Ağır veritabanı log taramasını arka planda (Thread-pool) asenkron çalıştırıyoruz
                 await Task.Run(() =>
                 {
                     _reportData = _productionRepository.GetGeneralProductionReport(dtpStartTime.Value, dtpEndTime.Value, selectedMachineNames);
 
                     // --- KURUTMA MAKİNESİ İÇİN SU TÜKETİMİNİ SIFIRLA ---
-                    // "MachineName" kolonunu kontrol edip "Kurutma" geçenlerin "TotalWater" değerini 0 yapıyoruz.
-                    // Bu işlem birim dönüşümünden ÖNCE yapılmalıdır.
                     if (_reportData != null && _reportData.Columns.Contains("MachineName") && _reportData.Columns.Contains("TotalWater"))
                     {
-                        // Seçilen makineler arasında "Kurutma" tipinde olanları bul
-                        // İsimden kontrol etmek yerine Machine objesinden kontrol etmek daha güvenlidir
                         var dryingMachineNames = selectedMachineObjects
                             .Where(m => (m.MachineType != null && m.MachineType.IndexOf("Kurutma", StringComparison.OrdinalIgnoreCase) >= 0) ||
                                         (m.MachineSubType != null && m.MachineSubType.IndexOf("Kurutma", StringComparison.OrdinalIgnoreCase) >= 0) ||
-                                        m.MachineName.IndexOf("Kurutma", StringComparison.OrdinalIgnoreCase) >= 0) // İsimde kurutma geçiyorsa
+                                        m.MachineName.IndexOf("Kurutma", StringComparison.OrdinalIgnoreCase) >= 0)
                             .Select(m => m.MachineName)
                             .ToHashSet();
 
                         foreach (DataRow row in _reportData.Rows)
                         {
                             string machineName = row["MachineName"].ToString();
-                            // Eğer makine ismi kurutma makineleri listesinde varsa veya isminde "Kurutma" geçiyorsa
                             if (dryingMachineNames.Contains(machineName) || machineName.IndexOf("Kurutma", StringComparison.OrdinalIgnoreCase) >= 0)
                             {
                                 row["TotalWater"] = 0m;
                             }
                         }
                     }
-                    // -----------------------------------------------------
 
-                    // 1. ADIM: Birimleri Dönüştür (Litre -> m3, Watt -> kW)
+                    // Birimleri Dönüştür (Litre -> m3, Watt -> kW)
                     ConvertUnits(_reportData);
                 });
 
-                // 2. ADIM: Tabloya Bağla
                 dgvReport.DataSource = null;
-                dgvReport.DataSource = _reportData;
+                if (_reportData != null)
+                {
+                    dgvReport.DataSource = _reportData;
+                }
 
-                // 3. ADIM: Başlıkları ve Görünümü Ayarla
                 ConfigureGridAppearance();
-
-                // 4. ADIM: Seçime göre filtrele
                 FilterGridByConsumptionType();
             }
             catch (Exception ex)
@@ -215,17 +238,18 @@ namespace Telemetry.UI.Views
             }
             finally
             {
+                // Çizim kilidini çözüp toplu render ediyoruz
+                this.ResumeLayout(true);
+
                 this.Cursor = Cursors.Default;
                 btnRaporOlustur.Enabled = true;
             }
         }
 
-        // --- BİRİM DÖNÜŞÜMÜ ---
         private void ConvertUnits(DataTable table)
         {
             if (table == null || table.Rows.Count == 0) return;
 
-            // Yardımcı yerel fonksiyon: Sütunu Decimal'e çevirir ve böler
             void ConvertColumnToDecimalAndDivide(string columnName, decimal divisor)
             {
                 if (!table.Columns.Contains(columnName)) return;
@@ -262,22 +286,21 @@ namespace Telemetry.UI.Views
                 table.Columns[columnName].SetOrdinal(ordinalIndex);
             }
 
-            // Dönüşümleri Uygula
             ConvertColumnToDecimalAndDivide("TotalWater", 1000m);       // Litre -> m3
             ConvertColumnToDecimalAndDivide("TotalElectricity", 1000m); // Watt -> kWh
-            ConvertColumnToDecimalAndDivide("TotalSteam", 1);       // Litre -> m3
+            ConvertColumnToDecimalAndDivide("TotalSteam", 1);           // Skala korundu
         }
 
-        // --- BAŞLIK VE FORMAT AYARLARI ---
+        // =========================================================================
+        // MODERNİZASYON: RAPOR TABLOSU GÖRSEL MAT KONTRAST DÜZENLEMESİ
+        // DataGrid renk ve çizgi matrisleri merkezi temayla tam eşitlendi.
+        // =========================================================================
         private void ConfigureGridAppearance()
         {
             if (dgvReport.DataSource == null) return;
 
-            if (dgvReport.Columns.Contains("MachineName"))
-                dgvReport.Columns["MachineName"].HeaderText = "Machine Name";
-
-            if (dgvReport.Columns.Contains("BatchId"))
-                dgvReport.Columns["BatchId"].HeaderText = "Batch No";
+            if (dgvReport.Columns.Contains("MachineName")) dgvReport.Columns["MachineName"].HeaderText = "Machine Name";
+            if (dgvReport.Columns.Contains("BatchId")) dgvReport.Columns["BatchId"].HeaderText = "Batch No";
 
             if (dgvReport.Columns.Contains("EndTime"))
             {
@@ -302,6 +325,25 @@ namespace Telemetry.UI.Views
                 dgvReport.Columns["TotalSteam"].HeaderText = "Total Steam (kg)";
                 dgvReport.Columns["TotalSteam"].DefaultCellStyle.Format = "N0";
             }
+
+            dgvReport.BorderStyle = BorderStyle.None;
+            dgvReport.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            dgvReport.EnableHeadersVisualStyles = false;
+            dgvReport.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+
+            bool isDark = MaterialSkinManager.Instance.Theme == MaterialSkinManager.Themes.DARK;
+
+            // Tablo Renk Uyumluluğu (Koyu/Açık Tema Koruyucu)
+            dgvReport.BackgroundColor = isDark ? Color.FromArgb(30, 41, 59) : Color.White;
+            dgvReport.DefaultCellStyle.SelectionBackColor = isDark ? Color.FromArgb(51, 65, 85) : Color.FromArgb(219, 234, 254);
+            dgvReport.DefaultCellStyle.SelectionForeColor = isDark ? Color.FromArgb(240, 240, 240) : Color.FromArgb(15, 23, 42);
+            dgvReport.AlternatingRowsDefaultCellStyle.BackColor = isDark ? Color.FromArgb(38, 50, 68) : Color.FromArgb(248, 250, 252);
+
+            dgvReport.ColumnHeadersDefaultCellStyle.BackColor = isDark ? Color.FromArgb(15, 23, 42) : Color.FromArgb(241, 245, 249);
+            dgvReport.ColumnHeadersDefaultCellStyle.ForeColor = isDark ? Color.FromArgb(148, 163, 184) : Color.FromArgb(71, 85, 105);
+            dgvReport.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 10F);
+            dgvReport.ColumnHeadersHeight = 45;
+            dgvReport.RowTemplate.Height = 36;
         }
 
         private void btnExportToExcel_Click(object sender, EventArgs e)
@@ -351,6 +393,33 @@ namespace Telemetry.UI.Views
             if (radioBuhar.Checked && dgvReport.Columns.Contains("TotalSteam"))
             {
                 dgvReport.Columns["TotalSteam"].Visible = true;
+            }
+        }
+
+        // =========================================================================
+        // KUSURSUZ BELLEK TEMİZLİĞİ: STATİK EVENT ABONELİK BAĞLANTISI KOPARILDI
+        // Kontrolün RAM'de asılı kalarak hafıza sızıntısı yapmasını kesin önler.
+        // =========================================================================
+        protected override void OnHandleDestroyed(EventArgs e)
+        {
+            LanguageManager.LanguageChanged -= LanguageManager_LanguageChanged;
+            base.OnHandleDestroyed(e);
+        }
+
+        // SPEED OPTİMİZASYON: DataGrid kaydırma (scroll) ivmesini artıran yansıtma metodu
+        private void EnableDoubleBuffer(Control control)
+        {
+            try
+            {
+                typeof(Control).InvokeMember("DoubleBuffered",
+                    System.Reflection.BindingFlags.SetProperty |
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.NonPublic,
+                    null, control, new object[] { true });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DoubleBuffering could not be enabled: {ex.Message}");
             }
         }
     }

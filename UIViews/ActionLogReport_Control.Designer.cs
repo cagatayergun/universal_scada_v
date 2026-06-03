@@ -17,127 +17,162 @@ namespace Telemetry.UIViews
         #region Component Designer generated code
         private void InitializeComponent()
         {
-            dtpStartDate = new DateTimePicker();
-            dtpEndDate = new DateTimePicker();
-            cmbUser = new ComboBox();
-            txtDetails = new TextBox();
-            btnFilter = new Button();
-            dataGridView1 = new DataGridView();
-            label1 = new Label();
-            label2 = new Label();
-            label3 = new Label();
-            label4 = new Label();
-            ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
-            SuspendLayout();
+            this.dtpStartDate = new System.Windows.Forms.DateTimePicker();
+            this.dtpEndDate = new System.Windows.Forms.DateTimePicker();
+            this.cmbUser = new System.Windows.Forms.ComboBox();
+            this.txtDetails = new System.Windows.Forms.TextBox();
+            this.btnFilter = new MaterialSkin.Controls.MaterialButton(); // MaterialButton olarak güncellendi
+            this.dataGridView1 = new System.Windows.Forms.DataGridView();
+            this.label1 = new MaterialSkin.Controls.MaterialLabel();      // MaterialLabel olarak güncellendi
+            this.label2 = new MaterialSkin.Controls.MaterialLabel();      // MaterialLabel olarak güncellendi
+            this.label3 = new MaterialSkin.Controls.MaterialLabel();      // MaterialLabel olarak güncellendi
+            this.label4 = new MaterialSkin.Controls.MaterialLabel();      // MaterialLabel olarak güncellendi
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
+            this.SuspendLayout();
             // 
             // dtpStartDate
             // 
-            dtpStartDate.Format = DateTimePickerFormat.Short;
-            dtpStartDate.Location = new Point(86, 15);
-            dtpStartDate.Name = "dtpStartDate";
-            dtpStartDate.Size = new Size(106, 23);
-            dtpStartDate.TabIndex = 0;
+            this.dtpStartDate.Format = System.Windows.Forms.DateTimePickerFormat.Short;
+            this.dtpStartDate.Location = new System.Drawing.Point(65, 15);
+            this.dtpStartDate.Name = "dtpStartDate";
+            this.dtpStartDate.Size = new System.Drawing.Size(106, 23);
+            this.dtpStartDate.TabIndex = 0;
             // 
             // dtpEndDate
             // 
-            dtpEndDate.Format = DateTimePickerFormat.Short;
-            dtpEndDate.Location = new Point(244, 15);
-            dtpEndDate.Name = "dtpEndDate";
-            dtpEndDate.Size = new Size(106, 23);
-            dtpEndDate.TabIndex = 1;
+            this.dtpEndDate.Format = System.Windows.Forms.DateTimePickerFormat.Short;
+            this.dtpEndDate.Location = new System.Drawing.Point(235, 15);
+            this.dtpEndDate.Name = "dtpEndDate";
+            this.dtpEndDate.Size = new System.Drawing.Size(106, 23);
+            this.dtpEndDate.TabIndex = 1;
             // 
             // cmbUser
             // 
-            cmbUser.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbUser.FormattingEnabled = true;
-            cmbUser.Location = new Point(429, 15);
-            cmbUser.Name = "cmbUser";
-            cmbUser.Size = new Size(132, 23);
-            cmbUser.TabIndex = 2;
+            this.cmbUser.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbUser.FormattingEnabled = true;
+            this.cmbUser.Location = new System.Drawing.Point(400, 15);
+            this.cmbUser.Name = "cmbUser";
+            this.cmbUser.Size = new System.Drawing.Size(132, 23);
+            this.cmbUser.TabIndex = 2;
             // 
             // txtDetails
             // 
-            txtDetails.Location = new Point(642, 15);
-            txtDetails.Name = "txtDetails";
-            txtDetails.Size = new Size(176, 23);
-            txtDetails.TabIndex = 3;
+            this.txtDetails.Location = new System.Drawing.Point(635, 15);
+            this.txtDetails.Name = "txtDetails";
+            this.txtDetails.Size = new System.Drawing.Size(165, 23);
+            this.txtDetails.TabIndex = 3;
             // 
             // btnFilter
             // 
-            btnFilter.Location = new Point(820, 15);
-            btnFilter.Name = "btnFilter";
-            btnFilter.Size = new Size(66, 23);
-            btnFilter.TabIndex = 4;
-            btnFilter.Text = "Filter";
-            btnFilter.UseVisualStyleBackColor = true;
-            btnFilter.Click += btnFilter_Click;
+            this.btnFilter.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnFilter.AutoSize = false;
+            this.btnFilter.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnFilter.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnFilter.Depth = 0;
+            this.btnFilter.HighEmphasis = true;
+            this.btnFilter.Icon = null;
+            this.btnFilter.Location = new System.Drawing.Point(808, 9); // Standart kutularla dikey eksende kusursuz eşitlik sağlandı
+            this.btnFilter.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnFilter.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnFilter.Name = "btnFilter";
+            this.btnFilter.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnFilter.Size = new System.Drawing.Size(74, 34);
+            this.btnFilter.TabIndex = 4;
+            this.btnFilter.Text = "Filter";
+            this.btnFilter.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained; // Belirgin dolgulu stil
+            this.btnFilter.UseAccentColor = true; // Temanın dikkat çekici vurgu rengi
+            this.btnFilter.UseVisualStyleBackColor = true;
+            this.btnFilter.Click += new System.EventHandler(this.btnFilter_Click);
             // 
             // dataGridView1
             // 
-            dataGridView1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView1.Location = new Point(18, 56);
-            dataGridView1.Name = "dataGridView1";
-            dataGridView1.RowHeadersWidth = 51;
-            dataGridView1.RowTemplate.Height = 24;
-            dataGridView1.Size = new Size(862, 356);
-            dataGridView1.TabIndex = 5;
+            this.dataGridView1.AllowUserToAddRows = false;
+            this.dataGridView1.AllowUserToDeleteRows = false;
+            this.dataGridView1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dataGridView1.Location = new System.Drawing.Point(15, 56);
+            this.dataGridView1.Name = "dataGridView1";
+            this.dataGridView1.ReadOnly = true;
+            this.dataGridView1.RowHeadersWidth = 51;
+            this.dataGridView1.RowTemplate.Height = 26;
+            this.dataGridView1.Size = new System.Drawing.Size(867, 350);
+            this.dataGridView1.TabIndex = 5;
             // 
             // label1
             // 
-            label1.AutoSize = true;
-            label1.Location = new Point(18, 19);
-            label1.Name = "label1";
-            label1.Size = new Size(31, 15);
-            label1.TabIndex = 6;
-            label1.Text = "Start";
+            this.label1.AutoSize = true;
+            this.label1.Depth = 0;
+            this.label1.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label1.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label1.Location = new System.Drawing.Point(15, 18);
+            this.label1.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(33, 17);
+            this.label1.TabIndex = 6;
+            this.label1.Text = "Start:";
             // 
             // label2
             // 
-            label2.AutoSize = true;
-            label2.Location = new Point(200, 19);
-            label2.Name = "label2";
-            label2.Size = new Size(41, 15);
-            label2.TabIndex = 7;
-            label2.Text = "Finish:";
+            this.label2.AutoSize = true;
+            this.label2.Depth = 0;
+            this.label2.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label2.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label2.Location = new System.Drawing.Point(185, 18);
+            this.label2.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(38, 17);
+            this.label2.TabIndex = 7;
+            this.label2.Text = "Finish:";
             // 
             // label3
             // 
-            label3.AutoSize = true;
-            label3.Location = new Point(368, 19);
-            label3.Name = "label3";
-            label3.Size = new Size(33, 15);
-            label3.TabIndex = 8;
-            label3.Text = "User:";
+            this.label3.AutoSize = true;
+            this.label3.Depth = 0;
+            this.label3.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label3.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label3.Location = new System.Drawing.Point(355, 18);
+            this.label3.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(32, 17);
+            this.label3.TabIndex = 8;
+            this.label3.Text = "User:";
             // 
             // label4
             // 
-            label4.AutoSize = true;
-            label4.Location = new Point(569, 19);
-            label4.Name = "label4";
-            label4.Size = new Size(72, 15);
-            label4.TabIndex = 9;
-            label4.Text = "Explanation:";
+            this.label4.AutoSize = true;
+            this.label4.Depth = 0;
+            this.label4.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label4.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label4.Location = new System.Drawing.Point(545, 18);
+            this.label4.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(79, 17);
+            this.label4.TabIndex = 9;
+            this.label4.Text = "Explanation:";
             // 
             // ActionLogReport_Control
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            Controls.Add(label4);
-            Controls.Add(label3);
-            Controls.Add(label2);
-            Controls.Add(label1);
-            Controls.Add(dataGridView1);
-            Controls.Add(btnFilter);
-            Controls.Add(txtDetails);
-            Controls.Add(cmbUser);
-            Controls.Add(dtpEndDate);
-            Controls.Add(dtpStartDate);
-            Name = "ActionLogReport_Control";
-            Size = new Size(897, 422);
-            ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
-            ResumeLayout(false);
-            PerformLayout();
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.Transparent; // Panel rengini ana formun Dark/Light moduna bırak
+            this.Controls.Add(this.label4);
+            this.Controls.Add(this.label3);
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.label1);
+            this.Controls.Add(this.dataGridView1);
+            this.Controls.Add(this.btnFilter);
+            this.Controls.Add(this.txtDetails);
+            this.Controls.Add(this.cmbUser);
+            this.Controls.Add(this.dtpEndDate);
+            this.Controls.Add(this.dtpStartDate);
+            this.Name = "ActionLogReport_Control";
+            this.Size = new System.Drawing.Size(897, 422);
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
+            this.ResumeLayout(false);
+            this.PerformLayout();
+
         }
 
         #endregion
@@ -146,11 +181,11 @@ namespace Telemetry.UIViews
         private System.Windows.Forms.DateTimePicker dtpEndDate;
         private System.Windows.Forms.ComboBox cmbUser;
         private System.Windows.Forms.TextBox txtDetails;
-        private System.Windows.Forms.Button btnFilter;
+        private MaterialSkin.Controls.MaterialButton btnFilter; // Tür güncellendi
         private System.Windows.Forms.DataGridView dataGridView1;
-        private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.Label label4;
+        private MaterialSkin.Controls.MaterialLabel label1;     // Tür güncellendi
+        private MaterialSkin.Controls.MaterialLabel label2;     // Tür güncellendi
+        private MaterialSkin.Controls.MaterialLabel label3;     // Tür güncellendi
+        private MaterialSkin.Controls.MaterialLabel label4;     // Tür güncellendi
     }
 }

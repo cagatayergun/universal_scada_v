@@ -1,4 +1,5 @@
-﻿namespace Telemetry.UI.Views
+﻿// UI/Views/RecipeOptimization_Control.Designer.cs
+namespace Telemetry.UI.Views
 {
     partial class RecipeOptimization_Control
     {
@@ -17,400 +18,443 @@
 
         private void InitializeComponent()
         {
-            pnlFilters = new Panel();
-            btnAnalyze = new Button();
-            cmbRecipe2 = new ComboBox();
-            label7 = new Label();
-            cmbRecipes = new ComboBox();
-            label1 = new Label();
-            pnlContent = new Panel();
-            dgvHistory = new DataGridView();
-            label2 = new Label();
-            pnlAverages = new Panel();
-            pnlCompare = new Panel();
-            lblAvgSteam2 = new Label();
-            label8 = new Label();
-            lblAvgElectricity2 = new Label();
-            label10 = new Label();
-            lblAvgCycleTime2 = new Label();
-            label12 = new Label();
-            lblAvgWater2 = new Label();
-            label14 = new Label();
-            pnlOriginal = new Panel();
-            lblAvgSteam = new Label();
-            label6 = new Label();
-            lblAvgElectricity = new Label();
-            label5 = new Label();
-            lblAvgCycleTime = new Label();
-            label4 = new Label();
-            lblAvgWater = new Label();
-            label3 = new Label();
-            pnlFilters.SuspendLayout();
-            pnlContent.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)dgvHistory).BeginInit();
-            pnlAverages.SuspendLayout();
-            pnlCompare.SuspendLayout();
-            pnlOriginal.SuspendLayout();
-            SuspendLayout();
+            this.pnlFilters = new System.Windows.Forms.Panel();
+            this.btnAnalyze = new MaterialSkin.Controls.MaterialButton();
+            this.cmbRecipe2 = new System.Windows.Forms.ComboBox();
+            this.label7 = new MaterialSkin.Controls.MaterialLabel();
+            this.cmbRecipes = new System.Windows.Forms.ComboBox();
+            this.label1 = new MaterialSkin.Controls.MaterialLabel();
+            this.pnlContent = new System.Windows.Forms.Panel();
+            this.dgvHistory = new System.Windows.Forms.DataGridView();
+            this.label2 = new MaterialSkin.Controls.MaterialLabel();
+            this.pnlAverages = new System.Windows.Forms.Panel();
+            this.pnlCompare = new System.Windows.Forms.Panel();
+            this.lblAvgSteam2 = new System.Windows.Forms.Label();
+            this.label8 = new MaterialSkin.Controls.MaterialLabel();
+            this.lblAvgElectricity2 = new System.Windows.Forms.Label();
+            this.label10 = new MaterialSkin.Controls.MaterialLabel();
+            this.lblAvgCycleTime2 = new System.Windows.Forms.Label();
+            this.label12 = new MaterialSkin.Controls.MaterialLabel();
+            this.lblAvgWater2 = new System.Windows.Forms.Label();
+            this.label14 = new MaterialSkin.Controls.MaterialLabel();
+            this.pnlOriginal = new System.Windows.Forms.Panel();
+            this.lblAvgSteam = new System.Windows.Forms.Label();
+            this.label6 = new MaterialSkin.Controls.MaterialLabel();
+            this.lblAvgElectricity = new System.Windows.Forms.Label();
+            this.label5 = new MaterialSkin.Controls.MaterialLabel();
+            this.lblAvgCycleTime = new System.Windows.Forms.Label();
+            this.label4 = new MaterialSkin.Controls.MaterialLabel();
+            this.lblAvgWater = new System.Windows.Forms.Label();
+            this.label3 = new MaterialSkin.Controls.MaterialLabel();
+            this.pnlFilters.SuspendLayout();
+            this.pnlContent.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvHistory)).BeginInit();
+            this.pnlAverages.SuspendLayout();
+            this.pnlCompare.SuspendLayout();
+            this.pnlOriginal.SuspendLayout();
+            this.SuspendLayout();
             // 
             // pnlFilters
             // 
-            pnlFilters.Controls.Add(btnAnalyze);
-            pnlFilters.Controls.Add(cmbRecipe2);
-            pnlFilters.Controls.Add(label7);
-            pnlFilters.Controls.Add(cmbRecipes);
-            pnlFilters.Controls.Add(label1);
-            pnlFilters.Dock = DockStyle.Top;
-            pnlFilters.Location = new Point(0, 0);
-            pnlFilters.Margin = new Padding(3, 2, 3, 2);
-            pnlFilters.Name = "pnlFilters";
-            pnlFilters.Size = new Size(788, 60);
-            pnlFilters.TabIndex = 0;
+            this.pnlFilters.BackColor = System.Drawing.Color.Transparent;
+            this.pnlFilters.Controls.Add(this.btnAnalyze);
+            this.pnlFilters.Controls.Add(this.cmbRecipe2);
+            this.pnlFilters.Controls.Add(this.label7);
+            this.pnlFilters.Controls.Add(this.cmbRecipes);
+            this.pnlFilters.Controls.Add(this.label1);
+            this.pnlFilters.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlFilters.Location = new System.Drawing.Point(0, 0);
+            this.pnlFilters.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.pnlFilters.Name = "pnlFilters";
+            this.pnlFilters.Size = new System.Drawing.Size(788, 64);
+            this.pnlFilters.TabIndex = 0;
             // 
             // btnAnalyze
             // 
-            btnAnalyze.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            btnAnalyze.Location = new Point(668, 19);
-            btnAnalyze.Margin = new Padding(3, 2, 3, 2);
-            btnAnalyze.Name = "btnAnalyze";
-            btnAnalyze.Size = new Size(105, 22);
-            btnAnalyze.TabIndex = 2;
-            btnAnalyze.Text = "Analyze";
-            btnAnalyze.UseVisualStyleBackColor = true;
-            btnAnalyze.Click += btnAnalyze_Click;
+            this.btnAnalyze.AutoSize = false;
+            this.btnAnalyze.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnAnalyze.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnAnalyze.Depth = 0;
+            this.btnAnalyze.HighEmphasis = true;
+            this.btnAnalyze.Icon = null;
+            this.btnAnalyze.Location = new System.Drawing.Point(668, 14);
+            this.btnAnalyze.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnAnalyze.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnAnalyze.Name = "btnAnalyze";
+            this.btnAnalyze.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnAnalyze.Size = new System.Drawing.Size(105, 36);
+            this.btnAnalyze.TabIndex = 2;
+            this.btnAnalyze.Text = "Analyze";
+            this.btnAnalyze.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            this.btnAnalyze.UseAccentColor = true;
+            this.btnAnalyze.UseVisualStyleBackColor = true;
+            this.btnAnalyze.Click += new System.EventHandler(this.btnAnalyze_Click);
             // 
             // cmbRecipe2
             // 
-            cmbRecipe2.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbRecipe2.FormattingEnabled = true;
-            cmbRecipe2.Location = new Point(476, 20);
-            cmbRecipe2.Margin = new Padding(3, 2, 3, 2);
-            cmbRecipe2.Name = "cmbRecipe2";
-            cmbRecipe2.Size = new Size(176, 23);
-            cmbRecipe2.TabIndex = 3;
+            this.cmbRecipe2.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbRecipe2.FormattingEnabled = true;
+            this.cmbRecipe2.Location = new System.Drawing.Point(476, 20);
+            this.cmbRecipe2.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.cmbRecipe2.Name = "cmbRecipe2";
+            this.cmbRecipe2.Size = new System.Drawing.Size(176, 23);
+            this.cmbRecipe2.TabIndex = 3;
             // 
             // label7
             // 
-            label7.AutoSize = true;
-            label7.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label7.Location = new Point(371, 22);
-            label7.Name = "label7";
-            label7.Size = new Size(75, 15);
-            label7.TabIndex = 4;
-            label7.Text = "To compare:";
+            this.label7.AutoSize = true;
+            this.label7.Depth = 0;
+            this.label7.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label7.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label7.Location = new System.Drawing.Point(371, 23);
+            this.label7.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(76, 17);
+            this.label7.TabIndex = 4;
+            this.label7.Text = "To compare:";
             // 
             // cmbRecipes
             // 
-            cmbRecipes.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbRecipes.FormattingEnabled = true;
-            cmbRecipes.Location = new Point(100, 20);
-            cmbRecipes.Margin = new Padding(3, 2, 3, 2);
-            cmbRecipes.Name = "cmbRecipes";
-            cmbRecipes.Size = new Size(263, 23);
-            cmbRecipes.TabIndex = 1;
+            this.cmbRecipes.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbRecipes.FormattingEnabled = true;
+            this.cmbRecipes.Location = new System.Drawing.Point(100, 20);
+            this.cmbRecipes.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.cmbRecipes.Name = "cmbRecipes";
+            this.cmbRecipes.Size = new System.Drawing.Size(263, 23);
+            this.cmbRecipes.TabIndex = 1;
             // 
             // label1
             // 
-            label1.AutoSize = true;
-            label1.Location = new Point(13, 22);
-            label1.Name = "label1";
-            label1.Size = new Size(75, 15);
-            label1.TabIndex = 0;
-            label1.Text = "Main Recipe:";
+            this.label1.AutoSize = true;
+            this.label1.Depth = 0;
+            this.label1.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label1.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label1.Location = new System.Drawing.Point(13, 23);
+            this.label1.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(78, 17);
+            this.label1.TabIndex = 0;
+            this.label1.Text = "Main Recipe:";
             // 
             // pnlContent
             // 
-            pnlContent.Controls.Add(dgvHistory);
-            pnlContent.Controls.Add(label2);
-            pnlContent.Controls.Add(pnlAverages);
-            pnlContent.Dock = DockStyle.Fill;
-            pnlContent.Location = new Point(0, 60);
-            pnlContent.Margin = new Padding(3, 2, 3, 2);
-            pnlContent.Name = "pnlContent";
-            pnlContent.Size = new Size(788, 390);
-            pnlContent.TabIndex = 1;
+            this.pnlContent.BackColor = System.Drawing.Color.Transparent;
+            this.pnlContent.Controls.Add(this.dgvHistory);
+            this.pnlContent.Controls.Add(this.label2);
+            this.pnlContent.Controls.Add(this.pnlAverages);
+            this.pnlContent.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pnlContent.Location = new System.Drawing.Point(0, 64);
+            this.pnlContent.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.pnlContent.Name = "pnlContent";
+            this.pnlContent.Size = new System.Drawing.Size(788, 386);
+            this.pnlContent.TabIndex = 1;
             // 
             // dgvHistory
             // 
-            dgvHistory.AllowUserToAddRows = false;
-            dgvHistory.AllowUserToDeleteRows = false;
-            dgvHistory.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgvHistory.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvHistory.Dock = DockStyle.Fill;
-            dgvHistory.Location = new Point(0, 128);
-            dgvHistory.Margin = new Padding(3, 2, 3, 2);
-            dgvHistory.Name = "dgvHistory";
-            dgvHistory.ReadOnly = true;
-            dgvHistory.RowHeadersWidth = 51;
-            dgvHistory.RowTemplate.Height = 29;
-            dgvHistory.Size = new Size(788, 262);
-            dgvHistory.TabIndex = 2;
+            this.dgvHistory.AllowUserToAddRows = false;
+            this.dgvHistory.AllowUserToDeleteRows = false;
+            this.dgvHistory.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dgvHistory.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvHistory.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dgvHistory.Location = new System.Drawing.Point(0, 128);
+            this.dgvHistory.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.dgvHistory.Name = "dgvHistory";
+            this.dgvHistory.ReadOnly = true;
+            this.dgvHistory.RowHeadersWidth = 51;
+            this.dgvHistory.RowTemplate.Height = 36;
+            this.dgvHistory.Size = new System.Drawing.Size(788, 258);
+            this.dgvHistory.TabIndex = 2;
             // 
             // label2
             // 
-            label2.Dock = DockStyle.Top;
-            label2.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold);
-            label2.Location = new Point(0, 94);
-            label2.Name = "label2";
-            label2.Size = new Size(788, 34);
-            label2.TabIndex = 1;
-            label2.Text = "Geçmiş Üretimler";
-            label2.TextAlign = ContentAlignment.MiddleCenter;
+            this.label2.Depth = 0;
+            this.label2.Dock = System.Windows.Forms.DockStyle.Top;
+            this.label2.Font = new System.Drawing.Font("Roboto", 14F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Pixel);
+            this.label2.FontType = MaterialSkin.MaterialSkinManager.fontType.Subtitle2;
+            this.label2.Location = new System.Drawing.Point(0, 94);
+            this.label2.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(788, 34);
+            this.label2.TabIndex = 1;
+            this.label2.Text = "Geçmiş Üretimler";
+            this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // pnlAverages
             // 
-            pnlAverages.Controls.Add(pnlCompare);
-            pnlAverages.Controls.Add(pnlOriginal);
-            pnlAverages.Dock = DockStyle.Top;
-            pnlAverages.Location = new Point(0, 0);
-            pnlAverages.Margin = new Padding(3, 2, 3, 2);
-            pnlAverages.Name = "pnlAverages";
-            pnlAverages.Size = new Size(788, 94);
-            pnlAverages.TabIndex = 0;
+            this.pnlAverages.BackColor = System.Drawing.Color.Transparent;
+            this.pnlAverages.Controls.Add(this.pnlCompare);
+            this.pnlAverages.Controls.Add(this.pnlOriginal);
+            this.pnlAverages.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlAverages.Location = new System.Drawing.Point(0, 0);
+            this.pnlAverages.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.pnlAverages.Name = "pnlAverages";
+            this.pnlAverages.Size = new System.Drawing.Size(788, 94);
+            this.pnlAverages.TabIndex = 0;
             // 
             // pnlCompare
             // 
-            pnlCompare.Controls.Add(lblAvgSteam2);
-            pnlCompare.Controls.Add(label8);
-            pnlCompare.Controls.Add(lblAvgElectricity2);
-            pnlCompare.Controls.Add(label10);
-            pnlCompare.Controls.Add(lblAvgCycleTime2);
-            pnlCompare.Controls.Add(label12);
-            pnlCompare.Controls.Add(lblAvgWater2);
-            pnlCompare.Controls.Add(label14);
-            pnlCompare.Dock = DockStyle.Fill;
-            pnlCompare.Location = new Point(394, 0);
-            pnlCompare.Margin = new Padding(3, 2, 3, 2);
-            pnlCompare.Name = "pnlCompare";
-            pnlCompare.Size = new Size(394, 94);
-            pnlCompare.TabIndex = 1;
+            this.pnlCompare.BackColor = System.Drawing.Color.Transparent;
+            this.pnlCompare.Controls.Add(this.lblAvgSteam2);
+            this.pnlCompare.Controls.Add(this.label8);
+            this.pnlCompare.Controls.Add(this.lblAvgElectricity2);
+            this.pnlCompare.Controls.Add(this.label10);
+            this.pnlCompare.Controls.Add(this.lblAvgCycleTime2);
+            this.pnlCompare.Controls.Add(this.label12);
+            this.pnlCompare.Controls.Add(this.lblAvgWater2);
+            this.pnlCompare.Controls.Add(this.label14);
+            this.pnlCompare.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pnlCompare.Location = new System.Drawing.Point(394, 0);
+            this.pnlCompare.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.pnlCompare.Name = "pnlCompare";
+            this.pnlCompare.Size = new System.Drawing.Size(394, 94);
+            this.pnlCompare.TabIndex = 1;
             // 
             // lblAvgSteam2
             // 
-            lblAvgSteam2.Font = new Font("Segoe UI", 16.2F, FontStyle.Bold);
-            lblAvgSteam2.Location = new Point(197, 64);
-            lblAvgSteam2.Name = "lblAvgSteam2";
-            lblAvgSteam2.Size = new Size(175, 30);
-            lblAvgSteam2.TabIndex = 15;
-            lblAvgSteam2.Text = "0 kg";
-            lblAvgSteam2.TextAlign = ContentAlignment.MiddleCenter;
+            this.lblAvgSteam2.Location = new System.Drawing.Point(197, 64);
+            this.lblAvgSteam2.Name = "lblAvgSteam2";
+            this.lblAvgSteam2.Size = new System.Drawing.Size(175, 30);
+            this.lblAvgSteam2.TabIndex = 15;
+            this.lblAvgSteam2.Text = "0 kg";
+            this.lblAvgSteam2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // label8
             // 
-            label8.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label8.Location = new Point(197, 45);
-            label8.Name = "label8";
-            label8.Size = new Size(175, 19);
-            label8.TabIndex = 14;
-            label8.Text = "Average Steam Consumption";
-            label8.TextAlign = ContentAlignment.MiddleCenter;
+            this.label8.Depth = 0;
+            this.label8.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label8.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label8.Location = new System.Drawing.Point(197, 45);
+            this.label8.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(175, 19);
+            this.label8.TabIndex = 14;
+            this.label8.Text = "Average Steam Consumption";
+            this.label8.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // lblAvgElectricity2
             // 
-            lblAvgElectricity2.Font = new Font("Segoe UI", 16.2F, FontStyle.Bold);
-            lblAvgElectricity2.Location = new Point(13, 64);
-            lblAvgElectricity2.Name = "lblAvgElectricity2";
-            lblAvgElectricity2.Size = new Size(175, 30);
-            lblAvgElectricity2.TabIndex = 13;
-            lblAvgElectricity2.Text = "0 kW";
-            lblAvgElectricity2.TextAlign = ContentAlignment.MiddleCenter;
+            this.lblAvgElectricity2.Location = new System.Drawing.Point(13, 64);
+            this.lblAvgElectricity2.Name = "lblAvgElectricity2";
+            this.lblAvgElectricity2.Size = new System.Drawing.Size(175, 30);
+            this.lblAvgElectricity2.TabIndex = 13;
+            this.lblAvgElectricity2.Text = "0 kW";
+            this.lblAvgElectricity2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // label10
             // 
-            label10.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label10.Location = new Point(13, 45);
-            label10.Name = "label10";
-            label10.Size = new Size(175, 19);
-            label10.TabIndex = 12;
-            label10.Text = "Average Electricity Consumption";
-            label10.TextAlign = ContentAlignment.MiddleCenter;
+            this.label10.Depth = 0;
+            this.label10.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label10.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label10.Location = new System.Drawing.Point(13, 45);
+            this.label10.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(175, 19);
+            this.label10.TabIndex = 12;
+            this.label10.Text = "Average Electricity Consumption";
+            this.label10.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // lblAvgCycleTime2
             // 
-            lblAvgCycleTime2.Font = new Font("Segoe UI", 16.2F, FontStyle.Bold);
-            lblAvgCycleTime2.Location = new Point(197, 19);
-            lblAvgCycleTime2.Name = "lblAvgCycleTime2";
-            lblAvgCycleTime2.Size = new Size(175, 30);
-            lblAvgCycleTime2.TabIndex = 11;
-            lblAvgCycleTime2.Text = "00:00:00";
-            lblAvgCycleTime2.TextAlign = ContentAlignment.MiddleCenter;
+            this.lblAvgCycleTime2.Location = new System.Drawing.Point(197, 19);
+            this.lblAvgCycleTime2.Name = "lblAvgCycleTime2";
+            this.lblAvgCycleTime2.Size = new System.Drawing.Size(175, 30);
+            this.lblAvgCycleTime2.TabIndex = 11;
+            this.lblAvgCycleTime2.Text = "00:00:00";
+            this.lblAvgCycleTime2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // label12
             // 
-            label12.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label12.Location = new Point(197, 0);
-            label12.Name = "label12";
-            label12.Size = new Size(175, 19);
-            label12.TabIndex = 10;
-            label12.Text = "Average Cycle Time";
-            label12.TextAlign = ContentAlignment.MiddleCenter;
+            this.label12.Depth = 0;
+            this.label12.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label12.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label12.Location = new System.Drawing.Point(197, 0);
+            this.label12.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label12.Name = "label12";
+            this.label12.Size = new System.Drawing.Size(175, 19);
+            this.label12.TabIndex = 10;
+            this.label12.Text = "Average Cycle Time";
+            this.label12.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // lblAvgWater2
             // 
-            lblAvgWater2.Font = new Font("Segoe UI", 16.2F, FontStyle.Bold);
-            lblAvgWater2.Location = new Point(13, 19);
-            lblAvgWater2.Name = "lblAvgWater2";
-            lblAvgWater2.Size = new Size(175, 30);
-            lblAvgWater2.TabIndex = 9;
-            lblAvgWater2.Text = "0 L";
-            lblAvgWater2.TextAlign = ContentAlignment.MiddleCenter;
+            this.lblAvgWater2.Location = new System.Drawing.Point(13, 19);
+            this.lblAvgWater2.Name = "lblAvgWater2";
+            this.lblAvgWater2.Size = new System.Drawing.Size(175, 30);
+            this.lblAvgWater2.TabIndex = 9;
+            this.lblAvgWater2.Text = "0 L";
+            this.lblAvgWater2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // label14
             // 
-            label14.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label14.Location = new Point(13, 0);
-            label14.Name = "label14";
-            label14.Size = new Size(175, 19);
-            label14.TabIndex = 8;
-            label14.Text = "Average Water Consumption";
-            label14.TextAlign = ContentAlignment.MiddleCenter;
+            this.label14.Depth = 0;
+            this.label14.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label14.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label14.Location = new System.Drawing.Point(13, 0);
+            this.label14.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label14.Name = "label14";
+            this.label14.Size = new System.Drawing.Size(175, 19);
+            this.label14.TabIndex = 8;
+            this.label14.Text = "Average Water Consumption";
+            this.label14.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // pnlOriginal
             // 
-            pnlOriginal.Controls.Add(lblAvgSteam);
-            pnlOriginal.Controls.Add(label6);
-            pnlOriginal.Controls.Add(lblAvgElectricity);
-            pnlOriginal.Controls.Add(label5);
-            pnlOriginal.Controls.Add(lblAvgCycleTime);
-            pnlOriginal.Controls.Add(label4);
-            pnlOriginal.Controls.Add(lblAvgWater);
-            pnlOriginal.Controls.Add(label3);
-            pnlOriginal.Dock = DockStyle.Left;
-            pnlOriginal.Location = new Point(0, 0);
-            pnlOriginal.Margin = new Padding(3, 2, 3, 2);
-            pnlOriginal.Name = "pnlOriginal";
-            pnlOriginal.Size = new Size(394, 94);
-            pnlOriginal.TabIndex = 0;
+            this.pnlOriginal.BackColor = System.Drawing.Color.Transparent;
+            this.pnlOriginal.Controls.Add(this.lblAvgSteam);
+            this.pnlOriginal.Controls.Add(this.label6);
+            this.pnlOriginal.Controls.Add(this.lblAvgElectricity);
+            this.pnlOriginal.Controls.Add(this.label5);
+            this.pnlOriginal.Controls.Add(this.lblAvgCycleTime);
+            this.pnlOriginal.Controls.Add(this.label4);
+            this.pnlOriginal.Controls.Add(this.lblAvgWater);
+            this.pnlOriginal.Controls.Add(this.label3);
+            this.pnlOriginal.Dock = System.Windows.Forms.DockStyle.Left;
+            this.pnlOriginal.Location = new System.Drawing.Point(0, 0);
+            this.pnlOriginal.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.pnlOriginal.Name = "pnlOriginal";
+            // ÇÖZÜM: CS1660 hatasına yol açan hatalı lambda satırı tamamen kaldırıldı
+            this.pnlOriginal.Size = new System.Drawing.Size(394, 94);
+            this.pnlOriginal.TabIndex = 0;
             // 
             // lblAvgSteam
             // 
-            lblAvgSteam.Font = new Font("Segoe UI", 16.2F, FontStyle.Bold);
-            lblAvgSteam.Location = new Point(197, 64);
-            lblAvgSteam.Name = "lblAvgSteam";
-            lblAvgSteam.Size = new Size(175, 30);
-            lblAvgSteam.TabIndex = 7;
-            lblAvgSteam.Text = "0 kg";
-            lblAvgSteam.TextAlign = ContentAlignment.MiddleCenter;
+            this.lblAvgSteam.Location = new System.Drawing.Point(197, 64);
+            this.lblAvgSteam.Name = "lblAvgSteam";
+            this.lblAvgSteam.Size = new System.Drawing.Size(175, 30);
+            this.lblAvgSteam.TabIndex = 7;
+            this.lblAvgSteam.Text = "0 kg";
+            this.lblAvgSteam.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // label6
             // 
-            label6.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label6.Location = new Point(197, 45);
-            label6.Name = "label6";
-            label6.Size = new Size(175, 19);
-            label6.TabIndex = 6;
-            label6.Text = "Average Steam Consumption";
-            label6.TextAlign = ContentAlignment.MiddleCenter;
+            this.label6.Depth = 0;
+            this.label6.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label6.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label6.Location = new System.Drawing.Point(197, 45);
+            this.label6.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(175, 19);
+            this.label6.TabIndex = 6;
+            this.label6.Text = "Average Steam Consumption";
+            this.label6.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // lblAvgElectricity
             // 
-            lblAvgElectricity.Font = new Font("Segoe UI", 16.2F, FontStyle.Bold);
-            lblAvgElectricity.Location = new Point(13, 64);
-            lblAvgElectricity.Name = "lblAvgElectricity";
-            lblAvgElectricity.Size = new Size(175, 30);
-            lblAvgElectricity.TabIndex = 5;
-            lblAvgElectricity.Text = "0 kW";
-            lblAvgElectricity.TextAlign = ContentAlignment.MiddleCenter;
+            this.lblAvgElectricity.Location = new System.Drawing.Point(13, 64);
+            this.lblAvgElectricity.Name = "lblAvgElectricity";
+            this.lblAvgElectricity.Size = new System.Drawing.Size(175, 30);
+            this.lblAvgElectricity.TabIndex = 5;
+            this.lblAvgElectricity.Text = "0 kW";
+            this.lblAvgElectricity.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // label5
             // 
-            label5.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label5.Location = new Point(13, 45);
-            label5.Name = "label5";
-            label5.Size = new Size(175, 19);
-            label5.TabIndex = 4;
-            label5.Text = "Average Electricity Consumption";
-            label5.TextAlign = ContentAlignment.MiddleCenter;
+            this.label5.Depth = 0;
+            this.label5.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label5.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label5.Location = new System.Drawing.Point(13, 45);
+            this.label5.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(175, 19);
+            this.label5.TabIndex = 4;
+            this.label5.Text = "Average Electricity Consumption";
+            this.label5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // lblAvgCycleTime
             // 
-            lblAvgCycleTime.Font = new Font("Segoe UI", 16.2F, FontStyle.Bold);
-            lblAvgCycleTime.Location = new Point(197, 19);
-            lblAvgCycleTime.Name = "lblAvgCycleTime";
-            lblAvgCycleTime.Size = new Size(175, 30);
-            lblAvgCycleTime.TabIndex = 3;
-            lblAvgCycleTime.Text = "00:00:00";
-            lblAvgCycleTime.TextAlign = ContentAlignment.MiddleCenter;
+            this.lblAvgCycleTime.Location = new System.Drawing.Point(197, 19);
+            this.lblAvgCycleTime.Name = "lblAvgCycleTime";
+            this.lblAvgCycleTime.Size = new System.Drawing.Size(175, 30);
+            this.lblAvgCycleTime.TabIndex = 3;
+            this.lblAvgCycleTime.Text = "00:00:00";
+            this.lblAvgCycleTime.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // label4
             // 
-            label4.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label4.Location = new Point(197, 0);
-            label4.Name = "label4";
-            label4.Size = new Size(175, 19);
-            label4.TabIndex = 2;
-            label4.Text = "Average Cycle Time";
-            label4.TextAlign = ContentAlignment.MiddleCenter;
+            this.label4.Depth = 0;
+            this.label4.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label4.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label4.Location = new System.Drawing.Point(197, 0);
+            this.label4.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(175, 19);
+            this.label4.TabIndex = 2;
+            this.label4.Text = "Average Cycle Time";
+            this.label4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // lblAvgWater
             // 
-            lblAvgWater.Font = new Font("Segoe UI", 16.2F, FontStyle.Bold);
-            lblAvgWater.Location = new Point(13, 19);
-            lblAvgWater.Name = "lblAvgWater";
-            lblAvgWater.Size = new Size(175, 30);
-            lblAvgWater.TabIndex = 1;
-            lblAvgWater.Text = "0 L";
-            lblAvgWater.TextAlign = ContentAlignment.MiddleCenter;
+            this.lblAvgWater.Location = new System.Drawing.Point(13, 19);
+            this.lblAvgWater.Name = "lblAvgWater";
+            this.lblAvgWater.Size = new System.Drawing.Size(175, 30);
+            this.lblAvgWater.TabIndex = 1;
+            this.lblAvgWater.Text = "0 L";
+            this.lblAvgWater.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // label3
             // 
-            label3.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label3.Location = new Point(13, 0);
-            label3.Name = "label3";
-            label3.Size = new Size(175, 19);
-            label3.TabIndex = 0;
-            label3.Text = "Average Water Consumption";
-            label3.TextAlign = ContentAlignment.MiddleCenter;
+            this.label3.Depth = 0;
+            this.label3.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label3.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label3.Location = new System.Drawing.Point(13, 0);
+            this.label3.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(175, 19);
+            this.label3.TabIndex = 0;
+            this.label3.Text = "Average Water Consumption";
+            this.label3.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // RecipeOptimization_Control
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            Controls.Add(pnlContent);
-            Controls.Add(pnlFilters);
-            Margin = new Padding(3, 2, 3, 2);
-            Name = "RecipeOptimization_Control";
-            Size = new Size(788, 450);
-            Load += RecipeOptimization_Control_Load;
-            pnlFilters.ResumeLayout(false);
-            pnlFilters.PerformLayout();
-            pnlContent.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)dgvHistory).EndInit();
-            pnlAverages.ResumeLayout(false);
-            pnlCompare.ResumeLayout(false);
-            pnlOriginal.ResumeLayout(false);
-            ResumeLayout(false);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.Transparent;
+            this.Controls.Add(this.pnlContent);
+            this.Controls.Add(this.pnlFilters);
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.Name = "RecipeOptimization_Control";
+            this.Size = new System.Drawing.Size(788, 450);
+            this.Load += new System.EventHandler(this.RecipeOptimization_Control_Load);
+            this.pnlFilters.ResumeLayout(false);
+            this.pnlFilters.PerformLayout();
+            this.pnlContent.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.dgvHistory)).EndInit();
+            this.pnlAverages.ResumeLayout(false);
+            this.pnlCompare.ResumeLayout(false);
+            this.pnlOriginal.ResumeLayout(false);
+            this.ResumeLayout(false);
+
         }
 
         #endregion
 
         private System.Windows.Forms.Panel pnlFilters;
-        private System.Windows.Forms.Button btnAnalyze;
+        private MaterialSkin.Controls.MaterialButton btnAnalyze;
         private System.Windows.Forms.ComboBox cmbRecipes;
-        private System.Windows.Forms.Label label1;
+        private MaterialSkin.Controls.MaterialLabel label1;
         private System.Windows.Forms.Panel pnlContent;
         private System.Windows.Forms.DataGridView dgvHistory;
-        private System.Windows.Forms.Label label2;
+        private MaterialSkin.Controls.MaterialLabel label2;
         private System.Windows.Forms.Panel pnlAverages;
         private System.Windows.Forms.Label lblAvgCycleTime;
-        private System.Windows.Forms.Label label4;
+        private MaterialSkin.Controls.MaterialLabel label4;
         private System.Windows.Forms.Label lblAvgWater;
-        private System.Windows.Forms.Label label3;
+        private MaterialSkin.Controls.MaterialLabel label3;
         private System.Windows.Forms.Label lblAvgSteam;
-        private System.Windows.Forms.Label label6;
+        private MaterialSkin.Controls.MaterialLabel label6;
         private System.Windows.Forms.Label lblAvgElectricity;
-        private System.Windows.Forms.Label label5;
+        private MaterialSkin.Controls.MaterialLabel label5;
         private System.Windows.Forms.ComboBox cmbRecipe2;
-        private System.Windows.Forms.Label label7;
+        private MaterialSkin.Controls.MaterialLabel label7;
         private System.Windows.Forms.Panel pnlCompare;
         private System.Windows.Forms.Label lblAvgSteam2;
-        private System.Windows.Forms.Label label8;
+        private MaterialSkin.Controls.MaterialLabel label8;
         private System.Windows.Forms.Label lblAvgElectricity2;
-        private System.Windows.Forms.Label label10;
+        private MaterialSkin.Controls.MaterialLabel label10;
         private System.Windows.Forms.Label lblAvgCycleTime2;
-        private System.Windows.Forms.Label label12;
+        private MaterialSkin.Controls.MaterialLabel label12;
         private System.Windows.Forms.Label lblAvgWater2;
-        private System.Windows.Forms.Label label14;
+        private MaterialSkin.Controls.MaterialLabel label14;
         private System.Windows.Forms.Panel pnlOriginal;
     }
 }

@@ -1,13 +1,16 @@
-﻿namespace Telemetry.UI.Controls
+﻿// UI/Controls/KpiCard_Control.Designer.cs
+namespace Telemetry.UI.Controls
 {
     partial class KpiCard_Control
     {
         private System.ComponentModel.IContainer components = null;
+
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null)) { components.Dispose(); }
             base.Dispose(disposing);
         }
+
         #region Component Designer generated code
         private void InitializeComponent()
         {
@@ -18,11 +21,12 @@
             // lblKpiValue
             // 
             this.lblKpiValue.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lblKpiValue.Font = new System.Drawing.Font("Segoe UI", 19.8F, System.Drawing.FontStyle.Bold);
+            // Modern endüstriyel flat görünüm için font Segoe UI Black yapıldı
+            this.lblKpiValue.Font = new System.Drawing.Font("Segoe UI Black", 20F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.lblKpiValue.ForeColor = System.Drawing.Color.White;
-            this.lblKpiValue.Location = new System.Drawing.Point(0, 25);
+            this.lblKpiValue.Location = new System.Drawing.Point(0, 26);
             this.lblKpiValue.Name = "lblKpiValue";
-            this.lblKpiValue.Size = new System.Drawing.Size(220, 55);
+            this.lblKpiValue.Size = new System.Drawing.Size(220, 54);
             this.lblKpiValue.TabIndex = 1;
             this.lblKpiValue.Text = "0";
             this.lblKpiValue.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -30,20 +34,21 @@
             // lblKpiTitle
             // 
             this.lblKpiTitle.Dock = System.Windows.Forms.DockStyle.Top;
-            this.lblKpiTitle.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            // Font yapısı modern Segoe UI Semibold olarak güncellendi
+            this.lblKpiTitle.Font = new System.Drawing.Font("Segoe UI Semibold", 8.5F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.lblKpiTitle.ForeColor = System.Drawing.Color.White;
             this.lblKpiTitle.Location = new System.Drawing.Point(0, 0);
             this.lblKpiTitle.Name = "lblKpiTitle";
-            this.lblKpiTitle.Size = new System.Drawing.Size(220, 25);
+            this.lblKpiTitle.Size = new System.Drawing.Size(220, 26);
             this.lblKpiTitle.TabIndex = 0;
-            this.lblKpiTitle.Text = "KPI BAŞLIĞI";
+            this.lblKpiTitle.Text = "KPI TITLE";
             this.lblKpiTitle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // KpiCard_Control
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(46)))), ((int)(((byte)(204)))), ((int)(((byte)(113)))));
+            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(38)))), ((int)(((byte)(166)))), ((int)(((byte)(154))))); // Modern Material Teal
             this.Controls.Add(this.lblKpiValue);
             this.Controls.Add(this.lblKpiTitle);
             this.Margin = new System.Windows.Forms.Padding(10);

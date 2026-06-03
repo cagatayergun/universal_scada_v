@@ -9,13 +9,9 @@ namespace Telemetry.UI.Views
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing)
+            if (disposing && (components != null))
             {
-                FtpTransferService.Instance.RecipeListChanged += OnRecipeListChanged;
-                if (components != null)
-                {
-                    components.Dispose();
-                }
+                components.Dispose();
             }
             base.Dispose(disposing);
         }
@@ -23,424 +19,522 @@ namespace Telemetry.UI.Views
         #region Component Designer generated code
         private void InitializeComponent()
         {
-            splitContainer1 = new SplitContainer();
-            lstRecipes = new ListBox();
-            lstRecipeHistory = new ListBox(); // YENİ: Başlatma
-            panel1 = new Panel();
-            yenile = new Button();
-            btnDeleteRecipe = new Button();
-            btnNewRecipe = new Button();
-            label1 = new Label();
-            pnlEditorArea = new Panel();
-            panel2 = new Panel();
-            btnFtpSync = new Button();
-            cmbTargetMachine = new ComboBox();
-            label4 = new Label();
-            btnReadFromPlc = new Button();
-            btnSendToPlc = new Button();
-            btnSaveRecipe = new Button();
-            txtRecipeName = new TextBox();
-            label3 = new Label();
-            btnCalculateCost = new Button();
-            pnlCost = new Panel();
-            lblTotalCost = new Label();
-            lblCostTitle = new Label();
+            this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.lstRecipes = new System.Windows.Forms.ListBox();
+            this.lstRecipeHistory = new System.Windows.Forms.ListBox();
+            this.panel1 = new System.Windows.Forms.Panel();
+            this.yenile = new MaterialSkin.Controls.MaterialButton();       // MaterialButton yapıldı
+            this.btnDeleteRecipe = new MaterialSkin.Controls.MaterialButton(); // MaterialButton yapıldı
+            this.btnNewRecipe = new MaterialSkin.Controls.MaterialButton();    // MaterialButton yapıldı
+            this.label1 = new MaterialSkin.Controls.MaterialLabel();          // MaterialLabel yapıldı
+            this.pnlEditorArea = new System.Windows.Forms.Panel();
+            this.panel2 = new System.Windows.Forms.Panel();
+            this.btnFtpSync = new MaterialSkin.Controls.MaterialButton();     // MaterialButton yapıldı
+            this.cmbTargetMachine = new System.Windows.Forms.ComboBox();
+            this.label4 = new MaterialSkin.Controls.MaterialLabel();          // MaterialLabel yapıldı
+            this.btnReadFromPlc = new MaterialSkin.Controls.MaterialButton();  // MaterialButton yapıldı
+            this.btnSendToPlc = new MaterialSkin.Controls.MaterialButton();    // MaterialButton yapıldı
+            this.btnSaveRecipe = new MaterialSkin.Controls.MaterialButton();    // MaterialButton yapıldı
+            this.txtRecipeName = new System.Windows.Forms.TextBox();
+            this.label3 = new MaterialSkin.Controls.MaterialLabel();          // MaterialLabel yapıldı
+            this.btnCalculateCost = new MaterialSkin.Controls.MaterialButton(); // MaterialButton yapıldı
+            this.pnlCost = new System.Windows.Forms.Panel();
+            this.lblTotalCost = new System.Windows.Forms.Label();
+            this.lblCostTitle = new MaterialSkin.Controls.MaterialLabel();    // MaterialLabel yapıldı
             this.pnlSearch = new System.Windows.Forms.Panel();
             this.txtSearchRecipe = new System.Windows.Forms.TextBox();
-            this.lblSearch = new System.Windows.Forms.Label();
+            this.lblSearch = new MaterialSkin.Controls.MaterialLabel();       // MaterialLabel yapıldı
             this.pnlSort = new System.Windows.Forms.Panel();
-            this.radioSortName = new System.Windows.Forms.RadioButton();
-            this.radioSortDate = new System.Windows.Forms.RadioButton();
-            ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
-            splitContainer1.Panel1.SuspendLayout();
+            this.radioSortName = new MaterialSkin.Controls.MaterialRadioButton(); // MaterialRadioButton yapıldı
+            this.radioSortDate = new MaterialSkin.Controls.MaterialRadioButton(); // MaterialRadioButton yapıldı
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
+            this.splitContainer1.Panel1.SuspendLayout();
+            this.splitContainer1.Panel2.SuspendLayout();
+            this.splitContainer1.SuspendLayout();
+            this.panel1.SuspendLayout();
+            this.panel2.SuspendLayout();
+            this.pnlCost.SuspendLayout();
             this.pnlSearch.SuspendLayout();
             this.pnlSort.SuspendLayout();
-            splitContainer1.Panel2.SuspendLayout();
-            splitContainer1.SuspendLayout();
-            panel1.SuspendLayout();
-            panel2.SuspendLayout();
-            pnlCost.SuspendLayout();
-            SuspendLayout();
+            this.SuspendLayout();
             // 
             // splitContainer1
             // 
-            splitContainer1.Dock = DockStyle.Fill;
-            splitContainer1.Location = new Point(0, 0);
-            splitContainer1.Margin = new Padding(3, 2, 3, 2);
-            splitContainer1.Name = "splitContainer1";
+            this.splitContainer1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.splitContainer1.Location = new System.Drawing.Point(0, 0);
+            this.splitContainer1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.splitContainer1.Name = "splitContainer1";
             // 
             // splitContainer1.Panel1
             // 
-            splitContainer1.Panel1.Controls.Add(lstRecipes);
-            // YENİ: Geçmiş listesini ekliyoruz (lstRecipes'in altında yer alacak şekilde Docking ayarlayacağız)
-            splitContainer1.Panel1.Controls.Add(lstRecipeHistory);
-
-            splitContainer1.Panel1.Controls.Add(panel1);
-            this.splitContainer1.Panel1.Controls.Add(this.pnlSort);    // Top (Aramanın altında)
-            this.splitContainer1.Panel1.Controls.Add(this.pnlSearch);  // Top (Başlığın altında)
-            this.splitContainer1.Panel1.Controls.Add(this.label1);     // Top (En üstte)
-
+            this.splitContainer1.Panel1.BackColor = System.Drawing.Color.Transparent;
+            this.splitContainer1.Panel1.Controls.Add(this.lstRecipes);
+            this.splitContainer1.Panel1.Controls.Add(this.lstRecipeHistory);
+            this.splitContainer1.Panel1.Controls.Add(this.pnlSort);
+            this.splitContainer1.Panel1.Controls.Add(this.pnlSearch);
+            this.splitContainer1.Panel1.Controls.Add(this.label1);
+            this.splitContainer1.Panel1.Controls.Add(this.panel1);
             // 
             // splitContainer1.Panel2
             // 
-            splitContainer1.Panel2.Controls.Add(pnlEditorArea);
-            splitContainer1.Panel2.Controls.Add(panel2);
-            splitContainer1.Size = new Size(939, 448);
-            splitContainer1.SplitterDistance = 169;
-            splitContainer1.TabIndex = 0;
-
+            this.splitContainer1.Panel2.BackColor = System.Drawing.Color.Transparent;
+            this.splitContainer1.Panel2.Controls.Add(this.pnlEditorArea);
+            this.splitContainer1.Panel2.Controls.Add(this.panel2);
+            this.splitContainer1.Size = new System.Drawing.Size(939, 448);
+            this.splitContainer1.SplitterDistance = 210; // Genişlik material etiketlerin sığması için 210px'e esnetildi
+            this.splitContainer1.TabIndex = 0;
             // 
-            // lstRecipes
+            // label1
             // 
-            this.lstRecipes.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lstRecipes.BringToFront();
-            lstRecipes.FormattingEnabled = true;
-            lstRecipes.ItemHeight = 15;
-            lstRecipes.Location = new Point(0, 102); // Konumu diğer panellerden sonra gelecek şekilde
-            lstRecipes.Margin = new Padding(3, 2, 3, 2);
-            lstRecipes.Name = "lstRecipes";
-            lstRecipes.SelectionMode = SelectionMode.MultiExtended;
-            lstRecipes.Size = new Size(169, 208); // Yüksekliği paylaştırıyoruz
-            lstRecipes.TabIndex = 1;
-
-            // 
-            // lstRecipeHistory (YENİ LİSTE KUTUSU)
-            // 
-            this.lstRecipeHistory.Dock = System.Windows.Forms.DockStyle.Bottom; // En alta, buton panelinin üstüne
-            this.lstRecipeHistory.FormattingEnabled = true;
-            this.lstRecipeHistory.ItemHeight = 12; // Biraz daha küçük yazı tipi için
-            this.lstRecipeHistory.Location = new Point(0, 310);
-            this.lstRecipeHistory.Name = "lstRecipeHistory";
-            this.lstRecipeHistory.Size = new Size(169, 100); // 100px yükseklik (yaklaşık 7-8 satır)
-            this.lstRecipeHistory.TabIndex = 5;
-            this.lstRecipeHistory.BackColor = System.Drawing.Color.WhiteSmoke; // Ayırt edilmesi için hafif gri
-
-            // 
-            // panel1
-            // 
-            panel1.Controls.Add(yenile);
-            panel1.Controls.Add(btnDeleteRecipe);
-            panel1.Controls.Add(btnNewRecipe);
-            panel1.Dock = DockStyle.Bottom;
-            panel1.Location = new Point(0, 410);
-            panel1.Margin = new Padding(3, 2, 3, 2);
-            panel1.Name = "panel1";
-            panel1.Size = new Size(169, 38);
-            panel1.TabIndex = 2;
-            // 
-            // yenile
-            // 
-            yenile.Dock = DockStyle.Left;
-            yenile.Location = new Point(164, 0);
-            yenile.Margin = new Padding(3, 2, 3, 2);
-            yenile.Name = "yenile";
-            yenile.Size = new Size(82, 38);
-            yenile.TabIndex = 2;
-            yenile.Text = "Refresh";
-            yenile.UseVisualStyleBackColor = true;
-            yenile.Click += yenile_Click;
+            this.label1.Depth = 0;
+            this.label1.Dock = System.Windows.Forms.DockStyle.Top;
+            this.label1.Font = new System.Drawing.Font("Roboto", 14F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Pixel);
+            this.label1.FontType = MaterialSkin.MaterialSkinManager.fontType.Subtitle2;
+            this.label1.Location = new System.Drawing.Point(0, 0);
+            this.label1.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(210, 22);
+            this.label1.TabIndex = 0;
+            this.label1.Text = "Registered Recipes";
+            this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // pnlSearch
             // 
+            this.pnlSearch.BackColor = System.Drawing.Color.Transparent;
             this.pnlSearch.Controls.Add(this.txtSearchRecipe);
             this.pnlSearch.Controls.Add(this.lblSearch);
             this.pnlSearch.Dock = System.Windows.Forms.DockStyle.Top;
-            this.pnlSearch.Location = new System.Drawing.Point(0, 22); // label1'in altı
+            this.pnlSearch.Location = new System.Drawing.Point(0, 22);
             this.pnlSearch.Name = "pnlSearch";
             this.pnlSearch.Padding = new System.Windows.Forms.Padding(5);
-            this.pnlSearch.Size = new System.Drawing.Size(169, 50);
+            this.pnlSearch.Size = new System.Drawing.Size(210, 52);
             this.pnlSearch.TabIndex = 3;
             // 
             // lblSearch
             // 
             this.lblSearch.AutoSize = true;
+            this.lblSearch.Depth = 0;
             this.lblSearch.Dock = System.Windows.Forms.DockStyle.Top;
+            this.lblSearch.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.lblSearch.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
             this.lblSearch.Location = new System.Drawing.Point(5, 5);
+            this.lblSearch.MouseState = MaterialSkin.MouseState.HOVER;
             this.lblSearch.Name = "lblSearch";
-            this.lblSearch.Size = new System.Drawing.Size(45, 15);
+            this.lblSearch.Size = new System.Drawing.Size(41, 17);
             this.lblSearch.TabIndex = 0;
             this.lblSearch.Text = "Search:";
             // 
             // txtSearchRecipe
             // 
             this.txtSearchRecipe.Dock = System.Windows.Forms.DockStyle.Top;
-            this.txtSearchRecipe.Location = new System.Drawing.Point(5, 20);
+            this.txtSearchRecipe.Location = new System.Drawing.Point(5, 22);
             this.txtSearchRecipe.Name = "txtSearchRecipe";
-            this.txtSearchRecipe.Size = new System.Drawing.Size(159, 23);
+            this.txtSearchRecipe.Size = new System.Drawing.Size(200, 23);
             this.txtSearchRecipe.TabIndex = 1;
-            this.txtSearchRecipe.TextChanged += new System.EventHandler(this.txtSearchRecipe_TextChanged);
             // 
             // pnlSort
             // 
+            this.pnlSort.BackColor = System.Drawing.Color.Transparent;
             this.pnlSort.Controls.Add(this.radioSortDate);
             this.pnlSort.Controls.Add(this.radioSortName);
             this.pnlSort.Dock = System.Windows.Forms.DockStyle.Top;
-            this.pnlSort.Location = new System.Drawing.Point(0, 72); // pnlSearch'in altı
+            this.pnlSort.Location = new System.Drawing.Point(0, 74);
             this.pnlSort.Name = "pnlSort";
-            this.pnlSort.Size = new System.Drawing.Size(169, 30);
+            this.pnlSort.Size = new System.Drawing.Size(210, 36);
             this.pnlSort.TabIndex = 4;
             // 
             // radioSortName
             // 
             this.radioSortName.AutoSize = true;
             this.radioSortName.Checked = true;
-            this.radioSortName.Location = new System.Drawing.Point(5, 5);
+            this.radioSortName.Depth = 0;
+            this.radioSortName.Location = new System.Drawing.Point(5, -1); // Dikey basamaklandırma dengelendi
+            this.radioSortName.Margin = new System.Windows.Forms.Padding(0);
+            this.radioSortName.MouseLocation = new System.Drawing.Point(-1, -1);
+            this.radioSortName.MouseState = MaterialSkin.MouseState.HOVER;
             this.radioSortName.Name = "radioSortName";
-            this.radioSortName.Size = new System.Drawing.Size(53, 19);
+            this.radioSortName.Ripple = true;
+            this.radioSortName.Size = new System.Drawing.Size(64, 37);
             this.radioSortName.TabIndex = 0;
             this.radioSortName.TabStop = true;
             this.radioSortName.Text = "A-Z";
             this.radioSortName.UseVisualStyleBackColor = true;
-            this.radioSortName.CheckedChanged += new System.EventHandler(this.SortOption_CheckedChanged);
             // 
             // radioSortDate
             // 
             this.radioSortDate.AutoSize = true;
-            this.radioSortDate.Location = new System.Drawing.Point(70, 5);
+            this.radioSortDate.Depth = 0;
+            this.radioSortDate.Location = new System.Drawing.Point(85, -1);
+            this.radioSortDate.Margin = new System.Windows.Forms.Padding(0);
+            this.radioSortDate.MouseLocation = new System.Drawing.Point(-1, -1);
+            this.radioSortDate.MouseState = MaterialSkin.MouseState.HOVER;
             this.radioSortDate.Name = "radioSortDate";
-            this.radioSortDate.Size = new System.Drawing.Size(73, 19);
+            this.radioSortDate.Ripple = true;
+            this.radioSortDate.Size = new System.Drawing.Size(91, 37);
             this.radioSortDate.TabIndex = 1;
             this.radioSortDate.Text = "Newest";
             this.radioSortDate.UseVisualStyleBackColor = true;
-            this.radioSortDate.CheckedChanged += new System.EventHandler(this.SortOption_CheckedChanged);
             // 
-            // btnDeleteRecipe
+            // lstRecipes
             // 
-            btnDeleteRecipe.Dock = DockStyle.Left;
-            btnDeleteRecipe.Location = new Point(82, 0);
-            btnDeleteRecipe.Margin = new Padding(3, 2, 3, 2);
-            btnDeleteRecipe.Name = "btnDeleteRecipe";
-            btnDeleteRecipe.Size = new Size(82, 38);
-            btnDeleteRecipe.TabIndex = 1;
-            btnDeleteRecipe.Text = "Delete";
-            btnDeleteRecipe.UseVisualStyleBackColor = true;
+            this.lstRecipes.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lstRecipes.FormattingEnabled = true;
+            this.lstRecipes.ItemHeight = 15;
+            this.lstRecipes.Location = new System.Drawing.Point(0, 110);
+            this.lstRecipes.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.lstRecipes.Name = "lstRecipes";
+            this.lstRecipes.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
+            this.lstRecipes.Size = new System.Drawing.Size(210, 192);
+            this.lstRecipes.TabIndex = 1;
+            // 
+            // lstRecipeHistory
+            // 
+            this.lstRecipeHistory.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.lstRecipeHistory.FormattingEnabled = true;
+            this.lstRecipeHistory.ItemHeight = 15;
+            this.lstRecipeHistory.Location = new System.Drawing.Point(0, 302);
+            this.lstRecipeHistory.Name = "lstRecipeHistory";
+            this.lstRecipeHistory.Size = new System.Drawing.Size(210, 100);
+            this.lstRecipeHistory.TabIndex = 5;
+            // 
+            // panel1
+            // 
+            this.panel1.BackColor = System.Drawing.Color.Transparent;
+            this.panel1.Controls.Add(this.yenile);
+            this.panel1.Controls.Add(this.btnDeleteRecipe);
+            this.panel1.Controls.Add(this.btnNewRecipe);
+            this.panel1.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.panel1.Location = new System.Drawing.Point(0, 402);
+            this.panel1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.panel1.Name = "panel1";
+            this.panel1.Size = new System.Drawing.Size(210, 46); // 36px material butonlar için panel alanı 46px'e genişletildi
+            this.panel1.TabIndex = 2;
             // 
             // btnNewRecipe
             // 
-            btnNewRecipe.Dock = DockStyle.Left;
-            btnNewRecipe.Location = new Point(0, 0);
-            btnNewRecipe.Margin = new Padding(3, 2, 3, 2);
-            btnNewRecipe.Name = "btnNewRecipe";
-            btnNewRecipe.Size = new Size(82, 38);
-            btnNewRecipe.TabIndex = 0;
-            btnNewRecipe.Text = "New";
-            btnNewRecipe.UseVisualStyleBackColor = true;
+            this.btnNewRecipe.AutoSize = false;
+            this.btnNewRecipe.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnNewRecipe.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnNewRecipe.Depth = 0;
+            this.btnNewRecipe.HighEmphasis = false;
+            this.btnNewRecipe.Icon = null;
+            this.btnNewRecipe.Location = new System.Drawing.Point(3, 5); // Hizalama dengesi sağlandı
+            this.btnNewRecipe.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnNewRecipe.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnNewRecipe.Name = "btnNewRecipe";
+            this.btnNewRecipe.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnNewRecipe.Size = new System.Drawing.Size(65, 36);
+            this.btnNewRecipe.TabIndex = 0;
+            this.btnNewRecipe.Text = "New";
+            this.btnNewRecipe.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Outlined;
+            this.btnNewRecipe.UseAccentColor = false;
+            this.btnNewRecipe.UseVisualStyleBackColor = true;
             // 
-            // label1
+            // btnDeleteRecipe
             // 
-            label1.Dock = DockStyle.Top;
-            label1.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold);
-            label1.Location = new Point(0, 0);
-            label1.Name = "label1";
-            label1.Size = new Size(169, 22);
-            label1.TabIndex = 0;
-            label1.Text = "Registered Recipes";
-            label1.TextAlign = ContentAlignment.MiddleCenter;
+            this.btnDeleteRecipe.AutoSize = false;
+            this.btnDeleteRecipe.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnDeleteRecipe.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnDeleteRecipe.Depth = 0;
+            this.btnDeleteRecipe.HighEmphasis = false;
+            this.btnDeleteRecipe.Icon = null;
+            this.btnDeleteRecipe.Location = new System.Drawing.Point(72, 5);
+            this.btnDeleteRecipe.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnDeleteRecipe.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnDeleteRecipe.Name = "btnDeleteRecipe";
+            this.btnDeleteRecipe.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnDeleteRecipe.Size = new System.Drawing.Size(65, 36);
+            this.btnDeleteRecipe.TabIndex = 1;
+            this.btnDeleteRecipe.Text = "Delete";
+            this.btnDeleteRecipe.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Outlined;
+            this.btnDeleteRecipe.UseAccentColor = false;
+            this.btnDeleteRecipe.UseVisualStyleBackColor = true;
+            // 
+            // yenile
+            // 
+            this.yenile.AutoSize = false;
+            this.yenile.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.yenile.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.yenile.Depth = 0;
+            this.yenile.HighEmphasis = false;
+            this.yenile.Icon = null;
+            this.yenile.Location = new System.Drawing.Point(141, 5);
+            this.yenile.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.yenile.MouseState = MaterialSkin.MouseState.HOVER;
+            this.yenile.Name = "yenile";
+            this.yenile.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.yenile.Size = new System.Drawing.Size(65, 36);
+            this.yenile.TabIndex = 2;
+            this.yenile.Text = "Refresh";
+            this.yenile.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Outlined;
+            this.yenile.UseAccentColor = false;
+            this.yenile.UseVisualStyleBackColor = true;
             // 
             // pnlEditorArea
             // 
-            pnlEditorArea.Dock = DockStyle.Fill;
-            pnlEditorArea.Location = new Point(0, 100);
-            pnlEditorArea.Margin = new Padding(3, 2, 3, 2);
-            pnlEditorArea.Name = "pnlEditorArea";
-            pnlEditorArea.Size = new Size(766, 348);
-            pnlEditorArea.TabIndex = 1;
+            this.pnlEditorArea.BackColor = System.Drawing.Color.Transparent;
+            this.pnlEditorArea.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pnlEditorArea.Location = new System.Drawing.Point(0, 105);
+            this.pnlEditorArea.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.pnlEditorArea.Name = "pnlEditorArea";
+            this.pnlEditorArea.Size = new System.Drawing.Size(725, 343);
+            this.pnlEditorArea.TabIndex = 1;
             // 
             // panel2
             // 
-            panel2.Controls.Add(btnFtpSync);
-            panel2.Controls.Add(cmbTargetMachine);
-            panel2.Controls.Add(label4);
-            panel2.Controls.Add(btnReadFromPlc);
-            panel2.Controls.Add(btnSendToPlc);
-            panel2.Controls.Add(btnSaveRecipe);
-            panel2.Controls.Add(txtRecipeName);
-            panel2.Controls.Add(label3);
-            panel2.Controls.Add(btnCalculateCost);
-            panel2.Controls.Add(pnlCost);
-            panel2.Dock = DockStyle.Top;
-            panel2.Location = new Point(0, 0);
-            panel2.Margin = new Padding(3, 2, 3, 2);
-            panel2.Name = "panel2";
-            panel2.Size = new Size(766, 100);
-            panel2.TabIndex = 0;
+            this.panel2.BackColor = System.Drawing.Color.Transparent;
+            this.panel2.Controls.Add(this.btnFtpSync);
+            this.panel2.Controls.Add(this.cmbTargetMachine);
+            this.panel2.Controls.Add(this.label4);
+            this.panel2.Controls.Add(this.btnReadFromPlc);
+            this.panel2.Controls.Add(this.btnSendToPlc);
+            this.panel2.Controls.Add(this.btnSaveRecipe);
+            this.panel2.Controls.Add(this.txtRecipeName);
+            this.panel2.Controls.Add(this.label3);
+            this.panel2.Controls.Add(this.btnCalculateCost);
+            this.panel2.Controls.Add(this.pnlCost);
+            this.panel2.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panel2.Location = new System.Drawing.Point(0, 0);
+            this.panel2.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.panel2.Name = "panel2";
+            this.panel2.Size = new System.Drawing.Size(725, 105);
+            this.panel2.TabIndex = 0;
             // 
             // btnFtpSync
             // 
-            btnFtpSync.BackColor = Color.CornflowerBlue;
-            btnFtpSync.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            btnFtpSync.ForeColor = Color.White;
-            btnFtpSync.Location = new Point(359, 6);
-            btnFtpSync.Margin = new Padding(3, 2, 3, 2);
-            btnFtpSync.Name = "btnFtpSync";
-            btnFtpSync.Size = new Size(386, 37);
-            btnFtpSync.TabIndex = 7;
-            btnFtpSync.Text = "REMOTE MACHINE OPERATIONS";
-            btnFtpSync.UseVisualStyleBackColor = false;
-            // 
-            // cmbTargetMachine
-            // 
-            cmbTargetMachine.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbTargetMachine.FormattingEnabled = true;
-            cmbTargetMachine.Location = new Point(107, 13);
-            cmbTargetMachine.Margin = new Padding(3, 2, 3, 2);
-            cmbTargetMachine.Name = "cmbTargetMachine";
-            cmbTargetMachine.Size = new Size(246, 23);
-            cmbTargetMachine.TabIndex = 6;
+            this.btnFtpSync.AutoSize = false;
+            this.btnFtpSync.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnFtpSync.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnFtpSync.Depth = 0;
+            this.btnFtpSync.HighEmphasis = true;
+            this.btnFtpSync.Icon = null;
+            this.btnFtpSync.Location = new System.Drawing.Point(365, 8);
+            this.btnFtpSync.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnFtpSync.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnFtpSync.Name = "btnFtpSync";
+            this.btnFtpSync.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnFtpSync.Size = new System.Drawing.Size(260, 36);
+            this.btnFtpSync.TabIndex = 7;
+            this.btnFtpSync.Text = "REMOTE MACHINE OPERATIONS";
+            this.btnFtpSync.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained; // Dolgulu material tarzı
+            this.btnFtpSync.UseAccentColor = false;
+            this.btnFtpSync.UseVisualStyleBackColor = true;
             // 
             // label4
             // 
-            label4.AutoSize = true;
-            label4.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label4.Location = new Point(10, 17);
-            label4.Name = "label4";
-            label4.Size = new Size(96, 15);
-            label4.TabIndex = 5;
-            label4.Text = "Target Machine:";
+            this.label4.AutoSize = true;
+            this.label4.Depth = 0;
+            this.label4.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label4.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label4.Location = new System.Drawing.Point(10, 17);
+            this.label4.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(90, 17);
+            this.label4.TabIndex = 5;
+            this.label4.Text = "Target Machine:";
             // 
-            // btnReadFromPlc
+            // cmbTargetMachine
             // 
-            btnReadFromPlc.Location = new Point(359, 47);
-            btnReadFromPlc.Margin = new Padding(3, 2, 3, 2);
-            btnReadFromPlc.Name = "btnReadFromPlc";
-            btnReadFromPlc.Size = new Size(88, 47);
-            btnReadFromPlc.TabIndex = 4;
-            btnReadFromPlc.Text = "Read from PLC";
-            btnReadFromPlc.UseVisualStyleBackColor = true;
-            // 
-            // btnSendToPlc
-            // 
-            btnSendToPlc.Location = new Point(657, 47);
-            btnSendToPlc.Margin = new Padding(3, 2, 3, 2);
-            btnSendToPlc.Name = "btnSendToPlc";
-            btnSendToPlc.Size = new Size(88, 47);
-            btnSendToPlc.TabIndex = 3;
-            btnSendToPlc.Text = "Send to PLC";
-            btnSendToPlc.UseVisualStyleBackColor = true;
-            // 
-            // btnSaveRecipe
-            // 
-            btnSaveRecipe.Location = new Point(511, 47);
-            btnSaveRecipe.Margin = new Padding(3, 2, 3, 2);
-            btnSaveRecipe.Name = "btnSaveRecipe";
-            btnSaveRecipe.Size = new Size(82, 47);
-            btnSaveRecipe.TabIndex = 2;
-            btnSaveRecipe.Text = "Save";
-            btnSaveRecipe.UseVisualStyleBackColor = true;
-            // 
-            // txtRecipeName
-            // 
-            txtRecipeName.Location = new Point(107, 59);
-            txtRecipeName.Margin = new Padding(3, 2, 3, 2);
-            txtRecipeName.Name = "txtRecipeName";
-            txtRecipeName.Size = new Size(246, 23);
-            txtRecipeName.TabIndex = 1;
+            this.cmbTargetMachine.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbTargetMachine.FormattingEnabled = true;
+            this.cmbTargetMachine.Location = new System.Drawing.Point(107, 13);
+            this.cmbTargetMachine.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.cmbTargetMachine.Name = "cmbTargetMachine";
+            this.cmbTargetMachine.Size = new System.Drawing.Size(246, 23);
+            this.cmbTargetMachine.TabIndex = 6;
             // 
             // label3
             // 
-            label3.AutoSize = true;
-            label3.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            label3.Location = new Point(10, 63);
-            label3.Name = "label3";
-            label3.Size = new Size(84, 15);
-            label3.TabIndex = 0;
-            label3.Text = "Recipe Name:";
+            this.label3.AutoSize = true;
+            this.label3.Depth = 0;
+            this.label3.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label3.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label3.Location = new System.Drawing.Point(10, 63);
+            this.label3.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(79, 17);
+            this.label3.TabIndex = 0;
+            this.label3.Text = "Recipe Name:";
+            // 
+            // txtRecipeName
+            // 
+            this.txtRecipeName.Location = new System.Drawing.Point(107, 59);
+            this.txtRecipeName.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtRecipeName.Name = "txtRecipeName";
+            this.txtRecipeName.Size = new System.Drawing.Size(246, 23);
+            this.txtRecipeName.TabIndex = 1;
+            // 
+            // btnReadFromPlc
+            // 
+            this.btnReadFromPlc.AutoSize = false;
+            this.btnReadFromPlc.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnReadFromPlc.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnReadFromPlc.Depth = 0;
+            this.btnReadFromPlc.HighEmphasis = false;
+            this.btnReadFromPlc.Icon = null;
+            this.btnReadFromPlc.Location = new System.Drawing.Point(365, 53); // 36px material yüksekliğe göre dikey konum kalibre edildi
+            this.btnReadFromPlc.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnReadFromPlc.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnReadFromPlc.Name = "btnReadFromPlc";
+            this.btnReadFromPlc.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnReadFromPlc.Size = new System.Drawing.Size(82, 36);
+            this.btnReadFromPlc.TabIndex = 4;
+            this.btnReadFromPlc.Text = "Read PLC";
+            this.btnReadFromPlc.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Outlined; // Çizgili flat tarzı
+            this.btnReadFromPlc.UseAccentColor = false;
+            this.btnReadFromPlc.UseVisualStyleBackColor = true;
+            // 
+            // btnSaveRecipe
+            // 
+            this.btnSaveRecipe.AutoSize = false;
+            this.btnSaveRecipe.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnSaveRecipe.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnSaveRecipe.Depth = 0;
+            this.btnSaveRecipe.HighEmphasis = true;
+            this.btnSaveRecipe.Icon = null;
+            this.btnSaveRecipe.Location = new System.Drawing.Point(453, 53);
+            this.btnSaveRecipe.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnSaveRecipe.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnSaveRecipe.Name = "btnSaveRecipe";
+            this.btnSaveRecipe.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnSaveRecipe.Size = new System.Drawing.Size(82, 36);
+            this.btnSaveRecipe.TabIndex = 2;
+            this.btnSaveRecipe.Text = "Save";
+            this.btnSaveRecipe.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained; // Dolgulu flat tarzı
+            this.btnSaveRecipe.UseAccentColor = false;
+            this.btnSaveRecipe.UseVisualStyleBackColor = true;
+            // 
+            // btnSendToPlc
+            // 
+            this.btnSendToPlc.AutoSize = false;
+            this.btnSendToPlc.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnSendToPlc.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnSendToPlc.Depth = 0;
+            this.btnSendToPlc.HighEmphasis = true;
+            this.btnSendToPlc.Icon = null;
+            this.btnSendToPlc.Location = new System.Drawing.Point(541, 53);
+            this.btnSendToPlc.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnSendToPlc.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnSendToPlc.Name = "btnSendToPlc";
+            this.btnSendToPlc.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnSendToPlc.Size = new System.Drawing.Size(84, 36);
+            this.btnSendToPlc.TabIndex = 3;
+            this.btnSendToPlc.Text = "Send PLC";
+            this.btnSendToPlc.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            this.btnSendToPlc.UseAccentColor = true; // Dikkat çekici aksan fırçasıaktif
+            this.btnSendToPlc.UseVisualStyleBackColor = true;
             // 
             // btnCalculateCost
             // 
-            btnCalculateCost.BackColor = Color.DarkSlateGray;
-            btnCalculateCost.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            btnCalculateCost.ForeColor = Color.White;
-            btnCalculateCost.Location = new Point(359, 64);
-            btnCalculateCost.Name = "btnCalculateCost";
-            btnCalculateCost.Size = new Size(280, 30);
-            btnCalculateCost.TabIndex = 8;
-            btnCalculateCost.Text = "Calculate Estimated Cost";
-            btnCalculateCost.UseVisualStyleBackColor = false;
-            btnCalculateCost.Visible = false;
-            btnCalculateCost.Click += btnCalculateCost_Click;
+            this.btnCalculateCost.AutoSize = false;
+            this.btnCalculateCost.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnCalculateCost.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnCalculateCost.Depth = 0;
+            this.btnCalculateCost.HighEmphasis = false;
+            this.btnCalculateCost.Icon = null;
+            this.btnCalculateCost.Location = new System.Drawing.Point(365, 53);
+            this.btnCalculateCost.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnCalculateCost.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnCalculateCost.Name = "btnCalculateCost";
+            this.btnCalculateCost.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnCalculateCost.Size = new System.Drawing.Size(260, 36);
+            this.btnCalculateCost.TabIndex = 8;
+            this.btnCalculateCost.Text = "Calculate Estimated Cost";
+            this.btnCalculateCost.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Outlined;
+            this.btnCalculateCost.UseAccentColor = false;
+            this.btnCalculateCost.UseVisualStyleBackColor = true;
+            this.btnCalculateCost.Visible = false;
             // 
             // pnlCost
             // 
-            pnlCost.BackColor = SystemColors.Info;
-            pnlCost.Controls.Add(lblTotalCost);
-            pnlCost.Controls.Add(lblCostTitle);
-            pnlCost.Location = new Point(645, 6);
-            pnlCost.Name = "pnlCost";
-            pnlCost.Size = new Size(100, 90);
-            pnlCost.TabIndex = 9;
-            pnlCost.Visible = false;
-            // 
-            // lblTotalCost
-            // 
-            lblTotalCost.Dock = DockStyle.Fill;
-            lblTotalCost.Font = new Font("Segoe UI", 13.8F, FontStyle.Bold);
-            lblTotalCost.ForeColor = Color.FromArgb(0, 64, 0);
-            lblTotalCost.Location = new Point(0, 25);
-            lblTotalCost.Name = "lblTotalCost";
-            lblTotalCost.Size = new Size(100, 65);
-            lblTotalCost.TabIndex = 1;
-            lblTotalCost.Text = "0.00 $";
-            lblTotalCost.TextAlign = ContentAlignment.MiddleCenter;
+            this.pnlCost.BackColor = System.Drawing.Color.Transparent; // Koyu mod bütünlüğü için şeffaflaştırıldı
+            this.pnlCost.Controls.Add(this.lblTotalCost);
+            this.pnlCost.Controls.Add(this.lblCostTitle);
+            this.pnlCost.Location = new System.Drawing.Point(635, 6);
+            this.pnlCost.Name = "pnlCost";
+            this.pnlCost.Size = new System.Drawing.Size(100, 90);
+            this.pnlCost.TabIndex = 9;
+            this.pnlCost.Visible = false;
             // 
             // lblCostTitle
             // 
-            lblCostTitle.Dock = DockStyle.Top;
-            lblCostTitle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblCostTitle.Location = new Point(0, 0);
-            lblCostTitle.Name = "lblCostTitle";
-            lblCostTitle.Size = new Size(100, 25);
-            lblCostTitle.TabIndex = 0;
-            lblCostTitle.Text = "Estimated Cost";
-            lblCostTitle.TextAlign = ContentAlignment.MiddleCenter;
+            this.lblCostTitle.Depth = 0;
+            this.lblCostTitle.Dock = System.Windows.Forms.DockStyle.Top;
+            this.lblCostTitle.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.lblCostTitle.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.lblCostTitle.Location = new System.Drawing.Point(0, 0);
+            this.lblCostTitle.MouseState = MaterialSkin.MouseState.HOVER;
+            this.lblCostTitle.Name = "lblCostTitle";
+            this.lblCostTitle.Size = new System.Drawing.Size(100, 25);
+            this.lblCostTitle.TabIndex = 0;
+            this.lblCostTitle.Text = "Estimated Cost";
+            this.lblCostTitle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // lblTotalCost
+            // 
+            this.lblTotalCost.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lblTotalCost.Font = new System.Drawing.Font("Segoe UI Black", 12F, System.Drawing.FontStyle.Bold);
+            this.lblTotalCost.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(76)))), ((int)(((byte)(175)))), ((int)(((byte)(80))))); // Koyu mod uyumlu yumuşak yeşil fırça
+            this.lblTotalCost.Location = new System.Drawing.Point(0, 25);
+            this.lblTotalCost.Name = "lblTotalCost";
+            this.lblTotalCost.Size = new System.Drawing.Size(100, 65);
+            this.lblTotalCost.TabIndex = 1;
+            this.lblTotalCost.Text = "0.00 $";
+            this.lblTotalCost.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // ProsesKontrol_Control
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            Controls.Add(splitContainer1);
-            Margin = new Padding(3, 2, 3, 2);
-            Name = "ProsesKontrol_Control";
-            Size = new Size(939, 448);
-            splitContainer1.Panel1.ResumeLayout(false);
-            splitContainer1.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
-            splitContainer1.ResumeLayout(false);
-            panel1.ResumeLayout(false);
-            panel2.ResumeLayout(false);
-            panel2.PerformLayout();
-            pnlCost.ResumeLayout(false);
-            ResumeLayout(false);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.Transparent; // Ebeveyn forma (Koyu/Açık temaya) tam şeffaf entegrasyon
+            this.Controls.Add(this.splitContainer1);
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.Name = "ProsesKontrol_Control";
+            this.Size = new System.Drawing.Size(939, 448);
+            this.splitContainer1.Panel1.ResumeLayout(false);
+            this.splitContainer1.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
+            this.splitContainer1.ResumeLayout(false);
+            this.panel1.ResumeLayout(false);
+            this.panel2.ResumeLayout(false);
+            this.panel2.PerformLayout();
+            this.pnlCost.ResumeLayout(false);
+            this.pnlSearch.ResumeLayout(false);
+            this.pnlSearch.PerformLayout();
+            this.pnlSort.ResumeLayout(false);
+            this.pnlSort.PerformLayout();
+            this.ResumeLayout(false);
+
         }
         #endregion
 
         private System.Windows.Forms.SplitContainer splitContainer1;
-        private System.Windows.Forms.Label label1;
+        private MaterialSkin.Controls.MaterialLabel label1;                   // Tür güncellendi
         private System.Windows.Forms.ListBox lstRecipes;
-        private System.Windows.Forms.ListBox lstRecipeHistory; // YENİ EKLENEN
+        private System.Windows.Forms.ListBox lstRecipeHistory;
         private System.Windows.Forms.Panel panel1;
-        private System.Windows.Forms.Button btnDeleteRecipe;
-        private System.Windows.Forms.Button btnNewRecipe;
+        private MaterialSkin.Controls.MaterialButton btnDeleteRecipe;         // Tür güncellendi
+        private MaterialSkin.Controls.MaterialButton btnNewRecipe;            // Tür güncellendi
         private System.Windows.Forms.Panel panel2;
-        private System.Windows.Forms.Button btnSendToPlc;
-        private System.Windows.Forms.Button btnSaveRecipe;
+        private MaterialSkin.Controls.MaterialButton btnSendToPlc;            // Tür güncellendi
+        private MaterialSkin.Controls.MaterialButton btnSaveRecipe;            // Tür güncellendi
         private System.Windows.Forms.TextBox txtRecipeName;
-        private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.Button btnReadFromPlc;
+        private MaterialSkin.Controls.MaterialLabel label3;                   // Tür güncellendi
+        private MaterialSkin.Controls.MaterialButton btnReadFromPlc;          // Tür güncellendi
         private System.Windows.Forms.Panel pnlEditorArea;
         private System.Windows.Forms.ComboBox cmbTargetMachine;
-        private System.Windows.Forms.Label label4;
-        private System.Windows.Forms.Button btnFtpSync;
+        private MaterialSkin.Controls.MaterialLabel label4;                   // Tür güncellendi
+        private MaterialSkin.Controls.MaterialButton btnFtpSync;              // Tür güncellendi
         private System.Windows.Forms.Panel pnlCost;
         private System.Windows.Forms.Label lblTotalCost;
-        private System.Windows.Forms.Label lblCostTitle;
-        private System.Windows.Forms.Button btnCalculateCost;
-        private Button yenile;
+        private MaterialSkin.Controls.MaterialLabel lblCostTitle;             // Tür güncellendi
+        private MaterialSkin.Controls.MaterialButton btnCalculateCost;         // Tür güncellendi
+        private MaterialSkin.Controls.MaterialButton yenile;                  // Tür güncellendi
         private System.Windows.Forms.Panel pnlSearch;
         private System.Windows.Forms.TextBox txtSearchRecipe;
-        private System.Windows.Forms.Label lblSearch;
+        private MaterialSkin.Controls.MaterialLabel lblSearch;                // Tür güncellendi
         private System.Windows.Forms.Panel pnlSort;
-        private System.Windows.Forms.RadioButton radioSortName;
-        private System.Windows.Forms.RadioButton radioSortDate;
+        private MaterialSkin.Controls.MaterialRadioButton radioSortName;      // Tür güncellendi
+        private MaterialSkin.Controls.MaterialRadioButton radioSortDate;      // Tür güncellendi
     }
 }

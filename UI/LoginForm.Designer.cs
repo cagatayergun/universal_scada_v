@@ -4,6 +4,7 @@ namespace Telemetry.UI
     partial class LoginForm
     {
         private System.ComponentModel.IContainer components = null;
+
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -12,116 +13,165 @@ namespace Telemetry.UI
             }
             base.Dispose(disposing);
         }
+
         #region Windows Form Designer generated code
         private void InitializeComponent()
         {
-            label1 = new Label();
-            txtUsername = new TextBox();
-            label2 = new Label();
-            txtPassword = new TextBox();
-            btnLogin = new Button();
-            btnCancel = new Button();
-            lblError = new Label();
-            SuspendLayout();
-            // 
-            // label1
-            // 
-            label1.AutoSize = true;
-            label1.Location = new Point(35, 30);
-            label1.Name = "label1";
-            label1.Size = new Size(68, 15);
-            label1.TabIndex = 0;
-            label1.Text = "User Name:";
+            this.txtUsername = new MaterialSkin.Controls.MaterialTextBox2();
+            this.txtPassword = new MaterialSkin.Controls.MaterialTextBox2();
+            this.btnLogin = new MaterialSkin.Controls.MaterialButton();
+            this.btnCancel = new MaterialSkin.Controls.MaterialButton();
+            this.lblError = new MaterialSkin.Controls.MaterialLabel();
+            this.SuspendLayout();
             // 
             // txtUsername
             // 
-            txtUsername.Location = new Point(131, 28);
-            txtUsername.Margin = new Padding(3, 2, 3, 2);
-            txtUsername.Name = "txtUsername";
-            txtUsername.Size = new Size(176, 23);
-            txtUsername.TabIndex = 1;
-            // 
-            // label2
-            // 
-            label2.AutoSize = true;
-            label2.Location = new Point(35, 60);
-            label2.Name = "label2";
-            label2.Size = new Size(60, 15);
-            label2.TabIndex = 2;
-            label2.Text = "Password:";
+            this.txtUsername.AnimateReadOnly = false;
+            this.txtUsername.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
+            this.txtUsername.CharacterCasing = System.Windows.Forms.CharacterCasing.Normal;
+            this.txtUsername.Depth = 0;
+            this.txtUsername.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.txtUsername.HideSelection = true;
+            this.txtUsername.Hint = "User Name";
+            this.txtUsername.LeadingIcon = null;
+            this.txtUsername.Location = new System.Drawing.Point(30, 85);
+            this.txtUsername.MaxLength = 50;
+            this.txtUsername.MouseState = MaterialSkin.MouseState.OUT;
+            this.txtUsername.Name = "txtUsername";
+            this.txtUsername.PasswordChar = '\0';
+            this.txtUsername.PrefixSuffixText = null;
+            this.txtUsername.ReadOnly = false;
+            this.txtUsername.RightToLeft = System.Windows.Forms.RightToLeft.No;
+            this.txtUsername.SelectedText = "";
+            this.txtUsername.SelectionLength = 0;
+            this.txtUsername.SelectionStart = 0;
+            this.txtUsername.ShortcutsEnabled = true;
+            this.txtUsername.Size = new System.Drawing.Size(300, 48); // System.Drawing.Size olarak derlenir
+            this.txtUsername.TabIndex = 1;
+            this.txtUsername.TabStop = false;
+            this.txtUsername.TextAlign = System.Windows.Forms.HorizontalAlignment.Left;
+            this.txtUsername.TrailingIcon = null;
+            this.txtUsername.UseSystemPasswordChar = false;
             // 
             // txtPassword
             // 
-            txtPassword.Location = new Point(131, 58);
-            txtPassword.Margin = new Padding(3, 2, 3, 2);
-            txtPassword.Name = "txtPassword";
-            txtPassword.PasswordChar = '*';
-            txtPassword.Size = new Size(176, 23);
-            txtPassword.TabIndex = 3;
-            // 
-            // btnLogin
-            // 
-            btnLogin.Location = new Point(224, 112);
-            btnLogin.Margin = new Padding(3, 2, 3, 2);
-            btnLogin.Name = "btnLogin";
-            btnLogin.Size = new Size(82, 22);
-            btnLogin.TabIndex = 4;
-            btnLogin.Text = "Login";
-            btnLogin.UseVisualStyleBackColor = true;
-            btnLogin.Click += btnLogin_Click;
-            // 
-            // btnCancel
-            // 
-            btnCancel.DialogResult = DialogResult.Cancel;
-            btnCancel.Location = new Point(131, 112);
-            btnCancel.Margin = new Padding(3, 2, 3, 2);
-            btnCancel.Name = "btnCancel";
-            btnCancel.Size = new Size(82, 22);
-            btnCancel.TabIndex = 5;
-            btnCancel.Text = "Cancel";
-            btnCancel.UseVisualStyleBackColor = true;
-            btnCancel.Click += btnCancel_Click;
+            this.txtPassword.AnimateReadOnly = false;
+            this.txtPassword.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
+            this.txtPassword.CharacterCasing = System.Windows.Forms.CharacterCasing.Normal;
+            this.txtPassword.Depth = 0;
+            this.txtPassword.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.txtPassword.HideSelection = true;
+            this.txtPassword.Hint = "Password";
+            this.txtPassword.LeadingIcon = null;
+            this.txtPassword.Location = new System.Drawing.Point(30, 145);
+            this.txtPassword.MaxLength = 50;
+            this.txtPassword.MouseState = MaterialSkin.MouseState.OUT;
+            this.txtPassword.Name = "txtPassword";
+            this.txtPassword.PasswordChar = '●';
+            this.txtPassword.PrefixSuffixText = null;
+            this.txtPassword.ReadOnly = false;
+            this.txtPassword.RightToLeft = System.Windows.Forms.RightToLeft.No;
+            this.txtPassword.SelectedText = "";
+            this.txtPassword.SelectionLength = 0;
+            this.txtPassword.SelectionStart = 0;
+            this.txtPassword.ShortcutsEnabled = true;
+            this.txtPassword.Size = new System.Drawing.Size(300, 48);
+            this.txtPassword.TabIndex = 2;
+            this.txtPassword.TabStop = false;
+            this.txtPassword.TextAlign = System.Windows.Forms.HorizontalAlignment.Left;
+            this.txtPassword.TrailingIcon = null;
+            this.txtPassword.UseSystemPasswordChar = true;
             // 
             // lblError
             // 
-            lblError.AutoSize = true;
-            lblError.ForeColor = Color.Red;
-            lblError.Location = new Point(131, 86);
-            lblError.Name = "lblError";
-            lblError.Size = new Size(0, 15);
-            lblError.TabIndex = 6;
+            this.lblError.AutoSize = true;
+            this.lblError.Depth = 0;
+            this.lblError.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+
+            // ÇÖZÜM 1: Miras alınan font yapısı PascalCase 'Body2' olarak düzeltildi
+            this.lblError.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+
+            this.lblError.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(211)))), ((int)(((byte)(47)))), ((int)(((byte)(47)))));
+            this.lblError.Location = new System.Drawing.Point(32, 205);
+            this.lblError.MouseState = MaterialSkin.MouseState.HOVER;
+            this.lblError.Name = "lblError";
+            this.lblError.Size = new System.Drawing.Size(0, 17);
+            this.lblError.TabIndex = 0;
+            // 
+            // btnCancel
+            // 
+            this.btnCancel.AutoSize = false;
+            this.btnCancel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnCancel.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnCancel.Depth = 0;
+            this.btnCancel.HighEmphasis = false;
+            this.btnCancel.Icon = null;
+            this.btnCancel.Location = new System.Drawing.Point(124, 235);
+            this.btnCancel.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnCancel.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnCancel.Name = "btnCancel";
+            this.btnCancel.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnCancel.Size = new System.Drawing.Size(100, 36);
+            this.btnCancel.TabIndex = 4;
+            this.btnCancel.Text = "Cancel";
+            this.btnCancel.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Outlined;
+            this.btnCancel.UseAccentColor = false;
+            this.btnCancel.UseVisualStyleBackColor = true;
+            this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
+            // 
+            // btnLogin
+            // 
+            this.btnLogin.AutoSize = false;
+            this.btnLogin.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnLogin.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnLogin.Depth = 0;
+            this.btnLogin.HighEmphasis = true;
+            this.btnLogin.Icon = null;
+            this.btnLogin.Location = new System.Drawing.Point(230, 235);
+            this.btnLogin.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnLogin.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnLogin.Name = "btnLogin";
+            this.btnLogin.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnLogin.Size = new System.Drawing.Size(100, 36);
+            this.btnLogin.TabIndex = 3;
+            this.btnLogin.Text = "Login";
+            this.btnLogin.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            this.btnLogin.UseAccentColor = true;
+            this.btnLogin.UseVisualStyleBackColor = true;
+            this.btnLogin.Click += new System.EventHandler(this.btnLogin_Click);
             // 
             // LoginForm
             // 
-            AcceptButton = btnLogin;
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            CancelButton = btnCancel;
-            ClientSize = new Size(350, 150);
-            Controls.Add(lblError);
-            Controls.Add(btnCancel);
-            Controls.Add(btnLogin);
-            Controls.Add(txtPassword);
-            Controls.Add(label2);
-            Controls.Add(txtUsername);
-            Controls.Add(label1);
-            FormBorderStyle = FormBorderStyle.FixedDialog;
-            Margin = new Padding(3, 2, 3, 2);
-            MaximizeBox = false;
-            MinimizeBox = false;
-            Name = "LoginForm";
-            StartPosition = FormStartPosition.CenterScreen;
-            Text = "SCADA SYSTEM USER LOGIN";
-            ResumeLayout(false);
-            PerformLayout();
+            this.AcceptButton = this.btnLogin;
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.CancelButton = this.btnCancel;
+
+            // ÇÖZÜM 2: Form boyutlandırmaları ad alanı çakışmalarını önlemek için netleştirildi
+            this.ClientSize = new System.Drawing.Size(360, 290);
+
+            this.Controls.Add(this.lblError);
+            this.Controls.Add(this.btnCancel);
+            this.Controls.Add(this.btnLogin);
+            this.Controls.Add(this.txtPassword);
+            this.Controls.Add(this.txtUsername);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
+            this.Name = "LoginForm";
+            this.ShowInTaskbar = false;
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            this.Text = "SCADA SYSTEM USER LOGIN";
+            this.ResumeLayout(false);
+            this.PerformLayout();
         }
+
         #endregion
-        private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.TextBox txtUsername;
-        private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.TextBox txtPassword;
-        private System.Windows.Forms.Button btnLogin;
-        private System.Windows.Forms.Button btnCancel;
-        private System.Windows.Forms.Label lblError;
+
+        private MaterialSkin.Controls.MaterialTextBox2 txtUsername;
+        private MaterialSkin.Controls.MaterialTextBox2 txtPassword;
+        private MaterialSkin.Controls.MaterialButton btnLogin;
+        private MaterialSkin.Controls.MaterialButton btnCancel;
+        private MaterialSkin.Controls.MaterialLabel lblError;
     }
 }

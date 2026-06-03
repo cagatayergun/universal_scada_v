@@ -1,10 +1,10 @@
-﻿// StepEditor_Control.Designer.cs
-// Bu kod bloğunu StepEditor_Control.Designer.cs dosyasına yapıştırın.
+﻿// UI/Controls/RecipeStepEditors/StepEditor_Control.Designer.cs
 namespace Telemetry.UI.Controls.RecipeStepEditors
 {
     partial class StepEditor_Control
     {
         private System.ComponentModel.IContainer components = null;
+
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -13,157 +13,191 @@ namespace Telemetry.UI.Controls.RecipeStepEditors
             }
             base.Dispose(disposing);
         }
+
         #region Component Designer generated code
         private void InitializeComponent()
         {
-            pnlStepTypes = new Panel();
-            chkSikma = new CheckBox();
-            chknumune = new CheckBox();
-            chkBosaltma = new CheckBox();
-            chkDozaj = new CheckBox();
-            chkCalisma = new CheckBox();
-            chkIsitma = new CheckBox();
-            chkSuAlma = new CheckBox();
-            flpParameters = new FlowLayoutPanel();
-            pnlStepTypes.SuspendLayout();
-            SuspendLayout();
+            this.pnlStepTypes = new System.Windows.Forms.Panel();
+            this.chkSuAlma = new MaterialSkin.Controls.MaterialCheckbox();
+            this.chkIsitma = new MaterialSkin.Controls.MaterialCheckbox();
+            this.chkCalisma = new MaterialSkin.Controls.MaterialCheckbox();
+            this.chkDozaj = new MaterialSkin.Controls.MaterialCheckbox();
+            this.chkBosaltma = new MaterialSkin.Controls.MaterialCheckbox();
+            this.chkSikma = new MaterialSkin.Controls.MaterialCheckbox();
+            this.chknumune = new MaterialSkin.Controls.MaterialCheckbox();
+            this.flpParameters = new System.Windows.Forms.FlowLayoutPanel();
+            this.pnlStepTypes.SuspendLayout();
+            this.SuspendLayout();
             // 
             // pnlStepTypes
             // 
-            pnlStepTypes.AutoScroll = true;
-            pnlStepTypes.BorderStyle = BorderStyle.FixedSingle;
-            pnlStepTypes.Controls.Add(chkSikma);
-            pnlStepTypes.Controls.Add(chknumune);
-            pnlStepTypes.Controls.Add(chkBosaltma);
-            pnlStepTypes.Controls.Add(chkDozaj);
-            pnlStepTypes.Controls.Add(chkCalisma);
-            pnlStepTypes.Controls.Add(chkIsitma);
-            pnlStepTypes.Controls.Add(chkSuAlma);
-            pnlStepTypes.Dock = DockStyle.Left;
-            pnlStepTypes.Location = new Point(0, 0);
-            pnlStepTypes.Margin = new Padding(3, 2, 3, 2);
-            pnlStepTypes.Name = "pnlStepTypes";
-            pnlStepTypes.Size = new Size(206, 338);
-            pnlStepTypes.TabIndex = 0;
-            // 
-            // chkSikma
-            // 
-            chkSikma.AutoSize = true;
-            chkSikma.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            chkSikma.Location = new Point(9, 118);
-            chkSikma.Margin = new Padding(3, 2, 3, 2);
-            chkSikma.Name = "chkSikma";
-            chkSikma.Size = new Size(99, 19);
-            chkSikma.TabIndex = 5;
-            chkSikma.Text = "EXTRACTION";
-            chkSikma.UseVisualStyleBackColor = true;
-            // 
-            // chknumune
-            // 
-            chknumune.AutoSize = true;
-            chknumune.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            chknumune.Location = new Point(9, 140);
-            chknumune.Margin = new Padding(3, 2, 3, 2);
-            chknumune.Name = "chknumune";
-            chknumune.Size = new Size(109, 19);
-            chknumune.TabIndex = 5;
-            chknumune.Text = "OPERATOR CALL";
-            chknumune.UseVisualStyleBackColor = true;
-            // 
-            // chkBosaltma
-            // 
-            chkBosaltma.AutoSize = true;
-            chkBosaltma.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            chkBosaltma.Location = new Point(9, 96);
-            chkBosaltma.Margin = new Padding(3, 2, 3, 2);
-            chkBosaltma.Name = "chkBosaltma";
-            chkBosaltma.Size = new Size(98, 19);
-            chkBosaltma.TabIndex = 4;
-            chkBosaltma.Text = "UNLOADING";
-            chkBosaltma.UseVisualStyleBackColor = true;
-            // 
-            // chkDozaj
-            // 
-            chkDozaj.AutoSize = true;
-            chkDozaj.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            chkDozaj.Location = new Point(9, 74);
-            chkDozaj.Margin = new Padding(3, 2, 3, 2);
-            chkDozaj.Name = "chkDozaj";
-            chkDozaj.Size = new Size(74, 19);
-            chkDozaj.TabIndex = 3;
-            chkDozaj.Text = "DOSAGE";
-            chkDozaj.UseVisualStyleBackColor = true;
-            // 
-            // chkCalisma
-            // 
-            chkCalisma.AutoSize = true;
-            chkCalisma.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            chkCalisma.Location = new Point(9, 52);
-            chkCalisma.Margin = new Padding(3, 2, 3, 2);
-            chkCalisma.Name = "chkCalisma";
-            chkCalisma.Size = new Size(85, 19);
-            chkCalisma.TabIndex = 2;
-            chkCalisma.Text = "WORKING";
-            chkCalisma.UseVisualStyleBackColor = true;
-            // 
-            // chkIsitma
-            // 
-            chkIsitma.AutoSize = true;
-            chkIsitma.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            chkIsitma.Location = new Point(9, 30);
-            chkIsitma.Margin = new Padding(3, 2, 3, 2);
-            chkIsitma.Name = "chkIsitma";
-            chkIsitma.Size = new Size(77, 19);
-            chkIsitma.TabIndex = 1;
-            chkIsitma.Text = "HEATING";
-            chkIsitma.UseVisualStyleBackColor = true;
+            this.pnlStepTypes.AutoScroll = true;
+            this.pnlStepTypes.BackColor = System.Drawing.Color.Transparent;
+            this.pnlStepTypes.BorderStyle = System.Windows.Forms.BorderStyle.None; // Flat görünüm için kenarlık kaldırıldı
+            this.pnlStepTypes.Controls.Add(this.chkSikma);
+            this.pnlStepTypes.Controls.Add(this.chknumune);
+            this.pnlStepTypes.Controls.Add(this.chkBosaltma);
+            this.pnlStepTypes.Controls.Add(this.chkDozaj);
+            this.pnlStepTypes.Controls.Add(this.chkCalisma);
+            this.pnlStepTypes.Controls.Add(this.chkIsitma);
+            this.pnlStepTypes.Controls.Add(this.chkSuAlma);
+            this.pnlStepTypes.Dock = System.Windows.Forms.DockStyle.Left;
+            this.pnlStepTypes.Location = new System.Drawing.Point(0, 0);
+            this.pnlStepTypes.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.pnlStepTypes.Name = "pnlStepTypes";
+            this.pnlStepTypes.Size = new System.Drawing.Size(206, 338);
+            this.pnlStepTypes.TabIndex = 0;
             // 
             // chkSuAlma
             // 
-            chkSuAlma.AutoSize = true;
-            chkSuAlma.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            chkSuAlma.Location = new Point(9, 8);
-            chkSuAlma.Margin = new Padding(3, 2, 3, 2);
-            chkSuAlma.Name = "chkSuAlma";
-            chkSuAlma.Size = new Size(97, 19);
-            chkSuAlma.TabIndex = 0;
-            chkSuAlma.Text = "TAKE WATER";
-            chkSuAlma.UseVisualStyleBackColor = true;
+            this.chkSuAlma.AutoSize = true;
+            this.chkSuAlma.Depth = 0;
+            this.chkSuAlma.Location = new System.Drawing.Point(9, 8); // Başlangıç noktası
+            this.chkSuAlma.Margin = new System.Windows.Forms.Padding(0);
+            this.chkSuAlma.MouseLocation = new System.Drawing.Point(-1, -1);
+            this.chkSuAlma.MouseState = MaterialSkin.MouseState.HOVER;
+            this.chkSuAlma.Name = "chkSuAlma";
+            this.chkSuAlma.ReadOnly = false;
+            this.chkSuAlma.Ripple = true;
+            this.chkSuAlma.Size = new System.Drawing.Size(126, 37);
+            this.chkSuAlma.TabIndex = 0;
+            this.chkSuAlma.Text = "TAKE WATER";
+            this.chkSuAlma.UseVisualStyleBackColor = true;
+            // 
+            // chkIsitma
+            // 
+            this.chkIsitma.AutoSize = true;
+            this.chkIsitma.Depth = 0;
+            this.chkIsitma.Location = new System.Drawing.Point(9, 48); // Üst üste binmeyi önleyen 40px güvenli dikey aralık
+            this.chkIsitma.Margin = new System.Windows.Forms.Padding(0);
+            this.chkIsitma.MouseLocation = new System.Drawing.Point(-1, -1);
+            this.chkIsitma.MouseState = MaterialSkin.MouseState.HOVER;
+            this.chkIsitma.Name = "chkIsitma";
+            this.chkIsitma.ReadOnly = false;
+            this.chkIsitma.Ripple = true;
+            this.chkIsitma.Size = new System.Drawing.Size(100, 37);
+            this.chkIsitma.TabIndex = 1;
+            this.chkIsitma.Text = "HEATING";
+            this.chkIsitma.UseVisualStyleBackColor = true;
+            // 
+            // chkCalisma
+            // 
+            this.chkCalisma.AutoSize = true;
+            this.chkCalisma.Depth = 0;
+            this.chkCalisma.Location = new System.Drawing.Point(9, 88);
+            this.chkCalisma.Margin = new System.Windows.Forms.Padding(0);
+            this.chkCalisma.MouseLocation = new System.Drawing.Point(-1, -1);
+            this.chkCalisma.MouseState = MaterialSkin.MouseState.HOVER;
+            this.chkCalisma.Name = "chkCalisma";
+            this.chkCalisma.ReadOnly = false;
+            this.chkCalisma.Ripple = true;
+            this.chkCalisma.Size = new System.Drawing.Size(109, 37);
+            this.chkCalisma.TabIndex = 2;
+            this.chkCalisma.Text = "WORKING";
+            this.chkCalisma.UseVisualStyleBackColor = true;
+            // 
+            // chkDozaj
+            // 
+            this.chkDozaj.AutoSize = true;
+            this.chkDozaj.Depth = 0;
+            this.chkDozaj.Location = new System.Drawing.Point(9, 128);
+            this.chkDozaj.Margin = new System.Windows.Forms.Padding(0);
+            this.chkDozaj.MouseLocation = new System.Drawing.Point(-1, -1);
+            this.chkDozaj.MouseState = MaterialSkin.MouseState.HOVER;
+            this.chkDozaj.Name = "chkDozaj";
+            this.chkDozaj.ReadOnly = false;
+            this.chkDozaj.Ripple = true;
+            this.chkDozaj.Size = new System.Drawing.Size(97, 37);
+            this.chkDozaj.TabIndex = 3;
+            this.chkDozaj.Text = "DOSAGE";
+            this.chkDozaj.UseVisualStyleBackColor = true;
+            // 
+            // chkBosaltma
+            // 
+            this.chkBosaltma.AutoSize = true;
+            this.chkBosaltma.Depth = 0;
+            this.chkBosaltma.Location = new System.Drawing.Point(9, 168);
+            this.chkBosaltma.Margin = new System.Windows.Forms.Padding(0);
+            this.chkBosaltma.MouseLocation = new System.Drawing.Point(-1, -1);
+            this.chkBosaltma.MouseState = MaterialSkin.MouseState.HOVER;
+            this.chkBosaltma.Name = "chkBosaltma";
+            this.chkBosaltma.ReadOnly = false;
+            this.chkBosaltma.Ripple = true;
+            this.chkBosaltma.Size = new System.Drawing.Size(124, 37);
+            this.chkBosaltma.TabIndex = 4;
+            this.chkBosaltma.Text = "UNLOADING";
+            this.chkBosaltma.UseVisualStyleBackColor = true;
+            // 
+            // chkSikma
+            // 
+            this.chkSikma.AutoSize = true;
+            this.chkSikma.Depth = 0;
+            this.chkSikma.Location = new System.Drawing.Point(9, 208);
+            this.chkSikma.Margin = new System.Windows.Forms.Padding(0);
+            this.chkSikma.MouseLocation = new System.Drawing.Point(-1, -1);
+            this.chkSikma.MouseState = MaterialSkin.MouseState.HOVER;
+            this.chkSikma.Name = "chkSikma";
+            this.chkSikma.ReadOnly = false;
+            this.chkSikma.Ripple = true;
+            this.chkSikma.Size = new System.Drawing.Size(130, 37);
+            this.chkSikma.TabIndex = 5;
+            this.chkSikma.Text = "EXTRACTION";
+            this.chkSikma.UseVisualStyleBackColor = true;
+            // 
+            // chknumune
+            // 
+            this.chknumune.AutoSize = true;
+            this.chknumune.Depth = 0;
+            this.chknumune.Location = new System.Drawing.Point(9, 248);
+            this.chknumune.Margin = new System.Windows.Forms.Padding(0);
+            this.chknumune.MouseLocation = new System.Drawing.Point(-1, -1);
+            this.chknumune.MouseState = MaterialSkin.MouseState.HOVER;
+            this.chknumune.Name = "chknumune";
+            this.chknumune.ReadOnly = false;
+            this.chknumune.Ripple = true;
+            this.chknumune.Size = new System.Drawing.Size(152, 37);
+            this.chknumune.TabIndex = 6;
+            this.chknumune.Text = "OPERATOR CALL";
+            this.chknumune.UseVisualStyleBackColor = true;
             // 
             // flpParameters
             // 
-            flpParameters.AutoScroll = true;
-            flpParameters.Dock = DockStyle.Fill;
-            flpParameters.FlowDirection = FlowDirection.TopDown;
-            flpParameters.Location = new Point(206, 0);
-            flpParameters.Margin = new Padding(3, 2, 3, 2);
-            flpParameters.Name = "flpParameters";
-            flpParameters.Size = new Size(144, 338);
-            flpParameters.TabIndex = 0;
-            flpParameters.WrapContents = false;
+            this.flpParameters.AutoScroll = true;
+            this.flpParameters.BackColor = System.Drawing.Color.Transparent;
+            this.flpParameters.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.flpParameters.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
+            this.flpParameters.Location = new System.Drawing.Point(206, 0);
+            this.flpParameters.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.flpParameters.Name = "flpParameters";
+            this.flpParameters.Size = new System.Drawing.Size(144, 338);
+            this.flpParameters.TabIndex = 7;
+            this.flpParameters.WrapContents = false;
             // 
             // StepEditor_Control
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            Controls.Add(flpParameters);
-            Controls.Add(pnlStepTypes);
-            Margin = new Padding(3, 2, 3, 2);
-            Name = "StepEditor_Control";
-            Size = new Size(350, 338);
-            pnlStepTypes.ResumeLayout(false);
-            pnlStepTypes.PerformLayout();
-            ResumeLayout(false);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.Transparent;
+            this.Controls.Add(this.flpParameters);
+            this.Controls.Add(this.pnlStepTypes);
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.Name = "StepEditor_Control";
+            this.Size = new System.Drawing.Size(350, 338);
+            this.pnlStepTypes.ResumeLayout(false);
+            this.pnlStepTypes.PerformLayout();
+            this.ResumeLayout(false);
         }
+
         #endregion
+
         private System.Windows.Forms.Panel pnlStepTypes;
-        private System.Windows.Forms.CheckBox chkSuAlma;
-        private System.Windows.Forms.CheckBox chkIsitma;
-        private System.Windows.Forms.CheckBox chkCalisma;
-        private System.Windows.Forms.CheckBox chkDozaj;
-        private System.Windows.Forms.CheckBox chkBosaltma;
-        private System.Windows.Forms.CheckBox chkSikma;
-        private System.Windows.Forms.CheckBox chknumune;
+        private MaterialSkin.Controls.MaterialCheckbox chkSuAlma;
+        private MaterialSkin.Controls.MaterialCheckbox chkIsitma;
+        private MaterialSkin.Controls.MaterialCheckbox chkCalisma;
+        private MaterialSkin.Controls.MaterialCheckbox chkDozaj;
+        private MaterialSkin.Controls.MaterialCheckbox chkBosaltma;
+        private MaterialSkin.Controls.MaterialCheckbox chkSikma;
+        private MaterialSkin.Controls.MaterialCheckbox chknumune;
         private System.Windows.Forms.FlowLayoutPanel flpParameters;
     }
 }

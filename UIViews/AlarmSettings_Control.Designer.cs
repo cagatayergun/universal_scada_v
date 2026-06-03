@@ -4,211 +4,259 @@ namespace Telemetry.UI.Views
     partial class AlarmSettings_Control
     {
         private System.ComponentModel.IContainer components = null;
+
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null)) { components.Dispose(); }
             base.Dispose(disposing);
         }
+
         #region Component Designer generated code
         private void InitializeComponent()
         {
-            dgvAlarms = new DataGridView();
-            groupBox1 = new GroupBox();
-            btnDelete = new Button();
-            btnSave = new Button();
-            btnNew = new Button();
-            txtCategory = new TextBox();
-            label4 = new Label();
-            numSeverity = new NumericUpDown();
-            label3 = new Label();
-            txtAlarmText = new TextBox();
-            label2 = new Label();
-            numAlarmNo = new NumericUpDown();
-            label1 = new Label();
-            ((System.ComponentModel.ISupportInitialize)dgvAlarms).BeginInit();
-            groupBox1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)numSeverity).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)numAlarmNo).BeginInit();
-            SuspendLayout();
+            this.dgvAlarms = new System.Windows.Forms.DataGridView();
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.btnDelete = new MaterialSkin.Controls.MaterialButton(); // MaterialButton olarak güncellendi
+            this.btnSave = new MaterialSkin.Controls.MaterialButton();   // MaterialButton olarak güncellendi
+            this.btnNew = new MaterialSkin.Controls.MaterialButton();    // MaterialButton olarak güncellendi
+            this.txtCategory = new System.Windows.Forms.TextBox();
+            this.label4 = new MaterialSkin.Controls.MaterialLabel();      // MaterialLabel olarak güncellendi
+            this.numSeverity = new System.Windows.Forms.NumericUpDown();
+            this.label3 = new MaterialSkin.Controls.MaterialLabel();      // MaterialLabel olarak güncellendi
+            this.txtAlarmText = new System.Windows.Forms.TextBox();
+            this.label2 = new MaterialSkin.Controls.MaterialLabel();      // MaterialLabel olarak güncellendi
+            this.numAlarmNo = new System.Windows.Forms.NumericUpDown();
+            this.label1 = new MaterialSkin.Controls.MaterialLabel();      // MaterialLabel olarak güncellendi
+            ((System.ComponentModel.ISupportInitialize)(this.dgvAlarms)).BeginInit();
+            this.groupBox1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numSeverity)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numAlarmNo)).BeginInit();
+            this.SuspendLayout();
             // 
             // dgvAlarms
             // 
-            dgvAlarms.AllowUserToAddRows = false;
-            dgvAlarms.AllowUserToDeleteRows = false;
-            dgvAlarms.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgvAlarms.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvAlarms.Dock = DockStyle.Fill;
-            dgvAlarms.Location = new Point(0, 0);
-            dgvAlarms.Margin = new Padding(3, 2, 3, 2);
-            dgvAlarms.MultiSelect = false;
-            dgvAlarms.Name = "dgvAlarms";
-            dgvAlarms.ReadOnly = true;
-            dgvAlarms.RowHeadersWidth = 51;
-            dgvAlarms.RowTemplate.Height = 29;
-            dgvAlarms.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvAlarms.Size = new Size(700, 450);
-            dgvAlarms.TabIndex = 0;
-            dgvAlarms.SelectionChanged += dgvAlarms_SelectionChanged;
+            this.dgvAlarms.AllowUserToAddRows = false;
+            this.dgvAlarms.AllowUserToDeleteRows = false;
+            this.dgvAlarms.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dgvAlarms.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvAlarms.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dgvAlarms.Location = new System.Drawing.Point(0, 0);
+            this.dgvAlarms.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.dgvAlarms.MultiSelect = false;
+            this.dgvAlarms.Name = "dgvAlarms";
+            this.dgvAlarms.ReadOnly = true;
+            this.dgvAlarms.RowHeadersWidth = 51;
+            this.dgvAlarms.RowTemplate.Height = 26;
+            this.dgvAlarms.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
+            this.dgvAlarms.Size = new System.Drawing.Size(700, 450);
+            this.dgvAlarms.TabIndex = 0;
+            this.dgvAlarms.SelectionChanged += new System.EventHandler(this.dgvAlarms_SelectionChanged);
             // 
             // groupBox1
             // 
-            groupBox1.Controls.Add(btnDelete);
-            groupBox1.Controls.Add(btnSave);
-            groupBox1.Controls.Add(btnNew);
-            groupBox1.Controls.Add(txtCategory);
-            groupBox1.Controls.Add(label4);
-            groupBox1.Controls.Add(numSeverity);
-            groupBox1.Controls.Add(label3);
-            groupBox1.Controls.Add(txtAlarmText);
-            groupBox1.Controls.Add(label2);
-            groupBox1.Controls.Add(numAlarmNo);
-            groupBox1.Controls.Add(label1);
-            groupBox1.Dock = DockStyle.Bottom;
-            groupBox1.Location = new Point(0, 262);
-            groupBox1.Margin = new Padding(3, 2, 3, 2);
-            groupBox1.Name = "groupBox1";
-            groupBox1.Padding = new Padding(3, 2, 3, 2);
-            groupBox1.Size = new Size(700, 188);
-            groupBox1.TabIndex = 1;
-            groupBox1.TabStop = false;
-            groupBox1.Text = "Alarm Details";
+            this.groupBox1.Controls.Add(this.btnDelete);
+            this.groupBox1.Controls.Add(this.btnSave);
+            this.groupBox1.Controls.Add(this.btnNew);
+            this.groupBox1.Controls.Add(this.txtCategory);
+            this.groupBox1.Controls.Add(this.label4);
+            this.groupBox1.Controls.Add(this.numSeverity);
+            this.groupBox1.Controls.Add(this.label3);
+            this.groupBox1.Controls.Add(this.txtAlarmText);
+            this.groupBox1.Controls.Add(this.label2);
+            this.groupBox1.Controls.Add(this.numAlarmNo);
+            this.groupBox1.Controls.Add(this.label1);
+            this.groupBox1.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.groupBox1.Location = new System.Drawing.Point(0, 262);
+            this.groupBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox1.Size = new System.Drawing.Size(700, 188);
+            this.groupBox1.TabIndex = 1;
+            this.groupBox1.TabStop = false;
+            this.groupBox1.Text = "Alarm Details";
             // 
             // btnDelete
             // 
-            btnDelete.Location = new Point(595, 142);
-            btnDelete.Margin = new Padding(3, 2, 3, 2);
-            btnDelete.Name = "btnDelete";
-            btnDelete.Size = new Size(82, 22);
-            btnDelete.TabIndex = 10;
-            btnDelete.Text = "Delete";
-            btnDelete.UseVisualStyleBackColor = true;
-            btnDelete.Click += btnDelete_Click;
+            this.btnDelete.AutoSize = false;
+            this.btnDelete.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnDelete.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnDelete.Depth = 0;
+            this.btnDelete.HighEmphasis = false;
+            this.btnDelete.Icon = null;
+            this.btnDelete.Location = new System.Drawing.Point(600, 138); // Yükseklik artışı için Y koordinatı optimize edildi
+            this.btnDelete.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnDelete.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnDelete.Name = "btnDelete";
+            this.btnDelete.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnDelete.Size = new System.Drawing.Size(85, 36); // Metin kırpılmasını önleyen ideal flat genişlik
+            this.btnDelete.TabIndex = 10;
+            this.btnDelete.Text = "Delete";
+            this.btnDelete.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Outlined; // Çizgili flat stil
+            this.btnDelete.UseAccentColor = false;
+            this.btnDelete.UseVisualStyleBackColor = true;
+            this.btnDelete.Click += new System.EventHandler(this.btnDelete_Click);
             // 
             // btnSave
             // 
-            btnSave.Location = new Point(508, 142);
-            btnSave.Margin = new Padding(3, 2, 3, 2);
-            btnSave.Name = "btnSave";
-            btnSave.Size = new Size(82, 22);
-            btnSave.TabIndex = 9;
-            btnSave.Text = "Save";
-            btnSave.UseVisualStyleBackColor = true;
-            btnSave.Click += btnSave_Click;
+            this.btnSave.AutoSize = false;
+            this.btnSave.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnSave.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnSave.Depth = 0;
+            this.btnSave.HighEmphasis = true; // Ana aksiyon (Kaydet) vurgulandı
+            this.btnSave.Icon = null;
+            this.btnSave.Location = new System.Drawing.Point(505, 138);
+            this.btnSave.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnSave.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnSave.Name = "btnSave";
+            this.btnSave.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnSave.Size = new System.Drawing.Size(85, 36);
+            this.btnSave.TabIndex = 9;
+            this.btnSave.Text = "Save";
+            this.btnSave.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained; // Dolgulu baskın stil
+            this.btnSave.UseAccentColor = true;
+            this.btnSave.UseVisualStyleBackColor = true;
+            this.btnSave.Click += new System.EventHandler(this.btnSave_Click);
             // 
             // btnNew
             // 
-            btnNew.Location = new Point(420, 142);
-            btnNew.Margin = new Padding(3, 2, 3, 2);
-            btnNew.Name = "btnNew";
-            btnNew.Size = new Size(82, 22);
-            btnNew.TabIndex = 8;
-            btnNew.Text = "New";
-            btnNew.UseVisualStyleBackColor = true;
-            btnNew.Click += btnNew_Click;
+            this.btnNew.AutoSize = false;
+            this.btnNew.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnNew.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnNew.Depth = 0;
+            this.btnNew.HighEmphasis = false;
+            this.btnNew.Icon = null;
+            this.btnNew.Location = new System.Drawing.Point(410, 138);
+            this.btnNew.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnNew.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnNew.Name = "btnNew";
+            this.btnNew.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnNew.Size = new System.Drawing.Size(85, 36);
+            this.btnNew.TabIndex = 8;
+            this.btnNew.Text = "New";
+            this.btnNew.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Outlined; // Çizgili flat stil
+            this.btnNew.UseAccentColor = false;
+            this.btnNew.UseVisualStyleBackColor = true;
+            this.btnNew.Click += new System.EventHandler(this.btnNew_Click);
             // 
             // txtCategory
             // 
-            txtCategory.Location = new Point(114, 112);
-            txtCategory.Margin = new Padding(3, 2, 3, 2);
-            txtCategory.Name = "txtCategory";
-            txtCategory.Size = new Size(219, 23);
-            txtCategory.TabIndex = 7;
+            this.txtCategory.Location = new System.Drawing.Point(120, 112);
+            this.txtCategory.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtCategory.Name = "txtCategory";
+            this.txtCategory.Size = new System.Drawing.Size(219, 23);
+            this.txtCategory.TabIndex = 7;
             // 
             // label4
             // 
-            label4.AutoSize = true;
-            label4.Location = new Point(18, 115);
-            label4.Name = "label4";
-            label4.Size = new Size(58, 15);
-            label4.TabIndex = 6;
-            label4.Text = "Category:";
+            this.label4.AutoSize = true;
+            this.label4.Depth = 0;
+            this.label4.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label4.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label4.Location = new System.Drawing.Point(18, 115);
+            this.label4.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(62, 17);
+            this.label4.TabIndex = 6;
+            this.label4.Text = "Category:";
             // 
             // numSeverity
             // 
-            numSeverity.Location = new Point(114, 82);
-            numSeverity.Margin = new Padding(3, 2, 3, 2);
-            numSeverity.Maximum = new decimal(new int[] { 4, 0, 0, 0 });
-            numSeverity.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-            numSeverity.Name = "numSeverity";
-            numSeverity.Size = new Size(131, 23);
-            numSeverity.TabIndex = 5;
-            numSeverity.Value = new decimal(new int[] { 1, 0, 0, 0 });
+            this.numSeverity.Location = new System.Drawing.Point(120, 82);
+            this.numSeverity.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.numSeverity.Maximum = new decimal(new int[] { 4, 0, 0, 0 });
+            this.numSeverity.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            this.numSeverity.Name = "numSeverity";
+            this.numSeverity.Size = new System.Drawing.Size(131, 23);
+            this.numSeverity.TabIndex = 5;
+            this.numSeverity.Value = new decimal(new int[] { 1, 0, 0, 0 });
             // 
             // label3
             // 
-            label3.AutoSize = true;
-            label3.Location = new Point(18, 84);
-            label3.Name = "label3";
-            label3.Size = new Size(51, 15);
-            label3.TabIndex = 4;
-            label3.Text = "Severity:";
+            this.label3.AutoSize = true;
+            this.label3.Depth = 0;
+            this.label3.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label3.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label3.Location = new System.Drawing.Point(18, 84);
+            this.label3.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(53, 17);
+            this.label3.TabIndex = 4;
+            this.label3.Text = "Severity:";
             // 
             // txtAlarmText
             // 
-            txtAlarmText.Location = new Point(114, 52);
-            txtAlarmText.Margin = new Padding(3, 2, 3, 2);
-            txtAlarmText.Name = "txtAlarmText";
-            txtAlarmText.Size = new Size(438, 23);
-            txtAlarmText.TabIndex = 3;
+            this.txtAlarmText.Location = new System.Drawing.Point(120, 52);
+            this.txtAlarmText.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtAlarmText.Name = "txtAlarmText";
+            this.txtAlarmText.Size = new System.Drawing.Size(438, 23);
+            this.txtAlarmText.TabIndex = 3;
             // 
             // label2
             // 
-            label2.AutoSize = true;
-            label2.Location = new Point(18, 55);
-            label2.Name = "label2";
-            label2.Size = new Size(66, 15);
-            label2.TabIndex = 2;
-            label2.Text = "Alarm Text:";
+            this.label2.AutoSize = true;
+            this.label2.Depth = 0;
+            this.label2.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label2.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label2.Location = new System.Drawing.Point(18, 55);
+            this.label2.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(69, 17);
+            this.label2.TabIndex = 2;
+            this.label2.Text = "Alarm Text:";
             // 
             // numAlarmNo
             // 
-            numAlarmNo.Location = new Point(114, 22);
-            numAlarmNo.Margin = new Padding(3, 2, 3, 2);
-            numAlarmNo.Maximum = new decimal(new int[] { 1000, 0, 0, 0 });
-            numAlarmNo.Name = "numAlarmNo";
-            numAlarmNo.Size = new Size(131, 23);
-            numAlarmNo.TabIndex = 1;
+            this.numAlarmNo.Location = new System.Drawing.Point(120, 22);
+            this.numAlarmNo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.numAlarmNo.Maximum = new decimal(new int[] { 1000, 0, 0, 0 });
+            this.numAlarmNo.Name = "numAlarmNo";
+            this.numAlarmNo.Size = new System.Drawing.Size(131, 23);
+            this.numAlarmNo.TabIndex = 1;
             // 
             // label1
             // 
-            label1.AutoSize = true;
-            label1.Location = new Point(18, 24);
-            label1.Name = "label1";
-            label1.Size = new Size(89, 15);
-            label1.TabIndex = 0;
-            label1.Text = "Alarm Number:";
+            this.label1.AutoSize = true;
+            this.label1.Depth = 0;
+            this.label1.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label1.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label1.Location = new System.Drawing.Point(18, 24);
+            this.label1.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(94, 17);
+            this.label1.TabIndex = 0;
+            this.label1.Text = "Alarm Number:";
             // 
             // AlarmSettings_Control
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            // ✅ DÜZELTİLMİŞ SIRA (Bunu uygulayın)
-            Controls.Add(dgvAlarms); // Önce tabloyu ekle (Alta gitsin)
-            Controls.Add(groupBox1); // Sonra paneli ekle (Üste gelsin ve yerini kapasın)
-            Margin = new Padding(3, 2, 3, 2);
-            Name = "AlarmSettings_Control";
-            Size = new Size(700, 450);
-            Load += AlarmSettings_Control_Load;
-            ((System.ComponentModel.ISupportInitialize)dgvAlarms).EndInit();
-            groupBox1.ResumeLayout(false);
-            groupBox1.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)numSeverity).EndInit();
-            ((System.ComponentModel.ISupportInitialize)numAlarmNo).EndInit();
-            ResumeLayout(false);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.Transparent; // Arka plan yönetimi üst ebeveyne devredildi
+            this.Controls.Add(this.dgvAlarms); // Kod arkasındaki yerleşim motorunun doğru çalışması için tablo önce eklenir
+            this.Controls.Add(this.groupBox1);
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.Name = "AlarmSettings_Control";
+            this.Size = new System.Drawing.Size(700, 450);
+            this.Load += new System.EventHandler(this.AlarmSettings_Control_Load);
+            ((System.ComponentModel.ISupportInitialize)(this.dgvAlarms)).EndInit();
+            this.groupBox1.ResumeLayout(false);
+            this.groupBox1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numSeverity)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numAlarmNo)).EndInit();
+            this.ResumeLayout(false);
         }
         #endregion
         private System.Windows.Forms.DataGridView dgvAlarms;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.NumericUpDown numAlarmNo;
-        private System.Windows.Forms.Label label1;
+        private MaterialSkin.Controls.MaterialLabel label1;         // Tür güncellendi
         private System.Windows.Forms.TextBox txtAlarmText;
-        private System.Windows.Forms.Label label2;
+        private MaterialSkin.Controls.MaterialLabel label2;         // Tür güncellendi
         private System.Windows.Forms.NumericUpDown numSeverity;
-        private System.Windows.Forms.Label label3;
+        private MaterialSkin.Controls.MaterialLabel label3;         // Tür güncellendi
         private System.Windows.Forms.TextBox txtCategory;
-        private System.Windows.Forms.Label label4;
-        private System.Windows.Forms.Button btnDelete;
-        private System.Windows.Forms.Button btnSave;
-        private System.Windows.Forms.Button btnNew;
+        private MaterialSkin.Controls.MaterialLabel label4;         // Tür güncellendi
+        private MaterialSkin.Controls.MaterialButton btnDelete;     // Tür güncellendi
+        private MaterialSkin.Controls.MaterialButton btnSave;       // Tür güncellendi
+        private MaterialSkin.Controls.MaterialButton btnNew;        // Tür güncellendi
     }
 }

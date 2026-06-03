@@ -1,7 +1,9 @@
 ﻿// UIViews/Raporlar_Control.cs
+using System;
+using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using Telemetry.Core;
-using Telemetry.Localization1;
 using Telemetry.Properties;
 using Telemetry.Repositories;
 using Telemetry.UIViews;
@@ -19,24 +21,33 @@ namespace Telemetry.UI.Views
         private readonly GenelUretimRaporu_Control _genelUretimRaporu;
         private readonly ActionLogReport_Control _actionLogReport_Control;
         private readonly EfficiencyReport_Control _efficiencyReport;
+
         public Raporlar_Control()
         {
-            InitializeComponent();
-            ApplyLocalization();
+            // Statik dil değişim olayına kayıt (Hafıza sızıntısını önlemek için OnHandleDestroyed'da sökülecek)
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
+
+            InitializeComponent();
+
+            // SPEED OPTİMİZASYON: Sekme geçişlerindeki donma ve ekran kırpışmalarını engeller
+            this.DoubleBuffered = true;
+            this.BackColor = Color.Transparent; // Arka plan yönetimi üst ebeveyn forma (MaterialTabControl) devredildi
+
             _alarmReport = new AlarmReport_Control();
             _efficiencyReport = new EfficiencyReport_Control();
             _efficiencyReport.Dock = DockStyle.Fill;
-            tabPageEfficiency.Controls.Add(_efficiencyReport); // Yeni sekmeye ekle
+            tabPageEfficiency.Controls.Add(_efficiencyReport);
+
             _productionReport = new ProductionReport_Control();
             _oeeReport = new OeeReport_Control();
             _trendAnaliz = new TrendAnaliz_Control();
             _recipeOptimization = new RecipeOptimization_Control();
             _manualUsageReport = new ManualUsageReport_Control();
-            _genelUretimRaporu = new GenelUretimRaporu_Control();
+
+            // ÇÖZÜM: Çift nesne üretim hatasına yol açan mükerrer kod satırı temizlendi
             _genelUretimRaporu = new GenelUretimRaporu_Control();
             _actionLogReport_Control = new ActionLogReport_Control();
-           
+
             _genelUretimRaporu.Dock = DockStyle.Fill;
             tabPageGenelUretim.Controls.Add(_genelUretimRaporu);
 
@@ -60,12 +71,15 @@ namespace Telemetry.UI.Views
 
             _actionLogReport_Control.Dock = DockStyle.Fill;
             tabPageActionLog.Controls.Add(_actionLogReport_Control);
+
+            ApplyLocalization();
         }
+
         private void LanguageManager_LanguageChanged(object sender, EventArgs e)
         {
             ApplyLocalization();
-
         }
+
         private void ApplyLocalization()
         {
             tabPageProductionReport.Text = Resources.üretimraporu;
@@ -78,7 +92,9 @@ namespace Telemetry.UI.Views
             tabPageEfficiency.Text = "Efficiency and Status Report";
         }
 
-        // GÜNCELLENDİ: CostRepository parametresini ekleyin
+        /// <summary>
+        /// Raporlama alt ekranlarının merkezi veri entegrasyon kanallarını besleyen başlatıcı fonksiyon.
+        /// </summary>
         public void InitializeControl(
             MachineRepository machineRepo,
             AlarmRepository alarmRepo,
@@ -87,10 +103,9 @@ namespace Telemetry.UI.Views
             ProcessLogRepository processLogRepo,
             RecipeRepository recipeRepo,
             CostRepository costRepo,
-    EfficiencyRepository efficiencyRepo
-           ) // YENİ: CostRepository parametresi eklendi
+            EfficiencyRepository efficiencyRepo)
         {
-            _genelUretimRaporu.InitializeControl(machineRepo, productionRepo); // YENİ: costRepo parametresi geçildi
+            _genelUretimRaporu.InitializeControl(machineRepo, productionRepo);
             _alarmReport.InitializeControl(machineRepo, alarmRepo);
             _productionReport.InitializeControl(machineRepo, productionRepo, recipeRepo, processLogRepo, alarmRepo);
             _oeeReport.InitializeControl(machineRepo, dashboardRepo);
@@ -98,6 +113,16 @@ namespace Telemetry.UI.Views
             _recipeOptimization.InitializeControl(recipeRepo);
             _manualUsageReport.InitializeControl(machineRepo, processLogRepo);
             _efficiencyReport.InitializeControl(machineRepo, efficiencyRepo);
+        }
+
+        // =========================================================================
+        // KUSURSUZ BELLEK TEMİZLİĞİ: STATİK Dil EVENT BAĞLANTISI KOPARILDI
+        // Üst panel sekmeleri değiştikçe bu formun RAM'de şişme yapmasını kesin önler.
+        // =========================================================================
+        protected override void OnHandleDestroyed(EventArgs e)
+        {
+            LanguageManager.LanguageChanged -= LanguageManager_LanguageChanged;
+            base.OnHandleDestroyed(e);
         }
     }
 }

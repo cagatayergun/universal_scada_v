@@ -3,16 +3,27 @@ using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using Telemetry.Models;
+using MaterialSkin;          // YENİ EKLENDİ: MaterialSkin ana kütüphanesi
+using MaterialSkin.Controls; // YENİ EKLENDİ: MaterialForm bileşenleri için
 
 namespace Telemetry.UI
 {
-    public partial class SelectMachineForm : Form
+    // Form yerine MaterialForm sınıfından türetiyoruz
+    public partial class SelectMachineForm : MaterialForm
     {
         public Machine SelectedMachine { get; private set; }
 
         public SelectMachineForm(List<Machine> machines)
         {
             InitializeComponent();
+
+            // =========================================================================
+            // MATERIALSKIN FORM ENTEGRASYONU VE PERFORMANS AYARLARI
+            // =========================================================================
+            var materialSkinManager = MaterialSkinManager.Instance;
+            materialSkinManager.AddFormToManage(this); // Formu merkezi temaya kaydet
+
+            this.DoubleBuffered = true; // Form yüklenirken veya ekranda taşınırken titremeyi engeller
 
             // DÜZELTME: Veri kaynağını atamadan önce DisplayMember ve ValueMember'ı temizleyelim.
             // Bu, eski ayarların önbellekte kalmasını engeller.

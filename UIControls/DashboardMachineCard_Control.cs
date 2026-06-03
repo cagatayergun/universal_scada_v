@@ -6,8 +6,8 @@ using System.Linq;
 using System.Windows.Forms;
 using Telemetry.Models;
 using Telemetry.Repositories;
-using System.Threading.Tasks; // EKLENDİ
-using System.Text.Json;       // EKLENDİ
+using System.Threading.Tasks;
+using System.Text.Json;
 using static Telemetry.Repositories.ProcessLogRepository;
 
 namespace Telemetry.UI.Controls
@@ -17,10 +17,15 @@ namespace Telemetry.UI.Controls
         private readonly Machine _machine;
         private readonly RecipeConfigurationRepository _configRepo = new RecipeConfigurationRepository();
         private List<PointF> _sparklinePoints = new List<PointF>();
-        private readonly Color _colorAlarm = Color.FromArgb(231, 76, 60);
-        private readonly Color _colorRunning = Color.FromArgb(46, 204, 113);
-        private readonly Color _colorIdle = Color.FromArgb(243, 156, 18);
-        private readonly Color _colorStopped = Color.SlateGray;
+
+        // =========================================================================
+        // MODERNİZASYON: GOOGLE MATERIAL DESIGN SOFT DURUM RENKLERİ
+        // Koyu tema (Dark Mode) zemininde gözü yormayan mat ve pürüzsüz tonlar
+        // =========================================================================
+        private readonly Color _colorAlarm = Color.FromArgb(239, 83, 80);      // Soft Pastel Kırmızı
+        private readonly Color _colorRunning = Color.FromArgb(102, 187, 106);  // Soft Pastel Yeşil
+        private readonly Color _colorIdle = Color.FromArgb(255, 167, 38);       // Soft Pastel Turuncu
+        private readonly Color _colorStopped = Color.FromArgb(144, 164, 174);   // Mat Mavi Gri
         private int _lastValidProgress = 0;
 
         public DashboardMachineCard_Control(Machine machine)
@@ -29,29 +34,40 @@ namespace Telemetry.UI.Controls
             _machine = machine;
             lblMachineName.Text = _machine.MachineName;
 
+            // SPEED OPTİMİZASYON: Kart üzerindeki anlık RPM ve Sıcaklık değişimlerinde titremeyi (Flickering) sıfırlar
             this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
 
-            // Renk ayarları
-            lblMachineName.ForeColor = Color.Black;
-            lblRecipeName.ForeColor = Color.Black;
-            lblBatchId.ForeColor = Color.Black;
-            lblTemperature.ForeColor = Color.Red;
-            gaugeRpm.ForeColor = Color.Black;
-            lblPercentage.ForeColor = Color.Black;
-            lblHumidity.ForeColor = Color.Blue;
-            lblhumudity.ForeColor = Color.Black;
-            label2.ForeColor = Color.Black;
+            // =========================================================================
+            // MODERNİZASYON: DARK MODE YAZI RENK UYARLAMALARI
+            // Eski 'Color.Black' atamaları koyu temada görünmez olacağı için açık gri tonlara çekildi.
+            // =========================================================================
+            Color textLight = Color.FromArgb(240, 240, 240); // Ana metinler için açık beyaz/gri
+            Color textMuted = Color.FromArgb(176, 190, 197); // İkincil başlıklar için soluk gri
+
+            lblMachineName.ForeColor = textLight;
+            lblRecipeName.ForeColor = textMuted;
+            lblBatchId.ForeColor = textMuted;
+            lblPercentage.ForeColor = textLight;
+            lblhumudity.ForeColor = textMuted;
+            label2.ForeColor = textMuted;
+
+            // Kadran (Gauge) metin rengini temaya uyarla
+            gaugeRpm.ForeColor = textLight;
+
+            // Değer vurgularını pürüzsüz pastel tonlara taşıyoruz
+            lblTemperature.ForeColor = Color.FromArgb(255, 110, 110); // Pastel Canlı Kırmızı
+            lblHumidity.ForeColor = Color.FromArgb(100, 181, 246);    // Pastel Canlı Mavi
+
             SetRpmGaugeLimitAsync();
         }
+
         private async void SetRpmGaugeLimitAsync()
         {
             try
             {
-                // 1. Veritabanından adım tiplerini çek
                 var stepTypesTable = await Task.Run(() => _configRepo.GetStepTypes());
                 int rpmStepTypeId = -1;
 
-                // 2. "Sıkma" (Squeezing) adımının ID'sini bul
                 foreach (System.Data.DataRow row in stepTypesTable.Rows)
                 {
                     string stepName = row["StepName"].ToString();
@@ -62,11 +78,8 @@ namespace Telemetry.UI.Controls
                     }
                 }
 
-                // Eğer Sıkma adımı bulunduysa
                 if (rpmStepTypeId != -1)
                 {
-                    // 3. KRİTİK NOKTA: Bu kartın ait olduğu makinenin alt tipini kullanıyoruz
-                    // _machine.MachineSubType -> Örn: "Boyama", "Yıkama"
                     string layoutJson = await Task.Run(() =>
                         _configRepo.GetLayoutJson(_machine.MachineSubType, rpmStepTypeId));
 
@@ -75,7 +88,6 @@ namespace Telemetry.UI.Controls
                         var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                         var controls = System.Text.Json.JsonSerializer.Deserialize<List<ControlMetadata>>(layoutJson, options);
 
-                        // 4. Tasarım içindeki RPM kontrolünü bul
                         var rpmControl = controls.FirstOrDefault(c =>
                             c.Maximum > 50 &&
                             (
@@ -88,7 +100,6 @@ namespace Telemetry.UI.Controls
 
                         if (rpmControl != null)
                         {
-                            // 5. Değeri ata (1.33 katı ile)
                             int newMax = (int)(rpmControl.Maximum);
 
                             if (gaugeRpm.InvokeRequired)
@@ -105,10 +116,10 @@ namespace Telemetry.UI.Controls
             }
             catch (Exception ex)
             {
-                // Dashboard'da çok kart olduğu için hata patlatmayalım, loglayalım
                 System.Diagnostics.Debug.WriteLine($"RPM limiti ayarlanamadı ({_machine.MachineName}): {ex.Message}");
             }
         }
+
         public void UpdateData(FullMachineStatus status, List<ProcessDataPoint> trendData)
         {
             if (this.InvokeRequired)
@@ -116,6 +127,9 @@ namespace Telemetry.UI.Controls
                 this.Invoke(new Action(() => UpdateData(status, trendData)));
                 return;
             }
+
+            // SPEED OPTİMİZASYON: Kontroller gizlenip gösterilirken kartın anlık donmasını ve kasılmasını engeller
+            this.SuspendLayout();
 
             lblRecipeName.Text = $"Recipe: {status.RecipeName ?? "-"}";
             lblBatchId.Text = $"Party: {status.BatchNumarasi ?? "-"}";
@@ -126,7 +140,8 @@ namespace Telemetry.UI.Controls
                 gaugeRpm.Text = status.AnlikDevirRpm.ToString();
             }
             catch (Exception ex) { }
-            // --- YENİ: Kurutma Makinesi Kontrolü ---
+
+            // --- Kurutma Makinesi Kontrolü ---
             bool isDrying = _machine.MachineType == "Kurutma Makinesi";
             if (!isDrying)
             {
@@ -136,19 +151,21 @@ namespace Telemetry.UI.Controls
             {
                 lblTemperature.Text = $"{status.AnlikSicaklik / 100.0m:F1}°C";
             }
-                // Kurutma makinesi ise barı gizle, nemi göster
+
+            // Kurutma makinesi ise barı gizle, nemi göster
+            if (progressBar.Visible == isDrying) // Sadece durum değiştiyse görünürlüğü tetikle (Gereksiz render'ı önler)
+            {
                 progressBar.Visible = !isDrying;
-            lblPercentage.Visible = !isDrying;
-            lblProcessing.Visible = !isDrying;
-            lblHumidity.Visible = isDrying;
-            lblhumudity.Visible = isDrying;
+                lblPercentage.Visible = !isDrying;
+                lblProcessing.Visible = !isDrying;
+                lblHumidity.Visible = isDrying;
+                lblhumudity.Visible = isDrying;
+            }
+
             if (isDrying)
             {
-                // Not: Modelde Nem alanını ekleyince burayı status.AnlikNem yaparsınız.
-                // Şimdilik mevcut yapıyı koruyoruz.
                 lblHumidity.Text = $"{status.AnlikSuSeviyesi} %";
             }
-            // ---------------------------------------
 
             if (status.HasActiveAlarm)
             {
@@ -165,6 +182,7 @@ namespace Telemetry.UI.Controls
                 _lastValidProgress = Math.Max(0, Math.Min(100, (int)status.ProsesYuzdesi));
                 progressBar.Value = _lastValidProgress;
                 lblPercentage.Text = $"{_lastValidProgress} %";
+
                 if (status.manuel_status)
                 {
                     pnlStatusIndicator.BackColor = _colorRunning;
@@ -174,24 +192,22 @@ namespace Telemetry.UI.Controls
                 else
                 {
                     if (status.IsInRecipeMode)
-                {
-                    pnlStatusIndicator.BackColor = _colorRunning;
-                    lblStatus.Text = $"Working - Step {status.AktifAdimNo}";
-                    lblStatus.ForeColor = _colorRunning;
-                }
-                else
-                {
-                    pnlStatusIndicator.BackColor = _colorStopped;
-                    lblStatus.Text = "Stops";
-                    lblStatus.ForeColor = _colorStopped;
-                }
+                    {
+                        pnlStatusIndicator.BackColor = _colorRunning;
+                        lblStatus.Text = $"Working - Step {status.AktifAdimNo}";
+                        lblStatus.ForeColor = _colorRunning;
+                    }
+                    else
+                    {
+                        pnlStatusIndicator.BackColor = _colorStopped;
+                        lblStatus.Text = "Stops";
+                        lblStatus.ForeColor = _colorStopped;
+                    }
                 }
             }
 
-
-            
+            // Düzenleme kilidini kaldır ve değişiklikleri tek frame'de ekrana çiz
+            this.ResumeLayout(true);
         }
-
-      
     }
 }

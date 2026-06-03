@@ -1,8 +1,10 @@
-﻿namespace Telemetry.UI.Views
+﻿// UI/Views/Raporlar_Control.Designer.cs
+namespace Telemetry.UI.Views
 {
     partial class Raporlar_Control
     {
         private System.ComponentModel.IContainer components = null;
+
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -11,144 +13,150 @@
             }
             base.Dispose(disposing);
         }
+
         #region Component Designer generated code
         private void InitializeComponent()
         {
-            tabControlReports = new TabControl();
-            tabPageProductionReport = new TabPage();
-            tabPageAlarmReport = new TabPage();
-            this.tabPageEfficiency = new System.Windows.Forms.TabPage();
-            tabPageTrendAnalysis = new TabPage();
-            tabPageRecipeOptimization = new TabPage();
-            tabPageManualReport = new TabPage();
-            tabPageGenelUretim = new TabPage();
-            tabPageActionLog = new TabPage();
-            tabControlReports.SuspendLayout();
-            SuspendLayout();
+            this.tabControlReports = new MaterialSkin.Controls.MaterialTabControl(); // MaterialTabControl yapıldı
+            this.tabPageProductionReport = new System.Windows.Forms.TabPage();
+            this.tabPageAlarmReport = new System.Windows.Forms.TabPage();
+            this.tabPageEfficiency = new System.Windows.Forms.TabPage(); // Tür düzeltildi
+            this.tabPageTrendAnalysis = new System.Windows.Forms.TabPage();
+            this.tabPageRecipeOptimization = new System.Windows.Forms.TabPage();
+            this.tabPageManualReport = new System.Windows.Forms.TabPage();
+            this.tabPageGenelUretim = new System.Windows.Forms.TabPage();
+            this.tabPageActionLog = new System.Windows.Forms.TabPage();
+            this.tabControlReports.SuspendLayout();
+            this.SuspendLayout();
             // 
             // tabControlReports
             // 
-            tabControlReports.Controls.Add(tabPageProductionReport);
-            tabControlReports.Controls.Add(tabPageAlarmReport);
-            this.tabControlReports.Controls.Add(tabPageEfficiency);
-            tabControlReports.Controls.Add(tabPageTrendAnalysis);
-            tabControlReports.Controls.Add(tabPageRecipeOptimization);
-            tabControlReports.Controls.Add(tabPageManualReport);
-            tabControlReports.Controls.Add(tabPageGenelUretim);
-            tabControlReports.Controls.Add(tabPageActionLog);
-            tabControlReports.Dock = DockStyle.Fill;
-            tabControlReports.Location = new Point(0, 0);
-            tabControlReports.Margin = new Padding(3, 2, 3, 2);
-            tabControlReports.Name = "tabControlReports";
-            tabControlReports.SelectedIndex = 0;
-            tabControlReports.Size = new Size(700, 450);
-            tabControlReports.TabIndex = 0;
+            this.tabControlReports.Controls.Add(this.tabPageProductionReport);
+            this.tabControlReports.Controls.Add(this.tabPageAlarmReport);
+            this.tabControlReports.Controls.Add(this.tabPageEfficiency);
+            this.tabControlReports.Controls.Add(this.tabPageTrendAnalysis);
+            this.tabControlReports.Controls.Add(this.tabPageRecipeOptimization);
+            this.tabControlReports.Controls.Add(this.tabPageManualReport);
+            this.tabControlReports.Controls.Add(this.tabPageGenelUretim);
+            this.tabControlReports.Controls.Add(this.tabPageActionLog);
+            this.tabControlReports.Depth = 0;
+            this.tabControlReports.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tabControlReports.Location = new System.Drawing.Point(0, 0);
+            this.tabControlReports.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabControlReports.MouseState = MaterialSkin.MouseState.HOVER;
+            this.tabControlReports.Name = "tabControlReports";
+            this.tabControlReports.SelectedIndex = 0;
+            this.tabControlReports.Size = new System.Drawing.Size(700, 450);
+            this.tabControlReports.TabIndex = 0;
             // 
             // tabPageProductionReport
             // 
-            tabPageProductionReport.Location = new Point(4, 24);
-            tabPageProductionReport.Margin = new Padding(3, 2, 3, 2);
-            tabPageProductionReport.Name = "tabPageProductionReport";
-            tabPageProductionReport.Padding = new Padding(3, 2, 3, 2);
-            tabPageProductionReport.Size = new Size(692, 422);
-            tabPageProductionReport.TabIndex = 1;
-            tabPageProductionReport.Text = "Production Report";
-            tabPageProductionReport.UseVisualStyleBackColor = true;
+            this.tabPageProductionReport.BackColor = System.Drawing.Color.Transparent; // Koyu mod uyumu mühürlendi
+            this.tabPageProductionReport.Location = new System.Drawing.Point(4, 24);
+            this.tabPageProductionReport.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageProductionReport.Name = "tabPageProductionReport";
+            this.tabPageProductionReport.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageProductionReport.Size = new System.Drawing.Size(692, 422);
+            this.tabPageProductionReport.TabIndex = 1;
+            this.tabPageProductionReport.Text = "Production Report";
             // 
             // tabPageAlarmReport
             // 
-            tabPageAlarmReport.Location = new Point(4, 24);
-            tabPageAlarmReport.Margin = new Padding(3, 2, 3, 2);
-            tabPageAlarmReport.Name = "tabPageAlarmReport";
-            tabPageAlarmReport.Padding = new Padding(3, 2, 3, 2);
-            tabPageAlarmReport.Size = new Size(692, 422);
-            tabPageAlarmReport.TabIndex = 0;
-            tabPageAlarmReport.Text = "Past Alarms";
-            tabPageAlarmReport.UseVisualStyleBackColor = true;
+            this.tabPageAlarmReport.BackColor = System.Drawing.Color.Transparent;
+            this.tabPageAlarmReport.Location = new System.Drawing.Point(4, 24);
+            this.tabPageAlarmReport.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageAlarmReport.Name = "tabPageAlarmReport";
+            this.tabPageAlarmReport.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageAlarmReport.Size = new System.Drawing.Size(692, 422);
+            this.tabPageAlarmReport.TabIndex = 0;
+            this.tabPageAlarmReport.Text = "Past Alarms";
             // 
-            // tabPageEfficiencyReport
+            // tabPageEfficiency
             // 
-            tabPageAlarmReport.Location = new Point(4, 24);
-            tabPageAlarmReport.Margin = new Padding(3, 2, 3, 2);
-            tabPageAlarmReport.Name = "tabPageEfficiency";
-            tabPageAlarmReport.Padding = new Padding(3, 2, 3, 2);
-            tabPageAlarmReport.Size = new Size(692, 422);
-            tabPageAlarmReport.TabIndex = 0;
-            tabPageAlarmReport.Text = "Verimlilik Analizi";
-            tabPageAlarmReport.UseVisualStyleBackColor = true;
+            // ÇÖZÜM: Orijinal koddaki dondurucu ve çakışan 'tabPageAlarmReport' nesne ezme hatası tamamen giderildi.
+            this.tabPageEfficiency.BackColor = System.Drawing.Color.Transparent;
+            this.tabPageEfficiency.Location = new System.Drawing.Point(4, 24);
+            this.tabPageEfficiency.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageEfficiency.Name = "tabPageEfficiency";
+            this.tabPageEfficiency.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageEfficiency.Size = new System.Drawing.Size(692, 422);
+            this.tabPageEfficiency.TabIndex = 2; // Sekme hiyerarşi indeksi çakışmasız olarak düzeltildi
+            this.tabPageEfficiency.Text = "Verimlilik Analizi";
             // 
             // tabPageTrendAnalysis
             // 
-            tabPageTrendAnalysis.Location = new Point(4, 24);
-            tabPageTrendAnalysis.Margin = new Padding(3, 2, 3, 2);
-            tabPageTrendAnalysis.Name = "tabPageTrendAnalysis";
-            tabPageTrendAnalysis.Size = new Size(692, 422);
-            tabPageTrendAnalysis.TabIndex = 3;
-            tabPageTrendAnalysis.Text = "Trend Analysis";
+            this.tabPageTrendAnalysis.BackColor = System.Drawing.Color.Transparent;
+            this.tabPageTrendAnalysis.Location = new System.Drawing.Point(4, 24);
+            this.tabPageTrendAnalysis.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageTrendAnalysis.Name = "tabPageTrendAnalysis";
+            this.tabPageTrendAnalysis.Size = new System.Drawing.Size(692, 422);
+            this.tabPageTrendAnalysis.TabIndex = 3;
+            this.tabPageTrendAnalysis.Text = "Trend Analysis";
             // 
             // tabPageRecipeOptimization
             // 
-            tabPageRecipeOptimization.Location = new Point(4, 24);
-            tabPageRecipeOptimization.Margin = new Padding(3, 2, 3, 2);
-            tabPageRecipeOptimization.Name = "tabPageRecipeOptimization";
-            tabPageRecipeOptimization.Size = new Size(692, 422);
-            tabPageRecipeOptimization.TabIndex = 4;
-            tabPageRecipeOptimization.Text = "Prescription Consumption Analysis";
-            tabPageRecipeOptimization.UseVisualStyleBackColor = true;
+            this.tabPageRecipeOptimization.BackColor = System.Drawing.Color.Transparent;
+            this.tabPageRecipeOptimization.Location = new System.Drawing.Point(4, 24);
+            this.tabPageRecipeOptimization.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageRecipeOptimization.Name = "tabPageRecipeOptimization";
+            this.tabPageRecipeOptimization.Size = new System.Drawing.Size(692, 422);
+            this.tabPageRecipeOptimization.TabIndex = 4;
+            this.tabPageRecipeOptimization.Text = "Prescription Consumption Analysis";
             // 
             // tabPageManualReport
             // 
-            tabPageManualReport.Location = new Point(4, 24);
-            tabPageManualReport.Margin = new Padding(3, 2, 3, 2);
-            tabPageManualReport.Name = "tabPageManualReport";
-            tabPageManualReport.Padding = new Padding(3, 2, 3, 2);
-            tabPageManualReport.Size = new Size(692, 422);
-            tabPageManualReport.TabIndex = 5;
-            tabPageManualReport.Text = "Manual Consumption";
-            tabPageManualReport.UseVisualStyleBackColor = true;
+            this.tabPageManualReport.BackColor = System.Drawing.Color.Transparent;
+            this.tabPageManualReport.Location = new System.Drawing.Point(4, 24);
+            this.tabPageManualReport.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageManualReport.Name = "tabPageManualReport";
+            this.tabPageManualReport.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageManualReport.Size = new System.Drawing.Size(692, 422);
+            this.tabPageManualReport.TabIndex = 5;
+            this.tabPageManualReport.Text = "Manual Consumption";
             // 
             // tabPageGenelUretim
             // 
-            tabPageGenelUretim.Location = new Point(4, 24);
-            tabPageGenelUretim.Margin = new Padding(3, 2, 3, 2);
-            tabPageGenelUretim.Name = "tabPageGenelUretim";
-            tabPageGenelUretim.Padding = new Padding(3, 2, 3, 2);
-            tabPageGenelUretim.Size = new Size(692, 422);
-            tabPageGenelUretim.TabIndex = 6;
-            tabPageGenelUretim.Text = "General Consumption Report";
-            tabPageGenelUretim.UseVisualStyleBackColor = true;
+            this.tabPageGenelUretim.BackColor = System.Drawing.Color.Transparent;
+            this.tabPageGenelUretim.Location = new System.Drawing.Point(4, 24);
+            this.tabPageGenelUretim.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageGenelUretim.Name = "tabPageGenelUretim";
+            this.tabPageGenelUretim.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageGenelUretim.Size = new System.Drawing.Size(692, 422);
+            this.tabPageGenelUretim.TabIndex = 6;
+            this.tabPageGenelUretim.Text = "General Consumption Report";
             // 
             // tabPageActionLog
             // 
-            tabPageActionLog.Location = new Point(4, 24);
-            tabPageActionLog.Margin = new Padding(3, 2, 3, 2);
-            tabPageActionLog.Name = "tabPageActionLog";
-            tabPageActionLog.Padding = new Padding(3, 2, 3, 2);
-            tabPageActionLog.Size = new Size(692, 422);
-            tabPageActionLog.TabIndex = 4;
-            tabPageActionLog.Text = "Action Records";
-            tabPageActionLog.UseVisualStyleBackColor = true;
+            this.tabPageActionLog.BackColor = System.Drawing.Color.Transparent;
+            this.tabPageActionLog.Location = new System.Drawing.Point(4, 24);
+            this.tabPageActionLog.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageActionLog.Name = "tabPageActionLog";
+            this.tabPageActionLog.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageActionLog.Size = new System.Drawing.Size(692, 422);
+            this.tabPageActionLog.TabIndex = 7; // İndeks sıralaması optimize edildi
+            this.tabPageActionLog.Text = "Action Records";
             // 
             // Raporlar_Control
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            Controls.Add(tabControlReports);
-            Margin = new Padding(3, 2, 3, 2);
-            Name = "Raporlar_Control";
-            Size = new Size(700, 450);
-            tabControlReports.ResumeLayout(false);
-            ResumeLayout(false);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.Transparent; // Panel şeffaflığı aktif edildi
+            this.Controls.Add(this.tabControlReports);
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.Name = "Raporlar_Control";
+            this.Size = new System.Drawing.Size(700, 450);
+            this.tabControlReports.ResumeLayout(false);
+            this.ResumeLayout(false);
         }
         #endregion
         private System.Windows.Forms.TabPage tabPageActionLog;
-        private System.Windows.Forms.TabControl tabControlReports;
+        private MaterialSkin.Controls.MaterialTabControl tabControlReports; // Tür güncellendi
         private System.Windows.Forms.TabPage tabPageAlarmReport;
         private System.Windows.Forms.TabPage tabPageEfficiency;
         private System.Windows.Forms.TabPage tabPageProductionReport;
         private System.Windows.Forms.TabPage tabPageTrendAnalysis;
         private System.Windows.Forms.TabPage tabPageRecipeOptimization;
-        private System.Windows.Forms.TabPage tabPageManualReport; // YENİ
-        private System.Windows.Forms.TabPage tabPageGenelUretim; // YENİ
+        private System.Windows.Forms.TabPage tabPageManualReport;
+        private System.Windows.Forms.TabPage tabPageGenelUretim;
     }
 }

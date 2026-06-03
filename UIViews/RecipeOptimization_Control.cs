@@ -1,6 +1,7 @@
-﻿using System;
-using System.Collections.Generic; // List için eklendi
-using System.Drawing; // Color için eklendi
+﻿// UIViews/RecipeOptimization_Control.cs
+using System;
+using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using Telemetry.Core;
@@ -8,6 +9,9 @@ using Telemetry.Localization1;
 using Telemetry.Models;
 using Telemetry.Properties;
 using Telemetry.Repositories;
+using MaterialSkin;          // YENİ EKLENDİ
+using MaterialSkin.Controls; // YENİ EKLENDİ
+
 namespace Telemetry.UI.Views
 {
     public partial class RecipeOptimization_Control : UserControl
@@ -16,25 +20,30 @@ namespace Telemetry.UI.Views
 
         public RecipeOptimization_Control()
         {
-            InitializeComponent();
-            ApplyLocalization();
+            // Statik dil değişim olayına kayıt (Hafıza sızıntısını önlemek için OnHandleDestroyed'da sökülecek)
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
+
+            InitializeComponent();
+
+            // SPEED OPTİMİZASYON: Panel sekme geçişlerinde ve filtre yüklemelerinde titremeyi engeller
+            this.DoubleBuffered = true;
+            this.BackColor = Color.Transparent; // Arka plan yönetimi üst ebeveyne devredildi
+
+            ApplyLocalization();
         }
 
         public void InitializeControl(RecipeRepository recipeRepo)
         {
             _recipeRepository = recipeRepo;
         }
+
         private void LanguageManager_LanguageChanged(object sender, EventArgs e)
         {
             ApplyLocalization();
-
         }
-        private void ApplyLocalization()
+
+        public void ApplyLocalization()
         {
-
-
-
             label1.Text = Resources.anarecete;
             label7.Text = Resources.karsilastirilacak;
             btnAnalyze.Text = Resources.analizet;
@@ -48,6 +57,7 @@ namespace Telemetry.UI.Views
             label8.Text = Resources.ortalamabuhartuketimi;
             label2.Text = Resources.gecmisuretimler;
         }
+
         private void RecipeOptimization_Control_Load(object sender, EventArgs e)
         {
             if (_recipeRepository != null)
@@ -63,74 +73,93 @@ namespace Telemetry.UI.Views
                 cmbRecipe2.DisplayMember = "RecipeName";
                 cmbRecipe2.ValueMember = "Id";
             }
+
+            // Tablo kaydırma hızını maksimuma çıkaran çift tamponlama ivmesi açıldı
+            EnableDoubleBuffer(dgvHistory);
         }
 
         private void btnAnalyze_Click(object sender, EventArgs e)
         {
             if (cmbRecipes.SelectedValue == null || cmbRecipe2.SelectedValue == null)
             {
-                MessageBox.Show("Please select both recipes to analyze.", "Warning");
+                MessageBox.Show("Please select both recipes to analyze.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             int recipe1Id = (int)cmbRecipes.SelectedValue;
             int recipe2Id = (int)cmbRecipe2.SelectedValue;
 
-            // İlk reçete için verileri ve ortalamaları hesapla
-            var history1 = _recipeRepository.GetRecipeUsageHistory(recipe1Id);
-            var averages1 = CalculateAverages(history1);
-            DisplayAverages(averages1, 1);
+            // SPEED OPTİMİZASYON: Veri kaynağı yenilenirken düzen motorunu askıya al
+            this.SuspendLayout();
+            dgvHistory.SuspendLayout();
 
-            // İkinci reçete için verileri ve ortalamaları hesapla
-            var history2 = _recipeRepository.GetRecipeUsageHistory(recipe2Id);
-            var averages2 = CalculateAverages(history2);
-            DisplayAverages(averages2, 2);
+            try
+            {
+                // İlk reçete için verileri ve ortalamaları hesapla
+                var history1 = _recipeRepository.GetRecipeUsageHistory(recipe1Id) ?? new List<ProductionReportItem>();
+                var averages1 = CalculateAverages(history1);
+                DisplayAverages(averages1, 1);
 
-            // Geçmiş tablosunu birleştirerek göster
-            dgvHistory.DataSource = history1.Concat(history2).OrderByDescending(h => h.StartTime).ToList();
-            // --- YENİ EKLENEN KISIM: GEREKSİZ KOLONLARI GİZLE ---
-            if (dgvHistory.Columns["MachineId"] != null) dgvHistory.Columns["MachineId"].Visible = false;
-            if (dgvHistory.Columns["BatchId"] != null) dgvHistory.Columns["BatchId"].Visible = false;
-            // RecipeName zaten üstte seçili olduğu için tekrar tabloda göstermek gereksiz olabilir, 
-            // ama karşılaştırma olduğu için hangisinin hangi reçeteye ait olduğunu görmek adına açık kalması daha iyidir.
+                // İkinci reçete için verileri ve ortalamaları hesapla
+                var history2 = _recipeRepository.GetRecipeUsageHistory(recipe2Id) ?? new List<ProductionReportItem>();
+                var averages2 = CalculateAverages(history2);
+                DisplayAverages(averages2, 2);
 
-            // İsteğe bağlı: Diğer teknik alanları da gizleyebilirsiniz
-            if (dgvHistory.Columns["MachineAlarmDurationSeconds"] != null) dgvHistory.Columns["MachineAlarmDurationSeconds"].Visible = false;
-            if (dgvHistory.Columns["OperatorPauseDurationSeconds"] != null) dgvHistory.Columns["OperatorPauseDurationSeconds"].Visible = false;
-            if (dgvHistory.Columns["TheoreticalCycleTimeSeconds"] != null) dgvHistory.Columns["TheoreticalCycleTimeSeconds"].Visible = false;
-            if (dgvHistory.Columns["GoodCount"] != null) dgvHistory.Columns["GoodCount"].Visible = false;
-            if (dgvHistory.Columns["ScrapCount"] != null) dgvHistory.Columns["ScrapCount"].Visible = false;
-            if (dgvHistory.Columns["TotalProductionCount"] != null) dgvHistory.Columns["TotalProductionCount"].Visible = false;
-            if (dgvHistory.Columns["DefectiveProductionCount"] != null) dgvHistory.Columns["DefectiveProductionCount"].Visible = false;
-            if (dgvHistory.Columns["TotalDownTimeSeconds"] != null) dgvHistory.Columns["TotalDownTimeSeconds"].Visible = false;
-            if (dgvHistory.Columns["actual_produced_quantity"] != null) dgvHistory.Columns["actual_produced_quantity"].Visible = false;
-            if (dgvHistory.Columns["MachineAlarmDurationSeconds"] != null) dgvHistory.Columns["MachineAlarmDurationSeconds"].Visible = false;
-            if (dgvHistory.Columns["OperatorPauseDurationSeconds"] != null) dgvHistory.Columns["OperatorPauseDurationSeconds"].Visible = false;
+                // Geçmiş tablosunu birleştirerek göster
+                var combinedHistory = history1.Concat(history2).OrderByDescending(h => h.StartTime).ToList();
+                dgvHistory.DataSource = null;
+                dgvHistory.DataSource = combinedHistory;
 
-            if (dgvHistory.Columns["OperatorName"] != null) dgvHistory.Columns["OperatorName"].Visible = false;
-            if (dgvHistory.Columns["MusteriNo"] != null) dgvHistory.Columns["MusteriNo"].Visible = false;
-            if (dgvHistory.Columns["SiparisNo"] != null) dgvHistory.Columns["SiparisNo"].Visible = false;
-            if (dgvHistory.Columns["RecipeName"] != null) dgvHistory.Columns["RecipeName"].Visible = false;
-            // ----------------------------------------------------
-            // Sonuçları renklendirerek karşılaştır
-            CompareAndHighlight(averages1, averages2);
+                // Gereksiz teknik kolonları gizle
+                string[] hiddenColumns = {
+                    "MachineId", "BatchId", "MachineAlarmDurationSeconds", "OperatorPauseDurationSeconds",
+                    "TheoreticalCycleTimeSeconds", "GoodCount", "ScrapCount", "TotalProductionCount",
+                    "DefectiveProductionCount", "TotalDownTimeSeconds", "actual_produced_quantity",
+                    "OperatorName", "MusteriNo", "SiparisNo", "RecipeName"
+                };
+
+                foreach (string colName in hiddenColumns)
+                {
+                    if (dgvHistory.Columns[colName] != null)
+                        dgvHistory.Columns[colName].Visible = false;
+                }
+
+                ConfigureGridAppearance();
+
+                // Sonuçları renklendirerek karşılaştır
+                CompareAndHighlight(averages1, averages2);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred during analysis: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                // Çizim kilitlerini kaldır ve toplu render et
+                dgvHistory.ResumeLayout(true);
+                this.ResumeLayout(true);
+            }
         }
 
-        // Ortalama hesaplama işini ayrı bir metoda taşıyalım
         private (double Water, double Electricity, double Steam, TimeSpan CycleTime) CalculateAverages(List<ProductionReportItem> history)
         {
-            if (!history.Any())
+            if (history == null || !history.Any())
                 return (0, 0, 0, TimeSpan.Zero);
 
             double avgWater = history.Average(h => h.TotalWater);
             double avgElectricity = history.Average(h => h.TotalElectricity);
             double avgSteam = history.Average(h => h.TotalSteam);
-            var avgCycleTime = TimeSpan.FromSeconds(history.Average(h => TimeSpan.Parse(h.CycleTime).TotalSeconds));
+
+            var avgCycleTime = TimeSpan.FromSeconds(history.Average(h =>
+            {
+                if (TimeSpan.TryParse(h.CycleTime, out TimeSpan parsedTime))
+                    return parsedTime.TotalSeconds;
+                return 0;
+            }));
 
             return (avgWater, avgElectricity, avgSteam, avgCycleTime);
         }
 
-        // Sonuçları ilgili panellere yazdıran metot
         private void DisplayAverages((double Water, double Electricity, double Steam, TimeSpan CycleTime) averages, int panelIndex)
         {
             if (panelIndex == 1)
@@ -149,38 +178,102 @@ namespace Telemetry.UI.Views
             }
         }
 
-        // Karşılaştırma ve renklendirme metodu
         private void CompareAndHighlight(
             (double Water, double Electricity, double Steam, TimeSpan CycleTime) avg1,
             (double Water, double Electricity, double Steam, TimeSpan CycleTime) avg2)
         {
-            // Su Tüketimi Karşılaştırması
             HighlightLabel(lblAvgWater, lblAvgWater2, avg1.Water, avg2.Water);
-            // Elektrik Tüketimi Karşılaştırması
             HighlightLabel(lblAvgElectricity, lblAvgElectricity2, avg1.Electricity, avg2.Electricity);
-            // Buhar Tüketimi Karşılaştırması
             HighlightLabel(lblAvgSteam, lblAvgSteam2, avg1.Steam, avg2.Steam);
-            // Çevrim Süresi Karşılaştırması
             HighlightLabel(lblAvgCycleTime, lblAvgCycleTime2, avg1.CycleTime.TotalSeconds, avg2.CycleTime.TotalSeconds);
         }
 
-        // Label'ları renklendiren yardımcı metot
+        // =========================================================================
+        // MODERNİZASYON: ADAPTİF TEMA UYUMLU KARŞILAŞTIRMA VE BOYAMA MOTORU
+        // Koyu mod scheme'inde yazıların kaybolması (beyaz üstüne beyaz) kesin önlenmiştir.
+        // =========================================================================
         private void HighlightLabel(Label label1, Label label2, double value1, double value2)
         {
-            label1.BackColor = SystemColors.Control;
-            label2.BackColor = SystemColors.Control;
+            bool isDark = MaterialSkinManager.Instance.Theme == MaterialSkinManager.Themes.DARK;
 
-            if (value1 == 0 || value2 == 0) return; // Veri olmayanları karşılaştırma
+            // Varsayılan zemin ve yazı renk atamaları (Sıfırlama)
+            label1.BackColor = Color.Transparent;
+            label2.BackColor = Color.Transparent;
+            label1.ForeColor = isDark ? Color.FromArgb(230, 230, 230) : Color.FromArgb(15, 23, 42);
+            label2.ForeColor = isDark ? Color.FromArgb(230, 230, 230) : Color.FromArgb(15, 23, 42);
+
+            if (value1 == 0 || value2 == 0) return;
+
+            // Temaya göre akıllı kontrast renk şemaları (Düşük tüketim = Yeşil, Yüksek = Kırmızı)
+            Color greenBg = isDark ? Color.FromArgb(27, 94, 32) : Color.FromArgb(200, 230, 201);  // Koyu Orman Yeşili / Pastel Yumuşak Yeşil
+            Color redBg = isDark ? Color.FromArgb(183, 28, 28) : Color.FromArgb(255, 205, 210);   // Derin Mat Kırmızı / Pastel Yumuşak Kırmızı
+
+            Color darkText = Color.FromArgb(245, 245, 245);
+            Color lightGreenText = Color.FromArgb(46, 125, 50);
+            Color lightRedText = Color.FromArgb(198, 40, 40);
 
             if (value1 < value2)
             {
-                label1.BackColor = Color.LightGreen;
-                label2.BackColor = Color.LightCoral;
+                label1.BackColor = greenBg;
+                label1.ForeColor = isDark ? darkText : lightGreenText;
+                label2.BackColor = redBg;
+                label2.ForeColor = isDark ? darkText : lightRedText;
             }
             else if (value2 < value1)
             {
-                label2.BackColor = Color.LightGreen;
-                label1.BackColor = Color.LightCoral;
+                label2.BackColor = greenBg;
+                label2.ForeColor = isDark ? darkText : lightGreenText;
+                label1.BackColor = redBg;
+                label1.ForeColor = isDark ? darkText : lightRedText;
+            }
+        }
+
+        private void ConfigureGridAppearance()
+        {
+            dgvHistory.BorderStyle = BorderStyle.None;
+            dgvHistory.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            dgvHistory.EnableHeadersVisualStyles = false;
+            dgvHistory.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+
+            bool isDark = MaterialSkinManager.Instance.Theme == MaterialSkinManager.Themes.DARK;
+
+            // Tablo Renk Uyumluluğu (Koyu/Açık Tema Koruyucu)
+            dgvHistory.BackgroundColor = isDark ? Color.FromArgb(30, 41, 59) : Color.White;
+            dgvHistory.DefaultCellStyle.SelectionBackColor = isDark ? Color.FromArgb(51, 65, 85) : Color.FromArgb(219, 234, 254);
+            dgvHistory.DefaultCellStyle.SelectionForeColor = isDark ? Color.FromArgb(240, 240, 240) : Color.FromArgb(15, 23, 42);
+            dgvHistory.AlternatingRowsDefaultCellStyle.BackColor = isDark ? Color.FromArgb(38, 50, 68) : Color.FromArgb(248, 250, 252);
+
+            dgvHistory.ColumnHeadersDefaultCellStyle.BackColor = isDark ? Color.FromArgb(15, 23, 42) : Color.FromArgb(241, 245, 249);
+            dgvHistory.ColumnHeadersDefaultCellStyle.ForeColor = isDark ? Color.FromArgb(148, 163, 184) : Color.FromArgb(71, 85, 105);
+            dgvHistory.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold);
+            dgvHistory.ColumnHeadersHeight = 45;
+            dgvHistory.RowTemplate.Height = 36;
+        }
+
+        // =========================================================================
+        // KUSURSUZ BELLEK TEMİZLİĞİ: STATİK Dil EVENT ABONELİK BAĞLANTISI KOPARILDI
+        // Kontrolün RAM'de asılı kalarak şişme yapmasını kesin olarak engeller.
+        // =========================================================================
+        protected override void OnHandleDestroyed(EventArgs e)
+        {
+            LanguageManager.LanguageChanged -= LanguageManager_LanguageChanged;
+            base.OnHandleDestroyed(e);
+        }
+
+        // SPEED OPTİMİZASYON: DataGrid akıcılığını sağlayan yansıtma (Reflection) metodu
+        private void EnableDoubleBuffer(Control control)
+        {
+            try
+            {
+                typeof(Control).InvokeMember("DoubleBuffered",
+                    System.Reflection.BindingFlags.SetProperty |
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.NonPublic,
+                    null, control, new object[] { true });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DoubleBuffering could not be enabled: {ex.Message}");
             }
         }
     }

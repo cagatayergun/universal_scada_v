@@ -4,6 +4,7 @@ namespace Telemetry.UI.Views
     partial class Ayarlar_Control
     {
         private System.ComponentModel.IContainer components = null;
+
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -12,134 +13,137 @@ namespace Telemetry.UI.Views
             }
             base.Dispose(disposing);
         }
+
         #region Component Designer generated code
         private void InitializeComponent()
         {
-            tabControlSettings = new TabControl();
-            tabPageMachineSettings = new TabPage();
-            tabPageUserSettings = new TabPage();
-            tabPageAlarmSettings = new TabPage();
-            tabPagePlcOperators = new TabPage();
-            tabPageRecipeDesigner = new TabPage();
-            tabPageUtilitySettings = new TabPage();
+            this.tabControlSettings = new MaterialSkin.Controls.MaterialTabControl(); // MaterialTabControl sınıfı korunuyor
+            this.tabPageMachineSettings = new System.Windows.Forms.TabPage();
+            this.tabPageUserSettings = new System.Windows.Forms.TabPage();
+            this.tabPageAlarmSettings = new System.Windows.Forms.TabPage();
             this.tabPageDowntimeReasons = new System.Windows.Forms.TabPage();
-            tabControlSettings.SuspendLayout();
-            SuspendLayout();
+            this.tabPagePlcOperators = new System.Windows.Forms.TabPage();
+            this.tabPageUtilitySettings = new System.Windows.Forms.TabPage();
+            this.tabPageRecipeDesigner = new System.Windows.Forms.TabPage();
+            this.tabControlSettings.SuspendLayout();
+            this.SuspendLayout();
             // 
             // tabControlSettings
             // 
-            tabControlSettings.Controls.Add(tabPageMachineSettings);
-            tabControlSettings.Controls.Add(tabPageUserSettings);
-            tabControlSettings.Controls.Add(tabPageAlarmSettings);
-            this.tabControlSettings.Controls.Add(tabPageDowntimeReasons);
-            tabControlSettings.Controls.Add(tabPagePlcOperators);
-            tabControlSettings.Controls.Add(tabPageUtilitySettings);
-            tabControlSettings.Controls.Add(tabPageRecipeDesigner);
-
-            tabControlSettings.Dock = DockStyle.Fill;
-            tabControlSettings.Location = new Point(0, 0);
-            tabControlSettings.Margin = new Padding(3, 2, 3, 2);
-            tabControlSettings.Name = "tabControlSettings";
-            tabControlSettings.SelectedIndex = 0;
-            tabControlSettings.Size = new Size(700, 450);
-            tabControlSettings.TabIndex = 0;
+            // ÇÖZÜM: Hata veren AnimateTabChange satırı sürüm uyumsuzluğu nedeniyle tamamen kaldırıldı.
+            this.tabControlSettings.Controls.Add(this.tabPageMachineSettings);
+            this.tabControlSettings.Controls.Add(this.tabPageUserSettings);
+            this.tabControlSettings.Controls.Add(this.tabPageAlarmSettings);
+            this.tabControlSettings.Controls.Add(this.tabPageDowntimeReasons);
+            this.tabControlSettings.Controls.Add(this.tabPagePlcOperators);
+            this.tabControlSettings.Controls.Add(this.tabPageUtilitySettings);
+            this.tabControlSettings.Controls.Add(this.tabPageRecipeDesigner);
+            this.tabControlSettings.Depth = 0;
+            this.tabControlSettings.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tabControlSettings.Location = new System.Drawing.Point(0, 0);
+            this.tabControlSettings.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabControlSettings.MouseState = MaterialSkin.MouseState.HOVER;
+            this.tabControlSettings.Multiline = true;
+            this.tabControlSettings.Name = "tabControlSettings";
+            this.tabControlSettings.SelectedIndex = 0;
+            this.tabControlSettings.Size = new System.Drawing.Size(700, 450);
+            this.tabControlSettings.TabIndex = 0;
             // 
             // tabPageMachineSettings
             // 
-            tabPageMachineSettings.Location = new Point(4, 24);
-            tabPageMachineSettings.Margin = new Padding(3, 2, 3, 2);
-            tabPageMachineSettings.Name = "tabPageMachineSettings";
-            tabPageMachineSettings.Padding = new Padding(3, 2, 3, 2);
-            tabPageMachineSettings.Size = new Size(692, 422);
-            tabPageMachineSettings.TabIndex = 0;
-            tabPageMachineSettings.Text = "Makine Yönetimi";
-            tabPageMachineSettings.UseVisualStyleBackColor = true;
+            this.tabPageMachineSettings.BackColor = System.Drawing.Color.Transparent;
+            this.tabPageMachineSettings.Location = new System.Drawing.Point(4, 24);
+            this.tabPageMachineSettings.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageMachineSettings.Name = "tabPageMachineSettings";
+            this.tabPageMachineSettings.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageMachineSettings.Size = new System.Drawing.Size(692, 422);
+            this.tabPageMachineSettings.TabIndex = 0;
+            this.tabPageMachineSettings.Text = "Machine Management";
             // 
             // tabPageUserSettings
             // 
-            tabPageUserSettings.Location = new Point(4, 24);
-            tabPageUserSettings.Margin = new Padding(3, 2, 3, 2);
-            tabPageUserSettings.Name = "tabPageUserSettings";
-            tabPageUserSettings.Padding = new Padding(3, 2, 3, 2);
-            tabPageUserSettings.Size = new Size(692, 422);
-            tabPageUserSettings.TabIndex = 1;
-            tabPageUserSettings.Text = "Kullanıcı Yönetimi";
-            tabPageUserSettings.UseVisualStyleBackColor = true;
+            this.tabPageUserSettings.BackColor = System.Drawing.Color.Transparent;
+            this.tabPageUserSettings.Location = new System.Drawing.Point(4, 24);
+            this.tabPageUserSettings.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageUserSettings.Name = "tabPageUserSettings";
+            this.tabPageUserSettings.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageUserSettings.Size = new System.Drawing.Size(692, 422);
+            this.tabPageUserSettings.TabIndex = 1;
+            this.tabPageUserSettings.Text = "User Management";
             // 
             // tabPageAlarmSettings
             // 
-            tabPageAlarmSettings.Location = new Point(4, 24);
-            tabPageAlarmSettings.Margin = new Padding(3, 2, 3, 2);
-            tabPageAlarmSettings.Name = "tabPageAlarmSettings";
-            tabPageAlarmSettings.Size = new Size(692, 422);
-            tabPageAlarmSettings.TabIndex = 2;
-            tabPageAlarmSettings.Text = "Alarm Tanımlama";
-            tabPageAlarmSettings.UseVisualStyleBackColor = true;
-            // tabPageDowntimeReasons ayarları:
+            this.tabPageAlarmSettings.BackColor = System.Drawing.Color.Transparent;
+            this.tabPageAlarmSettings.Location = new System.Drawing.Point(4, 24);
+            this.tabPageAlarmSettings.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageAlarmSettings.Name = "tabPageAlarmSettings";
+            this.tabPageAlarmSettings.Size = new System.Drawing.Size(692, 422);
+            this.tabPageAlarmSettings.TabIndex = 2;
+            this.tabPageAlarmSettings.Text = "Alarm Settings";
             // 
-            // tabPageAlarmSettings
+            // tabPageDowntimeReasons
             // 
-            tabPageAlarmSettings.Location = new Point(4, 24);
-            tabPageAlarmSettings.Margin = new Padding(3, 2, 3, 2);
-            tabPageDowntimeReasons.Name = "tabPageDowntimeReasons";
-            tabPageAlarmSettings.Size = new Size(692, 422);
-            tabPageAlarmSettings.TabIndex = 2;
-            tabPageDowntimeReasons.Text = "Duruş Nedenleri";
-            tabPageAlarmSettings.UseVisualStyleBackColor = true;
-            
-            
+            this.tabPageDowntimeReasons.BackColor = System.Drawing.Color.Transparent;
+            this.tabPageDowntimeReasons.Location = new System.Drawing.Point(4, 24);
+            this.tabPageDowntimeReasons.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageDowntimeReasons.Name = "tabPageDowntimeReasons";
+            this.tabPageDowntimeReasons.Size = new System.Drawing.Size(692, 422);
+            this.tabPageDowntimeReasons.TabIndex = 3;
+            this.tabPageDowntimeReasons.Text = "Down Time Settings";
             // 
             // tabPagePlcOperators
             // 
-            tabPagePlcOperators.Location = new Point(4, 24);
-            tabPagePlcOperators.Margin = new Padding(3, 2, 3, 2);
-            tabPagePlcOperators.Name = "tabPagePlcOperators";
-            tabPagePlcOperators.Size = new Size(692, 422);
-            tabPagePlcOperators.TabIndex = 3;
-            tabPagePlcOperators.Text = "PLC Operatör Yönetimi";
-            tabPagePlcOperators.UseVisualStyleBackColor = true;
+            this.tabPagePlcOperators.BackColor = System.Drawing.Color.Transparent;
+            this.tabPagePlcOperators.Location = new System.Drawing.Point(4, 24);
+            this.tabPagePlcOperators.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPagePlcOperators.Name = "tabPagePlcOperators";
+            this.tabPagePlcOperators.Size = new System.Drawing.Size(692, 422);
+            this.tabPagePlcOperators.TabIndex = 4;
+            this.tabPagePlcOperators.Text = "Plc Operator Management";
             // 
-            // tabPageUtilitySettings (YENİ SEKME AYARLARI)
+            // tabPageUtilitySettings
             // 
-            tabPageUtilitySettings.Location = new Point(4, 24);
-            tabPageUtilitySettings.Name = "tabPageUtilitySettings";
-            tabPageUtilitySettings.Padding = new Padding(3);
-            tabPageUtilitySettings.Size = new Size(692, 422);
-            tabPageUtilitySettings.TabIndex = 6; // Sıraya göre index verin
-            tabPageUtilitySettings.Text = "Enerji/Hat Ayarları";
-            tabPageUtilitySettings.UseVisualStyleBackColor = true;
-            
+            this.tabPageUtilitySettings.BackColor = System.Drawing.Color.Transparent;
+            this.tabPageUtilitySettings.Location = new System.Drawing.Point(4, 24);
+            this.tabPageUtilitySettings.Name = "tabPageUtilitySettings";
+            this.tabPageUtilitySettings.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPageUtilitySettings.Size = new System.Drawing.Size(692, 422);
+            this.tabPageUtilitySettings.TabIndex = 5;
+            this.tabPageUtilitySettings.Text = "Line Usage Settings";
             // 
             // tabPageRecipeDesigner
             // 
-            tabPageRecipeDesigner.Location = new Point(4, 24);
-            tabPageRecipeDesigner.Margin = new Padding(3, 2, 3, 2);
-            tabPageRecipeDesigner.Name = "tabPageRecipeDesigner";
-            tabPageRecipeDesigner.Padding = new Padding(3, 2, 3, 2);
-            tabPageRecipeDesigner.Size = new Size(692, 422);
-            tabPageRecipeDesigner.TabIndex = 5;
-            tabPageRecipeDesigner.Text = "Reçete Adım Tasarımcısı";
-            tabPageRecipeDesigner.UseVisualStyleBackColor = true;
+            this.tabPageRecipeDesigner.BackColor = System.Drawing.Color.Transparent;
+            this.tabPageRecipeDesigner.Location = new System.Drawing.Point(4, 24);
+            this.tabPageRecipeDesigner.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageRecipeDesigner.Name = "tabPageRecipeDesigner";
+            this.tabPageRecipeDesigner.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabPageRecipeDesigner.Size = new System.Drawing.Size(692, 422);
+            this.tabPageRecipeDesigner.TabIndex = 6;
+            this.tabPageRecipeDesigner.Text = "Recipe Designer";
             // 
             // Ayarlar_Control
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            Controls.Add(tabControlSettings);
-            Margin = new Padding(3, 2, 3, 2);
-            Name = "Ayarlar_Control";
-            Size = new Size(700, 450);
-            tabControlSettings.ResumeLayout(false);
-            ResumeLayout(false);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.Transparent;
+            this.Controls.Add(this.tabControlSettings);
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.Name = "Ayarlar_Control";
+            this.Size = new System.Drawing.Size(700, 450);
+            this.tabControlSettings.ResumeLayout(false);
+            this.ResumeLayout(false);
         }
+
         #endregion
-        private System.Windows.Forms.TabControl tabControlSettings;
+
+        private MaterialSkin.Controls.MaterialTabControl tabControlSettings;
         private System.Windows.Forms.TabPage tabPageMachineSettings;
         private System.Windows.Forms.TabPage tabPageUserSettings;
         private System.Windows.Forms.TabPage tabPageAlarmSettings;
         private System.Windows.Forms.TabPage tabPagePlcOperators;
         private System.Windows.Forms.TabPage tabPageUtilitySettings;
-        private System.Windows.Forms.TabPage tabPageRecipeDesigner;// YENİ
-        private System.Windows.Forms.TabPage tabPageDowntimeReasons; // YENİ
+        private System.Windows.Forms.TabPage tabPageRecipeDesigner;
+        private System.Windows.Forms.TabPage tabPageDowntimeReasons;
     }
 }

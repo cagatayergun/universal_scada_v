@@ -1,8 +1,8 @@
-﻿
-using ScottPlot; // Grafik kütüphanesi
+﻿// UI/Views/MakineDetay_Control.cs
+using ScottPlot;
 using System;
 using System.Collections.Generic;
-using System.Drawing; // Çizim kütüphanesi
+using System.Data;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -12,7 +12,16 @@ using Telemetry.Models;
 using Telemetry.Properties;
 using Telemetry.Repositories;
 using Telemetry.Services;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using MaterialSkin;
+using MaterialSkin.Controls;
+
+// =========================================================================
+// ÇÖZÜM: CS0104 & CS1503 BELİRSİZ REFERANS VE METOT UYUŞMAZLIK KORUMASI
+// Dosya genelinde bare yazılan tipler açıkça System.Drawing kütüphanesine mühürlendi.
+// =========================================================================
+using Color = System.Drawing.Color;
+using Font = System.Drawing.Font;
+using FontStyle = System.Drawing.FontStyle;
 
 namespace Telemetry.UI.Views
 {
@@ -28,8 +37,8 @@ namespace Telemetry.UI.Views
         private readonly RecipeConfigurationRepository _configRepo = new RecipeConfigurationRepository();
         private Machine _machine;
 
-        // Plot nesneleri
-        private ScottPlot.Plottables.Scatter _tempScatter;
+        // Plot nesneleri
+        private ScottPlot.Plottables.Scatter _tempScatter;
         private ScottPlot.Plottables.Scatter _rpmScatter;
         private ScottPlot.Plottables.Scatter _waterScatter;
 
@@ -43,23 +52,26 @@ namespace Telemetry.UI.Views
             InitializeComponent();
             btnGeri.Click += (sender, args) => BackRequested?.Invoke(this, EventArgs.Empty);
 
-            // --- KRİTİK AYARLAR ---
-            // Panelin Paint olayını bağlıyoruz
-            this.progressTemp.Paint += new System.Windows.Forms.PaintEventHandler(this.progressTemp_Paint);
-            
+            // SPEED OPTİMİZASYON: Kontrol geçişlerinde ve grafik kaydırmalarında titremeyi sıfırlar
+            this.DoubleBuffered = true;
+            this.BackColor = Color.Transparent;
+
+            this.progressTemp.Paint += new System.Windows.Forms.PaintEventHandler(this.progressTemp_Paint);
             this.humuditybar.Paint += new System.Windows.Forms.PaintEventHandler(this.humuditybar_Paint);
-            // Titremeyi önlemek için DoubleBuffering açıyoruz (Reflection ile)
-            typeof(Panel).InvokeMember("DoubleBuffered",
-    System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
-    null, progressTemp, new object[] { true });
+
+            // Titremeyi önlemek için dikey barların donanımsal çift tamponlamasını açıyoruz
+            typeof(Panel).InvokeMember("DoubleBuffered",
+                System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                null, progressTemp, new object[] { true });
 
             typeof(Panel).InvokeMember("DoubleBuffered",
-            System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
-    null, humuditybar, new object[] { true });
+                System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                null, humuditybar, new object[] { true });
+
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
 
-            // Grafik Eksenlerini Bağlama (Senkronizasyon)
-            formsPlotTemp.Plot.RenderManager.AxisLimitsChanged += (s, e) => SyncAxes(formsPlotTemp);
+            // Grafik Eksenlerini Bağlama (Zaman Senkronizasyonu)
+            formsPlotTemp.Plot.RenderManager.AxisLimitsChanged += (s, e) => SyncAxes(formsPlotTemp);
             formsPlotRpm.Plot.RenderManager.AxisLimitsChanged += (s, e) => SyncAxes(formsPlotRpm);
             formsPlotWater.Plot.RenderManager.AxisLimitsChanged += (s, e) => SyncAxes(formsPlotWater);
         }
@@ -92,7 +104,6 @@ namespace Telemetry.UI.Views
 
         private void CleanupPreviousSession()
         {
-            // Eski Timer temizliği
             if (_uiUpdateTimer != null)
             {
                 _uiUpdateTimer.Stop();
@@ -101,7 +112,6 @@ namespace Telemetry.UI.Views
                 _uiUpdateTimer = null;
             }
 
-            // Event aboneliklerini kaldır
             if (_pollingService != null)
             {
                 _pollingService.OnMachineDataRefreshed -= OnDataRefreshed;
@@ -109,12 +119,8 @@ namespace Telemetry.UI.Views
                 _pollingService.OnActiveAlarmStateChanged -= OnAlarmStateChanged;
             }
 
-            // VisibleChanged olayını temizlemeye gerek yok, InitializeControl'de tekrar eklemiyoruz,
-            // Constructor'da eklemek yerine Initialize'da ekliyorsanız -= yapmalısınız. 
-            // Sizin kodunuzda aşağıda += yapılıyor, o yüzden burada -= yapıyoruz:
             this.VisibleChanged -= MakineDetay_Control_VisibleChanged;
 
-            // Grafik ve değişken sıfırlama (Her makine için temiz sayfa garantisi)
             _tempScatter = null;
             _rpmScatter = null;
             _waterScatter = null;
@@ -136,7 +142,7 @@ namespace Telemetry.UI.Views
 
         public void InitializeControl(Machine machine, PlcPollingService service, ProcessLogRepository logRepo, AlarmRepository alarmRepo, RecipeRepository recipeRepo, ProductionRepository productionRepo)
         {
-            CleanupPreviousSession(); // Temizlik
+            CleanupPreviousSession();
 
             _machine = machine;
             _pollingService = service;
@@ -145,12 +151,10 @@ namespace Telemetry.UI.Views
             _recipeRepository = recipeRepo;
             _productionRepository = productionRepo;
 
-            // Timer başlatma
             _uiUpdateTimer = new System.Windows.Forms.Timer { Interval = 1000 };
             _uiUpdateTimer.Tick += UpdateLiveGauges_Tick;
             _uiUpdateTimer.Start();
 
-            // Event abonelikleri
             _pollingService.OnMachineDataRefreshed += OnDataRefreshed;
             _pollingService.OnMachineConnectionStateChanged += OnConnectionStateChanged;
             _pollingService.OnActiveAlarmStateChanged += OnAlarmStateChanged;
@@ -158,11 +162,11 @@ namespace Telemetry.UI.Views
             this.VisibleChanged += MakineDetay_Control_VisibleChanged;
 
             LoadInitialData();
+            ConfigureStepsGridAppearance();
         }
 
         private void UpdateLiveGauges_Tick(object sender, EventArgs e)
         {
-            // Sadece görünürse güncelle (Ekstra güvenlik)
             if (this.Visible)
                 UpdateLiveGauges();
         }
@@ -171,11 +175,12 @@ namespace Telemetry.UI.Views
         {
             bool isDrying = _machine.MachineType == "Kurutma Makinesi";
 
-            // Kurutma makinesi ise barı gizle, nemi göster
             waterTankGauge1.Visible = !isDrying;
             humuditypanel.Visible = isDrying;
+
             SetWaterGaugeLimitAsync();
             SetRpmGaugeLimitAsync();
+
             if (_pollingService.MachineDataCache.TryGetValue(_machine.Id, out var status))
             {
                 UpdateUI(status);
@@ -195,15 +200,14 @@ namespace Telemetry.UI.Views
             lblCalisanAdim.Text = "---";
         }
 
-        // --- GAUGE LİMİT AYARLARI ---
-        private async void SetRpmGaugeLimitAsync()
+        private async void SetRpmGaugeLimitAsync()
         {
             try
             {
                 var stepTypesTable = await Task.Run(() => _configRepo.GetStepTypes());
                 int rpmStepTypeId = -1;
 
-                foreach (System.Data.DataRow row in stepTypesTable.Rows)
+                foreach (DataRow row in stepTypesTable.Rows)
                 {
                     string stepName = row["StepName"].ToString();
                     if (stepName.Contains("Sıkma") || stepName.Contains("Squeezing"))
@@ -231,21 +235,9 @@ namespace Telemetry.UI.Views
 
                         if (rpmControl != null)
                         {
-                            // --- DEĞİŞİKLİK BURADA ---
-                            // Maximum değerini 1.33 ile çarpıp int'e çeviriyoruz.
-                            // Örnek: 1000 * 1.33 = 1330
-                            int newMax = (int)(rpmControl.Maximum);
-
-                            if (gaugeRpm.InvokeRequired)
-                            {
-                                gaugeRpm.Invoke(new Action(() => gaugeRpm.Maximum = newMax));
-                            }
-                            else
-                            {
-                                gaugeRpm.Maximum = newMax;
-                            }
-                            // -------------------------
-                        }
+                            int newMax = (int)(rpmControl.Maximum);
+                            this.SafeInvoke(() => gaugeRpm.Maximum = newMax);
+                        }
                     }
                 }
             }
@@ -262,7 +254,7 @@ namespace Telemetry.UI.Views
                 var stepTypesTable = await Task.Run(() => _configRepo.GetStepTypes());
                 int waterStepTypeId = -1;
 
-                foreach (System.Data.DataRow row in stepTypesTable.Rows)
+                foreach (DataRow row in stepTypesTable.Rows)
                 {
                     string stepName = row["StepName"].ToString();
                     if (stepName.Contains("Su Alma") || stepName.Contains("Water Intake"))
@@ -289,10 +281,8 @@ namespace Telemetry.UI.Views
 
                         if (waterControl != null)
                         {
-                            if (waterTankGauge1.InvokeRequired)
-                                waterTankGauge1.Invoke(new Action(() => waterTankGauge1.Maximum = (int)waterControl.Maximum));
-                            else
-                                waterTankGauge1.Maximum = (int)waterControl.Maximum;
+                            int maxVal = (int)waterControl.Maximum;
+                            this.SafeInvoke(() => waterTankGauge1.Maximum = maxVal);
                         }
                     }
                 }
@@ -303,8 +293,7 @@ namespace Telemetry.UI.Views
             }
         }
 
-        // --- DİL AYARLARI ---
-        private void LanguageManager_LanguageChanged(object sender, EventArgs e)
+        private void LanguageManager_LanguageChanged(object sender, EventArgs e)
         {
             ApplyLocalization();
         }
@@ -322,8 +311,7 @@ namespace Telemetry.UI.Views
             lstAlarmlar.Text = Resources.baglantibekleniyro;
         }
 
-        // --- EVENT HANDLERS ---
-        private void OnConnectionStateChanged(int machineId, FullMachineStatus status)
+        private void OnConnectionStateChanged(int machineId, FullMachineStatus status)
         {
             if (machineId == _machine.Id && this.IsHandleCreated && !this.IsDisposed)
             {
@@ -341,7 +329,6 @@ namespace Telemetry.UI.Views
 
         private void MakineDetay_Control_VisibleChanged(object sender, EventArgs e)
         {
-            // Sayfa görünürse Timer çalışsın, gizliyse dursun (Arka planda çalışmayı engeller)
             if (this.Visible)
             {
                 if (_uiUpdateTimer != null && !_uiUpdateTimer.Enabled)
@@ -373,17 +360,13 @@ namespace Telemetry.UI.Views
                     gaugeRpm.Value = status.AnlikDevirRpm;
                     gaugeRpm.Text = status.AnlikDevirRpm.ToString();
 
-                    // Sıcaklık verisi (decimal olarak Tag'e atıyoruz)
-                    
                     bool isDrying = _machine.MachineType == "Kurutma Makinesi";
 
-                   
-                  if(!isDrying)
+                    if (!isDrying)
                     {
                         decimal anlikSicaklikDecimal = status.AnlikSicaklik / 10.0m;
                         progressTemp.Tag = anlikSicaklikDecimal;
                         lblTempValue.Text = $"{anlikSicaklikDecimal:F1} °C";
-
                     }
                     else
                     {
@@ -392,62 +375,51 @@ namespace Telemetry.UI.Views
                         lblTempValue.Text = $"{anlikSicaklikDecimal:F1} °C";
                     }
 
-                    decimal AnlikSuSeviyesi = status.AnlikSuSeviyesi ;
+                    decimal AnlikSuSeviyesi = status.AnlikSuSeviyesi;
                     humuditybar.Tag = AnlikSuSeviyesi;
-                    humuditytxt.Text =  $"{AnlikSuSeviyesi} Rh";
-                    humuditytxt.ForeColor = System.Drawing.Color.Blue;
-                   
-                    lblTempValue.ForeColor = System.Drawing.Color.Red;
+                    humuditytxt.Text = $"{AnlikSuSeviyesi} Rh";
 
-                    // Paneli yeniden çizmeye zorla
-                    progressTemp.Invalidate();
+                    humuditytxt.ForeColor = Color.FromArgb(33, 150, 243);
+                    lblTempValue.ForeColor = Color.FromArgb(239, 83, 80);
+
+                    progressTemp.Invalidate();
                     progressTemp.Update();
                     humuditybar.Invalidate();
                     humuditybar.Update();
 
                     waterTankGauge1.Value = status.AnlikSuSeviyesi;
-                    // *** CANLI İLERLEME (SCROLLING) İÇİN YENİ KISIM ***
-                    if (_tempScatter != null)
+
+                    if (_tempScatter != null)
                     {
                         var limits = formsPlotTemp.Plot.Axes.GetLimits();
-                        double span = limits.Right - limits.Left; // Mevcut zoom aralığı
+                        double span = limits.Right - limits.Left;
 
-                        double newMaxX;
+                        double newMaxX;
                         double newMinX;
 
                         if (string.IsNullOrEmpty(_lastLoadedBatchIdForChart))
                         {
-                            // 1. CANLI AKIŞ MODU: Daima anlık zamana ilerle
-                            newMaxX = DateTime.Now.ToOADate();
+                            newMaxX = DateTime.Now.ToOADate();
                             newMinX = newMaxX - span;
                         }
                         else
                         {
-                            // 2. BATCH MODU: Batch aktifse ilerle
-
-                            // Batch'in hala aktif olup olmadığını kontrol ediyoruz.
-                            // Bu kontrolü, status nesnesinin BatchNumarasi doluysa batch'in aktif olduğu varsayımıyla yapıyoruz.
-                            if (status.BatchNumarasi == _lastLoadedBatchIdForChart)
+                            if (status.BatchNumarasi == _lastLoadedBatchIdForChart)
                             {
-                                // Batch hala aktif. Grafik, en son veri noktasına (veya anlık zamana) ilerlemelidir.
-                                newMaxX = DateTime.Now.ToOADate(); // Maksimum zamanı anlık zamana getir.
-                                newMinX = newMaxX - span;
+                                newMaxX = DateTime.Now.ToOADate();
+                                newMinX = newMaxX - span;
                             }
                             else
                             {
-                                // Batch ID'si değişmiş veya batch tamamlanmıştır. İlerleme (pan) durdurulur.
-                                // Mevcut limitleri koru
-                                return;
+                                return;
                             }
                         }
 
-                        // Eksenleri yeni limitlere ayarla
-                        formsPlotTemp.Plot.Axes.SetLimitsX(newMinX, newMaxX);
+                        formsPlotTemp.Plot.Axes.SetLimitsX(newMinX, newMaxX);
                         formsPlotRpm.Plot.Axes.SetLimitsX(newMinX, newMaxX);
                         formsPlotWater.Plot.Axes.SetLimitsX(newMinX, newMaxX);
 
-                        // Grafikleri güncelle
-                        formsPlotTemp.Refresh();
+                        formsPlotTemp.Refresh();
                         formsPlotRpm.Refresh();
                         formsPlotWater.Refresh();
                     }
@@ -473,13 +445,9 @@ namespace Telemetry.UI.Views
 
             if (!string.IsNullOrEmpty(status.BatchNumarasi))
             {
-                // --- DÜZELTME BURADA BAŞLIYOR ---
-
-                // Batch ID değişti mi kontrolü (Sadece ID değiştiğinde yapılacak ağır işler için)
                 bool isNewBatch = status.BatchNumarasi != _lastLoadedBatchIdForChart;
                 _lastLoadedBatchIdForChart = status.BatchNumarasi;
 
-                // Eğer yeni bir batch başladıysa alarmları ve plotu temizleyerek hazırla
                 if (isNewBatch)
                 {
                     var alarms = _alarmRepository.GetAlarmDetailsForBatch(status.BatchNumarasi, _machine.Id);
@@ -488,21 +456,16 @@ namespace Telemetry.UI.Views
                     _currentlyDisplayedAlarms = alarmStrings;
                     lstAlarmlar.DataSource = _currentlyDisplayedAlarms;
 
-                    // Yeni batch ise grafiği temizle ki eskiler kalmasın
                     formsPlotTemp.Plot.Clear();
                     formsPlotRpm.Plot.Clear();
                     formsPlotWater.Plot.Clear();
 
-                    // Scatter nesnelerini null yap ki tekrar oluşturulsun
                     _tempScatter = null;
                     _rpmScatter = null;
                     _waterScatter = null;
                 }
 
-                // Batch ID aynı olsa bile verileri grafiğe YÜKLE (Continuous Update)
                 LoadTimelineChartForBatch(status.BatchNumarasi);
-
-                // --- DÜZELTME BURADA BİTİYOR ---
             }
             else
             {
@@ -518,8 +481,7 @@ namespace Telemetry.UI.Views
             HighlightCurrentStep(status.AktifAdimNo);
         }
 
-        // --- GRAFİK & VERİ YÜKLEME ---
-        private void LoadDataForBatch(FullMachineStatus status)
+        private void LoadDataForBatch(FullMachineStatus status)
         {
             _lastLoadedBatchIdForChart = status.BatchNumarasi;
             var alarms = _alarmRepository.GetAlarmDetailsForBatch(status.BatchNumarasi, _machine.Id);
@@ -579,6 +541,9 @@ namespace Telemetry.UI.Views
             }
         }
 
+        // =========================================================================
+        // DÜZELTME: CS0664 FLOAT VERİ TİPİ DÖNÜŞÜMÜ (1.5 -> 1.5f YAPILDI)
+        // =========================================================================
         private void LoadTimelineChartForBatch(string batchId)
         {
             SafeInvoke(() =>
@@ -602,52 +567,43 @@ namespace Telemetry.UI.Views
                     return;
                 }
 
-                // Verileri hazırla
                 var xs = dataPoints.Select(p => p.Timestamp.ToOADate()).ToArray();
                 bool isDrying = _machine.MachineType == "Kurutma Makinesi";
-                double[] ysTemp;
+                double[] ysTemp = isDrying ? dataPoints.Select(p => (double)p.Temperature / 100.0).ToArray() : dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray();
 
-                if (!isDrying)
-                {
-                  ysTemp = dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray();
-                }
-                else { ysTemp = dataPoints.Select(p => (double)p.Temperature / 100.0).ToArray(); }
-
-
-                    var ysRpm = dataPoints.Select(p => (double)p.Rpm).ToArray();
+                var ysRpm = dataPoints.Select(p => (double)p.Rpm).ToArray();
                 var ysWater = dataPoints.Select(p => (double)p.WaterLevel).ToArray();
 
-                // --- DÜZELTME: Scatter nesnelerini yönetme ---
+                bool isDark = MaterialSkinManager.Instance.Theme == MaterialSkinManager.Themes.DARK;
 
-                // Temp Scatter güncelleme veya oluşturma
                 if (_tempScatter == null || !formsPlotTemp.Plot.GetPlottables().Contains(_tempScatter))
                 {
-                    formsPlotTemp.Plot.Clear(); // Temizle
+                    formsPlotTemp.Plot.Clear();
+                    ApplyScottPlotTheme(formsPlotTemp, isDark);
                     formsPlotTemp.Plot.Title($"{_machine.MachineName} - {Resources.proseszamancizgisi} ({batchId})");
 
                     _tempScatter = formsPlotTemp.Plot.Add.Scatter(xs, ysTemp);
                     _tempScatter.Color = ScottPlot.Colors.Red;
-                    _tempScatter.LineWidth = 1;
+                    _tempScatter.LineWidth = 1.5f; // Sonek hatası giderildi
                     _tempScatter.MarkerSize = 0;
                     formsPlotTemp.Plot.Axes.DateTimeTicksBottom();
                 }
                 else
                 {
-                    // Mevcut grafiği güncelle (daha performanslı)
                     formsPlotTemp.Plot.Remove(_tempScatter);
                     _tempScatter = formsPlotTemp.Plot.Add.Scatter(xs, ysTemp);
                     _tempScatter.Color = ScottPlot.Colors.Red;
-                    _tempScatter.LineWidth = 1;
+                    _tempScatter.LineWidth = 1.5f; // Sonek hatası giderildi
                     _tempScatter.MarkerSize = 0;
                 }
 
-                // RPM Scatter güncelleme veya oluşturma
                 if (_rpmScatter == null || !formsPlotRpm.Plot.GetPlottables().Contains(_rpmScatter))
                 {
                     formsPlotRpm.Plot.Clear();
+                    ApplyScottPlotTheme(formsPlotRpm, isDark);
                     _rpmScatter = formsPlotRpm.Plot.Add.Scatter(xs, ysRpm);
                     _rpmScatter.Color = ScottPlot.Colors.Green;
-                    _rpmScatter.LineWidth = 1;
+                    _rpmScatter.LineWidth = 1.5f; // Sonek hatası giderildi
                     _rpmScatter.MarkerSize = 0;
                     formsPlotRpm.Plot.Axes.DateTimeTicksBottom();
                 }
@@ -656,17 +612,17 @@ namespace Telemetry.UI.Views
                     formsPlotRpm.Plot.Remove(_rpmScatter);
                     _rpmScatter = formsPlotRpm.Plot.Add.Scatter(xs, ysRpm);
                     _rpmScatter.Color = ScottPlot.Colors.Green;
-                    _rpmScatter.LineWidth = 1;
+                    _rpmScatter.LineWidth = 1.5f; // Sonek hatası giderildi
                     _rpmScatter.MarkerSize = 0;
                 }
 
-                // Water Scatter güncelleme veya oluşturma
                 if (_waterScatter == null || !formsPlotWater.Plot.GetPlottables().Contains(_waterScatter))
                 {
                     formsPlotWater.Plot.Clear();
+                    ApplyScottPlotTheme(formsPlotWater, isDark);
                     _waterScatter = formsPlotWater.Plot.Add.Scatter(xs, ysWater);
                     _waterScatter.Color = ScottPlot.Colors.Blue;
-                    _waterScatter.LineWidth = 1;
+                    _waterScatter.LineWidth = 1.5f; // Sonek hatası giderildi
                     _waterScatter.MarkerSize = 0;
                     formsPlotWater.Plot.Axes.DateTimeTicksBottom();
                 }
@@ -675,13 +631,9 @@ namespace Telemetry.UI.Views
                     formsPlotWater.Plot.Remove(_waterScatter);
                     _waterScatter = formsPlotWater.Plot.Add.Scatter(xs, ysWater);
                     _waterScatter.Color = ScottPlot.Colors.Blue;
-                    _waterScatter.LineWidth = 1;
+                    _waterScatter.LineWidth = 1.5f; // Sonek hatası giderildi
                     _waterScatter.MarkerSize = 0;
                 }
-
-                // Not: AutoScale her seferinde çağrılırsa kullanıcı zoom yapamaz. 
-                // Ancak sürekli akan bir veri olduğu için Y eksenini otomatize edebiliriz.
-                // X eksenini UpdateLiveGauges yönetiyor (Scrolling).
 
                 formsPlotTemp.Plot.Axes.AutoScaleY();
                 formsPlotRpm.Plot.Axes.AutoScaleY();
@@ -693,18 +645,19 @@ namespace Telemetry.UI.Views
             });
         }
 
+        // =========================================================================
+        // DÜZELTME: CS0664 FLOAT VERİ TİPİ DÖNÜŞÜMÜ (1.5 -> 1.5f YAPILDI)
+        // =========================================================================
         private void LoadTimelineChartForLive()
         {
-            // *** DEĞİŞİKLİK BURADA (BAŞLANGIÇ) ***
-            // Veri penceresini 360 dakika (6 saat) olarak ayarlıyoruz
-            int timeWindowMinutes = 360;
+            int timeWindowMinutes = 360;
 
             SafeInvoke(() =>
             {
                 DateTime endTime = DateTime.Now;
-                DateTime startTime = endTime.AddMinutes(-timeWindowMinutes); // Geriye dönük 360 dakikalık veri
+                DateTime startTime = endTime.AddMinutes(-timeWindowMinutes);
 
-                var dataPoints = _logRepository.GetManualLogs(_machine.Id, startTime, endTime);
+                var dataPoints = _logRepository.GetManualLogs(_machine.Id, startTime, endTime);
 
                 if (!dataPoints.Any())
                 {
@@ -716,25 +669,21 @@ namespace Telemetry.UI.Views
                 }
 
                 double[] timeData = dataPoints.Select(p => p.Timestamp.ToOADate()).ToArray();
-                
                 bool isDrying = _machine.MachineType == "Kurutma Makinesi";
+                double[] tempData = isDrying ? dataPoints.Select(p => (double)p.Temperature / 100.0).ToArray() : dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray();
 
-                double[] tempData;
-
-                // Sonra koşula göre içini doldur
-
-                if (!isDrying)
-                {
-                    tempData = dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray();
-                }
-                else { tempData = dataPoints.Select(p => (double)p.Temperature / 100.0).ToArray(); }
-                
                 double[] rpmData = dataPoints.Select(p => (double)p.Rpm).ToArray();
                 double[] waterLevelData = dataPoints.Select(p => (double)p.WaterLevel).ToArray();
+
+                bool isDark = MaterialSkinManager.Instance.Theme == MaterialSkinManager.Themes.DARK;
 
                 if (_tempScatter == null)
                 {
                     formsPlotTemp.Plot.Clear(); formsPlotRpm.Plot.Clear(); formsPlotWater.Plot.Clear();
+
+                    ApplyScottPlotTheme(formsPlotTemp, isDark);
+                    ApplyScottPlotTheme(formsPlotRpm, isDark);
+                    ApplyScottPlotTheme(formsPlotWater, isDark);
 
                     formsPlotTemp.Plot.Axes.DateTimeTicksBottom();
                     formsPlotRpm.Plot.Axes.DateTimeTicksBottom();
@@ -744,51 +693,32 @@ namespace Telemetry.UI.Views
 
                     _tempScatter = formsPlotTemp.Plot.Add.Scatter(timeData, tempData);
                     _tempScatter.Color = ScottPlot.Colors.Red;
-                    _tempScatter.LineWidth = 1;
+                    _tempScatter.LineWidth = 1.5f; // Sonek hatası giderildi
                     _tempScatter.MarkerSize = 0;
                     formsPlotTemp.Plot.Axes.Left.Label.Text = Resources.Temperature;
                     formsPlotTemp.Plot.Axes.Left.Label.ForeColor = ScottPlot.Colors.Red;
-                    formsPlotTemp.Plot.Axes.Left.TickLabelStyle.ForeColor = ScottPlot.Colors.Red;
 
                     _rpmScatter = formsPlotRpm.Plot.Add.Scatter(timeData, rpmData);
                     _rpmScatter.Color = ScottPlot.Colors.Green;
-                    _rpmScatter.LineWidth = 1;
+                    _rpmScatter.LineWidth = 1.5f; // Sonek hatası giderildi
                     _rpmScatter.MarkerSize = 0;
                     formsPlotRpm.Plot.Axes.Left.Label.Text = Resources.devir;
                     formsPlotRpm.Plot.Axes.Left.Label.ForeColor = ScottPlot.Colors.Green;
-                    formsPlotRpm.Plot.Axes.Left.TickLabelStyle.ForeColor = ScottPlot.Colors.Green;
 
                     _waterScatter = formsPlotWater.Plot.Add.Scatter(timeData, waterLevelData);
                     _waterScatter.Color = ScottPlot.Colors.Blue;
-                    _waterScatter.LineWidth = 1;
+                    _waterScatter.LineWidth = 1.5f; // Sonek hatası giderildi
                     _waterScatter.MarkerSize = 0;
-                    
-                    if (_machine.MachineType == "Kurutma Makinesi")
-                    {
 
-                        formsPlotWater.Plot.Axes.Left.Label.Text = "Humidity (Rh)";
-                    }
-                    else {
+                    formsPlotWater.Plot.Axes.Left.Label.Text = isDrying ? "Humidity (Rh)" : Resources.suseviyesi;
+                    formsPlotWater.Plot.Axes.Left.Label.ForeColor = ScottPlot.Colors.Blue;
 
-                        
-                        formsPlotWater.Plot.Axes.Left.Label.Text = Resources.suseviyesi;
+                    double startZoomOA = endTime.AddMinutes(-5).ToOADate();
+                    double endOA = endTime.ToOADate();
 
-                    }
-                        formsPlotWater.Plot.Axes.Left.Label.ForeColor = ScottPlot.Colors.Blue;
-                    formsPlotWater.Plot.Axes.Left.TickLabelStyle.ForeColor = ScottPlot.Colors.Blue;
-
-                    // Sayfa ilk açıldığında otomatik 5 dakikalık zoom yapılıyor
-                    double startZoomOA = endTime.AddMinutes(-5).ToOADate(); // Son 5 dakikanın başlangıcı
-                    double endOA = endTime.ToOADate();
-
-                    // Grafik X eksen limitlerini son 5 dakikaya ayarla (otomatik zoom)
-                    formsPlotTemp.Plot.Axes.SetLimitsX(startZoomOA, endOA);
+                    formsPlotTemp.Plot.Axes.SetLimitsX(startZoomOA, endOA);
                     formsPlotRpm.Plot.Axes.SetLimitsX(startZoomOA, endOA);
                     formsPlotWater.Plot.Axes.SetLimitsX(startZoomOA, endOA);
-
-                    formsPlotTemp.Plot.Axes.AutoScaleY();
-                    formsPlotRpm.Plot.Axes.AutoScaleY();
-                    formsPlotWater.Plot.Axes.AutoScaleY();
                 }
                 else
                 {
@@ -798,28 +728,43 @@ namespace Telemetry.UI.Views
 
                     _tempScatter = formsPlotTemp.Plot.Add.Scatter(timeData, tempData);
                     _tempScatter.Color = ScottPlot.Colors.Red;
-                    _tempScatter.LineWidth = 1;
+                    _tempScatter.LineWidth = 1.5f; // Sonek hatası giderildi
                     _tempScatter.MarkerSize = 0;
+
                     _rpmScatter = formsPlotRpm.Plot.Add.Scatter(timeData, rpmData);
                     _rpmScatter.Color = ScottPlot.Colors.Green;
-                    _rpmScatter.LineWidth = 1;
+                    _rpmScatter.LineWidth = 1.5f; // Sonek hatası giderildi
                     _rpmScatter.MarkerSize = 0;
+
                     _waterScatter = formsPlotWater.Plot.Add.Scatter(timeData, waterLevelData);
                     _waterScatter.Color = ScottPlot.Colors.Blue;
-                    _waterScatter.LineWidth = 1;
+                    _waterScatter.LineWidth = 1.5f; // Sonek hatası giderildi
                     _waterScatter.MarkerSize = 0;
+                }
 
-                    // Not: Yenilemelerde X ekseni limitleri SyncAxes metodu sayesinde korunur.
-                    // Bu nedenle burada tekrar zoom yapmaya gerek yoktur.
-                }
-                // *** DEĞİŞİKLİK BURADA (SON) ***
                 formsPlotTemp.Plot.Axes.AutoScaleY();
                 formsPlotRpm.Plot.Axes.AutoScaleY();
                 formsPlotWater.Plot.Axes.AutoScaleY();
+
                 formsPlotTemp.Refresh();
                 formsPlotRpm.Refresh();
                 formsPlotWater.Refresh();
             });
+        }
+
+        private void ApplyScottPlotTheme(ScottPlot.WinForms.FormsPlot formsPlot, bool isDark)
+        {
+            formsPlot.Plot.FigureBackground.Color = ScottPlot.Colors.Transparent;
+            formsPlot.Plot.DataBackground.Color = ScottPlot.Colors.Transparent;
+
+            var axisColor = isDark ? ScottPlot.Color.FromColor(Color.FromArgb(148, 163, 184)) : ScottPlot.Color.FromColor(Color.FromArgb(71, 85, 105));
+            var gridColor = isDark ? ScottPlot.Color.FromColor(Color.FromArgb(51, 65, 85)) : ScottPlot.Color.FromColor(Color.FromArgb(241, 245, 249));
+
+            formsPlot.Plot.Axes.Color(axisColor);
+            formsPlot.Plot.Grid.MajorLineColor = gridColor;
+
+            formsPlot.Plot.Axes.Left.Label.ForeColor = axisColor;
+            formsPlot.Plot.Axes.Bottom.Label.ForeColor = axisColor;
         }
 
         private void ClearBatchSpecificFieldsWithMessage(string message)
@@ -833,6 +778,15 @@ namespace Telemetry.UI.Views
 
         private void HighlightCurrentStep(int currentStepNumber)
         {
+            if (dgvAdimlar.DataSource == null) return;
+
+            bool isDark = MaterialSkinManager.Instance.Theme == MaterialSkinManager.Themes.DARK;
+
+            Color activeBg = isDark ? Color.FromArgb(27, 94, 32) : Color.FromArgb(200, 230, 201);
+            Color activeFg = isDark ? Color.FromArgb(240, 240, 240) : Color.FromArgb(27, 94, 32);
+            Color normalBg = isDark ? Color.FromArgb(30, 41, 59) : Color.White;
+            Color normalFg = isDark ? Color.FromArgb(226, 232, 240) : Color.FromArgb(15, 23, 42);
+
             foreach (DataGridViewRow row in dgvAdimlar.Rows)
             {
                 if (row.Cells["Adım"] != null && row.Cells["Adım"].Value != null)
@@ -841,22 +795,35 @@ namespace Telemetry.UI.Views
                     {
                         if (stepValue == currentStepNumber)
                         {
-                            row.DefaultCellStyle.BackColor = System.Drawing.Color.LightGreen;
-                            row.DefaultCellStyle.Font = new System.Drawing.Font(dgvAdimlar.Font, System.Drawing.FontStyle.Bold);
+                            row.DefaultCellStyle.BackColor = activeBg;
+                            row.DefaultCellStyle.ForeColor = activeFg;
+                            row.DefaultCellStyle.Font = new Font(dgvAdimlar.Font, FontStyle.Bold);
                         }
                         else
                         {
-                            row.DefaultCellStyle.BackColor = System.Drawing.Color.White;
-                            row.DefaultCellStyle.Font = new System.Drawing.Font(dgvAdimlar.Font, System.Drawing.FontStyle.Regular);
+                            row.DefaultCellStyle.BackColor = normalBg;
+                            row.DefaultCellStyle.ForeColor = normalFg;
+                            row.DefaultCellStyle.Font = new Font(dgvAdimlar.Font, FontStyle.Regular);
                         }
-                    }
-                    else
-                    {
-                        row.DefaultCellStyle.BackColor = System.Drawing.Color.White;
-                        row.DefaultCellStyle.Font = new System.Drawing.Font(dgvAdimlar.Font, System.Drawing.FontStyle.Regular);
                     }
                 }
             }
+        }
+
+        private void ConfigureStepsGridAppearance()
+        {
+            dgvAdimlar.BorderStyle = BorderStyle.None;
+            dgvAdimlar.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            dgvAdimlar.EnableHeadersVisualStyles = false;
+            dgvAdimlar.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+
+            bool isDark = MaterialSkinManager.Instance.Theme == MaterialSkinManager.Themes.DARK;
+
+            dgvAdimlar.BackgroundColor = isDark ? Color.FromArgb(30, 41, 59) : Color.White;
+            dgvAdimlar.ColumnHeadersDefaultCellStyle.BackColor = isDark ? Color.FromArgb(15, 23, 42) : Color.FromArgb(241, 245, 249);
+            dgvAdimlar.ColumnHeadersDefaultCellStyle.ForeColor = isDark ? Color.FromArgb(148, 163, 184) : Color.FromArgb(71, 85, 105);
+            dgvAdimlar.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            dgvAdimlar.RowTemplate.Height = 32;
         }
 
         private string GetStepTypeName(ScadaRecipeStep step)
@@ -875,119 +842,94 @@ namespace Telemetry.UI.Views
             if ((controlWord & 512) != 0) stepTypes.Add("Cooling");
             return string.Join(" + ", stepTypes);
         }
-      
-        // --- RENK HESAPLAMA ---
-        private System.Drawing.Color GetTemperatureColor(int temp)
-        {
-            if (temp < 40) return System.Drawing.Color.DodgerBlue;
-            if (temp < 60) return System.Drawing.Color.SeaGreen;
-            if (temp < 90) return System.Drawing.Color.Orange;
-            return System.Drawing.Color.Crimson;
-        }
 
-        // --- CUSTOM PAINT METODU (DİKEY BAR) ---
-        private void progressTemp_Paint(object sender, PaintEventArgs e)
+        private void progressTemp_Paint(object sender, PaintEventArgs e)
         {
-            // Panel olup olmadığını kontrol et (Eğer hala ProgressBar ise Panel'e çevirin!)
-            Control barControl = sender as Control;
+            Control barControl = sender as Control;
             if (barControl == null) return;
 
-            // Değeri Tag'den oku
-            float currentValue = 0;
+            float currentValue = 0;
             if (barControl.Tag != null)
             {
                 try { currentValue = Convert.ToSingle(barControl.Tag); } catch { }
             }
 
-            // Maksimum değer (Termometre için 150 mantıklıdır, ancak kodunuzda 100f kullanılmış)
-            float maximumValue = 100f; // Burayı 150f yapmak isterseniz değiştirebilirsiniz
+            float maximumValue = 100f;
+            currentValue = Math.Max(0, Math.Min(maximumValue, currentValue));
 
-            // Sınırla
-            currentValue = Math.Max(0, Math.Min(maximumValue, currentValue));
-
-            // Boyutlar
-            int w = barControl.Width;
+            int w = barControl.Width;
             int h = barControl.Height;
 
-            // Arka Plan (Temizle)
-            e.Graphics.FillRectangle(new SolidBrush(System.Drawing.Color.WhiteSmoke), 0, 0, w, h);
+            bool isDark = MaterialSkinManager.Instance.Theme == MaterialSkinManager.Themes.DARK;
+            Color panelBg = isDark ? Color.FromArgb(44, 52, 64) : Color.FromArgb(241, 245, 249);
+            Color borderCol = isDark ? Color.FromArgb(71, 85, 104) : Color.LightGray;
 
-            // Doluluk Oranı
-            float ratio = currentValue / maximumValue;
+            using (SolidBrush bgBrush = new SolidBrush(panelBg))
+            {
+                e.Graphics.FillRectangle(bgBrush, 0, 0, w, h);
+            }
+
+            float ratio = currentValue / maximumValue;
             int fillHeight = (int)(h * ratio);
+            int yPos = h - fillHeight;
 
-            // Y Koordinatı (Aşağıdan yukarı dolması için: Toplam Boy - Dolu Boy)
-            int yPos = h - fillHeight;
+            Rectangle filledRect = new Rectangle(0, yPos, w, fillHeight);
 
-            // Çizim
-            Rectangle filledRect = new Rectangle(0, yPos, w, fillHeight);
-
-            // *** BURADA DEĞİŞİKLİK YAPILDI ***
-            // Sabit kırmızı renk (System.Drawing.Color.Red) kullanılıyor
-            using (SolidBrush brush = new SolidBrush(System.Drawing.Color.Red)) // Rengi direkt kırmızı yaptık
-            {
+            using (SolidBrush brush = new SolidBrush(System.Drawing.Color.Red))
+            {
                 e.Graphics.FillRectangle(brush, filledRect);
             }
-            // **********************************
 
-            // Çerçeve
-            using (Pen borderPen = new Pen(System.Drawing.Color.LightGray, 1))
+            using (Pen borderPen = new Pen(borderCol, 1))
             {
                 e.Graphics.DrawRectangle(borderPen, 0, 0, w - 1, h - 1);
             }
         }
+
         private void humuditybar_Paint(object sender, PaintEventArgs e)
         {
-            // Panel olup olmadığını kontrol et (Eğer hala ProgressBar ise Panel'e çevirin!)
-            Control barControl = sender as Control;
+            Control barControl = sender as Control;
             if (barControl == null) return;
 
-            // Değeri Tag'den oku
-            float currentValue = 0;
+            float currentValue = 0;
             if (barControl.Tag != null)
             {
                 try { currentValue = Convert.ToSingle(barControl.Tag); } catch { }
             }
 
-            // Maksimum değer (Termometre için 150 mantıklıdır, ancak kodunuzda 100f kullanılmış)
-            float maximumValue = 100f; // Burayı 150f yapmak isterseniz değiştirebilirsiniz
+            float maximumValue = 100f;
+            currentValue = Math.Max(0, Math.Min(maximumValue, currentValue));
 
-            // Sınırla
-            currentValue = Math.Max(0, Math.Min(maximumValue, currentValue));
-
-            // Boyutlar
-            int w = barControl.Width;
+            int w = barControl.Width;
             int h = barControl.Height;
 
-            // Arka Plan (Temizle)
-            e.Graphics.FillRectangle(new SolidBrush(System.Drawing.Color.WhiteSmoke), 0, 0, w, h);
+            bool isDark = MaterialSkinManager.Instance.Theme == MaterialSkinManager.Themes.DARK;
+            Color panelBg = isDark ? Color.FromArgb(44, 52, 64) : Color.FromArgb(241, 245, 249);
+            Color borderCol = isDark ? Color.FromArgb(71, 85, 104) : Color.LightGray;
 
-            // Doluluk Oranı
-            float ratio = currentValue / maximumValue;
+            using (SolidBrush bgBrush = new SolidBrush(panelBg))
+            {
+                e.Graphics.FillRectangle(bgBrush, 0, 0, w, h);
+            }
+
+            float ratio = currentValue / maximumValue;
             int fillHeight = (int)(h * ratio);
+            int yPos = h - fillHeight;
 
-            // Y Koordinatı (Aşağıdan yukarı dolması için: Toplam Boy - Dolu Boy)
-            int yPos = h - fillHeight;
+            Rectangle filledRect = new Rectangle(0, yPos, w, fillHeight);
 
-            // Çizim
-            Rectangle filledRect = new Rectangle(0, yPos, w, fillHeight);
-
-            // *** BURADA DEĞİŞİKLİK YAPILDI ***
-            // Sabit kırmızı renk (System.Drawing.Color.Red) kullanılıyor
-            using (SolidBrush brush = new SolidBrush(System.Drawing.Color.Blue)) // Rengi direkt kırmızı yaptık
-            {
+            using (SolidBrush brush = new SolidBrush(System.Drawing.Color.Blue))
+            {
                 e.Graphics.FillRectangle(brush, filledRect);
             }
-            // **********************************
 
-            // Çerçeve
-            using (Pen borderPen = new Pen(System.Drawing.Color.LightGray, 1))
+            using (Pen borderPen = new Pen(borderCol, 1))
             {
                 e.Graphics.DrawRectangle(borderPen, 0, 0, w - 1, h - 1);
             }
         }
-        // ... Kalan olaylar ...
-        private void lblMakineAdi_Click(object sender, EventArgs e) { }
+
+        private void lblMakineAdi_Click(object sender, EventArgs e) { }
 
         private void SafeInvoke(Action action)
         {
@@ -1025,10 +967,8 @@ namespace Telemetry.UI.Views
 
         protected override void OnHandleDestroyed(EventArgs e)
         {
-            // 1. Dil değişikliği aboneliğini kaldır (Memory Leak önlemi)
             LanguageManager.LanguageChanged -= LanguageManager_LanguageChanged;
 
-            // 2. Servis aboneliklerini kaldır
             if (_pollingService != null)
             {
                 _pollingService.OnMachineDataRefreshed -= OnDataRefreshed;
@@ -1036,7 +976,6 @@ namespace Telemetry.UI.Views
                 _pollingService.OnActiveAlarmStateChanged -= OnAlarmStateChanged;
             }
 
-            // 3. Timer'ı durdur ve yok et
             if (_uiUpdateTimer != null)
             {
                 _uiUpdateTimer.Stop();

@@ -1,7 +1,10 @@
 ﻿// UI/Views/AlarmSettings_Control.cs
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Windows.Forms;
+using System.Threading.Tasks;
+using System.Linq;
 using Telemetry.Core;
 using Telemetry.Models;
 using Telemetry.Properties;
@@ -17,51 +20,75 @@ namespace Telemetry.UI.Views
 
         public AlarmSettings_Control()
         {
+            // Dil değişim olayına kayıt
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
+
             InitializeComponent();
 
             _repository = new AlarmRepository();
-            ApplyLocalization();
 
-            // --- KESİN ÇÖZÜM: GÜVENLİ YERLEŞİM (LAYOUT FIX) ---
+            // SPEED OPTİMİZASYON: Listeler yüklenirken ve pencereler kaydırılırken (scroll) titremeyi engeller
+            this.DoubleBuffered = true;
+            EnableDoubleBuffer(dgvAlarms);
 
-            // 1. Tasarımcıdan gelen kontrolleri geçici olarak formdan söküyoruz
+            // =========================================================================
+            // MODERNİZASYON: STANDART KONTROLLERİ DARK MODE UYARLAMA ADAPTÖRÜ
+            // Sayı ve düz metin kutularını koyu tema arka planıyla kusursuz eşitler.
+            // =========================================================================
+            Color controlBg = Color.FromArgb(44, 52, 64);    // Koyu grafit gri
+            Color controlFg = Color.FromArgb(240, 240, 240); // Soft mat beyaz
+
+            var numControls = new List<NumericUpDown> { numAlarmNo, numSeverity };
+            foreach (var num in numControls)
+            {
+                if (num != null)
+                {
+                    num.BackColor = controlBg;
+                    num.ForeColor = controlFg;
+                    num.BorderStyle = BorderStyle.FixedSingle;
+                }
+            }
+
+            // Standart metin kutularının renk adaptasyonu
+            if (txtAlarmText != null) { txtAlarmText.BackColor = controlBg; txtAlarmText.ForeColor = controlFg; txtAlarmText.BorderStyle = BorderStyle.FixedSingle; }
+            if (txtCategory != null) { txtCategory.BackColor = controlBg; txtCategory.ForeColor = controlFg; txtCategory.BorderStyle = BorderStyle.FixedSingle; }
+
+            // Koyu Mod Metin Kontrastı: Sabit başlık yazıları açık gri tonlara çekildi
+            Color labelColor = Color.FromArgb(176, 190, 197);
+            if (label2 != null) label2.ForeColor = labelColor;
+            if (label3 != null) label3.ForeColor = labelColor;
+            if (label4 != null) label4.ForeColor = labelColor;
+
+            // --- GÜVENLİ YERLEŞİM (LAYOUT FIX) ---
             this.Controls.Remove(dgvAlarms);
             this.Controls.Remove(groupBox1);
 
-            // 2. Tablo için yeni, temiz bir taşıyıcı panel oluşturuyoruz
             Panel pnlGridContainer = new Panel();
-            pnlGridContainer.Dock = DockStyle.Fill; // Boşluğu doldur
-            pnlGridContainer.Controls.Add(dgvAlarms); // Tabloyu içine al
+            pnlGridContainer.Dock = DockStyle.Fill;
+            pnlGridContainer.Controls.Add(dgvAlarms);
 
-            // 3. Tablo Ayarlarını Garantiye Alıyoruz
             dgvAlarms.Dock = DockStyle.Fill;
-            dgvAlarms.ScrollBars = ScrollBars.Both; // Scrollbarları aç
+            dgvAlarms.ScrollBars = ScrollBars.Both;
 
-            // 4. Kontrolleri DOĞRU SIRAYLA tekrar ekliyoruz
-            // WinForms Mantığı: En son eklenen kontrol (Add) EN ÜSTE gelir ve DOCK önceliğini alır.
-
-            // a. Önce Grid Panelini ekle (Bu altta kalacak, Index 1 olacak)
             this.Controls.Add(pnlGridContainer);
-
-            // b. Sonra Alt Paneli (Butonları) ekle (Bu en üste gelecek, Index 0 olacak)
-            // Böylece önce alt panel yerleşecek, tablo KALAN boşluğu dolduracak.
             this.Controls.Add(groupBox1);
 
-            // 5. UserControl'ün kendisini de ebeveynine tam oturtuyoruz
             this.Dock = DockStyle.Fill;
             // ----------------------------------------------------
+
+            ApplyLocalization();
         }
 
         private void AlarmSettings_Control_Load(object sender, EventArgs e)
         {
             RefreshList();
         }
+
         private void LanguageManager_LanguageChanged(object sender, EventArgs e)
         {
             ApplyLocalization();
-
         }
+
         public void ApplyLocalization()
         {
             groupBox1.Text = Resources.AlarmDetails;
@@ -71,11 +98,15 @@ namespace Telemetry.UI.Views
             btnNew.Text = Resources.New;
             btnDelete.Text = Resources.Delete;
             btnSave.Text = Resources.Save;
-
-
         }
+
         private void RefreshList()
         {
+            if (this.IsDisposed) return;
+
+            // SPEED OPTİMİZASYON: Veriler grid üzerine bind edilirken ekranda dalgalanma oluşmasını engeller
+            this.SuspendLayout();
+
             try
             {
                 _definitions = _repository.GetAllAlarmDefinitions();
@@ -86,6 +117,10 @@ namespace Telemetry.UI.Views
             catch (Exception ex)
             {
                 MessageBox.Show($"{Resources.alarmraporerror} {ex.Message}", $"{Resources.DatabaseError}");
+            }
+            finally
+            {
+                this.ResumeLayout(true);
             }
         }
 
@@ -124,7 +159,7 @@ namespace Telemetry.UI.Views
             ClearFields();
         }
 
-        private async void btnSave_Click(object sender, EventArgs e)
+        private void btnSave_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtAlarmText.Text) || numAlarmNo.Value == 0)
             {
@@ -182,6 +217,33 @@ namespace Telemetry.UI.Views
                 {
                     MessageBox.Show($"{Resources.Silmesırasındahata} {ex.Message}", $"{Resources.Error}");
                 }
+            }
+        }
+
+        // =========================================================================
+        // BELLEK SIZINTISI KORUMASI: STATİK EVENT BAĞLANTI TEMİZLİĞİ
+        // Kontrolün RAM'de asılı kalarak şişme yapmasını kesin olarak engeller.
+        // =========================================================================
+        protected override void OnHandleDestroyed(EventArgs e)
+        {
+            LanguageManager.LanguageChanged -= LanguageManager_LanguageChanged;
+            base.OnHandleDestroyed(e);
+        }
+
+        // SPEED OPTİMİZASYON: DataGrid akıcılığını sağlayan yansıtma (Reflection) metodu
+        private void EnableDoubleBuffer(Control control)
+        {
+            try
+            {
+                typeof(Control).InvokeMember("DoubleBuffered",
+                    System.Reflection.BindingFlags.SetProperty |
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.NonPublic,
+                    null, control, new object[] { true });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DoubleBuffering error: {ex.Message}");
             }
         }
     }

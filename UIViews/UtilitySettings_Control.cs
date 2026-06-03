@@ -1,10 +1,14 @@
-﻿using System;
+﻿// UIViews/UtilitySettings_Control.cs
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using Telemetry.Core;
 using Telemetry.Models;
 using Telemetry.Repositories;
+using MaterialSkin;          // YENİ EKLENDİ
+using MaterialSkin.Controls; // YENİ EKLENDİ
 
 namespace Telemetry.UIViews
 {
@@ -14,7 +18,7 @@ namespace Telemetry.UIViews
         private List<UtilityLine> _allLines;
         private UtilityLine _currentLine;
 
-        // Dinamik sensör kontrollerini tutmak için
+        // Dinamik sensör kontrollerini hafızada tutmak için harita yapısı
         private Dictionary<string, SensorControls> _sensorMap = new Dictionary<string, SensorControls>();
 
         private class SensorControls
@@ -22,14 +26,34 @@ namespace Telemetry.UIViews
             public CheckBox ChkEnabled { get; set; }
             public NumericUpDown NumAddress { get; set; }
             public ComboBox CmbDataType { get; set; }
-            public TextBox TxtMultiplier { get; set; } // Ondalık girmek için TextBox kullandık
+            public TextBox TxtMultiplier { get; set; }
         }
 
         public UtilitySettings_Control()
         {
             InitializeComponent();
-            // Repository oluşturma (Bağımlılık enjeksiyonu varsa oradan da alabilirsiniz)
             _repository = new UtilityRepository();
+
+            // SPEED OPTİMİZASYON: Kontrol sekmeleri arası geçişlerde donma ve titremeleri önler
+            this.DoubleBuffered = true;
+            this.BackColor = Color.Transparent; // Arka plan yönetimi üst ebeveyne devredildi
+
+            // Çizim performans adaptörleri tetiklendi
+            EnableDoubleBuffer(flowLayoutPanelSensors);
+            EnableDoubleBuffer(lstLines);
+
+            // =========================================================================
+            // MODERNİZASYON: STANDART GİRİŞ KUTULARINI DARK MODE UYARLAMA ADAPTÖRÜ
+            // Statik yerleşimdeki ham bileşenleri koyu grafit renk şemasıyla eşitler.
+            // =========================================================================
+            Color controlBg = Color.FromArgb(44, 52, 64);
+            Color controlFg = Color.FromArgb(240, 240, 240);
+
+            if (txtLineName != null) { txtLineName.BackColor = controlBg; txtLineName.ForeColor = controlFg; txtLineName.BorderStyle = BorderStyle.FixedSingle; }
+            if (txtIpAddress != null) { txtIpAddress.BackColor = controlBg; txtIpAddress.ForeColor = controlFg; txtIpAddress.BorderStyle = BorderStyle.FixedSingle; }
+            if (txtPort != null) { txtPort.BackColor = controlBg; txtPort.ForeColor = controlFg; }
+            if (txtSlaveId != null) { txtSlaveId.BackColor = controlBg; txtSlaveId.ForeColor = controlFg; }
+            if (lstLines != null) { lstLines.BackColor = controlBg; lstLines.ForeColor = controlFg; }
         }
 
         private void UtilitySettings_Control_Load(object sender, EventArgs e)
@@ -41,58 +65,73 @@ namespace Telemetry.UIViews
         private void LoadLines()
         {
             lstLines.Items.Clear();
-            _allLines = _repository.GetUtilityLines();
+            _allLines = _repository.GetUtilityLines() ?? new List<UtilityLine>();
             foreach (var line in _allLines)
             {
-                lstLines.Items.Add(line); // ToString() override edilmiş olmalı: DisplayInfo
+                lstLines.Items.Add(line);
             }
-            // UtilityLine sınıfında ToString() yoksa ListBox'ta class name görünür.
-            // Bu yüzden DisplayMember kullanıyoruz:
             lstLines.DisplayMember = "LineName";
         }
 
-        // Dinamik Sensör Panellerini Oluştur
         private void CreateSensorLayouts()
         {
-            flowLayoutPanelSensors.Controls.Clear();
-            _sensorMap.Clear();
+            // SPEED OPTİMİZASYON: Çoklu grup yerleşim çizimini dondurarak tek frame'de basar
+            flowLayoutPanelSensors.SuspendLayout();
+            try
+            {
+                flowLayoutPanelSensors.Controls.Clear();
+                _sensorMap.Clear();
 
-            AddSensorGroup("Water", "Su Sayacı Ayarları", Color.AliceBlue);
-            AddSensorGroup("Elec", "Elektrik Sayacı Ayarları", Color.MistyRose);
-            AddSensorGroup("Steam", "Buhar Sayacı Ayarları", Color.LemonChiffon);
-            AddSensorGroup("Air", "Hava Sayacı Ayarları", Color.MintCream);
+                AddSensorGroup("Water", "Su Sayacı Ayarları");
+                AddSensorGroup("Elec", "Elektrik Sayacı Ayarları");
+                AddSensorGroup("Steam", "Buhar Sayacı Ayarları");
+                AddSensorGroup("Air", "Hava Sayacı Ayarları");
+            }
+            finally
+            {
+                flowLayoutPanelSensors.ResumeLayout(true);
+            }
         }
 
-        private void AddSensorGroup(string key, string title, Color bgColor)
+        // =========================================================================
+        // MODERNİZASYON: DİNAMİK SAYAÇ GRUP PANELİ TEMA ADAPTÖRÜ
+        // Çalışma anında üretilen kontrollerin koyu modda kaybolması/parlaması kesin önlenmiştir.
+        // =========================================================================
+        private void AddSensorGroup(string key, string title)
         {
+            bool isDark = MaterialSkinManager.Instance.Theme == MaterialSkinManager.Themes.DARK;
+
+            // Koyu modda mat grafit yazı, açık modda koyu metalik mavi font dengesi
+            Color textStyle = isDark ? Color.FromArgb(230, 230, 230) : Color.FromArgb(26, 35, 126);
+            Color subBg = isDark ? Color.FromArgb(44, 52, 64) : Color.FromArgb(245, 247, 250);
+
             GroupBox grp = new GroupBox
             {
                 Text = title,
                 Size = new Size(700, 80),
-                BackColor = bgColor,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold)
+                BackColor = Color.Transparent, // Panelin çiğ beyaz parlamasını kesin olarak engeller
+                ForeColor = textStyle,
+                Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold)
             };
 
-            // 1. Enable Checkbox
             CheckBox chk = new CheckBox
             {
                 Text = "Aktif",
-                Location = new Point(20, 30),
-                AutoSize = true
+                Location = new Point(20, 32),
+                AutoSize = true,
+                ForeColor = isDark ? Color.FromArgb(210, 210, 210) : Color.Black,
+                Font = new Font("Segoe UI", 9F)
             };
 
-            // 2. Adres
-            Label lblAddr = new Label { Text = "Modbus Adres:", Location = new Point(100, 32), AutoSize = true, Font = new Font("Segoe UI", 9) };
-            NumericUpDown numAddr = new NumericUpDown { Location = new Point(200, 30), Size = new Size(80, 23), Maximum = 65535 };
+            Label lblAddr = new Label { Text = "Modbus Adres:", Location = new Point(100, 34), AutoSize = true, Font = new Font("Segoe UI", 9F), ForeColor = isDark ? Color.FromArgb(180, 180, 180) : Color.DimGray };
+            NumericUpDown numAddr = new NumericUpDown { Location = new Point(200, 31), Size = new Size(80, 23), Maximum = 65535, BackColor = subBg, ForeColor = isDark ? Color.White : Color.Black };
 
-            // 3. Veri Tipi
-            Label lblType = new Label { Text = "Veri Tipi:", Location = new Point(300, 32), AutoSize = true, Font = new Font("Segoe UI", 9) };
-            ComboBox cmbType = new ComboBox { Location = new Point(370, 30), Size = new Size(100, 23), DropDownStyle = ComboBoxStyle.DropDownList };
+            Label lblType = new Label { Text = "Veri Tipi:", Location = new Point(300, 34), AutoSize = true, Font = new Font("Segoe UI", 9F), ForeColor = isDark ? Color.FromArgb(180, 180, 180) : Color.DimGray };
+            ComboBox cmbType = new ComboBox { Location = new Point(370, 31), Size = new Size(110, 23), DropDownStyle = ComboBoxStyle.DropDownList, BackColor = subBg, ForeColor = isDark ? Color.White : Color.Black };
             cmbType.Items.AddRange(new object[] { "Word (Int16)", "Int32", "DWord (UInt32)", "Float" });
 
-            // 4. Çarpan (Multiplier)
-            Label lblMult = new Label { Text = "Çarpan:", Location = new Point(490, 32), AutoSize = true, Font = new Font("Segoe UI", 9) };
-            TextBox txtMult = new TextBox { Location = new Point(550, 30), Size = new Size(60, 23), Text = "1" };
+            Label lblMult = new Label { Text = "Çarpan:", Location = new Point(500, 34), AutoSize = true, Font = new Font("Segoe UI", 9F), ForeColor = isDark ? Color.FromArgb(180, 180, 180) : Color.DimGray };
+            TextBox txtMult = new TextBox { Location = new Point(560, 31), Size = new Size(70, 23), Text = "1", BackColor = subBg, ForeColor = isDark ? Color.White : Color.Black, BorderStyle = BorderStyle.FixedSingle };
 
             grp.Controls.Add(chk);
             grp.Controls.Add(lblAddr);
@@ -102,7 +141,6 @@ namespace Telemetry.UIViews
             grp.Controls.Add(lblMult);
             grp.Controls.Add(txtMult);
 
-            // Kontrolleri Haritaya Ekle
             _sensorMap[key] = new SensorControls
             {
                 ChkEnabled = chk,
@@ -125,13 +163,11 @@ namespace Telemetry.UIViews
 
         private void FillForm(UtilityLine line)
         {
-            // Genel Ayarlar
             txtLineName.Text = line.LineName;
             txtIpAddress.Text = line.IpAddress;
             txtPort.Value = line.Port;
             txtSlaveId.Value = line.SlaveId;
 
-            // Sensör Ayarları (Refleksiyon yerine manuel atama daha güvenli ve hızlıdır)
             SetSensorValues("Water", line.WaterEnabled, line.WaterAddress, line.WaterDataType, line.WaterMultiplier);
             SetSensorValues("Elec", line.ElecEnabled, line.ElecAddress, line.ElecDataType, line.ElecMultiplier);
             SetSensorValues("Steam", line.SteamEnabled, line.SteamAddress, line.SteamDataType, line.SteamMultiplier);
@@ -143,15 +179,14 @@ namespace Telemetry.UIViews
             if (_sensorMap.TryGetValue(key, out var ctrls))
             {
                 ctrls.ChkEnabled.Checked = enabled;
-                ctrls.NumAddress.Value = addr;
+                ctrls.NumAddress.Value = Math.Min(ctrls.NumAddress.Maximum, Math.Max(ctrls.NumAddress.Minimum, addr));
 
-                // ComboBox seçimi
-                if (!string.IsNullOrEmpty(type))
+                if (!string.IsNullOrEmpty(type) && ctrls.CmbDataType.Items.Contains(type))
                     ctrls.CmbDataType.SelectedItem = type;
                 else
                     ctrls.CmbDataType.SelectedIndex = 3; // Default Float
 
-                ctrls.TxtMultiplier.Text = mult.ToString();
+                ctrls.TxtMultiplier.Text = mult.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
         }
 
@@ -165,9 +200,6 @@ namespace Telemetry.UIViews
                 SlaveId = 1
             };
 
-            // Veritabanına eklemeden önce hafızada listeye ekleyelim
-            // (Gerçek projede önce DB'ye insert atıp ID almanız önerilir)
-            // Simülasyon için:
             _allLines.Add(newLine);
             lstLines.Items.Add(newLine);
             lstLines.SelectedItem = newLine;
@@ -179,9 +211,6 @@ namespace Telemetry.UIViews
             {
                 if (MessageBox.Show($"{line.LineName} hattını silmek istediğinize emin misiniz?", "Onay", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
                 {
-                    // DB'den silme işlemi Repository'e eklenecek metot ile yapılacak:
-                    // _repository.DeleteUtilityLine(line.Id);
-
                     _allLines.Remove(line);
                     lstLines.Items.Remove(line);
                     ClearForm();
@@ -193,15 +222,20 @@ namespace Telemetry.UIViews
         {
             txtLineName.Clear();
             txtIpAddress.Clear();
+            txtPort.Value = txtPort.Minimum;
+            txtSlaveId.Value = txtSlaveId.Minimum;
             _currentLine = null;
-            // Sensörleri resetle...
+
+            foreach (var key in _sensorMap.Keys)
+            {
+                SetSensorValues(key, false, 0, "Float", 1.0);
+            }
         }
 
         private void btnSave_Click(object sender, EventArgs e)
         {
             if (_currentLine == null) return;
 
-            // Formdan modele aktar
             _currentLine.LineName = txtLineName.Text;
             _currentLine.IpAddress = txtIpAddress.Text;
             _currentLine.Port = (int)txtPort.Value;
@@ -219,22 +253,20 @@ namespace Telemetry.UIViews
             GetSensorValues("Air", out bool aEn, out int aAddr, out string aType, out double aMult);
             _currentLine.AirEnabled = aEn; _currentLine.AirAddress = aAddr; _currentLine.AirDataType = aType; _currentLine.AirMultiplier = aMult;
 
-            // Veritabanına kaydet
             try
             {
-                // Repository'de Update veya Save metodunu çağıracağız
-                 _repository.SaveUtilityLine(_currentLine); 
-                // Şimdilik sadece mesaj veriyoruz:
-
+                _repository.SaveUtilityLine(_currentLine);
                 MessageBox.Show("Ayarlar başarıyla kaydedildi.", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                // ListBox'ı güncelle (İsim değişmiş olabilir)
                 int index = lstLines.SelectedIndex;
-                lstLines.Items[index] = _currentLine;
+                if (index != -1)
+                {
+                    lstLines.Items[index] = _currentLine;
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Kayıt hatası: " + ex.Message);
+                MessageBox.Show("Kayıt hatası: " + ex.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -248,12 +280,32 @@ namespace Telemetry.UIViews
                 addr = (int)ctrls.NumAddress.Value;
                 type = ctrls.CmbDataType.SelectedItem?.ToString() ?? "Float";
 
-                // Virgül kontrolü (Nokta veya virgül ayrımını sisteme göre yap)
-                string val = ctrls.TxtMultiplier.Text.Replace(",", ".");
+                // =========================================================================
+                // KORUMA: KÜLTÜR BAĞIMSIZ PARSING SİGORTASI
+                // Bölgesel ayarlardan (nokta/virgül ayrımı) kaynaklı sayaç kalibrasyon hatalarını kesin önler.
+                // =========================================================================
+                string val = ctrls.TxtMultiplier.Text.Trim().Replace(",", ".");
                 if (double.TryParse(val, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double result))
                 {
                     mult = result;
                 }
+            }
+        }
+
+        // SPEED OPTİMİZASYON: GDI+ grafik arabelleğini uçuran yansıtma (Reflection) tetiği
+        private void EnableDoubleBuffer(Control control)
+        {
+            try
+            {
+                typeof(Control).InvokeMember("DoubleBuffered",
+                    System.Reflection.BindingFlags.SetProperty |
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.NonPublic,
+                    null, control, new object[] { true });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DoubleBuffering could not be enabled: {ex.Message}");
             }
         }
     }

@@ -17,276 +17,328 @@ namespace Telemetry.UI.Views
         #region Component Designer generated code
         private void InitializeComponent()
         {
-            pnlFilters = new Panel();
-            btnExportToExcel = new Button();
-            txtOperator = new TextBox();
-            label9 = new Label();
-            txtCustomerNo = new TextBox();
-            label8 = new Label();
-            txtOrderNo = new TextBox();
-            label7 = new Label();
-            txtRecipeName = new TextBox();
-            label5 = new Label();
-            txtBatchNo = new TextBox();
-            label4 = new Label();
-            btnGenerateReport = new Button();
-            cmbMachines = new ComboBox();
-            label3 = new Label();
-            dtpEndTime = new DateTimePicker();
-            label2 = new Label();
-            dtpStartTime = new DateTimePicker();
-            label1 = new Label();
-            dgvProductionReport = new DataGridView();
-            pnlFilters.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)dgvProductionReport).BeginInit();
-            SuspendLayout();
+            this.pnlFilters = new System.Windows.Forms.Panel();
+            this.btnExportToExcel = new MaterialSkin.Controls.MaterialButton(); // MaterialButton yapıldı
+            this.txtOperator = new System.Windows.Forms.TextBox();
+            this.label9 = new MaterialSkin.Controls.MaterialLabel();              // MaterialLabel yapıldı
+            this.txtCustomerNo = new System.Windows.Forms.TextBox();
+            this.label8 = new MaterialSkin.Controls.MaterialLabel();              // MaterialLabel yapıldı
+            this.txtOrderNo = new System.Windows.Forms.TextBox();
+            this.label7 = new MaterialSkin.Controls.MaterialLabel();              // MaterialLabel yapıldı
+            this.txtRecipeName = new System.Windows.Forms.TextBox();
+            this.label5 = new MaterialSkin.Controls.MaterialLabel();              // MaterialLabel yapıldı
+            this.txtBatchNo = new System.Windows.Forms.TextBox();
+            this.label4 = new MaterialSkin.Controls.MaterialLabel();              // MaterialLabel yapıldı
+            this.btnGenerateReport = new MaterialSkin.Controls.MaterialButton(); // MaterialButton yapıldı
+            this.cmbMachines = new System.Windows.Forms.ComboBox();
+            this.label3 = new MaterialSkin.Controls.MaterialLabel();              // MaterialLabel yapıldı
+            this.dtpEndTime = new System.Windows.Forms.DateTimePicker();
+            this.label2 = new MaterialSkin.Controls.MaterialLabel();              // MaterialLabel yapıldı
+            this.dtpStartTime = new System.Windows.Forms.DateTimePicker();
+            this.label1 = new MaterialSkin.Controls.MaterialLabel();              // MaterialLabel yapıldı
+            this.dgvProductionReport = new System.Windows.Forms.DataGridView();
+            this.pnlFilters.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvProductionReport)).BeginInit();
+            this.SuspendLayout();
             // 
             // pnlFilters
             // 
-            pnlFilters.Controls.Add(btnExportToExcel);
-            pnlFilters.Controls.Add(txtOperator);
-            pnlFilters.Controls.Add(label9);
-            pnlFilters.Controls.Add(txtCustomerNo);
-            pnlFilters.Controls.Add(label8);
-            pnlFilters.Controls.Add(txtOrderNo);
-            pnlFilters.Controls.Add(label7);
-            pnlFilters.Controls.Add(txtRecipeName);
-            pnlFilters.Controls.Add(label5);
-            pnlFilters.Controls.Add(txtBatchNo);
-            pnlFilters.Controls.Add(label4);
-            pnlFilters.Controls.Add(btnGenerateReport);
-            pnlFilters.Controls.Add(cmbMachines);
-            pnlFilters.Controls.Add(label3);
-            pnlFilters.Controls.Add(dtpEndTime);
-            pnlFilters.Controls.Add(label2);
-            pnlFilters.Controls.Add(dtpStartTime);
-            pnlFilters.Controls.Add(label1);
-            pnlFilters.Dock = DockStyle.Top;
-            pnlFilters.Location = new Point(0, 0);
-            pnlFilters.Margin = new Padding(3, 2, 3, 2);
-            pnlFilters.Name = "pnlFilters";
-            pnlFilters.Size = new Size(970, 90);
-            pnlFilters.TabIndex = 0;
+            this.pnlFilters.BackColor = System.Drawing.Color.Transparent; // Koyu mod parlamasını engelleyen şeffaflık
+            this.pnlFilters.Controls.Add(this.btnExportToExcel);
+            this.pnlFilters.Controls.Add(this.txtOperator);
+            this.pnlFilters.Controls.Add(this.label9);
+            this.pnlFilters.Controls.Add(this.txtCustomerNo);
+            this.pnlFilters.Controls.Add(this.label8);
+            this.pnlFilters.Controls.Add(this.txtOrderNo);
+            this.pnlFilters.Controls.Add(this.label7);
+            this.pnlFilters.Controls.Add(this.txtRecipeName);
+            this.pnlFilters.Controls.Add(this.label5);
+            this.pnlFilters.Controls.Add(this.txtBatchNo);
+            this.pnlFilters.Controls.Add(this.label4);
+            this.pnlFilters.Controls.Add(this.btnGenerateReport);
+            this.pnlFilters.Controls.Add(this.cmbMachines);
+            this.pnlFilters.Controls.Add(this.label3);
+            this.pnlFilters.Controls.Add(this.dtpEndTime);
+            this.pnlFilters.Controls.Add(this.label2);
+            this.pnlFilters.Controls.Add(this.dtpStartTime);
+            this.pnlFilters.Controls.Add(this.label1);
+            this.pnlFilters.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlFilters.Location = new System.Drawing.Point(0, 0);
+            this.pnlFilters.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.pnlFilters.Name = "pnlFilters";
+            this.pnlFilters.Size = new System.Drawing.Size(970, 110); // 36px dikey material buton payı için 110px'e esnetildi
+            this.pnlFilters.TabIndex = 0;
             // 
             // btnExportToExcel
             // 
-            btnExportToExcel.Location = new Point(848, 63);
-            btnExportToExcel.Margin = new Padding(3, 2, 3, 2);
-            btnExportToExcel.Name = "btnExportToExcel";
-            btnExportToExcel.Size = new Size(105, 22);
-            btnExportToExcel.TabIndex = 17;
-            btnExportToExcel.Text = "Export to Excel";
-            btnExportToExcel.UseVisualStyleBackColor = true;
-            btnExportToExcel.Click += btnExportToExcel_Click;
+            this.btnExportToExcel.AutoSize = false;
+            this.btnExportToExcel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnExportToExcel.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnExportToExcel.Depth = 0;
+            this.btnExportToExcel.HighEmphasis = false;
+            this.btnExportToExcel.Icon = null;
+            this.btnExportToExcel.Location = new System.Drawing.Point(835, 68); // Çizgili material buton konum hizalaması
+            this.btnExportToExcel.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnExportToExcel.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnExportToExcel.Name = "btnExportToExcel";
+            this.btnExportToExcel.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnExportToExcel.Size = new System.Drawing.Size(118, 36);
+            this.btnExportToExcel.TabIndex = 17;
+            this.btnExportToExcel.Text = "Export to Excel";
+            this.btnExportToExcel.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Outlined; // Çizgili ikincil flat tasarım
+            this.btnExportToExcel.UseAccentColor = false;
+            this.btnExportToExcel.UseVisualStyleBackColor = true;
+            this.btnExportToExcel.Click += new System.EventHandler(this.btnExportToExcel_Click);
             // 
             // txtOperator
             // 
-            txtOperator.Location = new Point(764, 36);
-            txtOperator.Margin = new Padding(3, 2, 3, 2);
-            txtOperator.Name = "txtOperator";
-            txtOperator.Size = new Size(189, 23);
-            txtOperator.TabIndex = 16;
+            this.txtOperator.Location = new System.Drawing.Point(764, 36);
+            this.txtOperator.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtOperator.Name = "txtOperator";
+            this.txtOperator.Size = new System.Drawing.Size(189, 23);
+            this.txtOperator.TabIndex = 16;
             // 
             // label9
             // 
-            label9.AutoSize = true;
-            label9.Location = new Point(697, 39);
-            label9.Name = "label9";
-            label9.Size = new Size(57, 15);
-            label9.TabIndex = 15;
-            label9.Text = "Operator:";
+            this.label9.AutoSize = true;
+            this.label9.Depth = 0;
+            this.label9.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label9.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label9.Location = new System.Drawing.Point(697, 39);
+            this.label9.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label9.Name = "label9";
+            this.label9.Size = new System.Drawing.Size(58, 17);
+            this.label9.TabIndex = 15;
+            this.label9.Text = "Operator:";
             // 
             // txtCustomerNo
             // 
-            txtCustomerNo.Location = new Point(480, 36);
-            txtCustomerNo.Margin = new Padding(3, 2, 3, 2);
-            txtCustomerNo.Name = "txtCustomerNo";
-            txtCustomerNo.Size = new Size(178, 23);
-            txtCustomerNo.TabIndex = 14;
+            this.txtCustomerNo.Location = new System.Drawing.Point(480, 36);
+            this.txtCustomerNo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtCustomerNo.Name = "txtCustomerNo";
+            this.txtCustomerNo.Size = new System.Drawing.Size(178, 23);
+            this.txtCustomerNo.TabIndex = 14;
             // 
             // label8
             // 
-            label8.AutoSize = true;
-            label8.Location = new Point(359, 39);
-            label8.Name = "label8";
-            label8.Size = new Size(109, 15);
-            label8.TabIndex = 13;
-            label8.Text = "Customer Number:";
+            this.label8.AutoSize = true;
+            this.label8.Depth = 0;
+            this.label8.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label8.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label8.Location = new System.Drawing.Point(359, 39);
+            this.label8.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(117, 17);
+            this.label8.TabIndex = 13;
+            this.label8.Text = "Customer Number:";
             // 
             // txtOrderNo
             // 
-            txtOrderNo.Location = new Point(231, 36);
-            txtOrderNo.Margin = new Padding(3, 2, 3, 2);
-            txtOrderNo.Name = "txtOrderNo";
-            txtOrderNo.Size = new Size(114, 23);
-            txtOrderNo.TabIndex = 12;
+            this.txtOrderNo.Location = new System.Drawing.Point(231, 36);
+            this.txtOrderNo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtOrderNo.Name = "txtOrderNo";
+            this.txtOrderNo.Size = new System.Drawing.Size(114, 23);
+            this.txtOrderNo.TabIndex = 12;
             // 
             // label7
             // 
-            label7.AutoSize = true;
-            label7.Location = new Point(158, 39);
-            label7.Name = "label7";
-            label7.Size = new Size(59, 15);
-            label7.TabIndex = 11;
-            label7.Text = "Order No:";
+            this.label7.AutoSize = true;
+            this.label7.Depth = 0;
+            this.label7.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label7.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label7.Location = new System.Drawing.Point(158, 39);
+            this.label7.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(62, 17);
+            this.label7.TabIndex = 11;
+            this.label7.Text = "Order No:";
             // 
             // txtRecipeName
             // 
-            txtRecipeName.Location = new Point(764, 9);
-            txtRecipeName.Margin = new Padding(3, 2, 3, 2);
-            txtRecipeName.Name = "txtRecipeName";
-            txtRecipeName.Size = new Size(189, 23);
-            txtRecipeName.TabIndex = 10;
+            this.txtRecipeName.Location = new System.Drawing.Point(764, 9);
+            this.txtRecipeName.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtRecipeName.Name = "txtRecipeName";
+            this.txtRecipeName.Size = new System.Drawing.Size(189, 23);
+            this.txtRecipeName.TabIndex = 10;
             // 
             // label5
             // 
-            label5.AutoSize = true;
-            label5.Location = new Point(686, 12);
-            label5.Name = "label5";
-            label5.Size = new Size(80, 15);
-            label5.TabIndex = 9;
-            label5.Text = "Recipe Name:";
+            this.label5.AutoSize = true;
+            this.label5.Depth = 0;
+            this.label5.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label5.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label5.Location = new System.Drawing.Point(686, 12);
+            this.label5.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(87, 17);
+            this.label5.TabIndex = 9;
+            this.label5.Text = "Recipe Name:";
             // 
             // txtBatchNo
             // 
-            txtBatchNo.Location = new Point(74, 36);
-            txtBatchNo.Margin = new Padding(3, 2, 3, 2);
-            txtBatchNo.Name = "txtBatchNo";
-            txtBatchNo.Size = new Size(79, 23);
-            txtBatchNo.TabIndex = 8;
+            this.txtBatchNo.Location = new System.Drawing.Point(74, 36);
+            this.txtBatchNo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtBatchNo.Name = "txtBatchNo";
+            this.txtBatchNo.Size = new System.Drawing.Size(79, 23);
+            this.txtBatchNo.TabIndex = 8;
             // 
             // label4
             // 
-            label4.AutoSize = true;
-            label4.Location = new Point(9, 39);
-            label4.Name = "label4";
-            label4.Size = new Size(59, 15);
-            label4.TabIndex = 7;
-            label4.Text = "Batch No:";
+            this.label4.AutoSize = true;
+            this.label4.Depth = 0;
+            this.label4.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label4.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label4.Location = new System.Drawing.Point(9, 39);
+            this.label4.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(61, 17);
+            this.label4.TabIndex = 7;
+            this.label4.Text = "Batch No:";
             // 
             // btnGenerateReport
             // 
-            btnGenerateReport.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            btnGenerateReport.Location = new Point(751, 63);
-            btnGenerateReport.Margin = new Padding(3, 2, 3, 2);
-            btnGenerateReport.Name = "btnGenerateReport";
-            btnGenerateReport.Size = new Size(91, 22);
-            btnGenerateReport.TabIndex = 6;
-            btnGenerateReport.Text = "Report";
-            btnGenerateReport.UseVisualStyleBackColor = true;
-            btnGenerateReport.Click += btnGenerateReport_Click;
+            this.btnGenerateReport.AutoSize = false;
+            this.btnGenerateReport.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.btnGenerateReport.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.btnGenerateReport.Depth = 0;
+            this.btnGenerateReport.HighEmphasis = true; // Ana operasyon (Rapor Oluştur) vurgulandı
+            this.btnGenerateReport.Icon = null;
+            this.btnGenerateReport.Location = new System.Drawing.Point(732, 68);
+            this.btnGenerateReport.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.btnGenerateReport.MouseState = MaterialSkin.MouseState.HOVER;
+            this.btnGenerateReport.Name = "btnGenerateReport";
+            this.btnGenerateReport.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.btnGenerateReport.Size = new System.Drawing.Size(95, 36);
+            this.btnGenerateReport.TabIndex = 6;
+            this.btnGenerateReport.Text = "Report";
+            this.btnGenerateReport.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained; // Dolgulu baskın tasarım
+            this.btnGenerateReport.UseAccentColor = true; // Dikkat çekici aksan rengiaktif
+            this.btnGenerateReport.UseVisualStyleBackColor = true;
+            this.btnGenerateReport.Click += new System.EventHandler(this.btnGenerateReport_Click);
             // 
             // cmbMachines
             // 
-            cmbMachines.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbMachines.FormattingEnabled = true;
-            cmbMachines.Location = new Point(480, 9);
-            cmbMachines.Margin = new Padding(3, 2, 3, 2);
-            cmbMachines.Name = "cmbMachines";
-            cmbMachines.Size = new Size(178, 23);
-            cmbMachines.TabIndex = 5;
+            this.cmbMachines.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbMachines.FormattingEnabled = true;
+            this.cmbMachines.Location = new System.Drawing.Point(480, 9);
+            this.cmbMachines.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.cmbMachines.Name = "cmbMachines";
+            this.cmbMachines.Size = new System.Drawing.Size(178, 23);
+            this.cmbMachines.TabIndex = 5;
             // 
             // label3
             // 
-            label3.AutoSize = true;
-            label3.Location = new Point(412, 12);
-            label3.Name = "label3";
-            label3.Size = new Size(56, 15);
-            label3.TabIndex = 4;
-            label3.Text = "Machine:";
+            this.label3.AutoSize = true;
+            this.label3.Depth = 0;
+            this.label3.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label3.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label3.Location = new System.Drawing.Point(412, 12);
+            this.label3.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(54, 17);
+            this.label3.TabIndex = 4;
+            this.label3.Text = "Machine:";
             // 
             // dtpEndTime
             // 
-            dtpEndTime.CustomFormat = "dd.MM.yyyy HH:mm";
-            dtpEndTime.Format = DateTimePickerFormat.Custom;
-            dtpEndTime.Location = new Point(216, 9);
-            dtpEndTime.Margin = new Padding(3, 2, 3, 2);
-            dtpEndTime.Name = "dtpEndTime";
-            dtpEndTime.Size = new Size(132, 23);
-            dtpEndTime.TabIndex = 3;
+            this.dtpEndTime.CustomFormat = "dd.MM.yyyy HH:mm";
+            this.dtpEndTime.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
+            this.dtpEndTime.Location = new System.Drawing.Point(216, 9);
+            this.dtpEndTime.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.dtpEndTime.Name = "dtpEndTime";
+            this.dtpEndTime.Size = new System.Drawing.Size(132, 23);
+            this.dtpEndTime.TabIndex = 3;
             // 
             // label2
             // 
-            label2.AutoSize = true;
-            label2.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold);
-            label2.Location = new Point(198, 10);
-            label2.Name = "label2";
-            label2.Size = new Size(15, 19);
-            label2.TabIndex = 2;
-            label2.Text = "-";
+            this.label2.AutoSize = true;
+            this.label2.Depth = 0;
+            this.label2.Font = new System.Drawing.Font("Roboto", 14F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Pixel);
+            this.label2.FontType = MaterialSkin.MaterialSkinManager.fontType.Button;
+            this.label2.Location = new System.Drawing.Point(198, 10);
+            this.label2.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(6, 17);
+            this.label2.TabIndex = 2;
+            this.label2.Text = "-";
             // 
             // dtpStartTime
             // 
-            dtpStartTime.CustomFormat = "dd.MM.yyyy HH:mm";
-            dtpStartTime.Format = DateTimePickerFormat.Custom;
-            dtpStartTime.Location = new Point(80, 9);
-            dtpStartTime.Margin = new Padding(3, 2, 3, 2);
-            dtpStartTime.Name = "dtpStartTime";
-            dtpStartTime.Size = new Size(115, 23);
-            dtpStartTime.TabIndex = 1;
+            this.dtpStartTime.CustomFormat = "dd.MM.yyyy HH:mm";
+            this.dtpStartTime.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
+            this.dtpStartTime.Location = new System.Drawing.Point(80, 9);
+            this.dtpStartTime.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.dtpStartTime.Name = "dtpStartTime";
+            this.dtpStartTime.Size = new System.Drawing.Size(115, 23);
+            this.dtpStartTime.TabIndex = 1;
             // 
             // label1
             // 
-            label1.AutoSize = true;
-            label1.Location = new Point(9, 12);
-            label1.Name = "label1";
-            label1.Size = new Size(70, 15);
-            label1.TabIndex = 0;
-            label1.Text = "Date Range:";
+            this.label1.AutoSize = true;
+            this.label1.Depth = 0;
+            this.label1.Font = new System.Drawing.Font("Roboto", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.label1.FontType = MaterialSkin.MaterialSkinManager.fontType.Body2;
+            this.label1.Location = new System.Drawing.Point(9, 12);
+            this.label1.MouseState = MaterialSkin.MouseState.HOVER;
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(73, 17);
+            this.label1.TabIndex = 0;
+            this.label1.Text = "Date Range:";
             // 
             // dgvProductionReport
             // 
-            dgvProductionReport.AllowUserToAddRows = false;
-            dgvProductionReport.AllowUserToDeleteRows = false;
-            dgvProductionReport.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgvProductionReport.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvProductionReport.Dock = DockStyle.Fill;
-            dgvProductionReport.Location = new Point(0, 90);
-            dgvProductionReport.Margin = new Padding(3, 2, 3, 2);
-            dgvProductionReport.Name = "dgvProductionReport";
-            dgvProductionReport.ReadOnly = true;
-            dgvProductionReport.RowHeadersWidth = 51;
-            dgvProductionReport.RowTemplate.Height = 29;
-            dgvProductionReport.Size = new Size(970, 360);
-            dgvProductionReport.TabIndex = 1;
-            dgvProductionReport.CellDoubleClick += dgvProductionReport_CellDoubleClick;
+            this.dgvProductionReport.AllowUserToAddRows = false;
+            this.dgvProductionReport.AllowUserToDeleteRows = false;
+            this.dgvProductionReport.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dgvProductionReport.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvProductionReport.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dgvProductionReport.Location = new System.Drawing.Point(0, 110); // Panelin yeni yüksekliğine göre koordinat kaydırıldı
+            this.dgvProductionReport.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.dgvProductionReport.Name = "dgvProductionReport";
+            this.dgvProductionReport.ReadOnly = true;
+            this.dgvProductionReport.RowHeadersWidth = 51;
+            this.dgvProductionReport.RowTemplate.Height = 36;
+            this.dgvProductionReport.Size = new System.Drawing.Size(970, 340);
+            this.dgvProductionReport.TabIndex = 1;
             // 
             // ProductionReport_Control
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            Controls.Add(dgvProductionReport);
-            Controls.Add(pnlFilters);
-            Margin = new Padding(3, 2, 3, 2);
-            Name = "ProductionReport_Control";
-            Size = new Size(970, 450);
-            Load += ProductionReport_Control_Load;
-            pnlFilters.ResumeLayout(false);
-            pnlFilters.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)dgvProductionReport).EndInit();
-            ResumeLayout(false);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.Transparent; // Sayfa şeffaflığı aktif edildi
+            this.Controls.Add(this.dgvProductionReport);
+            this.Controls.Add(this.pnlFilters);
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.Name = "ProductionReport_Control";
+            this.Size = new System.Drawing.Size(970, 450);
+            this.Load += new System.EventHandler(this.ProductionReport_Control_Load);
+            this.pnlFilters.ResumeLayout(false);
+            this.pnlFilters.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvProductionReport)).EndInit();
+            this.ResumeLayout(false);
         }
+
         #endregion
 
         private System.Windows.Forms.Panel pnlFilters;
-        private System.Windows.Forms.Button btnGenerateReport;
+        private MaterialSkin.Controls.MaterialButton btnGenerateReport; // Tür güncellendi
         private System.Windows.Forms.ComboBox cmbMachines;
-        private System.Windows.Forms.Label label3;
+        private MaterialSkin.Controls.MaterialLabel label3;             // Tür güncellendi
         private System.Windows.Forms.DateTimePicker dtpEndTime;
-        private System.Windows.Forms.Label label2;
+        private MaterialSkin.Controls.MaterialLabel label2;              // Tür güncellendi
         private System.Windows.Forms.DateTimePicker dtpStartTime;
-        private System.Windows.Forms.Label label1;
+        private MaterialSkin.Controls.MaterialLabel label1;              // Tür güncellendi
         private System.Windows.Forms.DataGridView dgvProductionReport;
         private System.Windows.Forms.TextBox txtBatchNo;
-        private System.Windows.Forms.Label label4;
+        private MaterialSkin.Controls.MaterialLabel label4;              // Tür güncellendi
         private System.Windows.Forms.TextBox txtRecipeName;
-        private System.Windows.Forms.Label label5;
+        private MaterialSkin.Controls.MaterialLabel label5;              // Tür güncellendi
         private System.Windows.Forms.TextBox txtOrderNo;
-        private System.Windows.Forms.Label label7;
+        private MaterialSkin.Controls.MaterialLabel label7;              // Tür güncellendi
         private System.Windows.Forms.TextBox txtCustomerNo;
-        private System.Windows.Forms.Label label8;
+        private MaterialSkin.Controls.MaterialLabel label8;              // Tür güncellendi
         private System.Windows.Forms.TextBox txtOperator;
-        private System.Windows.Forms.Label label9;
-        private System.Windows.Forms.Button btnExportToExcel;
+        private MaterialSkin.Controls.MaterialLabel label9;              // Tür güncellendi
+        private MaterialSkin.Controls.MaterialButton btnExportToExcel;  // Tür güncellendi
     }
 }

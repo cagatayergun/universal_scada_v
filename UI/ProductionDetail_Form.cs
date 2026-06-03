@@ -10,16 +10,20 @@ using Telemetry.Core;
 using Telemetry.Core.Models;
 using Telemetry.Models;
 using Telemetry.Repositories;
+using MaterialSkin;          // YENİ EKLENDİ: MaterialSkin ana kütüphanesi
+using MaterialSkin.Controls; // YENİ EKLENDİ: MaterialForm bileşenleri için
 using ChartLegend = System.Windows.Forms.DataVisualization.Charting.Legend;
+
 namespace Telemetry.UI
 {
-    public partial class ProductionDetail_Form : Form
+    // Form yerine MaterialForm sınıfından türetiyoruz
+    public partial class ProductionDetail_Form : MaterialForm
     {
         private readonly ProductionReportItem _reportItem;
         private readonly ProductionRepository _productionRepo;
         private readonly ProcessLogRepository _processLogRepo;
-        private readonly AlarmRepository _alarmRepo; // Alarmlar için eklendi
-        private readonly RecipeRepository _recipeRepository; // YENİ
+        private readonly AlarmRepository _alarmRepo;
+        private readonly RecipeRepository _recipeRepository;
 
         public ProductionDetail_Form(ProductionReportItem reportItem, RecipeRepository recipeRepo, ProcessLogRepository processLogRepo, AlarmRepository alarmRepo)
         {
@@ -29,11 +33,22 @@ namespace Telemetry.UI
             _processLogRepo = processLogRepo;
             _alarmRepo = alarmRepo;
             _recipeRepository = recipeRepo;
+
+            // =========================================================================
+            // MATERIALSKIN FORM KAYDI VE PERFORMANS AYARLARI
+            // =========================================================================
+            var materialSkinManager = MaterialSkinManager.Instance;
+            materialSkinManager.AddFormToManage(this); // Formu merkezi temaya bağla
+
+            this.DoubleBuffered = true; // Formun genel kırpışmalarını engelle
         }
 
         private void ProductionDetail_Form_Load(object sender, EventArgs e)
         {
             this.Text = $"Production Report Detail - {_reportItem.BatchId}";
+
+            // Form yüklenirken düzen hesaplamalarını askıya al (Hız Optimizasyonu)
+            this.SuspendLayout();
 
             // 1. Başlık bilgilerini doldur
             txtMachineName.Text = _reportItem.MachineName;
@@ -41,134 +56,129 @@ namespace Telemetry.UI
             txtOperator.Text = _reportItem.OperatorName;
             txtStartTime.Text = _reportItem.StartTime.ToString("dd.MM.yyyy HH:mm:ss");
             txtStopTime.Text = _reportItem.EndTime.ToString("dd.MM.yyyy HH:mm:ss");
+
             var elektrikvalue = _reportItem.TotalElectricity;
             txtElectricity.Text = elektrikvalue.ToString();
+
             var suvale = _reportItem.TotalWater;
             txtWater.Text = suvale.ToString();
+
             var steamvalue = _reportItem.TotalSteam;
             txtSteam.Text = steamvalue.ToString();
+
             txtTotalDuration.Text = _reportItem.CycleTime;
-            // --- YENİ HESAPLAMA KISMI ---
+
             // Teorik Süreyi Yaz
             TimeSpan theoreticalSpan = TimeSpan.FromSeconds(_reportItem.TheoreticalCycleTimeSeconds);
             txtTheoreticalDuration.Text = theoreticalSpan.ToString(@"hh\:mm\:ss");
 
-            // Gerçekleşen Süreyi Hesapla (CycleTime string formatında olduğu için TimeSpan'a çeviriyoruz)
+            // Gerçekleşen Süreyi Hesapla
             TimeSpan actualSpan;
             if (TimeSpan.TryParse(_reportItem.CycleTime, out actualSpan))
             {
-                // Farkı Hesapla (Gerçekleşen - Teorik)
                 TimeSpan diff = actualSpan - theoreticalSpan;
-
-                // Farkı Göster (+/- işaretiyle)
                 string sign = diff.TotalSeconds >= 0 ? "+" : "-";
                 txtDurationDiff.Text = $"{sign}{diff.Duration():hh\\:mm\\:ss}";
 
-                // Renklendirme (Gecikme varsa kırmızı, erken bittiyse yeşil)
+                // DARK MODE UYUMLU UYARI RENKLERİ: Göz yormayan pastel tonlar seçildi
                 if (diff.TotalSeconds > 60) // 1 dakikadan fazla gecikme
                 {
-                    txtDurationDiff.ForeColor = System.Drawing.Color.Red;
-                    txtDurationDiff.BackColor = System.Drawing.Color.MistyRose;
+                    txtDurationDiff.ForeColor = System.Drawing.Color.FromArgb(239, 83, 80); // Pastel Kırmızı
+                    txtDurationDiff.BackColor = System.Drawing.Color.FromArgb(58, 30, 30);  // Koyu Kırmızı Arka Plan
                 }
                 else if (diff.TotalSeconds < -60) // 1 dakikadan fazla erken bitiş
                 {
-                    txtDurationDiff.ForeColor = System.Drawing.Color.Green;
-                    txtDurationDiff.BackColor = System.Drawing.Color.Honeydew;
+                    txtDurationDiff.ForeColor = System.Drawing.Color.FromArgb(102, 187, 106); // Pastel Yeşil
+                    txtDurationDiff.BackColor = System.Drawing.Color.FromArgb(30, 50, 30);   // Koyu Yeşil Arka Plan
                 }
             }
             else
             {
                 txtDurationDiff.Text = "---";
             }
-            // ----------------------------
-            // Diğer bilgileri de doldur
+
             txtCustomerNo.Text = _reportItem.MusteriNo;
             txtOrderNo.Text = _reportItem.SiparisNo;
 
-
-            // 2. Adım detaylarını DataGridView'e yükle
+            // 2. Tablo Verilerini Yükle
             dgvStepDetails.DataSource = _productionRepo.GetProductionStepDetails(_reportItem.BatchId, _reportItem.MachineId);
-
-            // 3. Alarm detaylarını yükle
             dgvAlarms.DataSource = _alarmRepo.GetAlarmDetailsForBatch(_reportItem.BatchId, _reportItem.MachineId);
+
             dgvStepDetails.CellFormatting += dgvStepDetails_CellFormatting;
-            // 4. Zaman çizgisi grafiğini yükle
-            // 1. Alarm ve Grafik Verilerini Yükle
-        
-            LoadTimelineChart(); // Mevcut zaman çizelgesi grafiğini yükle
 
-            // 2. YENİ: Pasta Grafik Verilerini Hesapla ve Yükle
-            LoadPieChart();
+            // SPEED OPTİMİZASYON: Tablolar kaydırılırken veya yenilenirken oluşan gecikmeleri engeller
+            EnableDoubleBuffer(dgvStepDetails);
+            EnableDoubleBuffer(dgvAlarms);
 
-            
+            // 3. Grafikleri Yükle
+            LoadTimelineChart(); // ScottPlot süreç grafiği
+            LoadPieChart();      // Verimlilik pasta grafiği
+
+            // Düzen hesaplamalarını devreye al ve toplu çiz (Hız Optimizasyonu)
+            this.ResumeLayout(true);
         }
-        // Telemetry/UI/ProductionDetail_Form.cs
 
         private void LoadPieChart()
         {
-            // 1. TOPLAM BATCH SÜRESİNİ HESAPLA
             DateTime batchStart = _reportItem.StartTime;
             DateTime batchEnd = (_reportItem.EndTime == DateTime.MinValue) ? DateTime.Now : _reportItem.EndTime;
             double totalBatchSeconds = (batchEnd - batchStart).TotalSeconds;
 
-            // 2. ALARMLARI ÇEK
             var allAlarms = _alarmRepo.GetAlarmDetailsForBatch(_reportItem.BatchId, _reportItem.MachineId);
 
-            // 3. KATEGORİZE ET VE LİSTELE (Süreleri henüz toplamıyoruz)
-            var machineAlarms = allAlarms
-                .Where(a => a.AlarmNumber >= 0 && a.AlarmNumber <= 499)
-                .ToList();
+            var machineAlarms = allAlarms.Where(a => a.AlarmNumber >= 0 && a.AlarmNumber <= 499).ToList();
+            var operatorAlarms = allAlarms.Where(a => a.AlarmNumber >= 500 && a.AlarmNumber <= 600).ToList();
 
-            var operatorAlarms = allAlarms
-                .Where(a => a.AlarmNumber >= 500 && a.AlarmNumber <= 600)
-                .ToList();
-
-            // 4. ÇAKIŞAN ZAMANLARI BİRLEŞTİREREK NET SÜRELERİ HESAPLA
             double netMachineAlarmSec = CalculateUniqueDuration(machineAlarms, batchEnd);
             double netOperatorAlarmSec = CalculateUniqueDuration(operatorAlarms, batchEnd);
-
-            // 5. TOPLAM DURUŞU HESAPLA (Makine + Operatör çakışmalarını da temizle)
-            // Eğer bir makine alarmı varken aynı anda operatör pause yapmışsa, o süreyi 2 kere düşmemek için:
             double totalNetDowntimeSec = CalculateUniqueDuration(allAlarms, batchEnd);
 
-            // 6. AKTİF ÇALIŞMAYI HESAPLA
             double activeWorkSec = totalBatchSeconds - totalNetDowntimeSec;
             if (activeWorkSec < 0) activeWorkSec = 0;
 
-            // 7. GRAFİĞİ TEMİZLE VE ÇİZDİR
+            // =========================================================================
+            // MODERNİZASYON: PASTA GRAFİĞİNİ (PIE CHART) DARK MODE UYUMLU YAPMA
+            // =========================================================================
             pieChartControl.Series.Clear();
             pieChartControl.Legends.Clear();
+
+            // Grafik arka planını şeffaf ve kenarsız yap
+            pieChartControl.BackColor = System.Drawing.Color.Transparent;
+            pieChartControl.ChartAreas[0].BackColor = System.Drawing.Color.Transparent;
+            pieChartControl.ChartAreas[0].BorderColor = System.Drawing.Color.Transparent;
 
             var series = new System.Windows.Forms.DataVisualization.Charting.Series("Efficiency")
             {
                 ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Pie,
-                Font = new System.Drawing.Font("Segoe UI", 10f, System.Drawing.FontStyle.Bold),
+                Font = new System.Drawing.Font("Segoe UI", 9.5f, System.Drawing.FontStyle.Bold),
                 IsValueShownAsLabel = true,
-                Label = "#PERCENT{P1}"
+                Label = "#PERCENT{P1}",
+                LabelForeColor = System.Drawing.Color.White // Pasta dilimleri üzerindeki yazı rengi beyaz
             };
             pieChartControl.Series.Add(series);
 
-            // Veri Noktaları
-            AddPiePoint(series, activeWorkSec, "Aktif Çalışma", System.Drawing.Color.DodgerBlue);
-            AddPiePoint(series, netMachineAlarmSec, "Makine Alarmları", System.Drawing.Color.Crimson);
-            AddPiePoint(series, netOperatorAlarmSec, "Operatör Alarmları", System.Drawing.Color.Orange);
+            // Yumuşak Material Design renk paletiyle dilimleri ekle
+            AddPiePoint(series, activeWorkSec, "Aktif Çalışma", System.Drawing.Color.FromArgb(33, 150, 243));   // Material Blue
+            AddPiePoint(series, netMachineAlarmSec, "Makine Alarmları", System.Drawing.Color.FromArgb(244, 67, 54)); // Material Red
+            AddPiePoint(series, netOperatorAlarmSec, "Operatör Alarmları", System.Drawing.Color.FromArgb(255, 152, 0)); // Material Orange
 
-            // Legend Ayarları
+            // Ğösterge paneli (Legend) Dark Mode uyarlaması
             var legend = new System.Windows.Forms.DataVisualization.Charting.Legend("Default")
             {
                 Docking = System.Windows.Forms.DataVisualization.Charting.Docking.Bottom,
-                Alignment = System.Drawing.StringAlignment.Center
+                Alignment = System.Drawing.StringAlignment.Center,
+                BackColor = System.Drawing.Color.Transparent,
+                ForeColor = System.Drawing.Color.FromArgb(220, 220, 220) // Yazı rengi açık gri
             };
             pieChartControl.Legends.Add(legend);
+
             pieChartControl.Invalidate();
         }
 
-        // --- KRİTİK ALGORİTMA: ÇAKIŞAN ZAMAN ARALIKLARINI BİRLEŞTİRME ---
         private double CalculateUniqueDuration(List<AlarmDetail> alarms, DateTime limitEndTime)
         {
             if (alarms == null || !alarms.Any()) return 0;
 
-            // 1. Alarmları başlangıç zamanına göre sırala
             var sortedIntervals = alarms
                 .Select(a => new {
                     Start = a.StartTime,
@@ -183,12 +193,10 @@ namespace Telemetry.UI
             DateTime currentStart = sortedIntervals[0].Start;
             DateTime currentEnd = sortedIntervals[0].End;
 
-            // 2. Kesişen aralıkları birleştir (Merge Intervals)
             for (int i = 1; i < sortedIntervals.Count; i++)
             {
                 if (sortedIntervals[i].Start < currentEnd)
                 {
-                    // Çakışma var, mevcut aralığın sonunu uzat
                     if (sortedIntervals[i].End > currentEnd)
                     {
                         currentEnd = sortedIntervals[i].End;
@@ -196,16 +204,13 @@ namespace Telemetry.UI
                 }
                 else
                 {
-                    // Çakışma yok, önceki aralığın süresini ekle ve yeni aralığa geç
                     totalSeconds += (currentEnd - currentStart).TotalSeconds;
                     currentStart = sortedIntervals[i].Start;
                     currentEnd = sortedIntervals[i].End;
                 }
             }
 
-            // Son aralığı ekle
             totalSeconds += (currentEnd - currentStart).TotalSeconds;
-
             return totalSeconds;
         }
 
@@ -220,18 +225,10 @@ namespace Telemetry.UI
             }
         }
 
-        // FormLoad metodundan LoadPieChart çağrısını parametresiz yap
-
-
-
-        // dgvStepDetails_CellFormatting metodunun içine bu kodu ekleyin.
-
         private void dgvStepDetails_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
-            // Sadece "Gerçekleşen Süre" (WorkingTime) sütununda çalış ve satırın boş olmadığından emin ol.
             if (e.RowIndex >= 0 && dgvStepDetails.Columns[e.ColumnIndex].Name == "WorkingTime")
             {
-                // "İşleniyor..." yazan adımları atla
                 if (e.Value == null || e.Value.ToString() == "Processing...")
                 {
                     e.CellStyle.BackColor = dgvStepDetails.DefaultCellStyle.BackColor;
@@ -240,30 +237,26 @@ namespace Telemetry.UI
 
                 try
                 {
-                    // Teorik ve Gerçekleşen süreleri TimeSpan nesnelerine çevir
                     TimeSpan theoreticalTime;
                     TimeSpan.TryParse(dgvStepDetails.Rows[e.RowIndex].Cells["TheoreticalTime"].Value.ToString(), out theoreticalTime);
 
                     TimeSpan workingTime;
                     TimeSpan.TryParse(e.Value.ToString(), out workingTime);
 
-                    // Dakika bazında farkı hesapla (saniyeleri göz ardı et)
                     int theoreticalMinutes = (int)theoreticalTime.TotalMinutes;
                     int workingMinutes = (int)workingTime.TotalMinutes;
 
-                    // Fark 1 dakikadan fazlaysa kırmızı yap
+                    // DARK MODE UYUMLU GRID HÜCRE RENKLERİ: Yazının net okunabilmesi için Soft tonlar uygulandı
                     if (workingMinutes > theoreticalMinutes)
                     {
-                        e.CellStyle.BackColor = System.Drawing.Color.LightCoral;
-                        e.CellStyle.ForeColor = System.Drawing.Color.Black; // Yazı rengini siyah yap
-                    }
-                    // Fark -1 dakikadan azsa yeşil yap
-                    else if (workingMinutes < theoreticalMinutes)
-                    {
-                        e.CellStyle.BackColor = System.Drawing.Color.LightGreen;
+                        e.CellStyle.BackColor = System.Drawing.Color.FromArgb(239, 83, 80); // Yumuşak Kırmızı
                         e.CellStyle.ForeColor = System.Drawing.Color.Black;
                     }
-                    // Fark 1 dakika içindeyse veya eşitse varsayılan renge döndür
+                    else if (workingMinutes < theoreticalMinutes)
+                    {
+                        e.CellStyle.BackColor = System.Drawing.Color.FromArgb(102, 187, 106); // Yumuşak Yeşil
+                        e.CellStyle.ForeColor = System.Drawing.Color.Black;
+                    }
                     else
                     {
                         e.CellStyle.BackColor = dgvStepDetails.DefaultCellStyle.BackColor;
@@ -272,51 +265,55 @@ namespace Telemetry.UI
                 }
                 catch (Exception)
                 {
-                    // Bir hata olursa varsayılan renkte bırak
                     e.CellStyle.BackColor = dgvStepDetails.DefaultCellStyle.BackColor;
                 }
             }
         }
+
         private void LoadTimelineChart()
         {
             var dataPoints = _processLogRepo.GetLogsForBatch(_reportItem.MachineId, _reportItem.BatchId);
             formsPlot1.Plot.Clear();
+
+            // =========================================================================
+            // ÇÖZÜM (CS0619 & CS1061): SCOTTPLOT 5 EN GÜNCEL DOSDOĞRU KARANLIK MOD API'Sİ
+            // =========================================================================
+            formsPlot1.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#1a202c"); // Dış panel arka planı
+            formsPlot1.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#111827");   // Grafik alanı arka planı
+            formsPlot1.Plot.Axes.Color(ScottPlot.Color.FromHex("#d7d7d7"));              // Eksen çizgileri ve yazılar
+            formsPlot1.Plot.Grid.MajorLineColor = ScottPlot.Color.FromHex("#2d3748");    // Izgara çizgileri
+
             if (dataPoints.Any())
             {
                 double[] timeData = dataPoints.Select(p => p.Timestamp.ToOADate()).ToArray();
-                // DEĞİŞİKLİK: Sıcaklık verisini 10'a böl
-
-
                 double divisor = 10.0;
 
                 try
                 {
-                    // Makine bilgilerini çekmek için repository oluştur
                     var machineRepo = new MachineRepository();
-                    // Makineyi ID'ye göre bul (GetMachineById veya GetAllMachines içinden)
                     var machine = machineRepo.GetAllMachines().FirstOrDefault(m => m.Id == _reportItem.MachineId);
 
-                    // Makine bulunduysa ve Tipi "Kurutma" ise böleni 100 yap
                     if (machine != null && !string.IsNullOrEmpty(machine.MachineType) &&
                         machine.MachineType.Contains("Kurutma Makinesi", StringComparison.OrdinalIgnoreCase))
                     {
                         divisor = 100.0;
                     }
                 }
-                catch (Exception)
-                {
-                    // Olası bir hatada varsayılan (10.0) değer korunur.
-                }
+                catch (Exception) { }
+
                 double[] tempData = dataPoints.Select(p => (double)p.Temperature / divisor).ToArray();
+
+                // Gerçekleşen Sıcaklık Eğrisi
                 var tempPlot = formsPlot1.Plot.Add.Scatter(timeData, tempData);
                 tempPlot.Color = ScottPlot.Colors.Red;
                 tempPlot.LegendText = "Temperature";
                 tempPlot.MarkerSize = 0;
-                // 2. YENİ: Teorik Veri Grafiğini Çiz
+                tempPlot.LineWidth = 2;
+
+                // Teorik Ramp Verisi
                 var productionRepo = new ProductionRepository();
                 var batchRecipe = productionRepo.GetBatchRecipe(_reportItem.MachineId, _reportItem.BatchId);
 
-                // 2. Eğer reçete verisi bulunduysa, RampCalculator'ı kullanarak teorik veriyi oluşturun.
                 if (batchRecipe != null && batchRecipe.Steps.Any())
                 {
                     var (theoTimestamps, theoTemperatures) = RampCalculator.GenerateTheoreticalRamp(batchRecipe, _reportItem.StartTime);
@@ -324,31 +321,32 @@ namespace Telemetry.UI
                     if (theoTimestamps.Any())
                     {
                         var theoPlot = formsPlot1.Plot.Add.Scatter(theoTimestamps, theoTemperatures);
-                        theoPlot.Color = ScottPlot.Colors.Blue;
+                        theoPlot.Color = ScottPlot.Colors.Cyan; // Koyu zeminde Mavi yerine Açık Mavi (Cyan) çok daha belirgindir
                         theoPlot.LegendText = "Theoretical Temperature";
                         theoPlot.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
                         theoPlot.LineWidth = 2;
                     }
                 }
 
+                // Grafik Eksen Yazı Tipleri ve Ayarları
                 formsPlot1.Plot.Axes.DateTimeTicksBottom();
                 formsPlot1.Plot.Title($"{_reportItem.MachineName} - Process Chart");
                 formsPlot1.Plot.ShowLegend(ScottPlot.Alignment.UpperLeft);
-                
-        // --- YENİ KOD: GRAFİĞİ OTOMATİK YAKINLAŞTIRMA ---
-        // AutoScale() yerine, eksen limitlerini manuel olarak belirliyoruz.
-        DateTime startTime = _reportItem.StartTime;
-        // Eğer üretim bitmemişse, bitiş zamanı olarak şimdiki zamanı al
-        DateTime endTime = (_reportItem.EndTime == DateTime.MinValue) ? DateTime.Now : _reportItem.EndTime;
 
-        // Grafiğin kenarlara yapışmaması için küçük bir boşluk (marj) ekleyelim
-        startTime = startTime.AddMinutes(-5);
-        endTime = endTime.AddMinutes(5);
+                // =========================================================================
+                // ÇÖZÜM (CS1061): BORDERCOLOR MÜLKİYETİ -> OUTLINECOLOR OLARAK DEĞİŞTİRİLDİ
+                // =========================================================================
+                formsPlot1.Plot.Legend.FontColor = ScottPlot.Colors.White;
+                formsPlot1.Plot.Legend.BackgroundColor = ScottPlot.Color.FromHex("#1a202c");
+                formsPlot1.Plot.Legend.OutlineColor = ScottPlot.Color.FromHex("#4a5568"); // Düzeltme sağlandı
 
-        // X ekseninin (zaman) sınırlarını ayarla
-        formsPlot1.Plot.Axes.SetLimitsX(startTime.ToOADate(), endTime.ToOADate());
-        // Y eksenini (sıcaklık) ise kendi verisine göre otomatik ayarlamasını söyle
-        formsPlot1.Plot.Axes.AutoScaleY(); 
+                // Grafik Eksen Sınır Otomasyonu
+                DateTime startTime = _reportItem.StartTime.AddMinutes(-5);
+                DateTime endTime = (_reportItem.EndTime == DateTime.MinValue) ? DateTime.Now.AddMinutes(5) : _reportItem.EndTime.AddMinutes(5);
+
+                formsPlot1.Plot.Axes.SetLimitsX(startTime.ToOADate(), endTime.ToOADate());
+                formsPlot1.Plot.Axes.AutoScaleY();
+
                 formsPlot1.Refresh();
             }
         }
@@ -357,10 +355,19 @@ namespace Telemetry.UI
         {
             this.Close();
         }
+
         private void btnExportToExcel_Click(object sender, EventArgs e)
         {
-            ExcelExporter.ExportProductionDetailToExcel(_reportItem, dgvStepDetails, dgvAlarms,formsPlot1);
-            //ExportProductionDetailToExcel(ProductionReportItem headerData, DataGridView dgvSteps, DataGridView dgvAlarms)
+            ExcelExporter.ExportProductionDetailToExcel(_reportItem, dgvStepDetails, dgvAlarms, formsPlot1);
+        }
+
+        private void EnableDoubleBuffer(Control control)
+        {
+            typeof(Control).InvokeMember("DoubleBuffered",
+                System.Reflection.BindingFlags.SetProperty |
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.NonPublic,
+                null, control, new object[] { true });
         }
     }
 }

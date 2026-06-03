@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -14,6 +15,8 @@ using Telemetry.Repositories;
 using Telemetry.Services;
 using Telemetry.UI.Controls;
 using Telemetry.UIControls;
+using MaterialSkin;          // YENİ EKLENDİ
+using MaterialSkin.Controls; // YENİ EKLENDİ
 using static Telemetry.Repositories.ProcessLogRepository;
 
 namespace Telemetry.UI.Views
@@ -31,7 +34,10 @@ namespace Telemetry.UI.Views
 
         private Dictionary<int, bool> _previousBatchStatuses;
         private readonly Dictionary<int, DashboardMachineCard_Control> _machineCards = new Dictionary<int, DashboardMachineCard_Control>();
+
+        // ZAMANLAYICI OPTİMİZASYONLARI: Sızıntıları engellemek için sınıf düzeyine çekildi
         private System.Windows.Forms.Timer _uiUpdateTimer;
+        private System.Windows.Forms.Timer _chartUpdateTimer;
 
         // Utility (Enerji) Takibi İçin
         private Dictionary<int, DateTime> _utilityLastSeen = new Dictionary<int, DateTime>();
@@ -47,24 +53,17 @@ namespace Telemetry.UI.Views
         private KpiCard_Control _kpiManualMachines;
         private KpiCard_Control _kpiIdleMachines;
 
-        private readonly List<Color> _darkColors = new List<Color>
-        {
-            Color.FromArgb(44, 62, 80), Color.FromArgb(46, 204, 113), Color.FromArgb(231, 76, 60),
-            Color.FromArgb(155, 89, 182), Color.FromArgb(52, 152, 219), Color.FromArgb(241, 196, 15),
-            Color.FromArgb(22, 160, 133), Color.FromArgb(192, 57, 43), Color.FromArgb(41, 128, 185),
-            Color.FromArgb(243, 156, 18), Color.FromArgb(211, 84, 0), Color.FromArgb(127, 140, 141),
-            Color.FromArgb(52, 73, 94), Color.FromArgb(249, 105, 14), Color.FromArgb(189, 195, 199),
-            Color.FromArgb(149, 165, 166), Color.FromArgb(236, 240, 241), Color.FromArgb(101, 159, 105),
-            Color.FromArgb(10, 61, 98), Color.FromArgb(119, 177, 169)
-        };
-        private int _colorIndex = 0;
-
         public GenelBakis_Control()
         {
+            // Statik dil değişim olayına kayıt
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
+
             InitializeComponent();
 
+            // SPEED OPTİMİZASYON: Kartların ve panellerin çizim hızını donanımsal ivmeye bağlar
+            this.BackColor = Color.Transparent;
             this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
+
             try
             {
                 typeof(FlowLayoutPanel).InvokeMember("DoubleBuffered",
@@ -123,6 +122,8 @@ namespace Telemetry.UI.Views
         {
             try
             {
+                this.SuspendLayout();
+
                 InitializeKpiCards();
 
                 // Ana Panel Ayarları (Dikey Sıralama)
@@ -136,10 +137,7 @@ namespace Telemetry.UI.Views
                 BuildMachineCards();
                 BuildUtilityStrip();
 
-                // KRİTİK PERFORMANS REVİZYONU: Anlık veri yenileme event aboneliği tamamen kaldırıldı.
-                // Saniyede 400 makineden gelen veri seli arayüzü kilitlemeyecektir.
-
-                // Enerji Servisi Olay Aboneliği (Geniş periyotlu olduğu için kalabilir)
+                // Enerji Servisi Olay Aboneliği Korundu
                 if (_utilityPollingService != null)
                 {
                     _utilityPollingService.OnUtilityDataRefreshed -= UtilityService_OnDataRefreshed;
@@ -148,22 +146,25 @@ namespace Telemetry.UI.Views
 
                 if (_uiUpdateTimer == null)
                 {
-                    // OPTİMİZASYON: 1000ms (1 saniye) aralıklarla uyanan merkezi PULL timer'ı.
+                    // OPTİMİZASYON: 1000ms aralıklarla uyanan merkezi PULL timer'ı.
                     _uiUpdateTimer = new System.Windows.Forms.Timer { Interval = 1000 };
                     _uiUpdateTimer.Tick += (s, a) => {
-                        UpdateLiveMachineCardsAndSort(); // Kartları toplu ve sarsıntısız hafızadan güncelle
-                        UpdateKpiCards();                // KPI kartlarını tek döngüde hesaplayıp güncelle
-                        CheckUtilityConnections();       // Enerji cihaz bağlantılarını denetle
+                        UpdateLiveMachineCardsAndSort();
+                        UpdateKpiCards();
+                        CheckUtilityConnections();
                     };
                 }
                 _uiUpdateTimer.Start();
 
-                // GRAFİKLER İÇİN BAĞIMSIZ ULTRA YAVAŞ TIMER (60 saniyede bir çizim yükü getirir)
-                System.Windows.Forms.Timer chartUpdateTimer = new System.Windows.Forms.Timer { Interval = 60000 };
-                chartUpdateTimer.Tick += (s, a) => UpdateSidebarCharts();
-                chartUpdateTimer.Start();
+                if (_chartUpdateTimer == null)
+                {
+                    // DÜZELTME: Bellek sızıntılarını önlemek adına bağımsız grafik zamanlayıcısı field alanına bağlandı
+                    _chartUpdateTimer = new System.Windows.Forms.Timer { Interval = 60000 };
+                    _chartUpdateTimer.Tick += (s, a) => UpdateSidebarCharts();
+                }
+                _chartUpdateTimer.Start();
 
-                // İlk açılışta bir kez el ile tetikleyin (RAM verileriyle hızlı dolum)
+                // İlk açılış doldurma döngüsü
                 UpdateLiveMachineCardsAndSort();
                 UpdateKpiCards();
                 UpdateSidebarCharts();
@@ -174,11 +175,12 @@ namespace Telemetry.UI.Views
             {
                 System.Diagnostics.Debug.WriteLine($"Dashboard kurulum hatası: {ex.Message}");
             }
+            finally
+            {
+                this.ResumeLayout(true);
+            }
         }
 
-        /// <summary>
-        /// Saniyede 1 kez uyanarak 400 makinenin grafik ve metin verilerini doğrudan RAM'den çeker ve panelleri sıralar.
-        /// </summary>
         private void UpdateLiveMachineCardsAndSort()
         {
             if (_pollingService == null || this.IsDisposed || !this.IsHandleCreated) return;
@@ -188,7 +190,7 @@ namespace Telemetry.UI.Views
                 var cache = _pollingService.MachineDataCache;
                 if (cache == null || cache.IsEmpty) return;
 
-                // 1. ADIM: Tüm kartları Invoke maliyeti olmadan doğrudan güncelle
+                // 1. ADIM: Tüm kartları Invoke maliyeti olmadan doğrudan bellekten güncelle
                 foreach (var kvp in _machineCards)
                 {
                     int machineId = kvp.Key;
@@ -200,8 +202,7 @@ namespace Telemetry.UI.Views
                     }
                 }
 
-                // 2. ADIM: Her hol panelindeki kartları sıralama önceliğine göre yerleştir (Görünür performansı korur)
-                // DÜZELTME: Belirsizliği gidermek için System.Windows.Forms.Control olarak açıkça belirttik
+                // 2. ADIM: Her hol panelindeki kartları sıralama önceliğine göre yerleştir
                 foreach (System.Windows.Forms.Control control in flpMachineGroups.Controls)
                 {
                     if (control is GroupBox gb && gb.Controls.Count > 0 && gb.Controls[0] is FlowLayoutPanel innerPanel)
@@ -212,7 +213,7 @@ namespace Telemetry.UI.Views
             }
             catch (Exception)
             {
-                // UI akışının kopmaması için
+                // UI işleyiş güvenliği koruması
             }
         }
 
@@ -264,6 +265,10 @@ namespace Telemetry.UI.Views
             flpUtilityStrip.ResumeLayout();
         }
 
+        // =========================================================================
+        // MODERNİZASYON: HOLLERİN (GROUPBOX) MATERIAL FLAT TEMAYA UYARLANMASI
+        // Sabit boyama matrisi kaldırılarak Light/Dark mod geçiş duyarlılığı mühürlendi.
+        // =========================================================================
         private void BuildMachineCards()
         {
             if (_machineRepository == null || _pollingService == null) return;
@@ -279,7 +284,12 @@ namespace Telemetry.UI.Views
                  .GroupBy(m => string.IsNullOrWhiteSpace(m.MachineHall) ? "Empty" : m.MachineHall)
                  .OrderBy(g => g.Key);
 
-            _colorIndex = 0;
+            bool isDark = MaterialSkinManager.Instance.Theme == MaterialSkinManager.Themes.DARK;
+
+            // Temaya uygun akıllı renk hiyerarşisi
+            Color gbBg = isDark ? Color.FromArgb(44, 52, 64) : Color.FromArgb(241, 245, 249);
+            Color gbFg = isDark ? Color.FromArgb(230, 230, 230) : Color.FromArgb(51, 65, 85);
+            Color innerPanelBg = isDark ? Color.FromArgb(30, 41, 59) : Color.FromArgb(248, 250, 252);
 
             foreach (var group in groupedMachines)
             {
@@ -288,10 +298,10 @@ namespace Telemetry.UI.Views
                     Text = $"{group.Key} ",
                     Width = flpMachineGroups.ClientSize.Width * 2 - 50,
                     Height = 265,
-                    Font = new System.Drawing.Font("Segoe UI", 12F, FontStyle.Bold),
-                    ForeColor = Color.White,
-                    BackColor = _darkColors[_colorIndex % _darkColors.Count],
-                    Padding = new Padding(5, 5, 5, 5)
+                    Font = new System.Drawing.Font("Segoe UI Semibold", 11F, FontStyle.Bold),
+                    ForeColor = gbFg,
+                    BackColor = gbBg,
+                    Padding = new Padding(6)
                 };
 
                 var innerPanel = new FlowLayoutPanel
@@ -300,7 +310,7 @@ namespace Telemetry.UI.Views
                     FlowDirection = FlowDirection.LeftToRight,
                     WrapContents = false,
                     AutoScroll = true,
-                    BackColor = Color.WhiteSmoke
+                    BackColor = innerPanelBg
                 };
 
                 var sortedMachines = group.OrderBy(m =>
@@ -320,7 +330,6 @@ namespace Telemetry.UI.Views
 
                 groupPanel.Controls.Add(innerPanel);
                 flpMachineGroups.Controls.Add(groupPanel);
-                _colorIndex++;
             }
 
             flpMachineGroups.ResumeLayout();
@@ -379,7 +388,6 @@ namespace Telemetry.UI.Views
             }
         }
 
-        // DİKKAT: PollingService_OnMachineDataRefreshed metodu artık event dinlemediğimiz için gövdesi boş bırakılmıştır, uyumluluk için silinmemiştir.
         private void PollingService_OnMachineDataRefreshed(int machineId, FullMachineStatus status) { }
 
         private void SortMachinesInPanel(FlowLayoutPanel panel)
@@ -415,9 +423,6 @@ namespace Telemetry.UI.Views
 
         private void UpdateUtilityKpiData() { }
 
-        /// <summary>
-        /// 400 makine listesini tek bir döngüde (O(n)) tarayarak KPI verilerini ultra hızlı hesaplar.
-        /// </summary>
         private void UpdateKpiCards()
         {
             if (_pollingService == null || _kpiTotalMachines == null || this.IsDisposed || !this.IsHandleCreated) return;
@@ -434,7 +439,7 @@ namespace Telemetry.UI.Views
                 int manualMachines = 0;
                 int idleMachines = 0;
 
-                // OPTİMİZASYON: LINQ sorguları yerine tek bir ham döngü (Tek geçiş)
+                // O(n) Performans Döngüsü
                 foreach (var s in allStatuses)
                 {
                     totalMachines++;
@@ -463,22 +468,27 @@ namespace Telemetry.UI.Views
                     }
                 }
 
+                // KPI Atamaları (Renklerin akıllı mat kontrast yapısı KpiCard içerisinde yönetilir)
                 _kpiTotalMachines.SetData($"{Resources.AllMachines}", totalMachines.ToString(), Color.FromArgb(41, 128, 185));
-                _kpiOfflineMachines.SetData("Offline Status", offlineMachines.ToString(), Color.FromArgb(149, 165, 166));
-                _kpiRunningMachines.SetData($"{Resources.aktifüretim}", runningMachines.ToString(), Color.FromArgb(46, 204, 113));
-                _kpiAlarmMachines.SetData($"{Resources.alarmdurum}", alarmMachines.ToString(), Color.FromArgb(231, 76, 60));
-                _kpiManualMachines.SetData("Manuel Mode", manualMachines.ToString(), Color.FromArgb(155, 89, 182));
-                _kpiIdleMachines.SetData($"{Resources.bosbekleyen}", idleMachines.ToString(), Color.FromArgb(243, 156, 18));
+                _kpiOfflineMachines.SetData("Offline Status", offlineMachines.ToString(), Color.FromArgb(144, 164, 174));
+                _kpiRunningMachines.SetData($"{Resources.aktifüretim}", runningMachines.ToString(), Color.FromArgb(76, 175, 80));
+                _kpiAlarmMachines.SetData($"{Resources.alarmdurum}", alarmMachines.ToString(), Color.FromArgb(211, 47, 47));
+                _kpiManualMachines.SetData("Manuel Mode", manualMachines.ToString(), Color.FromArgb(142, 68, 173));
+                _kpiIdleMachines.SetData($"{Resources.bosbekleyen}", idleMachines.ToString(), Color.FromArgb(230, 126, 34));
             }
             catch (Exception)
             {
-                // UI koruması
+                // UI Koruyucu hat yakalama
             }
         }
 
+        // =========================================================================
+        // MODERNİZASYON: SCOTTPLOT GRAFİK TAŞIYICILARININ TEMA ADAPTASYONU
+        // ScottPlot 5 özellikleri kullanılarak kılavuz çizgileri ve metinler tema duyarlı yapıldı.
+        // =========================================================================
         private async void UpdateSidebarCharts()
         {
-            if (_dashboardRepository == null || _alarmRepository == null) return;
+            if (_dashboardRepository == null || _alarmRepository == null || this.IsDisposed) return;
 
             try
             {
@@ -486,12 +496,9 @@ namespace Telemetry.UI.Views
                 {
                     var today = DateTime.Today;
                     var now = DateTime.Now;
-
-                    var singleConsumptionTable = _dashboardRepository.GetHourlyFactoryConsumption(today);
-
                     return new
                     {
-                        ConsumptionData = singleConsumptionTable,
+                        ConsumptionData = _dashboardRepository.GetHourlyFactoryConsumption(today),
                         TopAlarms = _alarmRepository.GetTopAlarmsByFrequency(now.AddDays(-1), now),
                         OeeData = _dashboardRepository.GetHourlyAverageOee(today)
                     };
@@ -499,8 +506,11 @@ namespace Telemetry.UI.Views
 
                 if (this.IsDisposed || !this.IsHandleCreated) return;
 
+                bool isDark = MaterialSkinManager.Instance.Theme == MaterialSkinManager.Themes.DARK;
+
                 // 1. ELEKTRİK GRAFİĞİ
                 formsPlotHourly.Plot.Clear();
+                ApplyScottPlotTheme(formsPlotHourly, isDark);
                 if (result.ConsumptionData != null && result.ConsumptionData.Rows.Count > 0)
                 {
                     double[] hours = result.ConsumptionData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
@@ -516,6 +526,7 @@ namespace Telemetry.UI.Views
 
                 // 2. SU GRAFİĞİ
                 formsPlotHourlyWater.Plot.Clear();
+                ApplyScottPlotTheme(formsPlotHourlyWater, isDark);
                 if (result.ConsumptionData != null && result.ConsumptionData.Rows.Count > 0)
                 {
                     double[] hours = result.ConsumptionData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
@@ -531,13 +542,14 @@ namespace Telemetry.UI.Views
 
                 // 3. BUHAR GRAFİĞİ
                 formsPlotHourlySteam.Plot.Clear();
+                ApplyScottPlotTheme(formsPlotHourlySteam, isDark);
                 if (result.ConsumptionData != null && result.ConsumptionData.Rows.Count > 0)
                 {
                     double[] hours = result.ConsumptionData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
                     double[] consumption = result.ConsumptionData.AsEnumerable().Select(row => row.IsNull("ToplamBuhar") ? 0.0 : Convert.ToDouble(row["ToplamBuhar"]) / 1000.0).ToArray();
 
                     var barPlot = formsPlotHourlySteam.Plot.Add.Scatter(hours, consumption);
-                    barPlot.Color = ScottPlot.Colors.DimGray;
+                    barPlot.Color = ScottPlot.Colors.LightSlateGray;
                     barPlot.MarkerSize = 0;
                     formsPlotHourlySteam.Plot.Axes.Left.Label.Text = "m³";
                 }
@@ -546,18 +558,19 @@ namespace Telemetry.UI.Views
 
                 // 4. ALARM GRAFİĞİ
                 formsPlotTopAlarms.Plot.Clear();
+                ApplyScottPlotTheme(formsPlotTopAlarms, isDark);
                 if (result.TopAlarms != null && result.TopAlarms.Any())
                 {
                     double[] counts = result.TopAlarms.Select(a => (double)a.Count).ToArray();
                     var labels = result.TopAlarms.Select(a => a.AlarmText).ToArray();
                     var barPlot = formsPlotTopAlarms.Plot.Add.Bars(counts);
-                    barPlot.Color = ScottPlot.Colors.OrangeRed;
+                    barPlot.Color = ScottPlot.Colors.Crimson;
 
                     var ticks = Enumerable.Range(0, labels.Length).Select(i => new ScottPlot.Tick(i, labels[i])).ToArray();
                     formsPlotTopAlarms.Plot.Axes.Bottom.TickGenerator = new ScottPlot.TickGenerators.NumericManual(ticks);
                     formsPlotTopAlarms.Plot.Axes.Bottom.TickLabelStyle.Rotation = -90;
                     formsPlotTopAlarms.Plot.Axes.Bottom.TickLabelStyle.Alignment = ScottPlot.Alignment.LowerRight;
-                    formsPlotTopAlarms.Plot.Axes.Bottom.TickLabelStyle.FontSize = 12;
+                    formsPlotTopAlarms.Plot.Axes.Bottom.TickLabelStyle.FontSize = 11;
                     formsPlotTopAlarms.Plot.Axes.Bottom.TickLabelStyle.Bold = true;
                     formsPlotTopAlarms.Plot.Axes.Bottom.MinimumSize = 160;
                 }
@@ -566,15 +579,15 @@ namespace Telemetry.UI.Views
 
                 // 5. OEE GRAFİĞİ
                 formsPlotHourlyOee.Plot.Clear();
+                ApplyScottPlotTheme(formsPlotHourlyOee, isDark);
                 if (result.OeeData != null && result.OeeData.Rows.Count > 0)
                 {
                     double[] hours = result.OeeData.AsEnumerable().Select(row => row.IsNull("Saat") ? 0.0 : Convert.ToDouble(row["Saat"])).ToArray();
                     double[] oeeValues = result.OeeData.AsEnumerable().Select(row => row.IsNull("AverageOEE") ? 0.0 : Convert.ToDouble(row["AverageOEE"])).ToArray();
 
                     var linePlot = formsPlotHourlyOee.Plot.Add.Scatter(hours, oeeValues);
-                    linePlot.Color = ScottPlot.Colors.Orange;
+                    linePlot.Color = ScottPlot.Colors.Gold;
                     linePlot.LineStyle.Width = 2;
-                    linePlot.MarkerStyle.Shape = ScottPlot.MarkerShape.FilledCircle;
                     linePlot.MarkerStyle.Size = 0;
                     formsPlotHourlyOee.Plot.Axes.Bottom.Label.Text = "Saat";
                 }
@@ -587,8 +600,39 @@ namespace Telemetry.UI.Views
             }
         }
 
+        // =========================================================================
+        // YENİ YARDIMCI METOT: SCOTTPLOT GRAFİK MAT KONTRAST ADAPTÖRÜ
+        // Grafikleri pencerelerin koyu mod temasıyla pürüzsüzce bütünleştirir.
+        // =========================================================================
+        // UI/Views/GenelBakis_Control.cs dosyasındaki mevcut metot ile değiştirin:
+        private void ApplyScottPlotTheme(ScottPlot.WinForms.FormsPlot formsPlot, bool isDark)
+        {
+            // Grafik dış gövde ve çizim alanı arka planlarını transparan yaparak forma eşitler
+            formsPlot.Plot.FigureBackground.Color = ScottPlot.Colors.Transparent;
+            formsPlot.Plot.DataBackground.Color = ScottPlot.Colors.Transparent;
+
+            var axisColor = isDark ? ScottPlot.Color.FromColor(Color.FromArgb(148, 163, 184)) : ScottPlot.Color.FromColor(Color.FromArgb(71, 85, 105));
+            var gridColor = isDark ? ScottPlot.Color.FromColor(Color.FromArgb(51, 65, 85)) : ScottPlot.Color.FromColor(Color.FromArgb(241, 245, 249));
+
+            // ScottPlot 5'te tüm eksen bileşenlerini (Çizgiler, Tickler ve Sayılar) tek seferde boyayan merkezi metot
+            formsPlot.Plot.Axes.Color(axisColor);
+
+            // ÇÖZÜM 1: Sürüm uyumsuzluğu gösteren CellGridColor yerine kararlı 'MajorLineColor' kullanıldı
+            formsPlot.Plot.Grid.MajorLineColor = gridColor;
+
+            // ÇÖZÜM 2: Hata veren LabelStyle ara nesnesi kaldırılarak doğrudan 'Label.ForeColor' ataması yapıldı
+            formsPlot.Plot.Axes.Left.Label.ForeColor = axisColor;
+            formsPlot.Plot.Axes.Bottom.Label.ForeColor = axisColor;
+        }
+
+        // =========================================================================
+        // KUSURSUZ BELLEK TEMİZLİĞİ: TÜM ZAMANLAYICI VE EVENT BAĞLANTILARI SIFIRLANDI
+        // Kontrolün RAM'de asılı kalmasını kesin olarak engelleyen yegane metot.
+        // =========================================================================
         protected override void OnHandleDestroyed(EventArgs e)
         {
+            LanguageManager.LanguageChanged -= LanguageManager_LanguageChanged;
+
             if (_utilityPollingService != null)
             {
                 _utilityPollingService.OnUtilityDataRefreshed -= UtilityService_OnDataRefreshed;
@@ -596,6 +640,10 @@ namespace Telemetry.UI.Views
 
             _uiUpdateTimer?.Stop();
             _uiUpdateTimer?.Dispose();
+
+            _chartUpdateTimer?.Stop();
+            _chartUpdateTimer?.Dispose();
+
             base.OnHandleDestroyed(e);
         }
 

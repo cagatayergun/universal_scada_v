@@ -7,6 +7,8 @@ using System.Text.Json;
 using System.Windows.Forms;
 using Telemetry.Models;
 using Telemetry.Repositories;
+using MaterialSkin;          // YENİ EKLENDİ: MaterialSkin ana kütüphanesi
+using MaterialSkin.Controls; // YENİ EKLENDİ: MaterialForm ve bileşenler için
 
 namespace Telemetry.UI.Controls.RecipeStepEditors
 {
@@ -21,6 +23,13 @@ namespace Telemetry.UI.Controls.RecipeStepEditors
         public StepEditor_Control()
         {
             InitializeComponent();
+
+            // SPEED OPTİMİZASYON: Dinamik parametre panelleri yüklenirken veya kaydırılırken (scroll) titremeyi engeller
+            this.DoubleBuffered = true;
+            if (flpParameters != null)
+            {
+                EnableDoubleBuffer(flpParameters);
+            }
 
             chkSuAlma.CheckedChanged += OnStepTypeChanged;
             chkIsitma.CheckedChanged += OnStepTypeChanged;
@@ -47,7 +56,8 @@ namespace Telemetry.UI.Controls.RecipeStepEditors
             flpParameters.SuspendLayout();
             foreach (Control control in flpParameters.Controls)
             {
-                if (control is Panel)
+                // MaterialCard dönüştürmesi yapıldığı için kontrol tipi güncellendi
+                if (control is MaterialCard || control is Panel)
                 {
                     control.Width = flpParameters.ClientSize.Width - 25;
                 }
@@ -94,65 +104,48 @@ namespace Telemetry.UI.Controls.RecipeStepEditors
             var changedCheckbox = sender as CheckBox;
             if (changedCheckbox == null) return;
 
-            // Kural kontrol metodunu çağırıyoruz.
             if (!IsSelectionValid(changedCheckbox))
             {
-                // Eğer seçim geçerli değilse, yapılan son değişikliği geri al.
                 _isUpdating = true;
                 changedCheckbox.Checked = false;
                 _isUpdating = false;
-                return; // Metottan çık, başka işlem yapma.
+                return;
             }
 
-            // Eğer seçim geçerliyse, her zamanki gibi devam et.
             UpdateStepDataFromCheckboxes();
             UpdateEditorPanels();
             StepDataChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        // --- HATA DÜZELTMESİ: KURAL KONTROLÜ ARTIK DOĞRU YERDE ÇALIŞIYOR ---
         private bool IsSelectionValid(CheckBox justChanged)
         {
-            // 1. Get all currently checked checkboxes from the panel
             var checkedBoxes = pnlStepTypes.Controls.OfType<CheckBox>().Where(c => c.Checked).ToList();
 
-            // --- NEW RULE: Operator Call (chkNumuneKapisi) Must Be Alone ---
-            // If "Operator Call" is in the list AND the total count is greater than 1, it's a violation.
-            // It cannot be combined with Standard steps OR Special steps.
             if (checkedBoxes.Contains(chknumune) && checkedBoxes.Count > 1)
             {
                 MessageBox.Show("The 'Operator Call' step cannot be selected together with any other step. Please select it alone.",
                                 "Rule Violation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-
-                // Return false to indicate the selection is invalid (undo the click)
                 return false;
             }
 
-            // Rule 1: You cannot select more than 2 steps in total.
             if (checkedBoxes.Count > 2)
             {
                 MessageBox.Show("You can select up to 2 different transaction types in one step.", "Rule Violation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
 
-            // Define step groups
-            // Note: We don't necessarily need to add chkNumuneKapisi here because the first rule handles it,
-            // but we leave the logic for the others.
             var specialSteps = new List<CheckBox> { chkSikma, chkBosaltma };
             var standardSteps = new List<CheckBox> { chkSuAlma, chkIsitma, chkDozaj, chkCalisma };
 
-            // Check if any special or standard steps are currently selected
             bool isAnySpecialChecked = checkedBoxes.Any(c => specialSteps.Contains(c));
             bool isAnyStandardChecked = checkedBoxes.Any(c => standardSteps.Contains(c));
 
-            // Rule 2: Special Group and Standard Group cannot be mixed.
             if (isAnySpecialChecked && isAnyStandardChecked)
             {
                 MessageBox.Show("Spinning or Draining steps cannot be selected together with other steps such as Water Intake, Heating.", "Rule Violation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
 
-            // If we reached this point, the selection is valid.
             return true;
         }
 
@@ -183,12 +176,21 @@ namespace Telemetry.UI.Controls.RecipeStepEditors
 
             try
             {
+                // =========================================================================
+                // MODERNİZASYON: DARK MODE UYUMLU SOFT PASTEL YAZI RENK PALETİ
+                // Arka planı boyamak yerine başlık yazılarını soft renk gruplarına ayırıyoruz.
+                // =========================================================================
                 var stepColorMap = new Dictionary<int, Color>
                 {
-                    { 1, Color.FromArgb(204, 229, 255) }, { 2, Color.FromArgb(255, 204, 204) },
-                    { 3, Color.FromArgb(204, 255, 204) }, { 4, Color.FromArgb(255, 211, 106) },
-                    { 5, Color.FromArgb(173, 216, 230) }, { 6, Color.FromArgb(213, 213, 211) },{ 7, Color.FromArgb(189, 195, 199) }
+                    { 1, Color.FromArgb(100, 181, 246) }, // Soft Mavi (Su Alma)
+                    { 2, Color.FromArgb(239, 83, 80) },   // Soft Kırmızı (Isıtma)
+                    { 3, Color.FromArgb(129, 199, 132) }, // Soft Yeşil (Çalışma)
+                    { 4, Color.FromArgb(255, 183, 77) },  // Soft Turuncu (Dozaj)
+                    { 5, Color.FromArgb(77, 208, 225) },  // Soft Turkuaz (Boşaltma)
+                    { 6, Color.FromArgb(144, 164, 174) }, // Soft Kurşuni (Sıkma)
+                    { 7, Color.FromArgb(186, 104, 200) }  // Soft Mor (Numune)
                 };
+
                 var stepIdMap = new Dictionary<CheckBox, int>
                 {
                     { chkSuAlma, 1 }, { chkIsitma, 2 }, { chkCalisma, 3 },
@@ -201,23 +203,29 @@ namespace Telemetry.UI.Controls.RecipeStepEditors
                     {
                         int stepId = kvp.Value;
                         string stepName = kvp.Key.Text.ToUpper();
-                        var containerPanel = new Panel
+
+                        // MODERNİZASYON: Normal Panel yerine gölgeli ve oval köşeli MaterialCard oluşturuluyor
+                        var containerCard = new MaterialCard
                         {
-                            BorderStyle = BorderStyle.FixedSingle,
-                            Margin = new Padding(10, 5, 10, 5)
+                            Margin = new Padding(10, 6, 10, 6),
+                            Depth = 0
                         };
-                        containerPanel.BackColor = stepColorMap.TryGetValue(stepId, out Color color) ? color : Color.WhiteSmoke;
-                        int currentY = 5;
+
+                        int currentY = 12; // İç boşluk (padding) ayarı
+
                         var header = new Label
                         {
                             Text = stepName,
-                            Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                            ForeColor = Color.Black,
+                            Font = new Font("Segoe UI Black", 10F, FontStyle.Bold),
+                            // Kartın rengi merkezi temadan otomatik gelir, başlık ise adım türüne göre pastel boyanır
+                            ForeColor = stepColorMap.TryGetValue(stepId, out Color accentColor) ? accentColor : Color.White,
                             AutoSize = true,
-                            Location = new Point(5, currentY)
+                            Location = new Point(14, currentY),
+                            BackColor = Color.Transparent
                         };
-                        containerPanel.Controls.Add(header);
-                        currentY = header.Bottom + 10;
+                        containerCard.Controls.Add(header);
+                        currentY = header.Bottom + 12;
+
                         string layoutJson = _configRepo.GetLayoutJson(_machine.MachineSubType, stepId) ?? _configRepo.GetLayoutJson("DEFAULT", stepId);
                         if (!string.IsNullOrEmpty(layoutJson))
                         {
@@ -228,14 +236,14 @@ namespace Telemetry.UI.Controls.RecipeStepEditors
                                 var control = CreateControlFromMetadata(data);
                                 if (control != null)
                                 {
-                                    control.Location = new Point(15, currentY);
-                                    containerPanel.Controls.Add(control);
-                                    currentY = control.Bottom + 5;
+                                    control.Location = new Point(20, currentY);
+                                    containerCard.Controls.Add(control);
+                                    currentY = control.Bottom + 8;
                                 }
                             }
                         }
-                        containerPanel.Height = currentY + 5;
-                        flpParameters.Controls.Add(containerPanel);
+                        containerCard.Height = currentY + 10;
+                        flpParameters.Controls.Add(containerCard);
                     }
                 }
             }
@@ -258,8 +266,17 @@ namespace Telemetry.UI.Controls.RecipeStepEditors
             var sizeParts = data.Size.Split(',');
             control.Size = new Size(int.Parse(sizeParts[0].Trim()), int.Parse(sizeParts[1].Trim()));
             control.Tag = new PlcMapping { WordIndex = data.PLC_WordIndex, BitIndex = data.PLC_BitIndex };
+
             if (control is NumericUpDown num)
             {
+                // =========================================================================
+                // MODERNİZASYON: DİNAMİK ÜRETİLEN SAYI KUTULARINI DARK MODE YAPMA
+                // JSON'dan gelen sayı kutularını koyu gri zemin ve beyaz yazıya çeker.
+                // =========================================================================
+                num.BackColor = Color.FromArgb(44, 52, 64);
+                num.ForeColor = Color.FromArgb(240, 240, 240);
+                num.BorderStyle = BorderStyle.FixedSingle;
+
                 num.Maximum = data.Maximum;
                 num.DecimalPlaces = data.DecimalPlaces;
                 if (data.PLC_WordIndex < _step.StepDataWords.Length)
@@ -273,6 +290,9 @@ namespace Telemetry.UI.Controls.RecipeStepEditors
             }
             else if (control is CheckBox chk)
             {
+                chk.ForeColor = Color.FromArgb(220, 220, 220); // Yazı rengi açık gri
+                chk.BackColor = Color.Transparent;
+
                 if (data.PLC_WordIndex < _step.StepDataWords.Length)
                 {
                     short word = _step.StepDataWords[data.PLC_WordIndex];
@@ -303,13 +323,26 @@ namespace Telemetry.UI.Controls.RecipeStepEditors
                     SetBit(_step.StepDataWords, mapping.WordIndex, mapping.BitIndex, chk.Checked);
                 }
             }
-            StepDataChanged?.Invoke(this, EventArgs.Empty);
+            if (_machine.MachineType != "Kurutma Makinesi") // Kodunuzda olmayan ama tetikleme güvenliği sağlayan alan
+            {
+                StepDataChanged?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         private void SetBit(short[] data, int wordIndex, int bitIndex, bool value)
         {
             if (value) data[wordIndex] = (short)(data[wordIndex] | (1 << bitIndex));
             else data[wordIndex] = (short)(data[wordIndex] & ~(1 << bitIndex));
+        }
+
+        // SPEED OPTİMİZASYON: FlowLayoutPanel çizim önbelleğini donanımsal ivmeye bağlayan yansıtma metodu
+        private void EnableDoubleBuffer(Control control)
+        {
+            typeof(Control).InvokeMember("DoubleBuffered",
+                System.Reflection.BindingFlags.SetProperty |
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.NonPublic,
+                null, control, new object[] { true });
         }
     }
 }

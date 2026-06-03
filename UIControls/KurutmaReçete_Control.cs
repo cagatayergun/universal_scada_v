@@ -1,6 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using Telemetry.Models;
+using MaterialSkin;          // YENİ EKLENDİ: MaterialSkin ana kütüphanesi
+using MaterialSkin.Controls; // YENİ EKLENDİ: Material bileşen desteği
 
 namespace Telemetry.UI.Controls
 {
@@ -8,7 +13,7 @@ namespace Telemetry.UI.Controls
     {
         private ScadaRecipeStep _recipeStep;
 
-        // YENİ: Yükleme sırasında olayları durdurmak için bayrak
+        // YÜKLEME OPTMİZASYONU: Yükleme sırasında olay zincirini durdurmak için bayrak
         private bool _isLoading = false;
 
         public event EventHandler ValueChanged;
@@ -17,7 +22,28 @@ namespace Telemetry.UI.Controls
         {
             InitializeComponent();
 
-            // Olayları bağlıyoruz
+            // SPEED OPTİMİZASYON: Sekme geçişlerinde ve reçete yüklemelerinde arayüzün titremesini engeller
+            this.DoubleBuffered = true;
+
+            // =========================================================================
+            // MODERNİZASYON: NUMERICUPDOWN BİLEŞENLERİNİ DARK MODE UYUMLU YAPMA
+            // Material kütüphanesinde sayı kutusu olmadığı için standart kutuları kodla özelleştiriyoruz.
+            // =========================================================================
+            Color numericBg = Color.FromArgb(44, 52, 64);    // Modern koyu mavi-gri arka plan
+            Color numericFg = Color.FromArgb(240, 240, 240); // Net okunabilir beyaz yazı
+
+            var numericControls = new List<NumericUpDown> { numSicaklik, numNem, numZaman, numCalismaDevri, numSogutmaZamani };
+            foreach (var num in numericControls)
+            {
+                if (num != null)
+                {
+                    num.BackColor = numericBg;
+                    num.ForeColor = numericFg;
+                    num.BorderStyle = BorderStyle.FixedSingle;
+                }
+            }
+
+            // Olayları bağlıyoruz (Event Wiring)
             numSicaklik.ValueChanged += OnValueChanged;
             numNem.ValueChanged += OnValueChanged;
             numZaman.ValueChanged += OnValueChanged;
@@ -34,12 +60,15 @@ namespace Telemetry.UI.Controls
                 // Yükleme başladı, olayları kilitle
                 _isLoading = true;
 
+                // SPEED OPTİMİZASYON: Tüm değerler basılana kadar arayüz yerleşim hesaplamalarını askıya al
+                this.SuspendLayout();
+
                 try
                 {
                     _recipeStep = recipe.Steps[0];
                     var kurutmaParams = new KurutmaParams(_recipeStep.StepDataWords);
 
-                    // Değerleri PLC hafıza haritasına göre kontrollerden oku
+                    // Değerleri PLC hafıza haritasına göre kontrollere ata
                     numSicaklik.Value = kurutmaParams.Temperature;
                     numNem.Value = kurutmaParams.Humidity;
                     numZaman.Value = kurutmaParams.DurationMinutes;
@@ -52,6 +81,9 @@ namespace Telemetry.UI.Controls
                 }
                 finally
                 {
+                    // Değişiklikleri tek bir karede (frame) ekrana toplu olarak çiz
+                    this.ResumeLayout(true);
+
                     // Yükleme bitti veya hata oldu, kilidi her durumda aç
                     _isLoading = false;
                 }
@@ -60,13 +92,13 @@ namespace Telemetry.UI.Controls
 
         private void OnValueChanged(object sender, EventArgs e)
         {
-            // Eğer veri yükleniyorsa veya reçete boşsa işlem yapma!
+            // Eğer veri yükleniyorsa veya reçete boşsa işlem yapma! (Gereksiz döngüleri önler)
             if (_isLoading || _recipeStep == null) return;
 
             var kurutmaParams = new KurutmaParams(_recipeStep.StepDataWords);
 
             // Değişiklikleri anında _recipeStep nesnesine kaydet
-            kurutmaParams.Temperature = (short)(numSicaklik.Value );
+            kurutmaParams.Temperature = (short)numSicaklik.Value;
             kurutmaParams.Humidity = (short)numNem.Value;
             kurutmaParams.DurationMinutes = (short)numZaman.Value;
             kurutmaParams.Rpm = (short)numCalismaDevri.Value;
@@ -76,6 +108,7 @@ namespace Telemetry.UI.Controls
             kurutmaParams.HumidityControlActive = chkNemAktif.Checked;
             kurutmaParams.TimeControlActive = chkZamanAktif.Checked;
 
+            // Değişiklik olayını (event) tetikle
             ValueChanged?.Invoke(this, EventArgs.Empty);
         }
     }

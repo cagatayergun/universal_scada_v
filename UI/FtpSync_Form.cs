@@ -16,15 +16,18 @@ using Telemetry.UI.Controls;
 using Telemetry.UI.Controls.RecipeStepEditors;
 using Telemetry.UI.Views;
 using Telemetry.Core.Models;
+using MaterialSkin;          // YENİ EKLENDİ: MaterialSkin ana kütüphanesi
+using MaterialSkin.Controls; // YENİ EKLENDİ: MaterialForm ve bileşenler için
 
 namespace Telemetry.UI
 {
-    public partial class FtpSync_Form : Form
+    // Form yerine MaterialForm'dan türetiyoruz
+    public partial class FtpSync_Form : MaterialForm
     {
         private readonly MachineRepository _machineRepository;
         private readonly RecipeRepository _recipeRepository;
         private readonly FtpTransferService _transferService;
-        private readonly UserRepository _userRepository; // YENİ: Loglama için eklendi
+        private readonly UserRepository _userRepository;
 
         // Ön izleme editörü için gerekli değişkenler
         private SplitContainer _byMakinesiEditor;
@@ -34,14 +37,13 @@ namespace Telemetry.UI
         private readonly string _targetMachineType;
         private readonly PlcPollingService _plcPollingService;
 
-        // GÜNCELLEME: UserRepository parametresi eklendi
         public FtpSync_Form(
             MachineRepository machineRepo,
             RecipeRepository recipeRepo,
             PlcPollingService plcPollingService,
             string targetMachineType,
             FtpTransferService transferService,
-            UserRepository userRepo) // <--- Yeni Parametre
+            UserRepository userRepo)
         {
             InitializeComponent();
             _machineRepository = machineRepo;
@@ -50,7 +52,15 @@ namespace Telemetry.UI
             _transferService = transferService;
             _transferService.SetSyncContext(SynchronizationContext.Current);
             _plcPollingService = plcPollingService;
-            _userRepository = userRepo; // Atama yapıldı
+            _userRepository = userRepo;
+
+            // =========================================================================
+            // MATERIALSKIN FORM KAYDI VE PÜRÜZSÜZLEŞTİRME
+            // =========================================================================
+            var materialSkinManager = MaterialSkinManager.Instance;
+            materialSkinManager.AddFormToManage(this); // Bu formu temalandırma motoruna bağla
+
+            this.DoubleBuffered = true; // Formun genel çizim kırpışmalarını engelle
         }
 
         private void FtpSync_Form_Load(object sender, EventArgs e)
@@ -168,6 +178,9 @@ namespace Telemetry.UI
             dgvTransfers.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Status", HeaderText = "Status" });
             dgvTransfers.Columns.Add(new DataGridViewProgressBarColumn { DataPropertyName = "Progress", HeaderText = "Progress" });
             dgvTransfers.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "ErrorMessage", HeaderText = "Error", FillWeight = 250 });
+
+            // SPEED OPTİMİZASYON: Transfer listesi çok hızlı akarken Grid'in donmasını/titremesini engeller
+            EnableDoubleBuffer(dgvTransfers);
         }
 
         private void btnSend_Click(object sender, EventArgs e)
@@ -197,7 +210,6 @@ namespace Telemetry.UI
 
                 _transferService.QueueSequentiallyNamedSendJobs(selectedRecipes, selectedMachines, startNumber);
 
-                // --- LOGLAMA (Toplu Gönderim) ---
                 if (CurrentUser.User != null && _userRepository != null)
                 {
                     string details = $"{selectedRecipes.Count} recipes queued for sending to {selectedMachines.Count} machines. Start #: {startNumber}";
@@ -239,7 +251,6 @@ namespace Telemetry.UI
 
             _transferService.QueueReceiveJobs(filesToReceive, selectedMachine);
 
-            // --- LOGLAMA (Toplu Alma) ---
             if (CurrentUser.User != null && _userRepository != null)
             {
                 string details = $"{filesToReceive.Count} recipes queued for download from machine '{selectedMachine.MachineName}'.";
@@ -275,7 +286,10 @@ namespace Telemetry.UI
             }
 
             if (this.IsDisposed || !this.IsHandleCreated) return;
-            dgvTransfers.Refresh();
+
+            // OPTİMİZASYON: Kuyruk çok hızlı akarken dgvTransfers.Refresh() arayüzü kilitleyebilir. 
+            // Invalidate() kullanarak çizim Windows'un kendi döngüsüne asenkron bırakıldı.
+            dgvTransfers.Invalidate();
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -305,9 +319,12 @@ namespace Telemetry.UI
             string remoteFileName = $"XPR{recipeNumber:D5}.csv";
 
             tabControlMain.SelectedTab = tabPagePreview;
+
+            pnlPreviewArea.SuspendLayout(); // SPEED OPTİMİZASYON: Alt kontroller yüklenirken yerleşim hesaplamasını durdur
             pnlPreviewArea.Controls.Clear();
             lblPreviewStatus.Visible = true;
             lblPreviewStatus.Text = $"'{remoteFileName}' loading...";
+            pnlPreviewArea.ResumeLayout(true);
 
             try
             {
@@ -317,10 +334,12 @@ namespace Telemetry.UI
                 string previewName = lstHmiRecipes.SelectedItem.ToString();
                 _previewRecipe = RecipeCsvConverter.ToRecipe(csvContent, previewName);
 
+                pnlPreviewArea.SuspendLayout();
                 lblPreviewStatus.Visible = false;
                 InitializeBYMakinesiEditor(previewName);
                 PopulateStepsGridView();
                 pnlPreviewArea.Controls.Add(_byMakinesiEditor);
+                pnlPreviewArea.ResumeLayout(true); // Toplu olarak ekrana bas
             }
             catch (Exception ex)
             {
@@ -330,11 +349,13 @@ namespace Telemetry.UI
 
         private void ClearPreview()
         {
+            pnlPreviewArea.SuspendLayout();
             pnlPreviewArea.Controls.Clear();
             pnlPreviewArea.Controls.Add(lblPreviewStatus);
             lblPreviewStatus.Visible = true;
             lblPreviewStatus.Text = "Select a prescription from the HMI list for preview.";
             _previewRecipe = null;
+            pnlPreviewArea.ResumeLayout(true);
         }
 
         private void InitializeBYMakinesiEditor(string recipeName)
@@ -343,10 +364,11 @@ namespace Telemetry.UI
             dgvRecipeSteps = new DataGridView();
             pnlStepDetails = new Panel();
 
-            var pnlTopBar = new Panel { Dock = DockStyle.Top, Height = 30, BackColor = Color.LightSteelBlue };
-            var lblRecipeName = new Label { Dock = DockStyle.Fill, Text = recipeName, Font = new Font("Segoe UI", 10F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleCenter };
+            var pnlTopBar = new Panel { Dock = DockStyle.Top, Height = 34, BackColor = Color.FromArgb(38, 50, 56) }; // Material Koyu Arka Plan
+            var lblRecipeName = new Label { Dock = DockStyle.Fill, Text = recipeName, Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold), ForeColor = Color.White, TextAlign = ContentAlignment.MiddleCenter };
             pnlTopBar.Controls.Add(lblRecipeName);
 
+            _byMakinesiEditor.SuspendLayout();
             _byMakinesiEditor.Dock = DockStyle.Fill;
             _byMakinesiEditor.SplitterDistance = 450;
             _byMakinesiEditor.Panel1.Controls.Add(dgvRecipeSteps);
@@ -359,13 +381,17 @@ namespace Telemetry.UI
             dgvRecipeSteps.ReadOnly = true;
             dgvRecipeSteps.MultiSelect = false;
             dgvRecipeSteps.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvRecipeSteps.CellClick += DgvRecipeSteps_CellClick;
+            dgvRecipeSteps.CellClick += dgvRecipeSteps_CellClick;
+
+            // Önizleme adımları gridine pürüzsüz kaydırma ivmesi ver
+            EnableDoubleBuffer(dgvRecipeSteps);
 
             pnlStepDetails.Dock = DockStyle.Fill;
             pnlStepDetails.AutoScroll = true;
-            pnlStepDetails.BorderStyle = BorderStyle.FixedSingle;
+            pnlStepDetails.BorderStyle = BorderStyle.None;
 
             SetupStepsGridView();
+            _byMakinesiEditor.ResumeLayout(true);
         }
 
         private void SetupStepsGridView()
@@ -376,7 +402,7 @@ namespace Telemetry.UI
             dgvRecipeSteps.Columns.Clear();
             dgvRecipeSteps.AutoGenerateColumns = false;
 
-            dgvRecipeSteps.Columns.Add(new DataGridViewTextBoxColumn { Name = "StepNumber", HeaderText = "Step No", DataPropertyName = "StepNumber", Width = 60 });
+            dgvRecipeSteps.Columns.Add(new DataGridViewTextBoxColumn { Name = "StepNumber", HeaderText = "Step No", DataPropertyName = "StepNumber", Width = 70 });
             dgvRecipeSteps.Columns.Add(new DataGridViewTextBoxColumn { Name = "StepType", HeaderText = "Step Name", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
         }
 
@@ -408,13 +434,14 @@ namespace Telemetry.UI
             return stepTypes.Any() ? string.Join(" + ", stepTypes) : "-";
         }
 
-        private void DgvRecipeSteps_CellClick(object sender, DataGridViewCellEventArgs e)
+        private void dgvRecipeSteps_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0 || _previewRecipe == null || pnlStepDetails == null) return;
 
             var selectedMachine = clbMachines.CheckedItems.Cast<Machine>().FirstOrDefault();
             if (selectedMachine == null) return;
 
+            pnlStepDetails.SuspendLayout();
             pnlStepDetails.Controls.Clear();
 
             int selectedIndex = e.RowIndex;
@@ -426,11 +453,22 @@ namespace Telemetry.UI
                 mainEditor.SetReadOnly(true);
                 mainEditor.Dock = DockStyle.Top;
                 mainEditor.AutoSize = true;
-                pnlPreviewArea.Controls.Add(mainEditor);
+                pnlStepDetails.Controls.Add(mainEditor);
             }
+            pnlStepDetails.ResumeLayout(true);
         }
 
         #endregion
+
+        // SPEED OPTİMİZASYON: Grid verileri yenilenirken donanım ivmesini açan yansıtma (reflection) metodu
+        private void EnableDoubleBuffer(Control control)
+        {
+            typeof(Control).InvokeMember("DoubleBuffered",
+                System.Reflection.BindingFlags.SetProperty |
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.NonPublic,
+                null, control, new object[] { true });
+        }
 
         // DataGridView için özel ProgressBar kolonu
         public class DataGridViewProgressBarColumn : DataGridViewTextBoxColumn
@@ -452,7 +490,8 @@ namespace Telemetry.UI
 
                 if (percentage > 0.0)
                 {
-                    Brush progressBarBrush = new SolidBrush(Color.FromArgb(180, 220, 180));
+                    // Material Skin uyumlu yumuşak yeşil renk tonu
+                    Brush progressBarBrush = new SolidBrush(Color.FromArgb(76, 175, 80));
                     g.FillRectangle(progressBarBrush, cellBounds.X + 2, cellBounds.Y + 2, Convert.ToInt32((percentage * cellBounds.Width - 4)), cellBounds.Height - 4);
                     progressBarBrush.Dispose();
                 }
@@ -461,19 +500,17 @@ namespace Telemetry.UI
                 SizeF textSize = g.MeasureString(text, cellStyle.Font);
                 float textX = cellBounds.X + (cellBounds.Width - textSize.Width) / 2;
                 float textY = cellBounds.Y + (cellBounds.Height - textSize.Height) / 2;
-                g.DrawString(text, cellStyle.Font, Brushes.Black, textX, textY);
+
+                // Arka plan rengine göre okunabilir metin rengi (Dark mode'da beyaz/açık gri)
+                g.DrawString(text, cellStyle.Font, Brushes.White, textX, textY);
             }
         }
 
-        // --- YENİ EKLENEN METOT: Reçete Silme (Temizleme) Butonu ---
-        // FtpSync_Form.cs içine eklenecek metodlar
-
-        // --- YENİ: Reçete Silme (Temizleme) Butonu ---
+        // --- Reçete Silme (Temizleme) Butonu Olayı ---
         private void btnDeleteRecipes_Click(object sender, EventArgs e)
         {
             try
             {
-                // 1. Makine Seçimi Kontrolü
                 var selectedMachines = clbMachines.CheckedItems.Cast<Machine>().ToList();
                 if (!selectedMachines.Any())
                 {
@@ -481,61 +518,45 @@ namespace Telemetry.UI
                     return;
                 }
 
-                // 2. Reçete Numarası Girişi (Başlangıç)
                 string startNumberStr = ProsesKontrol_Control.ShowInputDialog("Enter the first prescription number to be deleted (1-98):", true);
                 if (string.IsNullOrEmpty(startNumberStr) || !int.TryParse(startNumberStr, out int startNumber))
                 {
                     return;
                 }
 
-                // 3. Reçete Sayısı Girişi (Kaç adet silinecek)
-                string countStr = ProsesKontrol_Control.ShowInputDialog("How many prescriptions should be deleted??", true);
+                string countStr = ProsesKontrol_Control.ShowInputDialog("How many prescriptions should be deleted?", true);
                 if (string.IsNullOrEmpty(countStr) || !int.TryParse(countStr, out int count))
                 {
                     return;
                 }
 
-                // Sınır Kontrolü (Örn: 98'den fazla reçete yoksa)
                 if (startNumber + count - 1 > 98)
                 {
                     MessageBox.Show($"Of your choice {count} pcs recipe, {startNumber} The starting number exceeds the limit of 98. Please enter fewer quantities or a lower starting number.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
-                // Onay İste
                 var confirmResult = MessageBox.Show(
-                    $"{selectedMachines.Count} machines, {startNumber} starting from number {count}prescription will be deleted.\nThis action is irreversible.!\nDo you want to continue?",
-                    "Kritik İşlem Onayı",
+                    $"{selectedMachines.Count} machines, {startNumber} starting from number {count} prescription will be deleted.\nThis action is irreversible!\nDo you want to continue?",
+                    "Critical Process Approval",
                     MessageBoxButtons.YesNo,
                     MessageBoxIcon.Warning);
 
                 if (confirmResult != DialogResult.Yes) return;
 
-                // 4. Boş Reçete Listesini Oluştur
-                // Tek bir boş şablon yerine, istenen adet kadar boş reçete nesnesi oluşturup bir listeye koyuyoruz.
-                // Servis, bu listeyi alıp sırasıyla (StartNumber'dan başlayarak) isimlendirip gönderecek.
                 var emptyRecipesList = new List<ScadaRecipe>();
 
                 for (int i = 0; i < count; i++)
                 {
-                    // Her seferinde yeni bir boş reçete örneği oluştur
                     var emptyRecipe = CreateEmptyRecipeForMachineType(_targetMachineType);
-
-                    // İsteğe bağlı: Reçete adını "BOŞ" veya "EMPTY" yapabiliriz.
-                    // Bu isim PLC'de reçete listesinde görünecektir.
                     emptyRecipe.RecipeName = "-";
-
                     emptyRecipesList.Add(emptyRecipe);
                 }
 
-                // 5. Transfer Kuyruğuna Ekle (Toplu Gönderim)
-                // FtpTransferService'in mevcut metodunu kullanarak listeyi gönderiyoruz.
-                // Bu metot, verdiğimiz listeyi startNumber'dan başlayarak sırasıyla (XPR00001, XPR00002...) isimlendirip kuyruğa atar.
                 _transferService.QueueSequentiallyNamedSendJobs(emptyRecipesList, selectedMachines, startNumber);
 
                 MessageBox.Show($"{count} The number of prescription deletions has been added to the transfer queue.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                // --- LOGLAMA ---
                 if (CurrentUser.User != null && _userRepository != null)
                 {
                     string details = $"{count} recipes cleared (overwritten with empty) on {selectedMachines.Count} machines. Start #: {startNumber}";
@@ -548,7 +569,6 @@ namespace Telemetry.UI
             }
         }
 
-        // Yardımcı Metot: Boş Reçete Oluşturucu
         private ScadaRecipe CreateEmptyRecipeForMachineType(string machineType)
         {
             var recipe = new ScadaRecipe
@@ -559,14 +579,11 @@ namespace Telemetry.UI
                 Steps = new List<ScadaRecipeStep>()
             };
 
-            // DÜZELTME 1: Kullanıcı isteği üzerine 1'den 99'a kadar tüm adımları oluşturuyoruz.
             for (int i = 1; i <= 99; i++)
             {
                 var emptyStep = new ScadaRecipeStep
                 {
                     StepNumber = (short)i,
-                    // DÜZELTME 2: Boyut 96 yerine 25 yapıldı. 
-                    // CSV dönüştürücünüz her adımı 25 satır olarak okuduğu için 96 yolladığımızda 4 adım (96/25) gibi görünüyordu.
                     StepDataWords = new short[25]
                 };
                 recipe.Steps.Add(emptyStep);

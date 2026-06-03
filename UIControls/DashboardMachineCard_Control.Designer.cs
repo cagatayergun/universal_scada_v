@@ -4,213 +4,253 @@ namespace Telemetry.UI.Controls
     partial class DashboardMachineCard_Control
     {
         private System.ComponentModel.IContainer components = null;
-        protected override void Dispose(bool disposing) { if (disposing && (components != null)) { components.Dispose(); } base.Dispose(disposing); }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
 
         #region Component Designer generated code
         private void InitializeComponent()
         {
-            pnlStatusIndicator = new Panel();
-            lblMachineName = new Label();
-            lblStatus = new Label();
-            lblRecipeName = new Label();
-            lblBatchId = new Label();
-            lblTemperature = new Label();
-            gaugeRpm = new CircularProgressBar.CircularProgressBar();
-            progressBar = new ProgressBar();
-            lblPercentage = new Label();
-            lblProcessing = new Label();
-            lblHumidity = new Label();
-            lblhumudity = new Label();
-            label2 = new Label();
-            SuspendLayout();
+            this.materialCard1 = new MaterialSkin.Controls.MaterialCard(); // YENİ: Ana modern konteyner paneli
+            this.pnlStatusIndicator = new System.Windows.Forms.Panel();
+            this.lblMachineName = new System.Windows.Forms.Label();
+            this.lblStatus = new System.Windows.Forms.Label();
+            this.lblRecipeName = new System.Windows.Forms.Label();
+            this.lblBatchId = new System.Windows.Forms.Label();
+            this.lblTemperature = new System.Windows.Forms.Label();
+            this.gaugeRpm = new CircularProgressBar.CircularProgressBar();
+            this.progressBar = new System.Windows.Forms.ProgressBar();
+            this.lblPercentage = new System.Windows.Forms.Label();
+            this.lblProcessing = new System.Windows.Forms.Label();
+            this.lblHumidity = new System.Windows.Forms.Label();
+            this.lblhumudity = new System.Windows.Forms.Label();
+            this.label2 = new System.Windows.Forms.Label();
+            this.materialCard1.SuspendLayout();
+            this.SuspendLayout();
+            // 
+            // materialCard1
+            // 
+            this.materialCard1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(255)))), ((int)(((byte)(255)))));
+            this.materialCard1.Controls.Add(this.lblhumudity);
+            this.materialCard1.Controls.Add(this.label2);
+            this.materialCard1.Controls.Add(this.lblHumidity);
+            this.materialCard1.Controls.Add(this.lblProcessing);
+            this.materialCard1.Controls.Add(this.lblPercentage);
+            this.materialCard1.Controls.Add(this.progressBar);
+            this.materialCard1.Controls.Add(this.gaugeRpm);
+            this.materialCard1.Controls.Add(this.lblTemperature);
+            this.materialCard1.Controls.Add(this.lblBatchId);
+            this.materialCard1.Controls.Add(this.lblRecipeName);
+            this.materialCard1.Controls.Add(this.lblStatus);
+            this.materialCard1.Controls.Add(this.lblMachineName);
+            this.materialCard1.Controls.Add(this.pnlStatusIndicator);
+            this.materialCard1.Depth = 0;
+            this.materialCard1.Dock = System.Windows.Forms.DockStyle.Fill; // Kartı tüm alana yay
+            this.materialCard1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(222)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
+            this.materialCard1.Location = new System.Drawing.Point(0, 0);
+            this.materialCard1.Margin = new System.Windows.Forms.Padding(14);
+            this.materialCard1.MouseState = MaterialSkin.MouseState.OUT;
+            this.materialCard1.Name = "materialCard1";
+            this.materialCard1.Padding = new System.Windows.Forms.Padding(14);
+            this.materialCard1.Size = new System.Drawing.Size(293, 197);
+            this.materialCard1.TabIndex = 0;
             // 
             // pnlStatusIndicator
             // 
-            pnlStatusIndicator.BackColor = Color.SlateGray;
-            pnlStatusIndicator.Dock = DockStyle.Left;
-            pnlStatusIndicator.Location = new Point(0, 0);
-            pnlStatusIndicator.Margin = new Padding(4, 3, 4, 3);
-            pnlStatusIndicator.Name = "pnlStatusIndicator";
-            pnlStatusIndicator.Size = new Size(12, 197);
-            pnlStatusIndicator.TabIndex = 0;
+            this.pnlStatusIndicator.BackColor = System.Drawing.Color.SlateGray;
+            this.pnlStatusIndicator.Dock = System.Windows.Forms.DockStyle.Left; // Kartın en soluna şerit olarak yasla
+            this.pnlStatusIndicator.Location = new System.Drawing.Point(14, 14);
+            this.pnlStatusIndicator.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            this.pnlStatusIndicator.Name = "pnlStatusIndicator";
+            this.pnlStatusIndicator.Size = new System.Drawing.Size(8, 169); // MaterialCard padding'ine göre boyutlandırıldı
+            this.pnlStatusIndicator.TabIndex = 0;
             // 
             // lblMachineName
             // 
-            lblMachineName.AutoSize = true;
-            lblMachineName.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
-            lblMachineName.Location = new Point(23, 5);
-            lblMachineName.Margin = new Padding(4, 0, 4, 0);
-            lblMachineName.Name = "lblMachineName";
-            lblMachineName.Size = new Size(97, 21);
-            lblMachineName.TabIndex = 1;
-            lblMachineName.Text = "Makine Adı";
+            this.lblMachineName.AutoSize = true;
+            this.lblMachineName.BackColor = System.Drawing.Color.Transparent;
+            this.lblMachineName.Font = new System.Drawing.Font("Segoe UI Semibold", 12F, System.Drawing.FontStyle.Bold);
+            this.lblMachineName.Location = new System.Drawing.Point(32, 12);
+            this.lblMachineName.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.lblMachineName.Name = "lblMachineName";
+            this.lblMachineName.Size = new System.Drawing.Size(92, 21);
+            this.lblMachineName.TabIndex = 1;
+            this.lblMachineName.Text = "Machine";
             // 
             // lblStatus
             // 
-            lblStatus.AutoSize = true;
-            lblStatus.Font = new Font("Arial Black", 9.75F, FontStyle.Bold, GraphicsUnit.Point, 162);
-            lblStatus.Location = new Point(23, 153);
-            lblStatus.Margin = new Padding(4, 0, 4, 0);
-            lblStatus.Name = "lblStatus";
-            lblStatus.Size = new Size(80, 18);
-            lblStatus.TabIndex = 2;
-            lblStatus.Text = "DURUYOR";
+            this.lblStatus.AutoSize = true;
+            this.lblStatus.BackColor = System.Drawing.Color.Transparent;
+            this.lblStatus.Font = new System.Drawing.Font("Segoe UI Black", 9.5F, System.Drawing.FontStyle.Bold);
+            this.lblStatus.Location = new System.Drawing.Point(32, 148);
+            this.lblStatus.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.lblStatus.Name = "lblStatus";
+            this.lblStatus.Size = new System.Drawing.Size(50, 17);
+            this.lblStatus.TabIndex = 2;
+            this.lblStatus.Text = "STOPS";
             // 
             // lblRecipeName
             // 
-            lblRecipeName.Font = new Font("Segoe UI Black", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 162);
-            lblRecipeName.Location = new Point(23, 34);
-            lblRecipeName.Margin = new Padding(4, 0, 4, 0);
-            lblRecipeName.Name = "lblRecipeName";
-            lblRecipeName.Size = new Size(131, 21);
-            lblRecipeName.TabIndex = 4;
-            lblRecipeName.Text = "Reçete: -";
-            lblRecipeName.TextAlign = ContentAlignment.MiddleLeft;
+            this.lblRecipeName.BackColor = System.Drawing.Color.Transparent;
+            this.lblRecipeName.Font = new System.Drawing.Font("Segoe UI Semibold", 8.5F, System.Drawing.FontStyle.Bold);
+            this.lblRecipeName.Location = new System.Drawing.Point(32, 36);
+            this.lblRecipeName.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.lblRecipeName.Name = "lblRecipeName";
+            this.lblRecipeName.Size = new System.Drawing.Size(145, 21);
+            this.lblRecipeName.TabIndex = 4;
+            this.lblRecipeName.Text = "Recipe: -";
+            this.lblRecipeName.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // lblBatchId
             // 
-            lblBatchId.Font = new Font("Segoe UI Black", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 162);
-            lblBatchId.Location = new Point(23, 53);
-            lblBatchId.Margin = new Padding(4, 0, 4, 0);
-            lblBatchId.Name = "lblBatchId";
-            lblBatchId.Size = new Size(131, 21);
-            lblBatchId.TabIndex = 8;
-            lblBatchId.Text = "Parti: -";
-            lblBatchId.TextAlign = ContentAlignment.MiddleLeft;
+            this.lblBatchId.BackColor = System.Drawing.Color.Transparent;
+            this.lblBatchId.Font = new System.Drawing.Font("Segoe UI Semibold", 8.5F, System.Drawing.FontStyle.Bold);
+            this.lblBatchId.Location = new System.Drawing.Point(32, 55);
+            this.lblBatchId.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.lblBatchId.Name = "lblBatchId";
+            this.lblBatchId.Size = new System.Drawing.Size(145, 21);
+            this.lblBatchId.TabIndex = 8;
+            this.lblBatchId.Text = "Party: -";
+            this.lblBatchId.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // lblTemperature
             // 
-            lblTemperature.Font = new Font("Arial Black", 20.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            lblTemperature.ForeColor = Color.FromArgb(192, 0, 0);
-            lblTemperature.Location = new Point(100, 73);
-            lblTemperature.Margin = new Padding(4, 0, 4, 0);
-            lblTemperature.Name = "lblTemperature";
-            lblTemperature.Size = new Size(98, 33);
-            lblTemperature.TabIndex = 11;
-            lblTemperature.Text = "25 °C";
+            this.lblTemperature.BackColor = System.Drawing.Color.Transparent;
+            this.lblTemperature.Font = new System.Drawing.Font("Segoe UI Black", 18F, System.Drawing.FontStyle.Bold);
+            this.lblTemperature.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(239)))), ((int)(((byte)(83)))), ((int)(((byte)(80)))));
+            this.lblTemperature.Location = new System.Drawing.Point(103, 76);
+            this.lblTemperature.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.lblTemperature.Name = "lblTemperature";
+            this.lblTemperature.Size = new System.Drawing.Size(95, 33);
+            this.lblTemperature.TabIndex = 11;
+            this.lblTemperature.Text = "0 °C";
+            this.lblTemperature.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // gaugeRpm
             // 
-            gaugeRpm.AnimationFunction = WinFormAnimation.KnownAnimationFunctions.Liner;
-            gaugeRpm.AnimationSpeed = 500;
-            gaugeRpm.BackColor = Color.Transparent;
-            gaugeRpm.Font = new Font("Segoe UI Black", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 162);
-            gaugeRpm.ForeColor = Color.FromArgb(64, 64, 64);
-            gaugeRpm.InnerColor = Color.White;
-            gaugeRpm.InnerMargin = 2;
-            gaugeRpm.InnerWidth = -1;
-            gaugeRpm.Location = new Point(198, 56);
-            gaugeRpm.Margin = new Padding(3, 2, 3, 2);
-            gaugeRpm.MarqueeAnimationSpeed = 2000;
-            gaugeRpm.Maximum = 500;
-            gaugeRpm.Name = "gaugeRpm";
-            gaugeRpm.OuterColor = Color.FromArgb(224, 224, 224);
-            gaugeRpm.OuterMargin = -25;
-            gaugeRpm.OuterWidth = 26;
-            gaugeRpm.ProgressColor = Color.FromArgb(46, 204, 113);
-            gaugeRpm.ProgressWidth = 18;
-            gaugeRpm.SecondaryFont = new Font("Segoe UI Black", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 162);
-            gaugeRpm.Size = new Size(78, 68);
-            gaugeRpm.StartAngle = 135;
-            gaugeRpm.SubscriptColor = Color.FromArgb(100, 100, 100);
-            gaugeRpm.SubscriptMargin = new Padding(-4, -37, 0, 0);
-            gaugeRpm.SubscriptText = "RPM";
-            gaugeRpm.SuperscriptColor = Color.FromArgb(166, 166, 166);
-            gaugeRpm.SuperscriptMargin = new Padding(0, 0, 50, 0);
-            gaugeRpm.SuperscriptText = "";
-            gaugeRpm.TabIndex = 12;
-            gaugeRpm.Text = "0";
-            gaugeRpm.TextMargin = new Padding(7, 25, 0, 0);
-            gaugeRpm.Value = 68;
+            this.gaugeRpm.AnimationFunction = WinFormAnimation.KnownAnimationFunctions.Liner;
+            this.gaugeRpm.AnimationSpeed = 500;
+            this.gaugeRpm.BackColor = System.Drawing.Color.Transparent;
+            this.gaugeRpm.Font = new System.Drawing.Font("Segoe UI Black", 8F, System.Drawing.FontStyle.Bold);
+            this.gaugeRpm.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
+            // KOYU MOD UYUMLU GAUGE RENKLERİ: İç parça koyu füme yapıldı
+            this.gaugeRpm.InnerColor = System.Drawing.Color.FromArgb(((int)(((byte)(28)))), ((int)(((byte)(36)))), ((int)(((byte)(48)))));
+            this.gaugeRpm.InnerMargin = 2;
+            this.gaugeRpm.InnerWidth = -1;
+            this.gaugeRpm.Location = new System.Drawing.Point(202, 54);
+            this.gaugeRpm.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.gaugeRpm.MarqueeAnimationSpeed = 2000;
+            this.gaugeRpm.Maximum = 500;
+            this.gaugeRpm.Name = "gaugeRpm";
+            this.gaugeRpm.OuterColor = System.Drawing.Color.FromArgb(((int)(((byte)(55)))), ((int)(((byte)(71)))), ((int)(((byte)(79))))); // Koyu Mavi Gri
+            this.gaugeRpm.OuterMargin = -25;
+            this.gaugeRpm.OuterWidth = 26;
+            this.gaugeRpm.ProgressColor = System.Drawing.Color.FromArgb(((int)(((byte)(76)))), ((int)(((byte)(175)))), ((int)(((byte)(80))))); // Material Green
+            this.gaugeRpm.ProgressWidth = 16;
+            this.gaugeRpm.SecondaryFont = new System.Drawing.Font("Segoe UI Black", 8F, System.Drawing.FontStyle.Bold);
+            this.gaugeRpm.Size = new System.Drawing.Size(76, 72);
+            this.gaugeRpm.StartAngle = 135;
+            this.gaugeRpm.SubscriptColor = System.Drawing.Color.FromArgb(((int)(((byte)(144)))), ((int)(((byte)(164)))), ((int)(((byte)(174)))));
+            this.gaugeRpm.SubscriptMargin = new System.Windows.Forms.Padding(-2, -36, 0, 0);
+            this.gaugeRpm.SubscriptText = "RPM";
+            this.gaugeRpm.SuperscriptColor = System.Drawing.Color.FromArgb(((int)(((byte)(166)))), ((int)(((byte)(166)))), ((int)(((byte)(166)))));
+            this.gaugeRpm.SuperscriptMargin = new System.Windows.Forms.Padding(0, 0, 50, 0);
+            this.gaugeRpm.SuperscriptText = "";
+            this.gaugeRpm.TabIndex = 12;
+            this.gaugeRpm.Text = "0";
+            this.gaugeRpm.TextMargin = new System.Windows.Forms.Padding(4, 24, 0, 0);
+            this.gaugeRpm.Value = 0;
             // 
             // progressBar
             // 
-            progressBar.Location = new Point(111, 180);
-            progressBar.Name = "progressBar";
-            progressBar.Size = new Size(135, 10);
-            progressBar.TabIndex = 13;
+            this.progressBar.Location = new System.Drawing.Point(111, 174);
+            this.progressBar.Name = "progressBar";
+            this.progressBar.Size = new System.Drawing.Size(130, 8);
+            this.progressBar.TabIndex = 13;
             // 
             // lblPercentage
             // 
-            lblPercentage.AutoSize = true;
-            lblPercentage.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblPercentage.Location = new Point(249, 177);
-            lblPercentage.Name = "lblPercentage";
-            lblPercentage.Size = new Size(27, 15);
-            lblPercentage.TabIndex = 14;
-            lblPercentage.Text = "0 %";
+            this.lblPercentage.AutoSize = true;
+            this.lblPercentage.BackColor = System.Drawing.Color.Transparent;
+            this.lblPercentage.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
+            this.lblPercentage.Location = new System.Drawing.Point(247, 170);
+            this.lblPercentage.Name = "lblPercentage";
+            this.lblPercentage.Size = new System.Drawing.Size(27, 15);
+            this.lblPercentage.TabIndex = 14;
+            this.lblPercentage.Text = "0 %";
             // 
             // lblProcessing
             // 
-            lblProcessing.AutoSize = true;
-            lblProcessing.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblProcessing.ForeColor = Color.Black;
-            lblProcessing.Location = new Point(23, 177);
-            lblProcessing.Name = "lblProcessing";
-            lblProcessing.Size = new Size(80, 15);
-            lblProcessing.TabIndex = 15;
-            lblProcessing.Text = "PROSESSING";
+            this.lblProcessing.AutoSize = true;
+            this.lblProcessing.BackColor = System.Drawing.Color.Transparent;
+            this.lblProcessing.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
+            this.lblProcessing.Location = new System.Drawing.Point(32, 170);
+            this.lblProcessing.Name = "lblProcessing";
+            this.lblProcessing.Size = new System.Drawing.Size(79, 15);
+            this.lblProcessing.TabIndex = 15;
+            this.lblProcessing.Text = "PROCESSING";
             // 
             // lblHumidity
             // 
-            lblHumidity.AutoSize = true;
-            lblHumidity.Font = new Font("Arial Black", 20.25F, FontStyle.Bold);
-            lblHumidity.ForeColor = Color.CornflowerBlue;
-            lblHumidity.Location = new Point(100, 107);
-            lblHumidity.Name = "lblHumidity";
-            lblHumidity.Size = new Size(89, 38);
-            lblHumidity.TabIndex = 16;
-            lblHumidity.Text = "25 %";
-            lblHumidity.Visible = false;
+            this.lblHumidity.BackColor = System.Drawing.Color.Transparent;
+            this.lblHumidity.Font = new System.Drawing.Font("Segoe UI Black", 18F, System.Drawing.FontStyle.Bold);
+            this.lblHumidity.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(181)))), ((int)(((byte)(246)))));
+            this.lblHumidity.Location = new System.Drawing.Point(103, 110);
+            this.lblHumidity.Name = "lblHumidity";
+            this.lblHumidity.Size = new System.Drawing.Size(95, 33);
+            this.lblHumidity.TabIndex = 16;
+            this.lblHumidity.Text = "0 %";
+            this.lblHumidity.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.lblHumidity.Visible = false;
             // 
             // lblhumudity
             // 
-            lblhumudity.Font = new Font("Segoe UI Black", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 162);
-            lblhumudity.Location = new Point(20, 116);
-            lblhumudity.Margin = new Padding(4, 0, 4, 0);
-            lblhumudity.Name = "lblhumudity";
-            lblhumudity.Size = new Size(69, 21);
-            lblhumudity.TabIndex = 18;
-            lblhumudity.Text = "Humidity:";
-            lblhumudity.TextAlign = ContentAlignment.MiddleLeft;
+            this.lblhumudity.BackColor = System.Drawing.Color.Transparent;
+            this.lblhumudity.Font = new System.Drawing.Font("Segoe UI Semibold", 8.5F, System.Drawing.FontStyle.Bold);
+            this.lblhumudity.Location = new System.Drawing.Point(32, 116);
+            this.lblhumudity.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.lblhumudity.Name = "lblhumudity";
+            this.lblhumudity.Size = new System.Drawing.Size(69, 21);
+            this.lblhumudity.TabIndex = 18;
+            this.lblhumudity.Text = "Humidity:";
+            this.lblhumudity.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // label2
             // 
-            label2.Font = new Font("Segoe UI Black", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 162);
-            label2.Location = new Point(20, 82);
-            label2.Margin = new Padding(4, 0, 4, 0);
-            label2.Name = "label2";
-            label2.Size = new Size(83, 21);
-            label2.TabIndex = 17;
-            label2.Text = "Temprature:";
-            label2.TextAlign = ContentAlignment.MiddleLeft;
+            this.label2.BackColor = System.Drawing.Color.Transparent;
+            this.label2.Font = new System.Drawing.Font("Segoe UI Semibold", 8.5F, System.Drawing.FontStyle.Bold);
+            this.label2.Location = new System.Drawing.Point(32, 82);
+            this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(69, 21);
+            this.label2.TabIndex = 17;
+            this.label2.Text = "Temp:";
+            this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // DashboardMachineCard_Control
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            BackColor = SystemColors.Info;
-            BorderStyle = BorderStyle.FixedSingle;
-            Controls.Add(lblhumudity);
-            Controls.Add(label2);
-            Controls.Add(lblHumidity);
-            Controls.Add(lblProcessing);
-            Controls.Add(lblPercentage);
-            Controls.Add(progressBar);
-            Controls.Add(gaugeRpm);
-            Controls.Add(lblTemperature);
-            Controls.Add(lblBatchId);
-            Controls.Add(lblRecipeName);
-            Controls.Add(lblStatus);
-            Controls.Add(lblMachineName);
-            Controls.Add(pnlStatusIndicator);
-            Margin = new Padding(9);
-            Name = "DashboardMachineCard_Control";
-            Size = new Size(293, 197);
-            ResumeLayout(false);
-            PerformLayout();
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.Transparent; // Arka plan rengini ve gölgeleri MaterialCard yönetir
+            this.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.Controls.Add(this.materialCard1);
+            this.Margin = new System.Windows.Forms.Padding(9);
+            this.Name = "DashboardMachineCard_Control";
+            this.Size = new System.Drawing.Size(293, 197);
+            this.materialCard1.ResumeLayout(false);
+            this.materialCard1.PerformLayout();
+            this.ResumeLayout(false);
         }
+
         #endregion
+
+        private MaterialSkin.Controls.MaterialCard materialCard1;
         private System.Windows.Forms.Panel pnlStatusIndicator;
         private System.Windows.Forms.Label lblMachineName;
         private System.Windows.Forms.Label lblStatus;
@@ -220,9 +260,9 @@ namespace Telemetry.UI.Controls
         private CircularProgressBar.CircularProgressBar gaugeRpm;
         private System.Windows.Forms.ProgressBar progressBar;
         private System.Windows.Forms.Label lblPercentage;
-        private Label lblProcessing;
-        private Label lblHumidity; // YENİ
-        private Label lblhumudity;
-        private Label label2;
+        private System.Windows.Forms.Label lblProcessing;
+        private System.Windows.Forms.Label lblHumidity;
+        private System.Windows.Forms.Label lblhumudity;
+        private System.Windows.Forms.Label label2;
     }
 }

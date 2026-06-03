@@ -1,10 +1,15 @@
-﻿using System;
+﻿// UIViews/DowntimeSettings_Control.cs
+using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using System.Threading.Tasks;
 using Telemetry.Repositories;
 using Telemetry.Services;
 using Telemetry.Core;
+using MaterialSkin;          // YENİ EKLENDİ
+using MaterialSkin.Controls; // YENİ EKLENDİ
 
 namespace Telemetry.UIViews
 {
@@ -16,6 +21,13 @@ namespace Telemetry.UIViews
         public DowntimeSettings_Control()
         {
             InitializeComponent();
+
+            // UX OPTMİZASYONU: Ayarlar tab kontrolünün koyu/açık temasına lekesiz uyum sağlar
+            this.BackColor = Color.Transparent;
+            this.DoubleBuffered = true;
+
+            // SPEED OPTİMİZASYON: Satır ekleme/silme süreçlerinde tablonun göz kırpmasını engeller
+            EnableDoubleBuffer(dgvDowntime);
         }
 
         /// <summary>
@@ -30,13 +42,16 @@ namespace Telemetry.UIViews
 
         private void DowntimeSettings_Control_Load(object sender, EventArgs e)
         {
-            // If initialized via code instead of the designer, do not run LoadData here;
-            // wait for InitializeControl.
+            // Kod arkasından güvenli başlatma mimarisi korundu.
         }
 
         private void LoadData()
         {
-            if (_efficiencyRepository == null) return;
+            if (_efficiencyRepository == null || this.IsDisposed) return;
+
+            // Performans için arayüz çizim motorunu kilitle
+            this.SuspendLayout();
+            dgvDowntime.SuspendLayout();
 
             try
             {
@@ -52,13 +67,18 @@ namespace Telemetry.UIViews
             {
                 MessageBox.Show($"Error loading data: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+            finally
+            {
+                // Çizim kilitlerini kaldır ve toplu render et
+                dgvDowntime.ResumeLayout(true);
+                this.ResumeLayout(true);
+            }
         }
 
         private void btnAdd_Click(object sender, EventArgs e)
         {
-            // Add a new empty row
             int rowIndex = dgvDowntime.Rows.Add();
-            dgvDowntime.Rows[rowIndex].Cells[0].Value = 0; // Default bit
+            dgvDowntime.Rows[rowIndex].Cells[0].Value = 0; // Varsayılan PLC bit adresi
             dgvDowntime.Rows[rowIndex].Cells[1].Value = "New Downtime Reason";
             dgvDowntime.CurrentCell = dgvDowntime.Rows[rowIndex].Cells[1];
             dgvDowntime.BeginEdit(true);
@@ -73,9 +93,20 @@ namespace Telemetry.UIViews
 
                 if (confirm == DialogResult.Yes)
                 {
-                    foreach (DataGridViewRow row in dgvDowntime.SelectedRows)
+                    dgvDowntime.SuspendLayout();
+                    try
                     {
-                        dgvDowntime.Rows.Remove(row);
+                        foreach (DataGridViewRow row in dgvDowntime.SelectedRows)
+                        {
+                            if (!row.IsNewRow)
+                            {
+                                dgvDowntime.Rows.Remove(row);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        dgvDowntime.ResumeLayout(true);
                     }
                 }
             }
@@ -88,12 +119,17 @@ namespace Telemetry.UIViews
 
         private async void btnSave_Click(object sender, EventArgs e)
         {
+            if (this.IsDisposed) return;
+
+            this.Cursor = Cursors.WaitCursor;
+            this.SuspendLayout();
+
             try
             {
                 var list = new List<dynamic>();
                 var bitIndices = new HashSet<int>();
 
-                // Collect and validate data from the grid
+                // Veri doğrulama ve toplama döngüsü
                 foreach (DataGridViewRow row in dgvDowntime.Rows)
                 {
                     if (row.Cells[0].Value == null || row.Cells[1].Value == null) continue;
@@ -119,10 +155,10 @@ namespace Telemetry.UIViews
                     });
                 }
 
-                // 1. Save to Database (Truncate & Insert logic)
+                // 1. Veritabanına Asenkron Kayıt Döngüsü
                 await _efficiencyRepository.SaveDowntimeDefinitionsAsync(list);
 
-                // 2. UPDATE the background service (PlcPollingService)
+                // 2. Arka plan PLC polling servisini anında güncelle (Önbellek Tazeleme)
                 if (_plcPollingService != null)
                 {
                     _plcPollingService.LoadWaitingDefinitionsCache();
@@ -131,12 +167,34 @@ namespace Telemetry.UIViews
                 MessageBox.Show("Downtime reasons successfully saved and the system has been updated.", "Information",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                LoadData(); // Refresh the list
+                LoadData(); // Listeyi tazele
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"An error occurred during save: {ex.Message}", "Critical Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                this.ResumeLayout(true);
+                this.Cursor = Cursors.Default;
+            }
+        }
+
+        // SPEED OPTİMİZASYON: Tablonun kaydırma (scroll) ivmesini artıran yansıtma metodu
+        private void EnableDoubleBuffer(Control control)
+        {
+            try
+            {
+                typeof(Control).InvokeMember("DoubleBuffered",
+                    System.Reflection.BindingFlags.SetProperty |
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.NonPublic,
+                    null, control, new object[] { true });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DoubleBuffering could not be enabled: {ex.Message}");
             }
         }
     }

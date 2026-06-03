@@ -2,10 +2,13 @@
 using System;
 using System.Windows.Forms;
 using Telemetry.Services;
+using MaterialSkin;          // YENİ EKLENDİ: MaterialSkin ana kütüphanesi
+using MaterialSkin.Controls; // YENİ EKLENDİ: MaterialForm bileşenleri için
 
 namespace Telemetry.UI
 {
-    public partial class LoginForm : Form
+    // Form yerine MaterialForm sınıfından türetiyoruz
+    public partial class LoginForm : MaterialForm
     {
         private readonly AuthService _authService;
 
@@ -13,6 +16,15 @@ namespace Telemetry.UI
         {
             InitializeComponent();
             _authService = new AuthService();
+
+            // =========================================================================
+            // MATERIALSKIN FORM ENTEGRASYONU
+            // Formun üst barlarını ve pencere çerçevesini modern flat tasarıma dönüştürür.
+            // =========================================================================
+            var materialSkinManager = MaterialSkinManager.Instance;
+            materialSkinManager.AddFormToManage(this); // Bu formu temalandırma motoruna kaydet
+
+            this.DoubleBuffered = true; // Ekran yüklenirken veya form taşınırken titremeyi engeller
         }
 
         private void btnLogin_Click(object sender, EventArgs e)
