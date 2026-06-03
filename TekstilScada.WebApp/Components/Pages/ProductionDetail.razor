@@ -312,6 +312,7 @@ else
         }
     }
 
+    // 📁 ProductionDetail.razor içindeki OnAfterRenderAsync metodunu bu şekilde güncelleyin:
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (shouldRenderPieChart && !_chartsDrawn)
@@ -330,7 +331,8 @@ else
             DateTime effectiveEnd = detailData.Header.EndTime == DateTime.MinValue ? DateTime.Now : detailData.Header.EndTime;
             string endISO = effectiveEnd.ToString("yyyy-MM-dd HH:mm:ss");
 
-            await JSRuntime.InvokeVoidAsync("plotDynamicDetailCharts", trendDataPoints, startISO, endISO);
+            // 🚨 DÜZELTME: "plotDynamicDetailCharts" yerine JS dosyanızdaki gerçek ismi ("plotSyncedChartsWithLimits") geri yazdık
+            await JSRuntime.InvokeVoidAsync("plotSyncedChartsWithLimits", trendDataPoints, startISO, endISO);
         }
     }
 
@@ -428,7 +430,7 @@ else
             trendDataPoints = deserialized?.Select(d => new TrendProcessDataPoint
             {
                 Timestamp = d.Timestamp,
-                Temperature = isDry ? d.Temperature / 100.0m : d.Temperature / 10.0m, // 100 vs 10 ayrımı sağlandı
+                Temperature = isDry ? d.Temperature / 10.0m : d.Temperature / 10.0m, // 100 vs 10 ayrımı sağlandı
                 WaterLevel = d.WaterLevel,
                 Rpm = d.Rpm
             }).ToList();

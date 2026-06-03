@@ -948,7 +948,7 @@
 
                     // 🚨 KESİN DÜZELTME 3: Kurutma ve Yıkama ayrımına göre dinamik bölme kuralı entegre edildi
                     bool isDry = IsDryerMachine(selectedTrendMachineIdInt);
-                    decimal divisor = isDry ? 100.0m : 10.0m;
+                    decimal divisor = isDry ? 10.0m : 10.0m;
 
                     foreach (var point in fullData)
                     {
