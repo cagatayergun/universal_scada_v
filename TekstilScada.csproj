@@ -99,7 +99,7 @@
 
 	<ItemGroup>
 		<Reference Include="HslCommunication">
-		  <HintPath>..\..\..\Downloads\HslCommunication\HslCommunication.dll</HintPath>
+		  <HintPath>Lib\HslCommunication.dll</HintPath>
 		</Reference>
 		<Reference Include="VncSharpCore">
 			<HintPath>..\..\..\Lib\VncSharpCore.dll</HintPath>

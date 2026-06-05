@@ -1,149 +1,46 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Caching.Memory; // 🚨 EKLENDİ
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 using TekstilScada.Core.Models;
 using TekstilScada.Models;
 using TekstilScada.Repositories;
 using TekstilScada.WebAPI.Repositories;
 using static TekstilScada.Core.Core.ExcelExportHelper;
 
-
-
-
-// --- DTO Sınıfları (Aynen Korunuyor) ---
-public class ReportFilters
-{
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-    public int? MachineId { get; set; }
-    public string? BatchNo { get; set; }
-}
-
+// --- DTO Sınıfları ---
+public class ReportFilters { public DateTime StartTime { get; set; } public DateTime EndTime { get; set; } public int? MachineId { get; set; } public string? BatchNo { get; set; } }
 public enum TransferType { Send, Receive }
 public enum TransferStatus { Pending, Transferring, Successful, Failed }
-
-public class TransferJob
-{
-    public Guid Id { get; set; }
-    public Machine Machine { get; set; }
-    public ScadaRecipe? LocalRecipe { get; set; }
-    public string? RemoteFileName { get; set; }
-    public string TargetFileName { get; set; }
-    public int RecipeNumber { get; set; }
-    public TransferType OperationType { get; set; }
-    public TransferStatus Status { get; set; }
-    public int Progress { get; set; }
-    public string ErrorMessage { get; set; }
-    public string MachineName => Machine?.MachineName ?? "";
-    public string RecipeName => OperationType == TransferType.Send
-                                ? (!string.IsNullOrEmpty(TargetFileName) ? $"{LocalRecipe?.RecipeName} -> {TargetFileName}" : LocalRecipe?.RecipeName)
-                                : RemoteFileName;
-}
-public class EfficiencyReportFilters
-{
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-    public int? MachineId { get; set; }
-    public string? SubType { get; set; }
-}
-public class HourlyConsumptionData
-{
-    public double Saat { get; set; }
-    public double ToplamElektrik { get; set; }
-    public double ToplamSu { get; set; }
-    public double ToplamBuhar { get; set; }
-}
-
-public class HourlyOeeData
-{
-    public double Saat { get; set; }
-    public double AverageOEE { get; set; }
-}
-public class SaveLayoutRequest
-{
-    public string LayoutName { get; set; }
-    public string MachineSubType { get; set; }
-    public int StepTypeId { get; set; }
-    public string LayoutJson { get; set; }
-}
-public class StepTypeDto
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-}
-public class TrendDataPoint
-{
-    public DateTime Timestamp { get; set; }
-    public double Temperature { get; set; }
-    public double Rpm { get; set; }
-    public double WaterLevel { get; set; }
-}
-
-public class ProductionStepDetailDto : ProductionStepDetail
-{
-    public double TheoreticalDurationSeconds { get; set; } = 0;
-    public double Temperature { get; set; } = 0;
-    public string StepDescription => StepName;
-}
-
-public class AlarmDetailDto
-{
-    // Alarmın başlangıç zamanı
-    public DateTime AlarmTime { get; set; } = DateTime.MinValue;
-
-    // Kritik: Alarm ID'si (0-499: Makine, 500-600: Operatör ayrımı için şart)
-    public int AlarmNumber { get; set; }
-
-    // Alarmın tipi (Warning, Error vb.)
-    public string AlarmType { get; set; } = string.Empty;
-
-    // Alarm açıklaması
-    public string AlarmDescription { get; set; } = string.Empty;
-
-    // Alarm süresi
-    public TimeSpan Duration { get; set; } = TimeSpan.Zero;
-
-    // Zaman kesişim analizi (Interval Merging) yaparken hassasiyet için EndTime eklendi
-    public DateTime EndTime => AlarmTime.Add(Duration);
-}
-
-public class ProductionDetailDto
-{
-    public ProductionReportItem Header { get; set; } = new();
-    public List<ProductionStepDetailDto> Steps { get; set; } = new();
-    public List<AlarmDetailDto> Alarms { get; set; } = new();
-    public List<TrendDataPoint> LogData { get; set; } = new();
-    public List<TrendDataPoint> TheoreticalData { get; set; } = new();
-}
-
-public class GeneralDetailedConsumptionFilters
-{
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-    public List<int>? MachineIds { get; set; }
-}
-
-public class GeneralConsumptionExportDto
-{
-    public List<ProductionReportItem>? Items { get; set; }
-    public string? ConsumptionType { get; set; }
-}
-public class ActionLogFilters
-{
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-    public string? Username { get; set; }
-    public string? Details { get; set; }
-}
+public class TransferJob { public Guid Id { get; set; } public Machine Machine { get; set; } public ScadaRecipe? LocalRecipe { get; set; } public string? RemoteFileName { get; set; } public string TargetFileName { get; set; } public int RecipeNumber { get; set; } public TransferType OperationType { get; set; } public TransferStatus Status { get; set; } public int Progress { get; set; } public string ErrorMessage { get; set; } public string MachineName => Machine?.MachineName ?? ""; public string RecipeName => OperationType == TransferType.Send ? (!string.IsNullOrEmpty(TargetFileName) ? $"{LocalRecipe?.RecipeName} -> {TargetFileName}" : LocalRecipe?.RecipeName) : RemoteFileName; }
+public class EfficiencyReportFilters { public DateTime StartTime { get; set; } public DateTime EndTime { get; set; } public int? MachineId { get; set; } public string? SubType { get; set; } }
+public class HourlyConsumptionData { public double Saat { get; set; } public double ToplamElektrik { get; set; } public double ToplamSu { get; set; } public double ToplamBuhar { get; set; } }
+public class HourlyOeeData { public double Saat { get; set; } public double AverageOEE { get; set; } }
+public class SaveLayoutRequest { public string LayoutName { get; set; } public string MachineSubType { get; set; } public int StepTypeId { get; set; } public string LayoutJson { get; set; } }
+public class StepTypeDto { public int Id { get; set; } public string Name { get; set; } }
+public class TrendDataPoint { public DateTime Timestamp { get; set; } public double Temperature { get; set; } public double Rpm { get; set; } public double WaterLevel { get; set; } }
+public class ProductionStepDetailDto : ProductionStepDetail { public double TheoreticalDurationSeconds { get; set; } = 0; public double Temperature { get; set; } = 0; public string StepDescription => StepName; }
+public class AlarmDetailDto { public DateTime AlarmTime { get; set; } = DateTime.MinValue; public int AlarmNumber { get; set; } public string AlarmType { get; set; } = string.Empty; public string AlarmDescription { get; set; } = string.Empty; public TimeSpan Duration { get; set; } = TimeSpan.Zero; public DateTime EndTime => AlarmTime.Add(Duration); }
+public class ProductionDetailDto { public ProductionReportItem Header { get; set; } = new(); public List<ProductionStepDetailDto> Steps { get; set; } = new(); public List<AlarmDetailDto> Alarms { get; set; } = new(); public List<TrendDataPoint> LogData { get; set; } = new(); public List<TrendDataPoint> TheoreticalData { get; set; } = new(); }
+public class GeneralDetailedConsumptionFilters { public DateTime StartTime { get; set; } public DateTime EndTime { get; set; } public List<int>? MachineIds { get; set; } }
+public class GeneralConsumptionExportDto { public List<ProductionReportItem>? Items { get; set; } public string? ConsumptionType { get; set; } }
+public class ActionLogFilters { public DateTime StartTime { get; set; } public DateTime EndTime { get; set; } public string? Username { get; set; } public string? Details { get; set; } }
 
 namespace TekstilScada.WebAPI.Hubs
 {
     public class ScadaHub : Hub
     {
         private readonly CentralFactoryRepository _factoryRepo;
+        private readonly IMemoryCache _memoryCache; // 🚨 EKLENDİ
 
         // --- GATEWAY YÖNETİMİ ---
         private static readonly ConcurrentDictionary<string, int> _gatewayConnections = new();
@@ -151,9 +48,12 @@ namespace TekstilScada.WebAPI.Hubs
         private static readonly ConcurrentDictionary<string, TaskCompletionSource<object?>> _pendingRequests = new();
         private static readonly ConcurrentDictionary<int, string> _factoryIps = new();
         private static readonly ConcurrentDictionary<int, ConcurrentDictionary<int, FullMachineStatus>> _machineStateCache = new();
-        public ScadaHub(CentralFactoryRepository factoryRepo)
+
+        // Constructor genişletildi
+        public ScadaHub(CentralFactoryRepository factoryRepo, IMemoryCache memoryCache)
         {
             _factoryRepo = factoryRepo;
+            _memoryCache = memoryCache;
         }
 
         // --- 1. GATEWAY KAYDI ---
@@ -176,12 +76,11 @@ namespace TekstilScada.WebAPI.Hubs
 
             Console.WriteLine($"[Hub] Gateway Onaylandı: {factory.FactoryName} (ID: {factory.Id})");
         }
+
         public async Task BroadcastMachineBatch(List<FullMachineStatus> statuses)
         {
-            // Hangi fabrikadan geldiğini bul
             if (_gatewayConnections.TryGetValue(Context.ConnectionId, out int factoryId))
             {
-                // 1. Server-Side Cache'i güncelle (Dashboard ilk açılış hızı için)
                 var factoryCache = _machineStateCache.GetOrAdd(factoryId, new ConcurrentDictionary<int, FullMachineStatus>());
 
                 foreach (var status in statuses)
@@ -189,28 +88,23 @@ namespace TekstilScada.WebAPI.Hubs
                     factoryCache[status.MachineId] = status;
                 }
 
-                // 2. O fabrikaya abone olan Dashboard'lara "Toplu Paket" gönder
-                // Dashboard tarafında da "ReceiveMachineBatch" adında bir listener olacak
                 await Clients.Group($"Factory_{factoryId}").SendAsync("ReceiveMachineBatch", factoryId, statuses);
             }
         }
+
         // --- 2. CANLI DURUM SORGUSU ---
         public async Task<List<FullMachineStatus>> GetLiveMachineStatusByFactoryId(int factoryId)
         {
-            // A. Önce Önbelleğe Bak (Hızlı Yanıt)
             if (_machineStateCache.TryGetValue(factoryId, out var factoryCache) && !factoryCache.IsEmpty)
             {
-                // Eğer önbellekte veri varsa, Gateway'e gitmeden hemen döndür
                 return factoryCache.Values.ToList();
             }
 
-            // B. Önbellek Boşsa Gateway'e Sor (Fallback - Yavaş olabilir)
             string? targetConnectionId = _gatewayConnections.FirstOrDefault(x => x.Value == factoryId).Key;
             if (string.IsNullOrEmpty(targetConnectionId)) return new List<FullMachineStatus>();
 
             var result = await SendRequestToGateway<List<FullMachineStatus>>(targetConnectionId, 60, "GetAllMachineStatuses");
 
-            // C. Gateway'den gelen veriyi de önbelleğe yaz (Bir sonraki istek hızlı olsun)
             if (result != null && result.Any())
             {
                 var cache = _machineStateCache.GetOrAdd(factoryId, new ConcurrentDictionary<int, FullMachineStatus>());
@@ -251,7 +145,6 @@ namespace TekstilScada.WebAPI.Hubs
             }
             finally
             {
-                // Hafıza temizliği (Memory Leak Fix)
                 _pendingRequests.TryRemove(requestId, out _);
                 if (_chunkBuffers.TryRemove(requestId, out var buffer)) buffer.Clear();
             }
@@ -294,11 +187,9 @@ namespace TekstilScada.WebAPI.Hubs
         {
             if (_gatewayConnections.TryGetValue(Context.ConnectionId, out int factoryId))
             {
-                // A. Sunucu Önbelleğini Güncelle
                 var factoryCache = _machineStateCache.GetOrAdd(factoryId, new ConcurrentDictionary<int, FullMachineStatus>());
                 factoryCache[status.MachineId] = status;
 
-                // B. İstemcilere Yayınla
                 await Clients.Group($"Factory_{factoryId}").SendAsync("ReceiveMachineUpdate", factoryId, status);
             }
         }
@@ -324,22 +215,23 @@ namespace TekstilScada.WebAPI.Hubs
             if (string.IsNullOrEmpty(targetConnectionId)) return default;
             return await SendRequestToGateway<T>(targetConnectionId, timeoutSeconds, targetMethod, args);
         }
+
         public async Task<PagedResult<AlarmReportItem>> GetAlarmReportPaged(int factoryId, ReportFilters filters, int pageNumber, int pageSize)
         {
-            // Gateway'deki "GetAlarmReportPaged" handler'ını çağırıyoruz
-            var result = await InvokeOnGateway<PagedResult<AlarmReportItem>>(
-                factoryId,
-                "GetAlarmReportPaged",
-                60, // Timeout süresi (60sn yeterli olabilir)
-                filters, pageNumber, pageSize
-            );
-
+            var result = await InvokeOnGateway<PagedResult<AlarmReportItem>>(factoryId, "GetAlarmReportPaged", 60, filters, pageNumber, pageSize);
             return result ?? new PagedResult<AlarmReportItem>();
         }
+
         public Task<List<int>> GetOnlineFactoryIds()
         {
             var onlineIds = _gatewayConnections.Values.Distinct().ToList();
             return Task.FromResult(onlineIds);
+        }
+
+        // Arka plan işçisinin canlı fabrikaları el sıkışmadan hemen çekebilmesi için statik metot
+        public static List<int> GetOnlineFactoryIdsStatic()
+        {
+            return _gatewayConnections.Values.Distinct().ToList();
         }
 
         private string? GetTargetGateway(int targetFactoryId)
@@ -363,7 +255,7 @@ namespace TekstilScada.WebAPI.Hubs
 
             var buffer = _chunkBuffers.GetOrAdd(requestId, _ => new StringBuilder());
 
-            lock (buffer) // Tüm süreci kilitle
+            lock (buffer)
             {
                 buffer.Append(chunk);
 
@@ -372,7 +264,7 @@ namespace TekstilScada.WebAPI.Hubs
                     if (_pendingRequests.TryRemove(requestId, out var tcs))
                     {
                         var finalJson = buffer.ToString();
-                        _chunkBuffers.TryRemove(requestId, out _); // Temizliği hemen yap
+                        _chunkBuffers.TryRemove(requestId, out _);
                         tcs.TrySetResult(finalJson);
                     }
                 }
@@ -388,7 +280,8 @@ namespace TekstilScada.WebAPI.Hubs
             }
         }
 
-        private T? DeserializeResult<T>(object result)
+        // 🚨 REFACTOR: Statik metotların da beslenebilmesi için yardımcı metot 'static' yapıldı
+        private static T? DeserializeResult<T>(object result)
         {
             var options = new JsonSerializerOptions
             {
@@ -401,8 +294,10 @@ namespace TekstilScada.WebAPI.Hubs
 
             string jsonString = "";
             if (result is string s) jsonString = s;
-            else if (result is JsonElement e) jsonString = e.GetRawText();
+            else if (result is JsonElement e) jsonString = e.ValueKind == JsonValueKind.String ? (e.GetString() ?? "") : e.GetRawText();
             else return (T)result;
+
+            if (string.IsNullOrWhiteSpace(jsonString)) return default;
 
             try
             {
@@ -439,21 +334,9 @@ namespace TekstilScada.WebAPI.Hubs
         public async Task<List<Machine>> GetAllMachines(int factoryId) => await InvokeOnGateway<List<Machine>>(factoryId, "GetAllMachines") ?? new List<Machine>();
         public async Task<FullMachineStatus?> GetMachineStatus(int factoryId, int id) => await InvokeOnGateway<FullMachineStatus>(factoryId, "GetMachineStatus", 30, id);
 
-        public async Task AddMachine(int factoryId, Machine machine)
-        {
-            await InvokeOnGateway<bool>(factoryId, "AddMachine", 30, machine);
-            await Clients.Group($"Factory_{factoryId}").SendAsync("MachineListUpdated");
-        }
-        public async Task UpdateMachine(int factoryId, Machine machine)
-        {
-            await InvokeOnGateway<bool>(factoryId, "UpdateMachine", 30, machine);
-            await Clients.Group($"Factory_{factoryId}").SendAsync("MachineListUpdated");
-        }
-        public async Task DeleteMachine(int factoryId, int id)
-        {
-            await InvokeOnGateway<bool>(factoryId, "DeleteMachine", 30, id);
-            await Clients.Group($"Factory_{factoryId}").SendAsync("MachineListUpdated");
-        }
+        public async Task AddMachine(int factoryId, Machine machine) { await InvokeOnGateway<bool>(factoryId, "AddMachine", 30, machine); await Clients.Group($"Factory_{factoryId}").SendAsync("MachineListUpdated"); }
+        public async Task UpdateMachine(int factoryId, Machine machine) { await InvokeOnGateway<bool>(factoryId, "UpdateMachine", 30, machine); await Clients.Group($"Factory_{factoryId}").SendAsync("MachineListUpdated"); }
+        public async Task DeleteMachine(int factoryId, int id) { await InvokeOnGateway<bool>(factoryId, "DeleteMachine", 30, id); await Clients.Group($"Factory_{factoryId}").SendAsync("MachineListUpdated"); }
 
         public async Task<List<User>> GetUsers(int factoryId) => await InvokeOnGateway<List<User>>(factoryId, "GetAllUsers") ?? new List<User>();
         public async Task<List<Role>> GetRoles(int factoryId) => await InvokeOnGateway<List<Role>>(factoryId, "GetAllRoles") ?? new List<Role>();
@@ -482,12 +365,7 @@ namespace TekstilScada.WebAPI.Hubs
         public async Task<List<StepTypeDtoDesign>> GetStepTypesDesign(int factoryId) => await InvokeOnGateway<List<StepTypeDtoDesign>>(factoryId, "GetStepTypes");
         public async Task<List<ControlMetadata>> GetLayoutDesign(int factoryId, string subType, int stepTypeId) => await InvokeOnGateway<List<ControlMetadata>>(factoryId, "GetLayoutJson", 30, subType, stepTypeId) ?? new List<ControlMetadata>();
         public async Task<bool> SaveLayoutDesign(int factoryId, string subType, int stepTypeId, List<ControlMetadata> layout) => await InvokeOnGateway<bool>(factoryId, "SaveLayout", 30, subType, stepTypeId, layout);
-        public async Task<string> GetStepLayout(int factoryId, string subType, int stepTypeId)
-        {
-            var list = await InvokeOnGateway<List<ControlMetadata>>(factoryId, "GetLayoutJson", 30, subType, stepTypeId);
-            if (list == null) return string.Empty;
-            return JsonSerializer.Serialize(list);
-        }
+        public async Task<string> GetStepLayout(int factoryId, string subType, int stepTypeId) { var list = await InvokeOnGateway<List<ControlMetadata>>(factoryId, "GetLayoutJson", 30, subType, stepTypeId); if (list == null) return string.Empty; return JsonSerializer.Serialize(list); }
 
         public async Task<List<PlcOperator>> GetPlcOperators(int factoryId) => await InvokeOnGateway<List<PlcOperator>>(factoryId, "GetPlcOperators") ?? new List<PlcOperator>();
         public async Task SavePlcOperator(int factoryId, PlcOperator op) => await InvokeOnGateway<bool>(factoryId, "SaveOrUpdateOperator", 30, op);
@@ -502,16 +380,44 @@ namespace TekstilScada.WebAPI.Hubs
         public async Task<List<TransferJob>> GetActiveJobs(int factoryId) => await InvokeOnGateway<List<TransferJob>>(factoryId, "GetActiveFtpJobs") ?? new List<TransferJob>();
 
         public async Task<List<OeeData>> GetOeeReport(int factoryId, ReportFilters filters) => await InvokeOnGateway<List<OeeData>>(factoryId, "GetOeeReport", 60, filters) ?? new List<OeeData>();
-        public async Task<List<HourlyConsumptionData>> GetHourlyConsumption(int factoryId) => await InvokeOnGateway<List<HourlyConsumptionData>>(factoryId, "GetHourlyFactoryConsumption") ?? new List<HourlyConsumptionData>();
-        public async Task<List<HourlyOeeData>> GetHourlyOee(int factoryId) => await InvokeOnGateway<List<HourlyOeeData>>(factoryId, "GetHourlyAverageOee") ?? new List<HourlyOeeData>();
-        public async Task<List<TopAlarmData>> GetTopAlarms(int factoryId) => await InvokeOnGateway<List<TopAlarmData>>(factoryId, "GetTopAlarmsByFrequency") ?? new List<TopAlarmData>();
-        public async Task<List<object>> GetManualTrendData(int factoryId, ReportFilters filters)
+
+        // 🚨 AKILLI GÜNCELLEME: Client'lar (Blazor) istek attığında ilk olarak API RAM belleği (Cache) denetlenir
+        public async Task<List<HourlyConsumptionData>> GetHourlyConsumption(int factoryId)
         {
-            // Gateway'deki "GetManualTrendData" handler'ını çağırır
-            var result = await InvokeOnGateway<List<object>>(factoryId, "GetManualTrendData", 60, filters);
-            return result ?? new List<object>();
+            if (_memoryCache.TryGetValue($"HourlyConsumption_Factory_{factoryId}", out List<HourlyConsumptionData>? cachedData) && cachedData != null)
+            {
+                return cachedData;
+            }
+            var data = await InvokeOnGateway<List<HourlyConsumptionData>>(factoryId, "GetHourlyFactoryConsumption") ?? new List<HourlyConsumptionData>();
+            if (data.Any()) _memoryCache.Set($"HourlyConsumption_Factory_{factoryId}", data, TimeSpan.FromMinutes(6));
+            return data;
         }
-        // --- RAPORLAR (Timeout Süreleri Artırıldı: 120sn) ---
+
+        public async Task<List<HourlyOeeData>> GetHourlyOee(int factoryId)
+        {
+            if (_memoryCache.TryGetValue($"HourlyOee_Factory_{factoryId}", out List<HourlyOeeData>? cachedData) && cachedData != null)
+            {
+                return cachedData;
+            }
+            var data = await InvokeOnGateway<List<HourlyOeeData>>(factoryId, "GetHourlyAverageOee") ?? new List<HourlyOeeData>();
+            if (data.Any()) _memoryCache.Set($"HourlyOee_Factory_{factoryId}", data, TimeSpan.FromMinutes(6));
+            return data;
+        }
+
+        public async Task<List<TopAlarmData>> GetTopAlarms(int factoryId)
+        {
+            if (_memoryCache.TryGetValue($"TopAlarms_Factory_{factoryId}", out List<TopAlarmData>? cachedData) && cachedData != null)
+            {
+                return cachedData;
+            }
+            var data = await InvokeOnGateway<List<TopAlarmData>>(factoryId, "GetTopAlarmsByFrequency") ?? new List<TopAlarmData>();
+            if (data.Any()) _memoryCache.Set($"TopAlarms_Factory_{factoryId}", data, TimeSpan.FromMinutes(6));
+            return data;
+        }
+
+        public async Task<List<object>> GetManualTrendData(int factoryId, ReportFilters filters) => await InvokeOnGateway<List<object>>(factoryId, "GetManualTrendData", 60, filters) ?? new List<object>();
+
+        // --- RAPORLAR ---
         public async Task<List<ProductionReportItem>> GetProductionReport(int factoryId, ReportFilters filters, int timeout = 120) => await InvokeOnGateway<List<ProductionReportItem>>(factoryId, "GetProductionReport", timeout, filters) ?? new List<ProductionReportItem>();
         public async Task<List<AlarmReportItem>> GetAlarmReport(int factoryId, ReportFilters filters, int timeout = 120) => await InvokeOnGateway<List<AlarmReportItem>>(factoryId, "GetAlarmReport", timeout, filters) ?? new List<AlarmReportItem>();
         public async Task<object> GetTrendData(int factoryId, ReportFilters filters, int timeout = 120) => await InvokeOnGateway<object>(factoryId, "GetTrendData", timeout, filters) ?? new List<object>();
@@ -520,12 +426,9 @@ namespace TekstilScada.WebAPI.Hubs
         public async Task<List<ProductionReportItem>> GetGeneralDetailedConsumptionReport(int factoryId, GeneralDetailedConsumptionFilters filters, int timeout = 180) => await InvokeOnGateway<List<ProductionReportItem>>(factoryId, "GetGeneralDetailedConsumptionReport", timeout, filters) ?? new List<ProductionReportItem>();
         public async Task<List<ActionLogEntry>> GetActionLogs(int factoryId, ActionLogFilters filters, int timeout = 60) => await InvokeOnGateway<List<ActionLogEntry>>(factoryId, "GetActionLogs", timeout, filters) ?? new List<ActionLogEntry>();
         public async Task<ProductionDetailDto?> GetProductionDetail(int factoryId, int machineId, string batchId) => await InvokeOnGateway<ProductionDetailDto>(factoryId, "GetProductionDetail", 60, machineId, batchId);
-        public async Task<List<EfficiencyLog>> GetEfficiencyReport(int factoryId, EfficiencyReportFilters filters, int timeout = 120)
-        {
-            return await InvokeOnGateway<List<EfficiencyLog>>(factoryId, "GetEfficiencyReport", timeout, filters)
-                   ?? new List<EfficiencyLog>();
-        }
-        // --- EXPORT METOTLARI (Byte[] Olarak Kaldı) ---
+        public async Task<List<EfficiencyLog>> GetEfficiencyReport(int factoryId, EfficiencyReportFilters filters, int timeout = 120) => await InvokeOnGateway<List<EfficiencyLog>>(factoryId, "GetEfficiencyReport", timeout, filters) ?? new List<EfficiencyLog>();
+
+        // --- EXPORT METOTLARI ---
         public async Task<byte[]> ExportProductionReport(int factoryId, List<ProductionReportItem> items) => await InvokeOnGateway<byte[]>(factoryId, "ExportProductionReport", 180, items) ?? Array.Empty<byte>();
         public async Task<byte[]> ExportAlarmReport(int factoryId, List<AlarmReportItem> items) => await InvokeOnGateway<byte[]>(factoryId, "ExportAlarmReport", 180, items) ?? Array.Empty<byte>();
         public async Task<byte[]> ExportOeeReport(int factoryId, List<OeeData> items) => await InvokeOnGateway<byte[]>(factoryId, "ExportOeeReport", 180, items) ?? Array.Empty<byte>();
@@ -533,27 +436,65 @@ namespace TekstilScada.WebAPI.Hubs
         public async Task<byte[]> ExportGeneralDetailedConsumptionReport(int factoryId, GeneralConsumptionExportDto data) => await InvokeOnGateway<byte[]>(factoryId, "ExportGeneralDetailedConsumptionReport", 300, data) ?? Array.Empty<byte>();
         public async Task<byte[]> ExportActionLogsReport(int factoryId, List<ActionLogEntry> logs) => await InvokeOnGateway<byte[]>(factoryId, "ExportActionLogsReport", 180, logs) ?? Array.Empty<byte>();
         public async Task<byte[]> ExportProductionDetailFile(int factoryId, int machineId, string batchId) => await InvokeOnGateway<byte[]>(factoryId, "ExportProductionDetailFile", 180, machineId, batchId) ?? Array.Empty<byte>();
-        public async Task<List<LaundryMachineReportDto>> GetLaundryMachineReports(int factoryId, ReportFilters filters)
+        public async Task<List<LaundryMachineReportDto>> GetLaundryMachineReports(int factoryId, ReportFilters filters) => await InvokeOnGateway<List<LaundryMachineReportDto>>(factoryId, "GetLaundryMachineReports", 60, filters) ?? new List<LaundryMachineReportDto>();
+
+        // 🚨 REFACTOR - JENERİK STATİK KÖPRÜ: Arka plan servisinin (Worker) tünelden bağımsız sahaya istek atabilmesi için eklendi
+        public static async Task<T?> InvokeOnGatewayFromBackground<T>(IHubContext<ScadaHub> hubContext, int factoryId, string targetMethod, params object[] args)
         {
-            // InvokeOnGateway yardımcısı sayesinde isteği hedef fabrikanın Gateway'ine güvenle yönlendiriyoruz.
-            // 60 saniyelik timeout süresi veritabanı yoğunluğu için fazlasıyla yeterlidir.
-            var result = await InvokeOnGateway<List<LaundryMachineReportDto>>(
-                factoryId,
-                "GetLaundryMachineReports",
-                60,
-                filters
-            );
+            string? targetConnectionId = _gatewayConnections.FirstOrDefault(x => x.Value == factoryId).Key;
+            if (string.IsNullOrEmpty(targetConnectionId)) return default;
 
-            return result ?? new List<LaundryMachineReportDto>();
+            var requestId = Guid.NewGuid().ToString();
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            cts.Token.Register(() => {
+                if (_pendingRequests.TryRemove(requestId, out var pendingTcs))
+                    pendingTcs.TrySetException(new TimeoutException($"Gateway cevap vermedi ({targetMethod} - 60sn)."));
+            });
+
+            _pendingRequests[requestId] = tcs;
+
+            try
+            {
+                await hubContext.Clients.Client(targetConnectionId).SendAsync("HandleRequest", requestId, targetMethod, args);
+
+                var result = await tcs.Task;
+                if (result == null) return default;
+
+                string jsonString = "";
+                if (result is string s) jsonString = s;
+                else if (result is JsonElement e) jsonString = e.ValueKind == JsonValueKind.String ? (e.GetString() ?? "") : e.GetRawText();
+                else return (T)result;
+
+                if (string.IsNullOrWhiteSpace(jsonString)) return default;
+
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, ReferenceHandler = ReferenceHandler.IgnoreCycles, NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, WriteIndented = false };
+
+                using (JsonDocument doc = JsonDocument.Parse(jsonString))
+                {
+                    if (doc.RootElement.ValueKind == JsonValueKind.Array) return JsonSerializer.Deserialize<T>(jsonString, options);
+                    else if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                    {
+                        if (doc.RootElement.TryGetProperty("$values", out JsonElement valuesElement)) return JsonSerializer.Deserialize<T>(valuesElement.GetRawText(), options);
+                        return JsonSerializer.Deserialize<T>(jsonString, options);
+                    }
+                }
+                return default;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ScadaHub BG Static Bridge Error] {targetMethod}: {ex.Message}");
+                return default;
+            }
+            finally
+            {
+                _pendingRequests.TryRemove(requestId, out _);
+                if (_chunkBuffers.TryRemove(requestId, out var buffer)) buffer.Clear();
+            }
         }
-        // ScadaHub.cs içerisine eklenecek güvenli statik köprü metodu:
 
-        // ScadaHub.cs içerisindeki ilgili metodu bu düzeltilmiş haliyle güncelleyin:
-
-        public static async Task<List<LaundryMachineReportDto>?> GetLaundryReportsFromController(
-            Microsoft.AspNetCore.SignalR.IHubContext<ScadaHub> hubContext,
-            int factoryId,
-            ReportFilters filters)
+        public static async Task<List<LaundryMachineReportDto>?> GetLaundryReportsFromController(Microsoft.AspNetCore.SignalR.IHubContext<ScadaHub> hubContext, int factoryId, ReportFilters filters)
         {
             string? targetConnectionId = _gatewayConnections.FirstOrDefault(x => x.Value == factoryId).Key;
             if (string.IsNullOrEmpty(targetConnectionId)) return null;
@@ -576,70 +517,28 @@ namespace TekstilScada.WebAPI.Hubs
                 var result = await tcs.Task;
                 if (result == null) return null;
 
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true,
-                    ReferenceHandler = ReferenceHandler.IgnoreCycles,
-                    NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
-                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-                    WriteIndented = false
-                };
-
                 string jsonString = "";
-                if (result is string s)
-                {
-                    jsonString = s;
-                }
-                else if (result is JsonElement e)
-                {
-                    // ÇÖZÜM: Eğer veri string olarak sarmalanmışsa e.GetString() ile dış tırnakları temizleyip asıl array metnine ulaşıyoruz
-                    if (e.ValueKind == JsonValueKind.String)
-                    {
-                        jsonString = e.GetString() ?? "";
-                    }
-                    else
-                    {
-                        jsonString = e.GetRawText();
-                    }
-                }
-                else
-                {
-                    return (List<LaundryMachineReportDto>)result;
-                }
+                if (result is string s) jsonString = s;
+                else if (result is JsonElement e) jsonString = e.ValueKind == JsonValueKind.String ? (e.GetString() ?? "") : e.GetRawText();
+                else return (List<LaundryMachineReportDto>)result;
 
                 if (string.IsNullOrWhiteSpace(jsonString)) return null;
 
                 using (JsonDocument doc = JsonDocument.Parse(jsonString))
                 {
-                    if (doc.RootElement.ValueKind == JsonValueKind.Array)
-                        return JsonSerializer.Deserialize<List<LaundryMachineReportDto>>(jsonString, options);
+                    if (doc.RootElement.ValueKind == JsonValueKind.Array) return DeserializeResult<List<LaundryMachineReportDto>>(jsonString);
                     else if (doc.RootElement.ValueKind == JsonValueKind.Object)
                     {
-                        if (doc.RootElement.TryGetProperty("$values", out JsonElement valuesElement))
-                            return JsonSerializer.Deserialize<List<LaundryMachineReportDto>>(valuesElement.GetRawText(), options);
-                        return JsonSerializer.Deserialize<List<LaundryMachineReportDto>>(jsonString, options);
+                        if (doc.RootElement.TryGetProperty("$values", out JsonElement valuesElement)) return DeserializeResult<List<LaundryMachineReportDto>>(valuesElement.GetRawText());
+                        return DeserializeResult<List<LaundryMachineReportDto>>(jsonString);
                     }
                 }
                 return null;
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ScadaHub REST Bridge Error]: {ex.Message}");
-                throw;
-            }
-            finally
-            {
-                _pendingRequests.TryRemove(requestId, out _);
-                if (_chunkBuffers.TryRemove(requestId, out var buffer)) buffer.Clear();
-            }
+            catch (Exception ex) { Console.WriteLine($"[ScadaHub REST Bridge Error]: {ex.Message}"); throw; }
+            finally { _pendingRequests.TryRemove(requestId, out _); if (_chunkBuffers.TryRemove(requestId, out var buffer)) buffer.Clear(); }
         }
-        public static object GetActiveConnectionsDebug()
-        {
-            // O an hafızada bağlı olan tüm soketlerin ve atanan Fabrika ID'lerinin listesini döner
-            return _gatewayConnections.Select(x => new {
-                ConnectionId = x.Key,
-                MappedFactoryId = x.Value
-            }).ToList();
-        }
+
+        public static object GetActiveConnectionsDebug() { return _gatewayConnections.Select(x => new { ConnectionId = x.Key, MappedFactoryId = x.Value }).ToList(); }
     }
 }

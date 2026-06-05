@@ -101,7 +101,7 @@ builder.Services.AddScoped<ScadaDataService>(sp =>
 });
 
 // 5 Dakikada bir grafik önbelleklerini ýsýtan Arka Plan Ýþçisi
-builder.Services.AddHostedService<DashboardCacheWarmerService>();
+
 
 builder.Services.AddSingleton<FactoryStateService>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<FactoryStateService>());

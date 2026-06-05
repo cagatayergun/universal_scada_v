@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.ResponseCompression; // YENÝ: Sýkýþtýrma için gerekli
+using Microsoft.AspNetCore.ResponseCompression; // Sýkýþtýrma için gerekli
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
 using TekstilScada.WebAPI.Hubs;
+using TekstilScada.WebAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,8 +14,13 @@ if (!string.IsNullOrEmpty(connectionString))
 {
     TekstilScada.Core.AppConfig.SetConnectionString(connectionString);
 }
+
 builder.Services.AddScoped<TekstilScada.WebAPI.Repositories.CentralFactoryRepository>();
 builder.Services.AddScoped<TekstilScada.WebAPI.Repositories.CentralAuthRepository>();
+
+// --- API ÖNBELLEK VE ARKA PLAN SERVÝSLERÝ ---
+builder.Services.AddMemoryCache(); // ?? API RAM Hafýza Altyapýsý
+builder.Services.AddHostedService<ApiDashboardCacheWarmerService>(); // ?? 7/24 Canlý Kalan API Önbellek Isýtýcýsý
 
 // --- 2. TEMEL SERVÝSLER ---
 builder.Services.AddControllers();
@@ -22,25 +28,23 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // ============================================================
-// PERFORMANS: Sýkýþtýrma Servisini Ekle (YENÝ)
+// PERFORMANS: Sýkýþtýrma Servisini Ekle (Geliþtirildi)
 // ============================================================
 builder.Services.AddResponseCompression(opts =>
 {
-    // "application/octet-stream" MIME tipi SignalR binary verileri için gereklidir.
+    // "application/octet-stream" MIME tipi SignalR binary verileri (MessagePack/Binary) için kritik önemdedir.
     opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
-        new[] { "application/octet-stream" });
+        new[] { "application/octet-stream", "application/json" });
 });
 
 // ============================================================
-// DÜZELTME BURADA: SignalR Limit Ayarlarý
+// SignalR Hýz ve Devasa Paket Limit Ayarlarý
 // ============================================================
 builder.Services.AddSignalR(hubOptions =>
 {
     // Varsayýlan 32KB olan limiti 10MB'a çýkarýyoruz.
-    // Bu sayede Gateway'den gelen büyük raporlar baðlantýyý koparmaz.
+    // Bu sayede Gateway'den gelen büyük raporlar ve batch loglarý baðlantýyý asla koparmaz.
     hubOptions.MaximumReceiveMessageSize = 10 * 1024 * 1024;
-
-    // Geliþtirme aþamasýnda detaylý hata görmek için:
     hubOptions.EnableDetailedErrors = true;
 })
 .AddJsonProtocol(options =>
@@ -50,9 +54,10 @@ builder.Services.AddSignalR(hubOptions =>
     options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
     options.PayloadSerializerOptions.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
 });
-// ============================================================
 
+// ============================================================
 // --- 3. JWT KÝMLÝK DOÐRULAMA ---
+// ============================================================
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is missing");
@@ -79,7 +84,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// --- 5. HÝZMET AYARLARI ---
+// --- 4. CORS POLÝTÝKASI ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
@@ -93,7 +98,9 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// --- PÝPELÝNE ---
+// =================================================================
+// MIDDLEWARE (AKIÞ) SIRALAMASI - ?? PERFORMANS ÝÇÝN DÜZENLENDÝ
+// =================================================================
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -102,15 +109,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
-app.UseWebSockets();
 
+// ?? KESÝN DÜZELTME: Sýkýþtýrma (Compression) hattýn baþýna alýndý.
+// Bu sayede altýndaki WebSockets, Auth ve Controller yanýtlarýnýn tümünü yakalayýp sýkýþtýrabilir.
+app.UseResponseCompression();
+
+app.UseWebSockets();
 app.UseAuthentication();
 app.UseAuthorization();
-
-// ============================================================
-// PERFORMANS: Sýkýþtýrma Middleware'ini Kullan (YENÝ)
-// ============================================================
-app.UseResponseCompression();
 
 app.MapControllers();
 app.MapHub<ScadaHub>("/scadaHub");
