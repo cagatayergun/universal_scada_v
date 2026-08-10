@@ -57,15 +57,14 @@
                                 <div class="d-flex justify-content-between align-items-center">
                                     <MudText Typo="Typo.body1" Style="font-weight: 500;">@company.CompanyName</MudText>
 
-                                    @* ID 0 (Sistem) ise farklı bir chip göster *@
                                     @if (company.Id == 0)
                                     {
                                         <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled">SISTEM</MudChip>
                                     }
                                     else
                                     {
-                                        <MudChip T="string" Size="Size.Small" Color="@(company.IsActive? Color.Success: Color.Error)" Variant="Variant.Text">
-                                            @(company.IsActive? Loc["Aktif"] : Loc["Pasif"])
+                                        <MudChip T="string" Size="Size.Small" Color="@(company.IsActive ? Color.Success : Color.Error)" Variant="Variant.Text">
+                                            @(company.IsActive ? Loc["Aktif"] : Loc["Pasif"])
                                         </MudChip>
                                     }
                                 </div>
@@ -91,7 +90,6 @@
                             <MudText Typo="Typo.caption">ID: @selectedCompany.Id</MudText>
                         </CardHeaderContent>
                         <CardHeaderActions>
-                            @* Sistem şirketi (ID 0) silinemez veya düzenlenemez, butonları gizle *@
                             @if (selectedCompany.Id > 0)
                             {
                                 <MudTooltip Text="@Loc["SirketiDuzenle"]">
@@ -106,7 +104,6 @@
 
                     <MudCardContent>
                         <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
-                            @* Sistem Şirketi için Fabrika sekmesi anlamsız olabilir ama yapı bozulmasın diye tutuyoruz *@
                             <MudTabPanel Text="@Loc["Fabrikalar"]" Icon="@Icons.Material.Filled.Factory">
                                 <div class="d-flex justify-content-end mb-2">
                                     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenFactoryModal" Size="Size.Small">@Loc["FabrikaEkle"]</MudButton>
@@ -114,11 +111,13 @@
 
                                 <MudTable Items="companyFactories" Dense="true" Hover="true" Striped="true" Elevation="0">
                                     <HeaderContent>
+                                        <MudTh Style="width: 70px;">ID</MudTh> @* 🚨 YENİ SÜTUN: ID Başlığı Eklendi *@
                                         <MudTh>@Loc["FabrikaAdi"]</MudTh>
                                         <MudTh>@Loc["LisansAnahtari"]</MudTh>
                                         <MudTh Style="text-align:right">@Loc["Islem"]</MudTh>
                                     </HeaderContent>
                                     <RowTemplate Context="factory">
+                                        <MudTd DataLabel="ID"><b>@factory.Id</b></MudTd> @* 🚨 YENİ HÜCRE: Gerçek Fabrika ID'si Ekrana Basılıyor *@
                                         <MudTd DataLabel="@Loc["FabrikaAdi"]">@factory.FactoryName</MudTd>
                                         <MudTd DataLabel="@Loc["LisansAnahtari"]"><code style="background:#eee; padding:2px 5px; border-radius:4px;">@factory.HardwareKey</code></MudTd>
                                         <MudTd Style="text-align:right">
@@ -152,7 +151,7 @@
                                         </MudTd>
                                     </RowTemplate>
                                     <NoRecordsContent>
-                                        <MudAlert Severity="Severity.Warning" Dense="true">@Loc["YoneticiTanimlanmamis"]</MudAlert>
+                                        <MudText Typo="Typo.body2" Class="pa-2">@Loc["YoneticiTanimlanmamis"]</MudText>
                                     </NoRecordsContent>
                                 </MudTable>
                             </MudTabPanel>
@@ -223,7 +222,7 @@
 
         <MudTextField @bind-Value="newAdminUser.FullName" Label="@Loc["AdSoyad"]" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
         <MudTextField @bind-Value="newAdminUser.Username" Label="@Loc["KullaniciAdi"]" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
-        <MudTextField @bind-Value="newAdminPassword" Label="@Loc["Sifre"]" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        <MudTextField @bind-Value="newAdminPassword" Label="@Loc["Sifre"]" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
 
         <MudAlert Severity="Severity.Info" Class="mt-3" Dense="true">@Loc["BuKullaniciTamYetkiliOlacak"]</MudAlert>
 
@@ -240,7 +239,6 @@
 </MudOverlay>
 
 @code {
-    // MODELLER
     public class Company { public int Id { get; set; } public string CompanyName { get; set; } public bool IsActive { get; set; } = true; }
     public class CreateUserDto
     {
@@ -253,7 +251,6 @@
         public string AllowedFactoryIds { get; set; }
     }
 
-    // STATE
     private List<Company> companies = new();
     private object selectedCompanyObj;
     private Company? selectedCompany;
@@ -266,16 +263,13 @@
     private string debugError = "";
     private bool showDebug = false;
 
-    // Modallar
     private bool showCompanyModal, showFactoryModal, showAdminModal;
 
-    // Edit Objeleri
     private Company editingCompany = new();
     private CentralFactory newFactory = new();
     private CentralUser newAdminUser = new();
     private string newAdminPassword = "";
 
-    // Arama Filtresi
     private List<Company> FilteredCompanies => companies.Where(c => string.IsNullOrEmpty(searchString) || c.CompanyName.Contains(searchString, StringComparison.OrdinalIgnoreCase)).ToList();
 
     protected override async Task OnInitializedAsync()
@@ -302,14 +296,12 @@
             {
                 companies = await response.Content.ReadFromJsonAsync<List<Company>>() ?? new List<Company>();
 
-                // --- YENİ EKLENEN: SİSTEM ŞİRKETİ (ID=0) KONTROLÜ ---
-                // Eğer veritabanından ID=0 gelmiyorsa, sanal olarak listeye ekle.
                 if (!companies.Any(c => c.Id == 0))
                 {
                     var systemCompany = new Company
                     {
                         Id = 0,
-                        CompanyName = "System Company", // Resource'dan alacak
+                        CompanyName = "System Company",
                         IsActive = true
                     };
                     companies.Insert(0, systemCompany);
@@ -343,17 +335,15 @@
     {
         try
         {
-            // API ID=0 için uygun değilse boş döndürmesi gerekir, try-catch bunu yönetir.
             companyFactories = await Http.GetFromJsonAsync<List<CentralFactory>>($"api/CentralManagement/factories/{companyId}") ?? new List<CentralFactory>();
             companyAdmins = await Http.GetFromJsonAsync<List<CentralUser>>($"api/CentralManagement/admins/{companyId}") ?? new List<CentralUser>();
         }
         catch (Exception ex)
         {
-            // ID=0 için 404 dönerse boş liste kabul et
             if (companyId == 0)
             {
                 companyFactories = new List<CentralFactory>();
-                companyAdmins = new List<CentralUser>(); // Veya backend'den henüz gelmiyorsa boş
+                companyAdmins = new List<CentralUser>();
             }
             else
             {
@@ -362,7 +352,6 @@
         }
     }
 
-    // --- ŞİRKET İŞLEMLERİ ---
     private void OpenCompanyModal() { editingCompany = new Company { IsActive = true }; showCompanyModal = true; }
     private void EditSelectedCompany() { if (selectedCompany == null) return; editingCompany = new Company { Id = selectedCompany.Id, CompanyName = selectedCompany.CompanyName, IsActive = selectedCompany.IsActive }; showCompanyModal = true; }
 
@@ -416,7 +405,6 @@
         catch (Exception ex) { Snackbar.Add($"{Loc["Hata"]}: {ex.Message}", Severity.Error); }
     }
 
-    // --- FABRİKA İŞLEMLERİ ---
     private void OpenFactoryModal() { newFactory = new CentralFactory { CompanyId = selectedCompany.Id }; showFactoryModal = true; }
 
     private async Task SaveFactory()
@@ -446,15 +434,12 @@
         if (response.IsSuccessStatusCode) { await LoadCompanyDetails(selectedCompany.Id); Snackbar.Add(Loc["Silindi"], Severity.Success); }
     }
 
-    // --- ADMIN İŞLEMLERİ ---
     private void OpenAdminModal() { newAdminUser = new CentralUser { CompanyId = selectedCompany.Id }; newAdminPassword = ""; showAdminModal = true; }
 
     private async Task SaveAdmin()
     {
         if (string.IsNullOrWhiteSpace(newAdminUser.Username) || string.IsNullOrWhiteSpace(newAdminPassword)) { Snackbar.Add(Loc["EksikBilgi"], Severity.Warning); return; }
 
-        // --- DEĞİŞİKLİK: ROL BELİRLEME ---
-        // Eğer şirket ID'si 0 ise rol "SystemAdmin", değilse "CompanyAdmin"
         string role = selectedCompany.Id == 0 ? "SystemAdmin" : "CompanyAdmin";
 
         var dto = new CreateUserDto
@@ -463,8 +448,8 @@
             FullName = newAdminUser.FullName,
             Username = newAdminUser.Username,
             Password = newAdminPassword,
-            Role = role, // Dinamik rol
-            AllowedFactoryIds = "ALL" // Her ikisi için de tüm fabrikalara erişim (kendi kapsamındaki)
+            Role = role,
+            AllowedFactoryIds = "ALL"
         };
 
         var response = await Http.PostAsJsonAsync("api/CentralManagement/create-company-admin", dto);
