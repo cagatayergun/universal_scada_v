@@ -342,8 +342,8 @@ namespace TekstilScada.UI.Views
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            Controls.Add(groupBox1);
             Controls.Add(dgvMachines);
+            Controls.Add(groupBox1);
             Margin = new Padding(3, 2, 3, 2);
             Name = "MachineSettings_Control";
             Size = new Size(700, 412);

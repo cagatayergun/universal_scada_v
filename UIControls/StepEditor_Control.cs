@@ -18,9 +18,19 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
         private readonly RecipeConfigurationRepository _configRepo = new RecipeConfigurationRepository();
         public event EventHandler StepDataChanged;
 
+        // ComboBox elemanları için yardımcı sınıf
+        public class ProcessStatusItem
+        {
+            public byte Value { get; set; }
+            public string Name { get; set; }
+            public override string ToString() => Name;
+        }
+
         public StepEditor_Control()
         {
             InitializeComponent();
+
+            PopulateStatusComboBox();
 
             chkSuAlma.CheckedChanged += OnStepTypeChanged;
             chkIsitma.CheckedChanged += OnStepTypeChanged;
@@ -29,7 +39,32 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             chkBosaltma.CheckedChanged += OnStepTypeChanged;
             chkSikma.CheckedChanged += OnStepTypeChanged;
             chknumune.CheckedChanged += OnStepTypeChanged;
+
+            cmbStatus.SelectedIndexChanged += OnStatusChanged;
+
             flpParameters.Resize += new EventHandler(flpParameters_Resize);
+        }
+
+        private void PopulateStatusComboBox()
+        {
+            cmbStatus.Items.Clear();
+            cmbStatus.Items.Add(new ProcessStatusItem { Value = 0, Name = "NONE" });
+            cmbStatus.Items.Add(new ProcessStatusItem { Value = 1, Name = "ALLOVER SPRAY" });
+            cmbStatus.Items.Add(new ProcessStatusItem { Value = 2, Name = "BIO POLISH" });
+            cmbStatus.Items.Add(new ProcessStatusItem { Value = 3, Name = "BLEACH" });
+            cmbStatus.Items.Add(new ProcessStatusItem { Value = 4, Name = "BRIGHTNER" });
+            cmbStatus.Items.Add(new ProcessStatusItem { Value = 5, Name = "DESIZE" });
+            cmbStatus.Items.Add(new ProcessStatusItem { Value = 6, Name = "DRY" });
+            cmbStatus.Items.Add(new ProcessStatusItem { Value = 7, Name = "NEUTRAL" });
+            cmbStatus.Items.Add(new ProcessStatusItem { Value = 8, Name = "RINSE" });
+            cmbStatus.Items.Add(new ProcessStatusItem { Value = 9, Name = "SCRAP (NORMAL)" });
+            cmbStatus.Items.Add(new ProcessStatusItem { Value = 10, Name = "SOFTNER" });
+            cmbStatus.Items.Add(new ProcessStatusItem { Value = 11, Name = "STONE WASH" });
+            cmbStatus.Items.Add(new ProcessStatusItem { Value = 12, Name = "TINT" });
+
+            cmbStatus.DisplayMember = "Name";
+            cmbStatus.ValueMember = "Value";
+            cmbStatus.SelectedIndex = 0;
         }
 
         public void LoadStep(ScadaRecipeStep step, Machine machine)
@@ -79,6 +114,8 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
         {
             if (_step == null) return;
             short controlWord = _step.StepDataWords[24];
+
+            // 1. İlk 12 Bit (Bit 0 - 11): Checkbox değerleri
             chkSuAlma.Checked = (controlWord & 1) != 0;
             chkIsitma.Checked = (controlWord & 2) != 0;
             chkCalisma.Checked = (controlWord & 4) != 0;
@@ -86,6 +123,19 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             chkBosaltma.Checked = (controlWord & 16) != 0;
             chkSikma.Checked = (controlWord & 32) != 0;
             chknumune.Checked = (controlWord & 1024) != 0;
+
+            // 2. Son 4 Bit (Bit 12 - 15 / C,D,E,F): Status değerinin okunması
+            byte statusValue = (byte)((controlWord >> 12) & 0x0F);
+
+            // ComboBox'ta ilgili değeri seç
+            for (int i = 0; i < cmbStatus.Items.Count; i++)
+            {
+                if (cmbStatus.Items[i] is ProcessStatusItem item && item.Value == statusValue)
+                {
+                    cmbStatus.SelectedIndex = i;
+                    break;
+                }
+            }
         }
 
         private void OnStepTypeChanged(object sender, EventArgs e)
@@ -110,56 +160,53 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             StepDataChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        // --- HATA DÜZELTMESİ: KURAL KONTROLÜ ARTIK DOĞRU YERDE ÇALIŞIYOR ---
+        private void OnStatusChanged(object sender, EventArgs e)
+        {
+            if (_isUpdating) return;
+
+            UpdateStepDataFromCheckboxes();
+            StepDataChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         private bool IsSelectionValid(CheckBox justChanged)
         {
-            // 1. Get all currently checked checkboxes from the panel
             var checkedBoxes = pnlStepTypes.Controls.OfType<CheckBox>().Where(c => c.Checked).ToList();
 
-            // --- NEW RULE: Operator Call (chkNumuneKapisi) Must Be Alone ---
-            // If "Operator Call" is in the list AND the total count is greater than 1, it's a violation.
-            // It cannot be combined with Standard steps OR Special steps.
             if (checkedBoxes.Contains(chknumune) && checkedBoxes.Count > 1)
             {
                 MessageBox.Show("The 'Operator Call' step cannot be selected together with any other step. Please select it alone.",
                                 "Rule Violation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-
-                // Return false to indicate the selection is invalid (undo the click)
                 return false;
             }
 
-            // Rule 1: You cannot select more than 2 steps in total.
             if (checkedBoxes.Count > 2)
             {
                 MessageBox.Show("You can select up to 2 different transaction types in one step.", "Rule Violation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
 
-            // Define step groups
-            // Note: We don't necessarily need to add chkNumuneKapisi here because the first rule handles it,
-            // but we leave the logic for the others.
             var specialSteps = new List<CheckBox> { chkSikma, chkBosaltma };
             var standardSteps = new List<CheckBox> { chkSuAlma, chkIsitma, chkDozaj, chkCalisma };
 
-            // Check if any special or standard steps are currently selected
             bool isAnySpecialChecked = checkedBoxes.Any(c => specialSteps.Contains(c));
             bool isAnyStandardChecked = checkedBoxes.Any(c => standardSteps.Contains(c));
 
-            // Rule 2: Special Group and Standard Group cannot be mixed.
             if (isAnySpecialChecked && isAnyStandardChecked)
             {
                 MessageBox.Show("Spinning or Draining steps cannot be selected together with other steps such as Water Intake, Heating.", "Rule Violation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
 
-            // If we reached this point, the selection is valid.
             return true;
         }
 
         private void UpdateStepDataFromCheckboxes()
         {
             if (_step == null) return;
-            short controlWord = 0;
+
+            ushort controlWord = 0;
+
+            // 1. İlk 12 Bit (Bit 0 - 11): Checkbox değerleri
             if (chkSuAlma.Checked) controlWord |= 1;
             if (chkIsitma.Checked) controlWord |= 2;
             if (chkCalisma.Checked) controlWord |= 4;
@@ -167,7 +214,15 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             if (chkBosaltma.Checked) controlWord |= 16;
             if (chkSikma.Checked) controlWord |= 32;
             if (chknumune.Checked) controlWord |= 1024;
-            _step.StepDataWords[24] = controlWord;
+
+            // 2. Son 4 Bit (Bit 12 - 15): Status (0-12 arası)
+            if (cmbStatus.SelectedItem is ProcessStatusItem selectedStatus)
+            {
+                ushort statusBits = (ushort)((selectedStatus.Value & 0x0F) << 12);
+                controlWord |= statusBits;
+            }
+
+            _step.StepDataWords[24] = (short)controlWord;
         }
 
         private void UpdateEditorPanels()

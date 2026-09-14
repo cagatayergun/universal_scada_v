@@ -342,14 +342,14 @@
   <data name="SoftWater" xml:space="preserve">
     <value>Soft Water</value>
   </data>
-  <data name="Squeezing" xml:space="preserve">
-    <value>SQUEEZING</value>
+  <data name="Extraction" xml:space="preserve">
+    <value>Extraction</value>
   </data>
-  <data name="SqueezingSpeed" xml:space="preserve">
-    <value>Squeezing Speed:</value>
+  <data name="ExtractionSpeed" xml:space="preserve">
+    <value>Extraction Speed:</value>
   </data>
-  <data name="SqueezingTime" xml:space="preserve">
-    <value>Squeezing Time (MIN):</value>
+  <data name="ExtractionTime" xml:space="preserve">
+    <value>Extraction Time (MIN):</value>
   </data>
   <data name="StartTime" xml:space="preserve">
     <value>Start Time:</value>
@@ -732,7 +732,7 @@
     <value>Working</value>
   </data>
   <data name="sikma" xml:space="preserve">
-    <value>Squeezing</value>
+    <value>Extraction</value>
   </data>
   <data name="bosaltma" xml:space="preserve">
     <value>Unloading</value>

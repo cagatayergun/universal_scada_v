@@ -1584,27 +1584,27 @@ namespace TekstilScada.Properties {
         /// <summary>
         ///   SIKMA benzeri yerelleştirilmiş bir dize arar.
         /// </summary>
-        public static string Squeezing {
+        public static string Extraction {
             get {
-                return ResourceManager.GetString("Squeezing", resourceCulture);
+                return ResourceManager.GetString("Extraction", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Sıkma Devri: benzeri yerelleştirilmiş bir dize arar.
         /// </summary>
-        public static string SqueezingSpeed {
+        public static string ExtractionSpeed {
             get {
-                return ResourceManager.GetString("SqueezingSpeed", resourceCulture);
+                return ResourceManager.GetString("ExtractionSpeed", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Sıkma Süre (DK): benzeri yerelleştirilmiş bir dize arar.
         /// </summary>
-        public static string SqueezingTime {
+        public static string ExtractionTime {
             get {
-                return ResourceManager.GetString("SqueezingTime", resourceCulture);
+                return ResourceManager.GetString("ExtractionTime", resourceCulture);
             }
         }
         

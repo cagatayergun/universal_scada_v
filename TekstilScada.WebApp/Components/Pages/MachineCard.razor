@@ -73,61 +73,84 @@
         }
 
         <MudGrid Spacing="1">
+            @* REÇETE (TAM SATIR) *@
             <MudItem xs="12">
-                <MudStack Row="true" AlignItems="AlignItems.Center">
-                    <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Size="Size.Small" Color="Color.Default" />
-                    <MudText Typo="Typo.body2" Style="font-weight:normal;">@Loc["Recete"]</MudText>
-                    <MudTooltip Text="@MachineStatus.RecipeName">
-                        <MudText Typo="Typo.body2" Class="ml-auto text-truncate" Style="max-width: 180px;">@MachineStatus.RecipeName</MudText>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Style="min-width: 0;">
+                    <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Size="Size.Small" Color="Color.Default" Class="flex-shrink-0" />
+                    <MudText Typo="Typo.body2" Class="flex-shrink-0" Style="font-weight:normal;">@Loc["Recete"]</MudText>
+                    <MudTooltip Text="@MachineStatus.RecipeName" Placement="Placement.Top">
+                        <MudText Typo="Typo.body2" Class="ml-auto text-truncate" Style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
+                            @MachineStatus.RecipeName
+                        </MudText>
                     </MudTooltip>
                 </MudStack>
             </MudItem>
 
+            @* ADIM BİLGİSİ (TAM SATIR) *@
+            <MudItem xs="12">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Style="min-width: 0; width: 100%;">
+                    <MudIcon Icon="@Icons.Material.Filled.FormatListNumbered" Size="Size.Small" Color="Color.Default" Class="flex-shrink-0" />
+                    <MudText Typo="Typo.caption" Class="flex-shrink-0 mr-1">@Loc["Adim"]</MudText>
+
+                    <div class="ml-auto d-flex align-center gap-1 overflow-hidden" style="min-width: 0; flex: 1 1 auto; justify-content: flex-end;">
+                        <MudTooltip Text="@($"{MachineStatus.AktifAdimNo} - {MachineStatus.AktifAdimAdi}")" Placement="Placement.Top">
+                            <MudText Typo="Typo.body2" Class="text-truncate" Style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                @if (MachineStatus.manuel_status)
+                                {
+                                    <b>Manuel</b>
+                                }
+                                else
+                                {
+                                    <b>@MachineStatus.AktifAdimNo</b>
+                                    @("- " + MachineStatus.AktifAdimAdi)
+                                }
+                            </MudText>
+                        </MudTooltip>
+
+                        @if (!string.IsNullOrEmpty(GetManualProcessStatusText()))
+                        {
+                            <span class="process-status-badge flex-shrink-0 ml-1">
+                                @GetManualProcessStatusText()
+                            </span>
+                        }
+                    </div>
+                </MudStack>
+            </MudItem>
+
+            @* PARTİ *@
             <MudItem xs="6">
-                <MudStack Row="true" AlignItems="AlignItems.Center">
-                    <MudIcon Icon="@Icons.Material.Filled.QrCode" Size="Size.Small" Color="Color.Default" />
-                    <MudText Typo="Typo.caption">@Loc["Parti"]</MudText>
-                    <MudTooltip Text="@MachineStatus.BatchNumarasi">
-                        <MudText Typo="Typo.body2" Class="ml-auto text-truncate" Style="max-width: 80px;"><b>@MachineStatus.BatchNumarasi</b></MudText>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Style="min-width: 0;">
+                    <MudIcon Icon="@Icons.Material.Filled.QrCode" Size="Size.Small" Color="Color.Default" Class="flex-shrink-0" />
+                    <MudText Typo="Typo.caption" Class="flex-shrink-0">@Loc["Parti"]</MudText>
+                    <MudTooltip Text="@MachineStatus.BatchNumarasi" Placement="Placement.Top">
+                        <MudText Typo="Typo.body2" Class="ml-auto text-truncate" Style="max-width: 90px; white-space: nowrap;">
+                            <b>@MachineStatus.BatchNumarasi</b>
+                        </MudText>
                     </MudTooltip>
                 </MudStack>
             </MudItem>
 
+            @* SİPARİŞ NO *@
             <MudItem xs="6">
-                <MudStack Row="true" AlignItems="AlignItems.Center">
-                    <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Small" Color="Color.Default" />
-                    <MudText Typo="Typo.caption">@Loc["SiparisNoLabel"]</MudText>
-                    <MudTooltip Text="@MachineStatus.SiparisNumarasi">
-                        <MudText Typo="Typo.body2" Class="ml-auto text-truncate" Style="max-width: 80px;"><b>@MachineStatus.SiparisNumarasi</b></MudText>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Style="min-width: 0;">
+                    <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Small" Color="Color.Default" Class="flex-shrink-0" />
+                    <MudText Typo="Typo.caption" Class="flex-shrink-0">@Loc["SiparisNoLabel"]</MudText>
+                    <MudTooltip Text="@MachineStatus.SiparisNumarasi" Placement="Placement.Top">
+                        <MudText Typo="Typo.body2" Class="ml-auto text-truncate" Style="max-width: 90px; white-space: nowrap;">
+                            <b>@MachineStatus.SiparisNumarasi</b>
+                        </MudText>
                     </MudTooltip>
                 </MudStack>
             </MudItem>
 
-            <MudItem xs="6">
-                <MudStack Row="true" AlignItems="AlignItems.Center">
-                    <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" Color="Color.Default" />
-                    <MudText Typo="Typo.caption">@Loc["MusteriNoLabel"]</MudText>
-                    <MudTooltip Text="@MachineStatus.MusteriNumarasi">
-                        <MudText Typo="Typo.body2" Class="ml-auto text-truncate" Style="max-width: 80px;"><b>@MachineStatus.MusteriNumarasi</b></MudText>
-                    </MudTooltip>
-                </MudStack>
-            </MudItem>
-
-            <MudItem xs="6">
-                <MudStack Row="true" AlignItems="AlignItems.Center">
-                    <MudIcon Icon="@Icons.Material.Filled.FormatListNumbered" Size="Size.Small" Color="Color.Default" />
-                    <MudText Typo="Typo.caption">@Loc["Adim"]</MudText>
-                    <MudTooltip Text="@($"{MachineStatus.AktifAdimNo} - {MachineStatus.AktifAdimAdi}")">
-                        <MudText Typo="Typo.body2" Class="ml-auto text-truncate" Style="max-width: 90px;">
-                            @if (MachineStatus.manuel_status)
-                            {
-                                <b>Manuel</b>
-                            }
-                            else
-                            {
-                                <b>@MachineStatus.AktifAdimNo</b> 
-                                @("- " + MachineStatus.AktifAdimAdi)
-                            }
+            @* MÜŞTERİ NO *@
+            <MudItem xs="12">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Style="min-width: 0;">
+                    <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" Color="Color.Default" Class="flex-shrink-0" />
+                    <MudText Typo="Typo.caption" Class="flex-shrink-0">@Loc["MusteriNoLabel"]</MudText>
+                    <MudTooltip Text="@MachineStatus.MusteriNumarasi" Placement="Placement.Top">
+                        <MudText Typo="Typo.body2" Class="ml-auto text-truncate" Style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
+                            <b>@MachineStatus.MusteriNumarasi</b>
                         </MudText>
                     </MudTooltip>
                 </MudStack>
@@ -145,6 +168,19 @@
             transform: translateY(-3px);
             box-shadow: 0 6px 16px rgba(0,0,0,0.15) !important;
         }
+
+    /* Process Status Ufak Rozet Stili */
+    .process-status-badge {
+        background-color: #1e1e2d;
+        color: #00d2d3;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 1px 5px;
+        border-radius: 4px;
+        border: 1px solid #00d2d3;
+        white-space: nowrap;
+        letter-spacing: 0.3px;
+    }
 </style>
 
 @code {
@@ -159,8 +195,7 @@
     {
         if (MachineStatus == null) return false;
 
-        // 🚨 DÜZELTME 1: manuel_status hash kontrolüne eklenerek arayüz tetiklemesi garantiye alındı
-        string currentStateHash = $"{MachineStatus.ConnectionState}_{MachineStatus.HasActiveAlarm}_{MachineStatus.ActiveAlarmNumber}_{MachineStatus.IsPaused}_{MachineStatus.IsInRecipeMode}_{MachineStatus.ProsesYuzdesi}_{MachineStatus.RecipeName}_{MachineStatus.BatchNumarasi}_{MachineStatus.SiparisNumarasi}_{MachineStatus.MusteriNumarasi}_{MachineStatus.AktifAdimNo}_{MachineStatus.AktifAdimAdi}_{MachineStatus.DisplayOrder}_{MachineStatus.manuel_status}";
+        string currentStateHash = $"{MachineStatus.ConnectionState}_{MachineStatus.HasActiveAlarm}_{MachineStatus.ActiveAlarmNumber}_{MachineStatus.IsPaused}_{MachineStatus.IsInRecipeMode}_{MachineStatus.ProsesYuzdesi}_{MachineStatus.RecipeName}_{MachineStatus.BatchNumarasi}_{MachineStatus.SiparisNumarasi}_{MachineStatus.MusteriNumarasi}_{MachineStatus.AktifAdimNo}_{MachineStatus.AktifAdimAdi}_{MachineStatus.DisplayOrder}_{MachineStatus.manuel_status}_{MachineStatus.AktifAdimTipiWordu}";
 
         if (_lastRenderedStateHash != currentStateHash)
         {
@@ -169,6 +204,30 @@
         }
 
         return false;
+    }
+
+    private string GetManualProcessStatusText()
+    {
+        if (MachineStatus == null) return string.Empty;
+
+        byte statusValue = (byte)((MachineStatus.AktifAdimTipiWordu >> 12) & 0x0F);
+
+        return statusValue switch
+        {
+            1 => "ALLOVER SPRAY",
+            2 => "BIO POLISH",
+            3 => "BLEACH",
+            4 => "BRIGHTNER",
+            5 => "DESIZE",
+            6 => "DRY",
+            7 => "NEUTRAL",
+            8 => "RINSE",
+            9 => "SCRAP (NORMAL)",
+            10 => "SOFTNER",
+            11 => "STONE WASH",
+            12 => "TINT",
+            _ => string.Empty
+        };
     }
 
     private int GetDisplayOrder()
@@ -189,7 +248,6 @@
         if (string.IsNullOrEmpty(MachineStatus.MakineTipi)) return false;
         var type = MachineStatus.MakineTipi.Trim().ToLower();
 
-        // 🚨 DÜZELTME 2: .ToLower() sonrası büyük harfli arama bug'ı temizlendi ("Kurutma Makinesi" -> "kurutma makinesi")
         return type.Contains("kurutma makinesi");
     }
 
@@ -219,7 +277,6 @@
         if (MachineStatus.HasActiveAlarm) return $"{Loc["Alarm"]}: {MachineStatus.ActiveAlarmNumber}";
         if (MachineStatus.IsPaused) return Loc["Durakladi"];
 
-        // 🚨 DÜZELTME 3: Manuel çalışma metni eklendi
         if (MachineStatus.manuel_status) return "Working - Manuel";
 
         if (MachineStatus.IsInRecipeMode) return $"{Loc["Calisiyor"]} - {MachineStatus.AktifAdimAdi}";
@@ -232,7 +289,6 @@
         if (MachineStatus.HasActiveAlarm) return Color.Error;
         if (MachineStatus.IsPaused) return Color.Warning;
 
-        // 🚨 DÜZELTME 4: Manuel çalışma durumunda renk Success (Yeşil) olarak set edildi
         if (MachineStatus.manuel_status || MachineStatus.IsInRecipeMode) return Color.Success;
 
         return Color.Info;
@@ -244,7 +300,6 @@
         if (MachineStatus.HasActiveAlarm) return Icons.Material.Filled.NotificationImportant;
         if (MachineStatus.IsPaused) return Icons.Material.Filled.PauseCircle;
 
-        // 🚨 DÜZELTME 5: Manuel çalışma ikonu eklendi
         if (MachineStatus.manuel_status || MachineStatus.IsInRecipeMode) return Icons.Material.Filled.PlayCircle;
 
         return Icons.Material.Filled.StopCircle;

@@ -1,6 +1,4 @@
-﻿// StepEditor_Control.Designer.cs
-// Bu kod bloğunu StepEditor_Control.Designer.cs dosyasına yapıştırın.
-namespace TekstilScada.UI.Controls.RecipeStepEditors
+﻿namespace TekstilScada.UI.Controls.RecipeStepEditors
 {
     partial class StepEditor_Control
     {
@@ -13,10 +11,13 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             }
             base.Dispose(disposing);
         }
+
         #region Component Designer generated code
         private void InitializeComponent()
         {
             pnlStepTypes = new Panel();
+            lblStatus = new Label();               // EKLENDİ
+            cmbStatus = new ComboBox();            // EKLENDİ
             chkSikma = new CheckBox();
             chknumune = new CheckBox();
             chkBosaltma = new CheckBox();
@@ -27,13 +28,16 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             flpParameters = new FlowLayoutPanel();
             pnlStepTypes.SuspendLayout();
             SuspendLayout();
+
             // 
             // pnlStepTypes
             // 
             pnlStepTypes.AutoScroll = true;
             pnlStepTypes.BorderStyle = BorderStyle.FixedSingle;
-            pnlStepTypes.Controls.Add(chkSikma);
+            pnlStepTypes.Controls.Add(lblStatus);      // EKLENDİ
+            pnlStepTypes.Controls.Add(cmbStatus);      // EKLENDİ
             pnlStepTypes.Controls.Add(chknumune);
+            pnlStepTypes.Controls.Add(chkSikma);
             pnlStepTypes.Controls.Add(chkBosaltma);
             pnlStepTypes.Controls.Add(chkDozaj);
             pnlStepTypes.Controls.Add(chkCalisma);
@@ -45,6 +49,28 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             pnlStepTypes.Name = "pnlStepTypes";
             pnlStepTypes.Size = new Size(206, 338);
             pnlStepTypes.TabIndex = 0;
+
+            // 
+            // lblStatus
+            // 
+            lblStatus.AutoSize = true;
+            lblStatus.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblStatus.Location = new Point(9, 170); // numune checkbox'ın altına hizalandı
+            lblStatus.Name = "lblStatus";
+            lblStatus.Size = new Size(89, 15);
+            lblStatus.TabIndex = 7;
+            lblStatus.Text = "STEP STATUS";
+
+            // 
+            // cmbStatus
+            // 
+            cmbStatus.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbStatus.FormattingEnabled = true;
+            cmbStatus.Location = new Point(9, 190); // Label'ın altına hizalandı
+            cmbStatus.Name = "cmbStatus";
+            cmbStatus.Size = new Size(180, 23);
+            cmbStatus.TabIndex = 6;
+
             // 
             // chkSikma
             // 
@@ -57,6 +83,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             chkSikma.TabIndex = 5;
             chkSikma.Text = "EXTRACTION";
             chkSikma.UseVisualStyleBackColor = true;
+
             // 
             // chknumune
             // 
@@ -69,6 +96,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             chknumune.TabIndex = 5;
             chknumune.Text = "OPERATOR CALL";
             chknumune.UseVisualStyleBackColor = true;
+
             // 
             // chkBosaltma
             // 
@@ -81,6 +109,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             chkBosaltma.TabIndex = 4;
             chkBosaltma.Text = "UNLOADING";
             chkBosaltma.UseVisualStyleBackColor = true;
+
             // 
             // chkDozaj
             // 
@@ -93,6 +122,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             chkDozaj.TabIndex = 3;
             chkDozaj.Text = "DOSAGE";
             chkDozaj.UseVisualStyleBackColor = true;
+
             // 
             // chkCalisma
             // 
@@ -105,6 +135,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             chkCalisma.TabIndex = 2;
             chkCalisma.Text = "WORKING";
             chkCalisma.UseVisualStyleBackColor = true;
+
             // 
             // chkIsitma
             // 
@@ -117,6 +148,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             chkIsitma.TabIndex = 1;
             chkIsitma.Text = "HEATING";
             chkIsitma.UseVisualStyleBackColor = true;
+
             // 
             // chkSuAlma
             // 
@@ -129,6 +161,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             chkSuAlma.TabIndex = 0;
             chkSuAlma.Text = "TAKE WATER";
             chkSuAlma.UseVisualStyleBackColor = true;
+
             // 
             // flpParameters
             // 
@@ -141,6 +174,7 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             flpParameters.Size = new Size(144, 338);
             flpParameters.TabIndex = 0;
             flpParameters.WrapContents = false;
+
             // 
             // StepEditor_Control
             // 
@@ -156,7 +190,10 @@ namespace TekstilScada.UI.Controls.RecipeStepEditors
             ResumeLayout(false);
         }
         #endregion
+
         private System.Windows.Forms.Panel pnlStepTypes;
+        private System.Windows.Forms.Label lblStatus;         // EKLENDİ
+        private System.Windows.Forms.ComboBox cmbStatus;      // EKLENDİ
         private System.Windows.Forms.CheckBox chkSuAlma;
         private System.Windows.Forms.CheckBox chkIsitma;
         private System.Windows.Forms.CheckBox chkCalisma;

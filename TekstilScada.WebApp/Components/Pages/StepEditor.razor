@@ -26,8 +26,6 @@
         <div class="alert alert-info">
             @Loc["KurutmaAdimiSabit"]
         </div>
-        @* Eğer KurutmaStepEditor bileşeni projenizde varsa aşağıdaki satırı açın *@
-        @* <KurutmaStepEditor Step="Step" OnChanged="OnChanged" /> *@
         <p>Kurutma Makinesi Adım Editörü</p>
     }
     else
@@ -45,6 +43,17 @@
                         <label>@stepType.Name</label>
                     </div>
                 }
+
+                <!-- YENİ: Process Status Seçim Kutusu -->
+                <div class="mt-3">
+                    <label class="fw-bold form-label">Process Status</label>
+                    <select class="form-select form-select-sm" value="@GetSelectedProcessStatus()" @onchange="OnProcessStatusChanged">
+                        @foreach (var status in ProcessStatuses)
+                        {
+                            <option value="@status.Value">@status.Name</option>
+                        }
+                    </select>
+                </div>
             </div>
         </div>
         <div class="step-params">
@@ -61,12 +70,12 @@
                                 {
                                     <div title="@data.Text"
                                          style="position: absolute;
-                                            left: @(GetLeft(data.Location))px;
-                                            top: @(GetTop(data.Location))px;
-                                            min-width: @(GetWidth(data.Size))px;
-                                            height: @(GetHeight(data.Size))px;
-                                            white-space: nowrap;
-                                            z-index: 10;">
+                                        left: @(GetLeft(data.Location))px;
+                                        top: @(GetTop(data.Location))px;
+                                        min-width: @(GetWidth(data.Size))px;
+                                        height: @(GetHeight(data.Size))px;
+                                        white-space: nowrap;
+                                        z-index: 10;">
 
                                         @if ((data.ControlType ?? "").Contains("Label"))
                                         {
@@ -123,6 +132,30 @@
         public int PLC_WordIndex { get; set; }
         public StepTypeInfo(int id, string name, short bitValue, int plcWordIndex) { Id = id; Name = name; BitValue = bitValue; PLC_WordIndex = plcWordIndex; }
     }
+
+    private class ProcessStatusInfo
+    {
+        public byte Value { get; set; }
+        public string Name { get; set; }
+        public ProcessStatusInfo(byte value, string name) { Value = value; Name = name; }
+    }
+
+    private List<ProcessStatusInfo> ProcessStatuses = new()
+    {
+        new ProcessStatusInfo(0, "NONE"),
+        new ProcessStatusInfo(1, "ALLOVER SPRAY"),
+        new ProcessStatusInfo(2, "BIO POLISH"),
+        new ProcessStatusInfo(3, "BLEACH"),
+        new ProcessStatusInfo(4, "BRIGHTNER"),
+        new ProcessStatusInfo(5, "DESIZE"),
+        new ProcessStatusInfo(6, "DRY"),
+        new ProcessStatusInfo(7, "NEUTRAL"),
+        new ProcessStatusInfo(8, "RINSE"),
+        new ProcessStatusInfo(9, "SCRAP (NORMAL)"),
+        new ProcessStatusInfo(10, "SOFTNER"),
+        new ProcessStatusInfo(11, "STONE WASH"),
+        new ProcessStatusInfo(12, "TINT")
+    };
 
     private List<StepTypeInfo> StepTypes = new()
     {
@@ -185,6 +218,36 @@
 
     private bool IsStepTypeChecked(short bit) => (Step != null && Step.StepDataWords.Length > 24 && (Step.StepDataWords[24] & bit) != 0);
 
+    private byte GetSelectedProcessStatus()
+    {
+        if (Step == null || Step.StepDataWords == null || Step.StepDataWords.Length <= 24) return 0;
+        return (byte)((Step.StepDataWords[24] >> 12) & 0x0F);
+    }
+
+    private async Task OnProcessStatusChanged(ChangeEventArgs e)
+    {
+        if (_isUpdating || Step == null || Step.StepDataWords == null || Step.StepDataWords.Length <= 24) return;
+        errorMessage = null;
+
+        try
+        {
+            if (byte.TryParse(e.Value?.ToString(), out byte newStatusValue))
+            {
+                short currentWord = Step.StepDataWords[24];
+                short clearedWord = (short)(currentWord & 0x0FFF); // Bit 0-11 koru, Bit 12-15 temizle
+                short newBits = (short)((newStatusValue & 0x0F) << 12);
+
+                Step.StepDataWords[24] = (short)(clearedWord | newBits);
+
+                await OnChanged.InvokeAsync(null);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"{Loc["HataOlustu"]} {ex.Message}\n--- STACK TRACE ---\n{ex.StackTrace}";
+        }
+    }
+
     private async Task OnStepTypeChanged(StepTypeInfo changedStep, bool isChecked)
     {
         if (_isUpdating || Step == null) return;
@@ -214,7 +277,6 @@
         }
     }
 
-    // --- DÜZELTİLEN METOT BURASI ---
     private async Task LoadControlsData()
     {
         try
@@ -224,11 +286,8 @@
 
             foreach (var stepId in activeStepIds)
             {
-                // DEĞİŞİKLİK: GetLayoutJsonAsync yerine GetLayoutAsync kullandık (Liste döner)
-                // Servis katmanında JSON parse edildiği için burada tekrar edilmez.
                 var controls = await ScadaService.GetLayoutAsync(MachineSubType, stepId);
 
-                // Eğer özel tip için sonuç boşsa varsayılanı dene
                 if ((controls == null || !controls.Any()) && MachineSubType != "DEFAULT")
                 {
                     controls = await ScadaService.GetLayoutAsync("DEFAULT", stepId);
@@ -266,6 +325,7 @@
 
     private bool IsSelectionValid(short controlWord)
     {
+        // Bit 0-11 arasındaki adım tipleri kontrol edilir
         var checkedSteps = StepTypes.Where(s => (controlWord & s.BitValue) != 0).ToList();
         int checkedCount = checkedSteps.Count;
 

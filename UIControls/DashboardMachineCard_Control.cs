@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Windows.Forms;
 using TekstilScada.Models;
 using TekstilScada.Repositories;
-using System.Threading.Tasks; // EKLENDİ
-using System.Text.Json;       // EKLENDİ
+using System.Threading.Tasks;
+using System.Text.Json;
 using static TekstilScada.Repositories.ProcessLogRepository;
 
 namespace TekstilScada.UI.Controls
@@ -43,30 +42,26 @@ namespace TekstilScada.UI.Controls
             label2.ForeColor = Color.Black;
             SetRpmGaugeLimitAsync();
         }
+
         private async void SetRpmGaugeLimitAsync()
         {
             try
             {
-                // 1. Veritabanından adım tiplerini çek
                 var stepTypesTable = await Task.Run(() => _configRepo.GetStepTypes());
                 int rpmStepTypeId = -1;
 
-                // 2. "Sıkma" (Squeezing) adımının ID'sini bul
                 foreach (System.Data.DataRow row in stepTypesTable.Rows)
                 {
                     string stepName = row["StepName"].ToString();
-                    if (stepName.Contains("Sıkma") || stepName.Contains("Squeezing"))
+                    if (stepName.Contains("Sıkma") || stepName.Contains("Extraction"))
                     {
                         rpmStepTypeId = Convert.ToInt32(row["Id"]);
                         break;
                     }
                 }
 
-                // Eğer Sıkma adımı bulunduysa
                 if (rpmStepTypeId != -1)
                 {
-                    // 3. KRİTİK NOKTA: Bu kartın ait olduğu makinenin alt tipini kullanıyoruz
-                    // _machine.MachineSubType -> Örn: "Boyama", "Yıkama"
                     string layoutJson = await Task.Run(() =>
                         _configRepo.GetLayoutJson(_machine.MachineSubType, rpmStepTypeId));
 
@@ -75,20 +70,18 @@ namespace TekstilScada.UI.Controls
                         var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                         var controls = System.Text.Json.JsonSerializer.Deserialize<List<ControlMetadata>>(layoutJson, options);
 
-                        // 4. Tasarım içindeki RPM kontrolünü bul
                         var rpmControl = controls.FirstOrDefault(c =>
                             c.Maximum > 50 &&
                             (
                                 (c.Name != null && (c.Name.IndexOf("numSikmaDevri", StringComparison.OrdinalIgnoreCase) >= 0 ||
                                                     c.Name.IndexOf("Rpm", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                                    c.Name.IndexOf("Squeezing Speed", StringComparison.OrdinalIgnoreCase) >= 0)) ||
+                                                    c.Name.IndexOf("Extraction Speed", StringComparison.OrdinalIgnoreCase) >= 0)) ||
                                 (c.Text != null && c.Text.IndexOf("Devir", StringComparison.OrdinalIgnoreCase) >= 0)
                             )
                         );
 
                         if (rpmControl != null)
                         {
-                            // 5. Değeri ata (1.33 katı ile)
                             int newMax = (int)(rpmControl.Maximum);
 
                             if (gaugeRpm.InvokeRequired)
@@ -105,10 +98,10 @@ namespace TekstilScada.UI.Controls
             }
             catch (Exception ex)
             {
-                // Dashboard'da çok kart olduğu için hata patlatmayalım, loglayalım
                 System.Diagnostics.Debug.WriteLine($"RPM limiti ayarlanamadı ({_machine.MachineName}): {ex.Message}");
             }
         }
+
         public void UpdateData(FullMachineStatus status, List<ProcessDataPoint> trendData)
         {
             if (this.InvokeRequired)
@@ -126,7 +119,12 @@ namespace TekstilScada.UI.Controls
                 gaugeRpm.Text = status.AnlikDevirRpm.ToString();
             }
             catch (Exception ex) { }
-            // --- YENİ: Kurutma Makinesi Kontrolü ---
+
+            // --- Process Status (Word 24 / ControlWord Çözümleme) ---
+            // Modelinizdeki ControlWord alanına göre aktarım yapın (örn: status.AktifAdimControlWord)
+            UpdateProcessStatusFromWord(status.AktifAdimTipiWordu);
+
+            // --- Kurutma Makinesi Kontrolü ---
             bool isDrying = _machine.MachineType == "Kurutma Makinesi";
             if (!isDrying)
             {
@@ -136,19 +134,16 @@ namespace TekstilScada.UI.Controls
             {
                 lblTemperature.Text = $"{status.AnlikSicaklik / 100.0m:F1}°C";
             }
-                // Kurutma makinesi ise barı gizle, nemi göster
-                progressBar.Visible = !isDrying;
+
+            progressBar.Visible = !isDrying;
             lblPercentage.Visible = !isDrying;
             lblProcessing.Visible = !isDrying;
             lblHumidity.Visible = isDrying;
             lblhumudity.Visible = isDrying;
             if (isDrying)
             {
-                // Not: Modelde Nem alanını ekleyince burayı status.AnlikNem yaparsınız.
-                // Şimdilik mevcut yapıyı koruyoruz.
                 lblHumidity.Text = $"{status.AnlikSuSeviyesi} %";
             }
-            // ---------------------------------------
 
             if (status.HasActiveAlarm)
             {
@@ -174,24 +169,48 @@ namespace TekstilScada.UI.Controls
                 else
                 {
                     if (status.IsInRecipeMode)
-                {
-                    pnlStatusIndicator.BackColor = _colorRunning;
-                    lblStatus.Text = $"Working - Step {status.AktifAdimNo}";
-                    lblStatus.ForeColor = _colorRunning;
-                }
-                else
-                {
-                    pnlStatusIndicator.BackColor = _colorStopped;
-                    lblStatus.Text = "Stops";
-                    lblStatus.ForeColor = _colorStopped;
-                }
+                    {
+                        pnlStatusIndicator.BackColor = _colorRunning;
+                        lblStatus.Text = $"Working - Step {status.AktifAdimNo}";
+                        lblStatus.ForeColor = _colorRunning;
+                    }
+                    else
+                    {
+                        pnlStatusIndicator.BackColor = _colorStopped;
+                        lblStatus.Text = "Stops";
+                        lblStatus.ForeColor = _colorStopped;
+                    }
                 }
             }
-
-
-            
         }
 
-      
+        /// <summary>
+        /// PLC'den gelen Word 24 (ControlWord) değerinin son 4 bitini (Bit 12-15) çözer ve txtProcessStatus kutucuğuna yazar.
+        /// </summary>
+        public void UpdateProcessStatusFromWord(int controlWord24)
+        {
+            byte statusValue = (byte)((controlWord24 >> 12) & 0x0F);
+            txtProcessStatus.Text = GetProcessStatusText(statusValue);
+        }
+
+        private string GetProcessStatusText(byte statusValue)
+        {
+            return statusValue switch
+            {
+                1 => "ALLOVER SPRAY",
+                2 => "BIO POLISH",
+                3 => "BLEACH",
+                4 => "BRIGHTNER",
+                5 => "DESIZE",
+                6 => "DRY",
+                7 => "NEUTRAL",
+                8 => "RINSE",
+                9 => "SCRAP (NORMAL)",
+                10 => "SOFTNER",
+                11 => "STONE WASH",
+                12 => "TINT",
+                _ => "NONE"
+            };
+        }
     }
 }

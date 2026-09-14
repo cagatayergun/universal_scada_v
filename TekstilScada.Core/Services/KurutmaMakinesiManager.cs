@@ -112,9 +112,15 @@ namespace TekstilScada.Services
                 bool anyReadFailed = false;
 
                 // CHANGE: Modbus read operations
-                var adimTipiResult = _plcClient.ReadInt16(ACTIVE_STEP_TYPE_WORD);
-                if (adimTipiResult.IsSuccess) status.AktifAdimTipiWordu = adimTipiResult.Content;
-                else return OperateResult.CreateFailedResult<FullMachineStatus>(adimTipiResult);
+                var adimTipiResult = _plcClient.ReadUInt16(ACTIVE_STEP_TYPE_WORD);
+                if (adimTipiResult.IsSuccess)
+                {
+                    status.AktifAdimTipiWordu = adimTipiResult.Content;
+                }
+                else
+                {
+                    return OperateResult.CreateFailedResult<FullMachineStatus>(adimTipiResult);
+                }
 
                 var adimNoResult = _plcClient.ReadInt16(STEP_NO);
                 if (adimNoResult.IsSuccess) status.AktifAdimNo = adimNoResult.Content;

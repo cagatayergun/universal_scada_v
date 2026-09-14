@@ -1,5 +1,4 @@
-﻿// UIControls/DashboardMachineCard_Control.Designer.cs
-namespace TekstilScada.UI.Controls
+﻿namespace TekstilScada.UI.Controls
 {
     partial class DashboardMachineCard_Control
     {
@@ -22,6 +21,8 @@ namespace TekstilScada.UI.Controls
             lblHumidity = new Label();
             lblhumudity = new Label();
             label2 = new Label();
+            lblProcessStatusHeader = new Label();
+            txtProcessStatus = new TextBox();
             SuspendLayout();
             // 
             // pnlStatusIndicator
@@ -38,7 +39,7 @@ namespace TekstilScada.UI.Controls
             // 
             lblMachineName.AutoSize = true;
             lblMachineName.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
-            lblMachineName.Location = new Point(23, 5);
+            lblMachineName.Location = new Point(23, 2);
             lblMachineName.Margin = new Padding(4, 0, 4, 0);
             lblMachineName.Name = "lblMachineName";
             lblMachineName.Size = new Size(97, 21);
@@ -59,7 +60,7 @@ namespace TekstilScada.UI.Controls
             // lblRecipeName
             // 
             lblRecipeName.Font = new Font("Segoe UI Black", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 162);
-            lblRecipeName.Location = new Point(23, 34);
+            lblRecipeName.Location = new Point(23, 23);
             lblRecipeName.Margin = new Padding(4, 0, 4, 0);
             lblRecipeName.Name = "lblRecipeName";
             lblRecipeName.Size = new Size(131, 21);
@@ -70,7 +71,7 @@ namespace TekstilScada.UI.Controls
             // lblBatchId
             // 
             lblBatchId.Font = new Font("Segoe UI Black", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 162);
-            lblBatchId.Location = new Point(23, 53);
+            lblBatchId.Location = new Point(23, 44);
             lblBatchId.Margin = new Padding(4, 0, 4, 0);
             lblBatchId.Name = "lblBatchId";
             lblBatchId.Size = new Size(131, 21);
@@ -82,7 +83,7 @@ namespace TekstilScada.UI.Controls
             // 
             lblTemperature.Font = new Font("Arial Black", 20.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
             lblTemperature.ForeColor = Color.FromArgb(192, 0, 0);
-            lblTemperature.Location = new Point(100, 73);
+            lblTemperature.Location = new Point(100, 78);
             lblTemperature.Margin = new Padding(4, 0, 4, 0);
             lblTemperature.Name = "lblTemperature";
             lblTemperature.Size = new Size(98, 33);
@@ -99,7 +100,7 @@ namespace TekstilScada.UI.Controls
             gaugeRpm.InnerColor = Color.White;
             gaugeRpm.InnerMargin = 2;
             gaugeRpm.InnerWidth = -1;
-            gaugeRpm.Location = new Point(198, 56);
+            gaugeRpm.Location = new Point(198, 79);
             gaugeRpm.Margin = new Padding(3, 2, 3, 2);
             gaugeRpm.MarqueeAnimationSpeed = 2000;
             gaugeRpm.Maximum = 500;
@@ -156,7 +157,7 @@ namespace TekstilScada.UI.Controls
             lblHumidity.AutoSize = true;
             lblHumidity.Font = new Font("Arial Black", 20.25F, FontStyle.Bold);
             lblHumidity.ForeColor = Color.CornflowerBlue;
-            lblHumidity.Location = new Point(100, 107);
+            lblHumidity.Location = new Point(100, 112);
             lblHumidity.Name = "lblHumidity";
             lblHumidity.Size = new Size(89, 38);
             lblHumidity.TabIndex = 16;
@@ -166,7 +167,7 @@ namespace TekstilScada.UI.Controls
             // lblhumudity
             // 
             lblhumudity.Font = new Font("Segoe UI Black", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 162);
-            lblhumudity.Location = new Point(20, 116);
+            lblhumudity.Location = new Point(20, 121);
             lblhumudity.Margin = new Padding(4, 0, 4, 0);
             lblhumudity.Name = "lblhumudity";
             lblhumudity.Size = new Size(69, 21);
@@ -177,7 +178,7 @@ namespace TekstilScada.UI.Controls
             // label2
             // 
             label2.Font = new Font("Segoe UI Black", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 162);
-            label2.Location = new Point(20, 82);
+            label2.Location = new Point(20, 87);
             label2.Margin = new Padding(4, 0, 4, 0);
             label2.Name = "label2";
             label2.Size = new Size(83, 21);
@@ -185,12 +186,39 @@ namespace TekstilScada.UI.Controls
             label2.Text = "Temprature:";
             label2.TextAlign = ContentAlignment.MiddleLeft;
             // 
+            // lblProcessStatusHeader
+            // 
+            lblProcessStatusHeader.AutoSize = true;
+            lblProcessStatusHeader.Font = new Font("Segoe UI Black", 8.25F, FontStyle.Bold);
+            lblProcessStatusHeader.ForeColor = Color.Black;
+            lblProcessStatusHeader.Location = new Point(23, 65);
+            lblProcessStatusHeader.Name = "lblProcessStatusHeader";
+            lblProcessStatusHeader.Size = new Size(49, 13);
+            lblProcessStatusHeader.TabIndex = 19;
+            lblProcessStatusHeader.Text = "STATUS";
+            // 
+            // txtProcessStatus
+            // 
+            txtProcessStatus.BackColor = SystemColors.Info;
+            txtProcessStatus.BorderStyle = BorderStyle.None;
+            txtProcessStatus.Font = new Font("Segoe UI", 8F, FontStyle.Bold);
+            txtProcessStatus.ForeColor = Color.Black;
+            txtProcessStatus.Location = new Point(83, 65);
+            txtProcessStatus.Name = "txtProcessStatus";
+            txtProcessStatus.ReadOnly = true;
+            txtProcessStatus.Size = new Size(179, 15);
+            txtProcessStatus.TabIndex = 20;
+            txtProcessStatus.TabStop = false;
+            txtProcessStatus.Text = "NONE";
+            // 
             // DashboardMachineCard_Control
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.Info;
             BorderStyle = BorderStyle.FixedSingle;
+            Controls.Add(lblProcessStatusHeader);
+            Controls.Add(txtProcessStatus);
             Controls.Add(lblhumudity);
             Controls.Add(label2);
             Controls.Add(lblHumidity);
@@ -211,6 +239,7 @@ namespace TekstilScada.UI.Controls
             PerformLayout();
         }
         #endregion
+
         private System.Windows.Forms.Panel pnlStatusIndicator;
         private System.Windows.Forms.Label lblMachineName;
         private System.Windows.Forms.Label lblStatus;
@@ -221,8 +250,12 @@ namespace TekstilScada.UI.Controls
         private System.Windows.Forms.ProgressBar progressBar;
         private System.Windows.Forms.Label lblPercentage;
         private Label lblProcessing;
-        private Label lblHumidity; // YENİ
+        private Label lblHumidity;
         private Label lblhumudity;
         private Label label2;
+
+        // YENİ EKLENEN TANIMLAMALAR
+        private Label lblProcessStatusHeader;
+        private TextBox txtProcessStatus;
     }
 }

@@ -31,11 +31,13 @@ namespace TekstilScada.Core
             {
                 foreach (var word in step.StepDataWords)
                 {
-                    csvBuilder.AppendLine(word.ToString());
+                    // KRİTİK DÜZELTME:
+                    // (ushort) dönüşümü ile 32767'den büyük değerlerin (Örn: SOFTNER = 40960) 
+                    // negatif sayı (-24576) olarak değil, pozitif sayı olarak yazılması sağlanır.
+                    csvBuilder.AppendLine(((ushort)word).ToString(CultureInfo.InvariantCulture));
                 }
             }
 
-            // *** EKLENEN DÜZELTME ***
             // HMI'ın dosyayı doğru işlemesi için gereken son boş satırı ekliyoruz.
             csvBuilder.AppendLine();
 
@@ -69,7 +71,7 @@ namespace TekstilScada.Core
             foreach (var line in lines.Skip(dataStartIndex))
             {
                 var trimmedLine = line.Trim().Replace("\0", string.Empty);
-                if (short.TryParse(trimmedLine, out _) || ushort.TryParse(trimmedLine, out _))
+                if (int.TryParse(trimmedLine, out _))
                 {
                     numericLines.Add(trimmedLine);
                 }
@@ -86,17 +88,16 @@ namespace TekstilScada.Core
                         var step = new ScadaRecipeStep { StepNumber = (short)stepNumber++ };
                         for (int j = 0; j < 25; j++)
                         {
-                            if (short.TryParse(stepValues[j], out short signedValue))
-                            {
-                                step.StepDataWords[j] = signedValue;
-                            }
-                            else if (ushort.TryParse(stepValues[j], out ushort unsignedValue))
+                            if (ushort.TryParse(stepValues[j], out ushort unsignedValue))
                             {
                                 step.StepDataWords[j] = unchecked((short)unsignedValue);
                             }
+                            else if (short.TryParse(stepValues[j], out short signedValue))
+                            {
+                                step.StepDataWords[j] = signedValue;
+                            }
                             else
                             {
-                                // Handle cases where parsing fails entirely, e.g., set to 0 or log an error.
                                 step.StepDataWords[j] = 0;
                             }
                         }

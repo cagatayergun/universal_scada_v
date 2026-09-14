@@ -342,13 +342,13 @@
   <data name="SoftWater" xml:space="preserve">
     <value>Yumuşak Su</value>
   </data>
-  <data name="Squeezing" xml:space="preserve">
+  <data name="Extraction" xml:space="preserve">
     <value>SIKMA</value>
   </data>
-  <data name="SqueezingSpeed" xml:space="preserve">
+  <data name="ExtractionSpeed" xml:space="preserve">
     <value>Sıkma Devri:</value>
   </data>
-  <data name="SqueezingTime" xml:space="preserve">
+  <data name="ExtractionTime" xml:space="preserve">
     <value>Sıkma Süre (DK):</value>
   </data>
   <data name="StartTime" xml:space="preserve">

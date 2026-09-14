@@ -87,11 +87,11 @@
                             @if (!IsByMachine)
                             {
                                 <MudMenuItem OnClick="SendToPlc" Icon="@Icons.Material.Filled.Upload" Disabled="@(SelectedMachineId == 0)">@Loc["SeciliMakineyeGonder"]</MudMenuItem>
+
                             
-                            
-                            @* 2. OKUMA: Herkeste AÇIK *@
-                            <MudMenuItem OnClick="ReadFromPlc" Icon="@Icons.Material.Filled.Download" Disabled="@(SelectedMachineId == 0)">@Loc["SeciliMakinedenOku"]</MudMenuItem>
-                            
+                                @* 2. OKUMA: Herkeste AÇIK *@
+                                <MudMenuItem OnClick="ReadFromPlc" Icon="@Icons.Material.Filled.Download" Disabled="@(SelectedMachineId == 0)">@Loc["SeciliMakinedenOku"]</MudMenuItem>
+
                             }
                             <MudDivider />
 
@@ -166,19 +166,16 @@
     private Machine? selectedMachine;
 
     // --- YARDIMCI ÖZELLİKLER ---
-    // Seçili makinenin BY Makinesi olup olmadığını kontrol eder.
     private bool IsByMachine
     {
         get
         {
             if (selectedMachine == null) return false;
-            // Makine tipi veya alt tipi "BY" içeriyorsa
             var type = (selectedMachine.MachineType ?? "") + (selectedMachine.MachineSubType ?? "");
             return type.Contains("BYMakinesi", StringComparison.OrdinalIgnoreCase);
         }
     }
 
-    // Seçili makinenin Kurutma Makinesi olup olmadığını kontrol eder.
     private bool IsDryerMachine
     {
         get
@@ -187,7 +184,6 @@
             return (selectedMachine.MachineType ?? "").Contains("Kurutma Makinesi", StringComparison.OrdinalIgnoreCase);
         }
     }
-    // ----------------------------
 
     private async Task OpenFtpSync()
     {
@@ -235,18 +231,15 @@
     {
         isBusy = true;
         statusMessage = Loc["BilesenlerYukleniyor"];
-        StateHasChanged(); // Yükleniyor ibaresini kullanıcıya anında göster
+        StateHasChanged();
 
         try
         {
-            // ADIM 2 UYGULAMASI: Makine ve Reçete listelerini ağdan AYNI ANDA (Paralel) istiyoruz
             var machinesTask = ScadaDataService.GetMachinesAsync();
             var recipesTask = ScadaDataService.GetRecipesAsync();
 
-            // İkisinin de veri tabanından gelmesini aynı anda bekliyoruz (Süre yarıya düştü)
             await Task.WhenAll(machinesTask, recipesTask);
 
-            // Gelen verileri listelere atıyoruz
             machines = await machinesTask;
             recipes = await recipesTask;
 
@@ -262,7 +255,6 @@
         }
         finally
         {
-            // İkisi de tamamen yüklendikten sonra güvenli bir şekilde UI işlemlerini yapıyoruz
             isBusy = false;
             selectedRecipe = null;
             selectedStep = null;
@@ -273,7 +265,6 @@
 
     private async Task LoadMachines()
     {
-        // Sayfa içindeki manuel tetiklemeler için (Sadece makineleri çeker)
         machines = await ScadaDataService.GetMachinesAsync();
         if (machines == null || !machines.Any())
         {
@@ -284,7 +275,6 @@
 
     private async Task LoadRecipes()
     {
-        // Yenile butonuna basıldığında (Sadece reçeteleri çeker)
         isBusy = true;
         StateHasChanged();
 
@@ -461,19 +451,16 @@
     {
         if (selectedRecipe == null || selectedMachine == null) return;
 
-        // BY Makineleri için bu metot artık menüden engellendi ama güvenlik için kontrol kalsın
         if (IsByMachine)
         {
             await JSRuntime.InvokeVoidAsync("alert", "For drying machines, FTP uploading is not supported.");
             return;
         }
 
-        // Diğer makineler için direk gönderim (Eski kodunuzdaki mantık korunabilir veya buraya eklenebilir)
         isBusy = true;
         StateHasChanged();
         try
         {
-            // Örnek direk gönderim kodu (DataService üzerinden)
             bool success = await ScadaDataService.SendRecipeToPlcAsync(selectedRecipe.Id, selectedMachine.Id);
             if (success)
                 Snackbar.Add(Loc["GonderimBasarili"], Severity.Success);
@@ -533,6 +520,8 @@
     {
         var stepTypes = new List<string>();
         short controlWord = step.StepDataWords.Length > 24 ? step.StepDataWords[24] : (short)0;
+
+        // Bit 0 - 10: Standart Adım Tipleri
         if ((controlWord & 1) != 0) stepTypes.Add(Loc["AdimTipi_SuAlma"]);
         if ((controlWord & 2) != 0) stepTypes.Add(Loc["AdimTipi_Isitma"]);
         if ((controlWord & 4) != 0) stepTypes.Add(Loc["AdimTipi_Calisma"]);
@@ -540,6 +529,35 @@
         if ((controlWord & 16) != 0) stepTypes.Add(Loc["AdimTipi_Bosaltma"]);
         if ((controlWord & 32) != 0) stepTypes.Add(Loc["AdimTipi_Sikma"]);
         if ((controlWord & 1024) != 0) stepTypes.Add("Operator Call");
+
+        // Bit 12 - 15: Process Status Çözümleme
+        byte statusValue = (byte)((controlWord >> 12) & 0x0F);
+        string statusText = GetProcessStatusName(statusValue);
+        if (!string.IsNullOrEmpty(statusText))
+        {
+            stepTypes.Add($"[{statusText}]");
+        }
+
         return stepTypes.Any() ? string.Join(" + ", stepTypes) : "";
+    }
+
+    private string GetProcessStatusName(byte statusValue)
+    {
+        return statusValue switch
+        {
+            1 => "ALLOVER SPRAY",
+            2 => "BIO POLISH",
+            3 => "BLEACH",
+            4 => "BRIGHTNER",
+            5 => "DESIZE",
+            6 => "DRY",
+            7 => "NEUTRAL",
+            8 => "RINSE",
+            9 => "SCRAP (NORMAL)",
+            10 => "SOFTNER",
+            11 => "STONE WASH",
+            12 => "TINT",
+            _ => null
+        };
     }
 }

@@ -4,7 +4,7 @@
 @using TekstilScada.Core.Localization
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<SharedResource> Loc
-@inject TekstilScada.WebApp.Services.ScadaDataService ScadaService 
+@inject TekstilScada.WebApp.Services.ScadaDataService ScadaService
 
 <MudCard Elevation="3" Class="ma-2 machine-card-hover pa-1" Style="@GetCardStyle()">
 
@@ -60,25 +60,35 @@
                         </MudTooltip>
                     </div>
 
-                    @* --- SATIR 2: ADIM NO VE ADI --- *@
-                    <div class="d-flex align-center w-100">
-                        @if (MachineStatus.manuel_status)
-                        {
-                            <MudText Typo="Typo.caption" Style="font-weight:bold; color:var(--mud-palette-success);">
-                                Working - Manuel
-                            </MudText>
-                        }
-                        else
-                        {
-                            <MudText Typo="Typo.caption" Class="mr-1" Style="font-weight:bold; white-space:nowrap; flex-shrink: 0;">
-                                @Loc["Adim"] @MachineStatus.AktifAdimNo:
-                            </MudText>
-
-                            <MudTooltip Text="@MachineStatus.AktifAdimAdi" Arrow="true" Placement="Placement.Top">
-                                <MudText Typo="Typo.caption" Class="d-block text-truncate" Style="max-width: 100%;">
-                                    @MachineStatus.AktifAdimAdi
+                    @* --- SATIR 2: ADIM NO, ADI VE MANUEL PROCESS STATUS ROZETİ --- *@
+                    <div class="d-flex align-center justify-space-between w-100">
+                        <div class="d-flex align-center text-truncate mr-1">
+                            @if (MachineStatus.manuel_status)
+                            {
+                                <MudText Typo="Typo.caption" Style="font-weight:bold; color:var(--mud-palette-success);">
+                                    Working - Manuel
                                 </MudText>
-                            </MudTooltip>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption" Class="mr-1" Style="font-weight:bold; white-space:nowrap; flex-shrink: 0;">
+                                    @Loc["Adim"] @MachineStatus.AktifAdimNo:
+                                </MudText>
+
+                                <MudTooltip Text="@MachineStatus.AktifAdimAdi" Arrow="true" Placement="Placement.Top">
+                                    <MudText Typo="Typo.caption" Class="d-block text-truncate" Style="max-width: 100%;">
+                                        @MachineStatus.AktifAdimAdi
+                                    </MudText>
+                                </MudTooltip>
+                            }
+                        </div>
+
+                        @* MANUEL EKLENEN PROCESS STATUS ROZETİ *@
+                        @if (!string.IsNullOrEmpty(GetManualProcessStatusText()))
+                        {
+                            <span class="process-status-badge flex-shrink-0">
+                                @GetManualProcessStatusText()
+                            </span>
                         }
                     </div>
 
@@ -158,13 +168,26 @@
         height: 100%;
     }
 
-    .machine-card-hover:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 15px rgba(0,0,0,0.1);
-    }
+        .machine-card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
 
     .border-r {
         border-right: 1px solid var(--mud-palette-divider);
+    }
+
+    /* Process Status Ufak Rozet Stili */
+    .process-status-badge {
+        background-color: #1e1e2d;
+        color: #00d2d3;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 1px 5px;
+        border-radius: 4px;
+        border: 1px solid #00d2d3;
+        white-space: nowrap;
+        letter-spacing: 0.3px;
     }
 </style>
 
@@ -178,19 +201,45 @@
     {
         if (MachineStatus == null) return false;
 
-        string currentStateHash = $"{MachineStatus.ConnectionState}_{MachineStatus.HasActiveAlarm}_{MachineStatus.IsPaused}_{MachineStatus.IsInRecipeMode}_{MachineStatus.BatchNumarasi}_{MachineStatus.AktifAdimNo}_{MachineStatus.AktifAdimAdi}_{MachineStatus.AnlikSicaklik}_{MachineStatus.AnlikSuSeviyesi}_{MachineStatus.AnlikDevirRpm}_{MachineStatus.ProsesYuzdesi}_{MachineStatus.MakineTipi}_{MachineStatus.manuel_status}";
+        string currentStateHash = $"{MachineStatus.ConnectionState}_{MachineStatus.HasActiveAlarm}_{MachineStatus.IsPaused}_{MachineStatus.IsInRecipeMode}_{MachineStatus.BatchNumarasi}_{MachineStatus.AktifAdimNo}_{MachineStatus.AktifAdimAdi}_{MachineStatus.AnlikSicaklik}_{MachineStatus.AnlikSuSeviyesi}_{MachineStatus.AnlikDevirRpm}_{MachineStatus.ProsesYuzdesi}_{MachineStatus.MakineTipi}_{MachineStatus.manuel_status}_{MachineStatus.AktifAdimTipiWordu}";
 
         if (_lastRenderedStateHash != currentStateHash)
         {
             _lastRenderedStateHash = currentStateHash;
-            return true; 
+            return true;
         }
 
-        return false; 
+        return false;
     }
 
-    // 🚨 DÜZELTME 2: Kurutma makinesi tespiti SignalR string'inden bağımsız hale getirildi.
-    // Doğrudan hafızadaki saf veritabanı kaydına gidip WinForms ile %100 aynı şekilde "MachineType" kontrolü yapar.
+    // MANUEL PROCESS STATUS ÇÖZÜMLEME METODU
+    private string GetManualProcessStatusText()
+    {
+        // Kurutma makinesinde BY manuel adımları gösterilmemeli
+        if (MachineStatus == null || IsDryerMachine())
+            return string.Empty;
+
+        // ControlWord'ün son 4 bitini (Bit 12-15) maskele ve sağa kaydır
+        byte statusValue = (byte)((MachineStatus.AktifAdimTipiWordu >> 12) & 0x0F);
+
+        return statusValue switch
+        {
+            1 => "ALLOVER SPRAY",
+            2 => "BIO POLISH",
+            3 => "BLEACH",
+            4 => "BRIGHTNER",
+            5 => "DESIZE",
+            6 => "DRY",
+            7 => "NEUTRAL",
+            8 => "RINSE",
+            9 => "SCRAP (NORMAL)",
+            10 => "SOFTNER",
+            11 => "STONE WASH",
+            12 => "TINT",
+            _ => string.Empty
+        };
+    }
+
     private bool IsDryerMachine()
     {
         if (MachineStatus == null) return false;
@@ -200,7 +249,6 @@
             return dbMachine.MachineType == "Kurutma Makinesi";
         }
 
-        // Eğer cache o anlık boşsa (Fallback Güvenlik Önlemi)
         if (string.IsNullOrEmpty(MachineStatus.MakineTipi)) return false;
         return MachineStatus.MakineTipi.Contains("Kurutma Makinesi", StringComparison.OrdinalIgnoreCase);
     }
@@ -209,12 +257,10 @@
     {
         if (IsDryerMachine())
         {
-            // Kurutma ise 100'e böl ve virgülden sonra tek hane göster (F1) -> 67.0°C
             return (MachineStatus.AnlikSicaklik / 100.0m).ToString("F1");
         }
         else
         {
-            // Yıkama ise 10'a böl ve virgülden sonra tek hane göster (F1)
             return (MachineStatus.AnlikSicaklik / 10.0m).ToString("F1");
         }
     }

@@ -1,5 +1,4 @@
-﻿
-using ScottPlot; // Grafik kütüphanesi
+﻿using ScottPlot; // Grafik kütüphanesi
 using System;
 using System.Collections.Generic;
 using System.Drawing; // Çizim kütüphanesi
@@ -28,8 +27,8 @@ namespace TekstilScada.UI.Views
         private readonly RecipeConfigurationRepository _configRepo = new RecipeConfigurationRepository();
         private Machine _machine;
 
-        // Plot nesneleri
-        private ScottPlot.Plottables.Scatter _tempScatter;
+        // Plot nesneleri
+        private ScottPlot.Plottables.Scatter _tempScatter;
         private ScottPlot.Plottables.Scatter _rpmScatter;
         private ScottPlot.Plottables.Scatter _waterScatter;
 
@@ -43,23 +42,23 @@ namespace TekstilScada.UI.Views
             InitializeComponent();
             btnGeri.Click += (sender, args) => BackRequested?.Invoke(this, EventArgs.Empty);
 
-            // --- KRİTİK AYARLAR ---
-            // Panelin Paint olayını bağlıyoruz
-            this.progressTemp.Paint += new System.Windows.Forms.PaintEventHandler(this.progressTemp_Paint);
-            
+            // --- KRİTİK AYARLAR ---
+            // Panelin Paint olayını bağlıyoruz
+            this.progressTemp.Paint += new System.Windows.Forms.PaintEventHandler(this.progressTemp_Paint);
+
             this.humuditybar.Paint += new System.Windows.Forms.PaintEventHandler(this.humuditybar_Paint);
-            // Titremeyi önlemek için DoubleBuffering açıyoruz (Reflection ile)
-            typeof(Panel).InvokeMember("DoubleBuffered",
-    System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
-    null, progressTemp, new object[] { true });
+            // Titremeyi önlemek için DoubleBuffering açıyoruz (Reflection ile)
+            typeof(Panel).InvokeMember("DoubleBuffered",
+                System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                null, progressTemp, new object[] { true });
 
             typeof(Panel).InvokeMember("DoubleBuffered",
-            System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
-    null, humuditybar, new object[] { true });
+                System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                null, humuditybar, new object[] { true });
             LanguageManager.LanguageChanged += LanguageManager_LanguageChanged;
 
-            // Grafik Eksenlerini Bağlama (Senkronizasyon)
-            formsPlotTemp.Plot.RenderManager.AxisLimitsChanged += (s, e) => SyncAxes(formsPlotTemp);
+            // Grafik Eksenlerini Bağlama (Senkronizasyon)
+            formsPlotTemp.Plot.RenderManager.AxisLimitsChanged += (s, e) => SyncAxes(formsPlotTemp);
             formsPlotRpm.Plot.RenderManager.AxisLimitsChanged += (s, e) => SyncAxes(formsPlotRpm);
             formsPlotWater.Plot.RenderManager.AxisLimitsChanged += (s, e) => SyncAxes(formsPlotWater);
         }
@@ -109,9 +108,6 @@ namespace TekstilScada.UI.Views
                 _pollingService.OnActiveAlarmStateChanged -= OnAlarmStateChanged;
             }
 
-            // VisibleChanged olayını temizlemeye gerek yok, InitializeControl'de tekrar eklemiyoruz,
-            // Constructor'da eklemek yerine Initialize'da ekliyorsanız -= yapmalısınız. 
-            // Sizin kodunuzda aşağıda += yapılıyor, o yüzden burada -= yapıyoruz:
             this.VisibleChanged -= MakineDetay_Control_VisibleChanged;
 
             // Grafik ve değişken sıfırlama (Her makine için temiz sayfa garantisi)
@@ -162,7 +158,6 @@ namespace TekstilScada.UI.Views
 
         private void UpdateLiveGauges_Tick(object sender, EventArgs e)
         {
-            // Sadece görünürse güncelle (Ekstra güvenlik)
             if (this.Visible)
                 UpdateLiveGauges();
         }
@@ -195,8 +190,8 @@ namespace TekstilScada.UI.Views
             lblCalisanAdim.Text = "---";
         }
 
-        // --- GAUGE LİMİT AYARLARI ---
-        private async void SetRpmGaugeLimitAsync()
+        // --- GAUGE LİMİT AYARLARI ---
+        private async void SetRpmGaugeLimitAsync()
         {
             try
             {
@@ -206,7 +201,7 @@ namespace TekstilScada.UI.Views
                 foreach (System.Data.DataRow row in stepTypesTable.Rows)
                 {
                     string stepName = row["StepName"].ToString();
-                    if (stepName.Contains("Sıkma") || stepName.Contains("Squeezing"))
+                    if (stepName.Contains("Sıkma") || stepName.Contains("Extraction"))
                     {
                         rpmStepTypeId = Convert.ToInt32(row["Id"]);
                         break;
@@ -225,16 +220,13 @@ namespace TekstilScada.UI.Views
                         var rpmControl = controls.FirstOrDefault(c =>
                          (c.Name != null && (c.Name.IndexOf("numSikmaDevri", StringComparison.OrdinalIgnoreCase) >= 0 ||
                               c.Name.IndexOf("Rpm", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                              c.Name.IndexOf("Squeezing Speed", StringComparison.OrdinalIgnoreCase) >= 0)) ||
+                              c.Name.IndexOf("Extraction Speed", StringComparison.OrdinalIgnoreCase) >= 0)) ||
                          (c.Text != null && c.Text.IndexOf("Devir", StringComparison.OrdinalIgnoreCase) >= 0)
                         );
 
                         if (rpmControl != null)
                         {
-                            // --- DEĞİŞİKLİK BURADA ---
-                            // Maximum değerini 1.33 ile çarpıp int'e çeviriyoruz.
-                            // Örnek: 1000 * 1.33 = 1330
-                            int newMax = (int)(rpmControl.Maximum);
+                            int newMax = (int)(rpmControl.Maximum);
 
                             if (gaugeRpm.InvokeRequired)
                             {
@@ -244,8 +236,7 @@ namespace TekstilScada.UI.Views
                             {
                                 gaugeRpm.Maximum = newMax;
                             }
-                            // -------------------------
-                        }
+                        }
                     }
                 }
             }
@@ -303,8 +294,8 @@ namespace TekstilScada.UI.Views
             }
         }
 
-        // --- DİL AYARLARI ---
-        private void LanguageManager_LanguageChanged(object sender, EventArgs e)
+        // --- DİL AYARLARI ---
+        private void LanguageManager_LanguageChanged(object sender, EventArgs e)
         {
             ApplyLocalization();
         }
@@ -322,8 +313,8 @@ namespace TekstilScada.UI.Views
             lstAlarmlar.Text = Resources.baglantibekleniyro;
         }
 
-        // --- EVENT HANDLERS ---
-        private void OnConnectionStateChanged(int machineId, FullMachineStatus status)
+        // --- EVENT HANDLERS ---
+        private void OnConnectionStateChanged(int machineId, FullMachineStatus status)
         {
             if (machineId == _machine.Id && this.IsHandleCreated && !this.IsDisposed)
             {
@@ -341,7 +332,6 @@ namespace TekstilScada.UI.Views
 
         private void MakineDetay_Control_VisibleChanged(object sender, EventArgs e)
         {
-            // Sayfa görünürse Timer çalışsın, gizliyse dursun (Arka planda çalışmayı engeller)
             if (this.Visible)
             {
                 if (_uiUpdateTimer != null && !_uiUpdateTimer.Enabled)
@@ -373,17 +363,13 @@ namespace TekstilScada.UI.Views
                     gaugeRpm.Value = status.AnlikDevirRpm;
                     gaugeRpm.Text = status.AnlikDevirRpm.ToString();
 
-                    // Sıcaklık verisi (decimal olarak Tag'e atıyoruz)
-                    
                     bool isDrying = _machine.MachineType == "Kurutma Makinesi";
 
-                   
-                  if(!isDrying)
+                    if (!isDrying)
                     {
                         decimal anlikSicaklikDecimal = status.AnlikSicaklik / 10.0m;
                         progressTemp.Tag = anlikSicaklikDecimal;
                         lblTempValue.Text = $"{anlikSicaklikDecimal:F1} °C";
-
                     }
                     else
                     {
@@ -392,62 +378,51 @@ namespace TekstilScada.UI.Views
                         lblTempValue.Text = $"{anlikSicaklikDecimal:F1} °C";
                     }
 
-                    decimal AnlikSuSeviyesi = status.AnlikSuSeviyesi ;
+                    decimal AnlikSuSeviyesi = status.AnlikSuSeviyesi;
                     humuditybar.Tag = AnlikSuSeviyesi;
-                    humuditytxt.Text =  $"{AnlikSuSeviyesi} Rh";
+                    humuditytxt.Text = $"{AnlikSuSeviyesi} Rh";
                     humuditytxt.ForeColor = System.Drawing.Color.Blue;
-                   
+
                     lblTempValue.ForeColor = System.Drawing.Color.Red;
 
-                    // Paneli yeniden çizmeye zorla
-                    progressTemp.Invalidate();
+                    progressTemp.Invalidate();
                     progressTemp.Update();
                     humuditybar.Invalidate();
                     humuditybar.Update();
 
                     waterTankGauge1.Value = status.AnlikSuSeviyesi;
-                    // *** CANLI İLERLEME (SCROLLING) İÇİN YENİ KISIM ***
-                    if (_tempScatter != null)
+
+                    if (_tempScatter != null)
                     {
                         var limits = formsPlotTemp.Plot.Axes.GetLimits();
-                        double span = limits.Right - limits.Left; // Mevcut zoom aralığı
+                        double span = limits.Right - limits.Left;
 
-                        double newMaxX;
+                        double newMaxX;
                         double newMinX;
 
                         if (string.IsNullOrEmpty(_lastLoadedBatchIdForChart))
                         {
-                            // 1. CANLI AKIŞ MODU: Daima anlık zamana ilerle
-                            newMaxX = DateTime.Now.ToOADate();
+                            newMaxX = DateTime.Now.ToOADate();
                             newMinX = newMaxX - span;
                         }
                         else
                         {
-                            // 2. BATCH MODU: Batch aktifse ilerle
-
-                            // Batch'in hala aktif olup olmadığını kontrol ediyoruz.
-                            // Bu kontrolü, status nesnesinin BatchNumarasi doluysa batch'in aktif olduğu varsayımıyla yapıyoruz.
-                            if (status.BatchNumarasi == _lastLoadedBatchIdForChart)
+                            if (status.BatchNumarasi == _lastLoadedBatchIdForChart)
                             {
-                                // Batch hala aktif. Grafik, en son veri noktasına (veya anlık zamana) ilerlemelidir.
-                                newMaxX = DateTime.Now.ToOADate(); // Maksimum zamanı anlık zamana getir.
-                                newMinX = newMaxX - span;
+                                newMaxX = DateTime.Now.ToOADate();
+                                newMinX = newMaxX - span;
                             }
                             else
                             {
-                                // Batch ID'si değişmiş veya batch tamamlanmıştır. İlerleme (pan) durdurulur.
-                                // Mevcut limitleri koru
-                                return;
+                                return;
                             }
                         }
 
-                        // Eksenleri yeni limitlere ayarla
-                        formsPlotTemp.Plot.Axes.SetLimitsX(newMinX, newMaxX);
+                        formsPlotTemp.Plot.Axes.SetLimitsX(newMinX, newMaxX);
                         formsPlotRpm.Plot.Axes.SetLimitsX(newMinX, newMaxX);
                         formsPlotWater.Plot.Axes.SetLimitsX(newMinX, newMaxX);
 
-                        // Grafikleri güncelle
-                        formsPlotTemp.Refresh();
+                        formsPlotTemp.Refresh();
                         formsPlotRpm.Refresh();
                         formsPlotWater.Refresh();
                     }
@@ -473,13 +448,9 @@ namespace TekstilScada.UI.Views
 
             if (!string.IsNullOrEmpty(status.BatchNumarasi))
             {
-                // --- DÜZELTME BURADA BAŞLIYOR ---
-
-                // Batch ID değişti mi kontrolü (Sadece ID değiştiğinde yapılacak ağır işler için)
                 bool isNewBatch = status.BatchNumarasi != _lastLoadedBatchIdForChart;
                 _lastLoadedBatchIdForChart = status.BatchNumarasi;
 
-                // Eğer yeni bir batch başladıysa alarmları ve plotu temizleyerek hazırla
                 if (isNewBatch)
                 {
                     var alarms = _alarmRepository.GetAlarmDetailsForBatch(status.BatchNumarasi, _machine.Id);
@@ -488,21 +459,16 @@ namespace TekstilScada.UI.Views
                     _currentlyDisplayedAlarms = alarmStrings;
                     lstAlarmlar.DataSource = _currentlyDisplayedAlarms;
 
-                    // Yeni batch ise grafiği temizle ki eskiler kalmasın
                     formsPlotTemp.Plot.Clear();
                     formsPlotRpm.Plot.Clear();
                     formsPlotWater.Plot.Clear();
 
-                    // Scatter nesnelerini null yap ki tekrar oluşturulsun
                     _tempScatter = null;
                     _rpmScatter = null;
                     _waterScatter = null;
                 }
 
-                // Batch ID aynı olsa bile verileri grafiğe YÜKLE (Continuous Update)
                 LoadTimelineChartForBatch(status.BatchNumarasi);
-
-                // --- DÜZELTME BURADA BİTİYOR ---
             }
             else
             {
@@ -518,8 +484,8 @@ namespace TekstilScada.UI.Views
             HighlightCurrentStep(status.AktifAdimNo);
         }
 
-        // --- GRAFİK & VERİ YÜKLEME ---
-        private void LoadDataForBatch(FullMachineStatus status)
+        // --- GRAFİK & VERİ YÜKLEME ---
+        private void LoadDataForBatch(FullMachineStatus status)
         {
             _lastLoadedBatchIdForChart = status.BatchNumarasi;
             var alarms = _alarmRepository.GetAlarmDetailsForBatch(status.BatchNumarasi, _machine.Id);
@@ -602,27 +568,22 @@ namespace TekstilScada.UI.Views
                     return;
                 }
 
-                // Verileri hazırla
                 var xs = dataPoints.Select(p => p.Timestamp.ToOADate()).ToArray();
                 bool isDrying = _machine.MachineType == "Kurutma Makinesi";
                 double[] ysTemp;
 
                 if (!isDrying)
                 {
-                  ysTemp = dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray();
+                    ysTemp = dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray();
                 }
                 else { ysTemp = dataPoints.Select(p => (double)p.Temperature / 100.0).ToArray(); }
 
-
-                    var ysRpm = dataPoints.Select(p => (double)p.Rpm).ToArray();
+                var ysRpm = dataPoints.Select(p => (double)p.Rpm).ToArray();
                 var ysWater = dataPoints.Select(p => (double)p.WaterLevel).ToArray();
 
-                // --- DÜZELTME: Scatter nesnelerini yönetme ---
-
-                // Temp Scatter güncelleme veya oluşturma
                 if (_tempScatter == null || !formsPlotTemp.Plot.GetPlottables().Contains(_tempScatter))
                 {
-                    formsPlotTemp.Plot.Clear(); // Temizle
+                    formsPlotTemp.Plot.Clear();
                     formsPlotTemp.Plot.Title($"{_machine.MachineName} - {Resources.proseszamancizgisi} ({batchId})");
 
                     _tempScatter = formsPlotTemp.Plot.Add.Scatter(xs, ysTemp);
@@ -633,7 +594,6 @@ namespace TekstilScada.UI.Views
                 }
                 else
                 {
-                    // Mevcut grafiği güncelle (daha performanslı)
                     formsPlotTemp.Plot.Remove(_tempScatter);
                     _tempScatter = formsPlotTemp.Plot.Add.Scatter(xs, ysTemp);
                     _tempScatter.Color = ScottPlot.Colors.Red;
@@ -641,7 +601,6 @@ namespace TekstilScada.UI.Views
                     _tempScatter.MarkerSize = 0;
                 }
 
-                // RPM Scatter güncelleme veya oluşturma
                 if (_rpmScatter == null || !formsPlotRpm.Plot.GetPlottables().Contains(_rpmScatter))
                 {
                     formsPlotRpm.Plot.Clear();
@@ -660,7 +619,6 @@ namespace TekstilScada.UI.Views
                     _rpmScatter.MarkerSize = 0;
                 }
 
-                // Water Scatter güncelleme veya oluşturma
                 if (_waterScatter == null || !formsPlotWater.Plot.GetPlottables().Contains(_waterScatter))
                 {
                     formsPlotWater.Plot.Clear();
@@ -679,10 +637,6 @@ namespace TekstilScada.UI.Views
                     _waterScatter.MarkerSize = 0;
                 }
 
-                // Not: AutoScale her seferinde çağrılırsa kullanıcı zoom yapamaz. 
-                // Ancak sürekli akan bir veri olduğu için Y eksenini otomatize edebiliriz.
-                // X eksenini UpdateLiveGauges yönetiyor (Scrolling).
-
                 formsPlotTemp.Plot.Axes.AutoScaleY();
                 formsPlotRpm.Plot.Axes.AutoScaleY();
                 formsPlotWater.Plot.Axes.AutoScaleY();
@@ -695,16 +649,14 @@ namespace TekstilScada.UI.Views
 
         private void LoadTimelineChartForLive()
         {
-            // *** DEĞİŞİKLİK BURADA (BAŞLANGIÇ) ***
-            // Veri penceresini 360 dakika (6 saat) olarak ayarlıyoruz
-            int timeWindowMinutes = 360;
+            int timeWindowMinutes = 360;
 
             SafeInvoke(() =>
             {
                 DateTime endTime = DateTime.Now;
-                DateTime startTime = endTime.AddMinutes(-timeWindowMinutes); // Geriye dönük 360 dakikalık veri
+                DateTime startTime = endTime.AddMinutes(-timeWindowMinutes);
 
-                var dataPoints = _logRepository.GetManualLogs(_machine.Id, startTime, endTime);
+                var dataPoints = _logRepository.GetManualLogs(_machine.Id, startTime, endTime);
 
                 if (!dataPoints.Any())
                 {
@@ -716,19 +668,16 @@ namespace TekstilScada.UI.Views
                 }
 
                 double[] timeData = dataPoints.Select(p => p.Timestamp.ToOADate()).ToArray();
-                
                 bool isDrying = _machine.MachineType == "Kurutma Makinesi";
 
                 double[] tempData;
-
-                // Sonra koşula göre içini doldur
 
                 if (!isDrying)
                 {
                     tempData = dataPoints.Select(p => (double)p.Temperature / 10.0).ToArray();
                 }
                 else { tempData = dataPoints.Select(p => (double)p.Temperature / 100.0).ToArray(); }
-                
+
                 double[] rpmData = dataPoints.Select(p => (double)p.Rpm).ToArray();
                 double[] waterLevelData = dataPoints.Select(p => (double)p.WaterLevel).ToArray();
 
@@ -762,27 +711,22 @@ namespace TekstilScada.UI.Views
                     _waterScatter.Color = ScottPlot.Colors.Blue;
                     _waterScatter.LineWidth = 1;
                     _waterScatter.MarkerSize = 0;
-                    
+
                     if (_machine.MachineType == "Kurutma Makinesi")
                     {
-
                         formsPlotWater.Plot.Axes.Left.Label.Text = "Humidity (Rh)";
                     }
-                    else {
-
-                        
+                    else
+                    {
                         formsPlotWater.Plot.Axes.Left.Label.Text = Resources.suseviyesi;
-
                     }
-                        formsPlotWater.Plot.Axes.Left.Label.ForeColor = ScottPlot.Colors.Blue;
+                    formsPlotWater.Plot.Axes.Left.Label.ForeColor = ScottPlot.Colors.Blue;
                     formsPlotWater.Plot.Axes.Left.TickLabelStyle.ForeColor = ScottPlot.Colors.Blue;
 
-                    // Sayfa ilk açıldığında otomatik 5 dakikalık zoom yapılıyor
-                    double startZoomOA = endTime.AddMinutes(-5).ToOADate(); // Son 5 dakikanın başlangıcı
-                    double endOA = endTime.ToOADate();
+                    double startZoomOA = endTime.AddMinutes(-5).ToOADate();
+                    double endOA = endTime.ToOADate();
 
-                    // Grafik X eksen limitlerini son 5 dakikaya ayarla (otomatik zoom)
-                    formsPlotTemp.Plot.Axes.SetLimitsX(startZoomOA, endOA);
+                    formsPlotTemp.Plot.Axes.SetLimitsX(startZoomOA, endOA);
                     formsPlotRpm.Plot.Axes.SetLimitsX(startZoomOA, endOA);
                     formsPlotWater.Plot.Axes.SetLimitsX(startZoomOA, endOA);
 
@@ -808,11 +752,8 @@ namespace TekstilScada.UI.Views
                     _waterScatter.Color = ScottPlot.Colors.Blue;
                     _waterScatter.LineWidth = 1;
                     _waterScatter.MarkerSize = 0;
+                }
 
-                    // Not: Yenilemelerde X ekseni limitleri SyncAxes metodu sayesinde korunur.
-                    // Bu nedenle burada tekrar zoom yapmaya gerek yoktur.
-                }
-                // *** DEĞİŞİKLİK BURADA (SON) ***
                 formsPlotTemp.Plot.Axes.AutoScaleY();
                 formsPlotRpm.Plot.Axes.AutoScaleY();
                 formsPlotWater.Plot.Axes.AutoScaleY();
@@ -863,6 +804,8 @@ namespace TekstilScada.UI.Views
         {
             var stepTypes = new List<string>();
             short controlWord = step.StepDataWords[24];
+
+            // Bit 0 - 9: Adım Tipleri
             if ((controlWord & 1) != 0) stepTypes.Add($"{Resources.sualma}");
             if ((controlWord & 2) != 0) stepTypes.Add($"{Resources.isitma}");
             if ((controlWord & 4) != 0) stepTypes.Add($"{Resources.calisma}");
@@ -873,11 +816,40 @@ namespace TekstilScada.UI.Views
             if ((controlWord & 128) != 0) stepTypes.Add("Timed Working");
             if ((controlWord & 256) != 0) stepTypes.Add("Humidity/Timed Working");
             if ((controlWord & 512) != 0) stepTypes.Add("Cooling");
+
+            // Bit 12 - 15: Process Status
+            byte statusValue = (byte)((controlWord >> 12) & 0x0F);
+            string statusText = GetProcessStatusName(statusValue);
+            if (!string.IsNullOrEmpty(statusText))
+            {
+                stepTypes.Add($"[{statusText}]");
+            }
+
             return string.Join(" + ", stepTypes);
         }
-      
-        // --- RENK HESAPLAMA ---
-        private System.Drawing.Color GetTemperatureColor(int temp)
+
+        private string GetProcessStatusName(byte statusValue)
+        {
+            return statusValue switch
+            {
+                1 => "ALLOVER SPRAY",
+                2 => "BIO POLISH",
+                3 => "BLEACH",
+                4 => "BRIGHTNER",
+                5 => "DESIZE",
+                6 => "DRY",
+                7 => "NEUTRAL",
+                8 => "RINSE",
+                9 => "SCRAP (NORMAL)",
+                10 => "SOFTNER",
+                11 => "STONE WASH",
+                12 => "TINT",
+                _ => null
+            };
+        }
+
+        // --- RENK HESAPLAMA ---
+        private System.Drawing.Color GetTemperatureColor(int temp)
         {
             if (temp < 40) return System.Drawing.Color.DodgerBlue;
             if (temp < 60) return System.Drawing.Color.SeaGreen;
@@ -885,109 +857,84 @@ namespace TekstilScada.UI.Views
             return System.Drawing.Color.Crimson;
         }
 
-        // --- CUSTOM PAINT METODU (DİKEY BAR) ---
-        private void progressTemp_Paint(object sender, PaintEventArgs e)
+        // --- CUSTOM PAINT METODU (DİKEY BAR) ---
+        private void progressTemp_Paint(object sender, PaintEventArgs e)
         {
-            // Panel olup olmadığını kontrol et (Eğer hala ProgressBar ise Panel'e çevirin!)
-            Control barControl = sender as Control;
+            Control barControl = sender as Control;
             if (barControl == null) return;
 
-            // Değeri Tag'den oku
-            float currentValue = 0;
+            float currentValue = 0;
             if (barControl.Tag != null)
             {
                 try { currentValue = Convert.ToSingle(barControl.Tag); } catch { }
             }
 
-            // Maksimum değer (Termometre için 150 mantıklıdır, ancak kodunuzda 100f kullanılmış)
-            float maximumValue = 100f; // Burayı 150f yapmak isterseniz değiştirebilirsiniz
+            float maximumValue = 100f;
 
-            // Sınırla
-            currentValue = Math.Max(0, Math.Min(maximumValue, currentValue));
+            currentValue = Math.Max(0, Math.Min(maximumValue, currentValue));
 
-            // Boyutlar
-            int w = barControl.Width;
+            int w = barControl.Width;
             int h = barControl.Height;
 
-            // Arka Plan (Temizle)
-            e.Graphics.FillRectangle(new SolidBrush(System.Drawing.Color.WhiteSmoke), 0, 0, w, h);
+            e.Graphics.FillRectangle(new SolidBrush(System.Drawing.Color.WhiteSmoke), 0, 0, w, h);
 
-            // Doluluk Oranı
-            float ratio = currentValue / maximumValue;
+            float ratio = currentValue / maximumValue;
             int fillHeight = (int)(h * ratio);
 
-            // Y Koordinatı (Aşağıdan yukarı dolması için: Toplam Boy - Dolu Boy)
-            int yPos = h - fillHeight;
+            int yPos = h - fillHeight;
 
-            // Çizim
-            Rectangle filledRect = new Rectangle(0, yPos, w, fillHeight);
+            Rectangle filledRect = new Rectangle(0, yPos, w, fillHeight);
 
-            // *** BURADA DEĞİŞİKLİK YAPILDI ***
-            // Sabit kırmızı renk (System.Drawing.Color.Red) kullanılıyor
-            using (SolidBrush brush = new SolidBrush(System.Drawing.Color.Red)) // Rengi direkt kırmızı yaptık
-            {
+            using (SolidBrush brush = new SolidBrush(System.Drawing.Color.Red))
+            {
                 e.Graphics.FillRectangle(brush, filledRect);
             }
-            // **********************************
 
-            // Çerçeve
-            using (Pen borderPen = new Pen(System.Drawing.Color.LightGray, 1))
+            using (Pen borderPen = new Pen(System.Drawing.Color.LightGray, 1))
             {
                 e.Graphics.DrawRectangle(borderPen, 0, 0, w - 1, h - 1);
             }
         }
+
         private void humuditybar_Paint(object sender, PaintEventArgs e)
         {
-            // Panel olup olmadığını kontrol et (Eğer hala ProgressBar ise Panel'e çevirin!)
-            Control barControl = sender as Control;
+            Control barControl = sender as Control;
             if (barControl == null) return;
 
-            // Değeri Tag'den oku
-            float currentValue = 0;
+            float currentValue = 0;
             if (barControl.Tag != null)
             {
                 try { currentValue = Convert.ToSingle(barControl.Tag); } catch { }
             }
 
-            // Maksimum değer (Termometre için 150 mantıklıdır, ancak kodunuzda 100f kullanılmış)
-            float maximumValue = 100f; // Burayı 150f yapmak isterseniz değiştirebilirsiniz
+            float maximumValue = 100f;
 
-            // Sınırla
-            currentValue = Math.Max(0, Math.Min(maximumValue, currentValue));
+            currentValue = Math.Max(0, Math.Min(maximumValue, currentValue));
 
-            // Boyutlar
-            int w = barControl.Width;
+            int w = barControl.Width;
             int h = barControl.Height;
 
-            // Arka Plan (Temizle)
-            e.Graphics.FillRectangle(new SolidBrush(System.Drawing.Color.WhiteSmoke), 0, 0, w, h);
+            e.Graphics.FillRectangle(new SolidBrush(System.Drawing.Color.WhiteSmoke), 0, 0, w, h);
 
-            // Doluluk Oranı
-            float ratio = currentValue / maximumValue;
+            float ratio = currentValue / maximumValue;
             int fillHeight = (int)(h * ratio);
 
-            // Y Koordinatı (Aşağıdan yukarı dolması için: Toplam Boy - Dolu Boy)
-            int yPos = h - fillHeight;
+            int yPos = h - fillHeight;
 
-            // Çizim
-            Rectangle filledRect = new Rectangle(0, yPos, w, fillHeight);
+            Rectangle filledRect = new Rectangle(0, yPos, w, fillHeight);
 
-            // *** BURADA DEĞİŞİKLİK YAPILDI ***
-            // Sabit kırmızı renk (System.Drawing.Color.Red) kullanılıyor
-            using (SolidBrush brush = new SolidBrush(System.Drawing.Color.Blue)) // Rengi direkt kırmızı yaptık
-            {
+            using (SolidBrush brush = new SolidBrush(System.Drawing.Color.Blue))
+            {
                 e.Graphics.FillRectangle(brush, filledRect);
             }
-            // **********************************
 
-            // Çerçeve
-            using (Pen borderPen = new Pen(System.Drawing.Color.LightGray, 1))
+            using (Pen borderPen = new Pen(System.Drawing.Color.LightGray, 1))
             {
                 e.Graphics.DrawRectangle(borderPen, 0, 0, w - 1, h - 1);
             }
         }
-        // ... Kalan olaylar ...
-        private void lblMakineAdi_Click(object sender, EventArgs e) { }
+
+        private void lblMakineAdi_Click(object sender, EventArgs e) { }
 
         private void SafeInvoke(Action action)
         {
@@ -1025,10 +972,8 @@ namespace TekstilScada.UI.Views
 
         protected override void OnHandleDestroyed(EventArgs e)
         {
-            // 1. Dil değişikliği aboneliğini kaldır (Memory Leak önlemi)
             LanguageManager.LanguageChanged -= LanguageManager_LanguageChanged;
 
-            // 2. Servis aboneliklerini kaldır
             if (_pollingService != null)
             {
                 _pollingService.OnMachineDataRefreshed -= OnDataRefreshed;
@@ -1036,7 +981,6 @@ namespace TekstilScada.UI.Views
                 _pollingService.OnActiveAlarmStateChanged -= OnAlarmStateChanged;
             }
 
-            // 3. Timer'ı durdur ve yok et
             if (_uiUpdateTimer != null)
             {
                 _uiUpdateTimer.Stop();

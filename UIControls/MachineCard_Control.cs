@@ -2,7 +2,7 @@
 using Org.BouncyCastle.Asn1.Cmp;
 using System;
 using System.Drawing;
-using System.Drawing.Imaging; 
+using System.Drawing.Imaging;
 using System.Reflection.PortableExecutable;
 using System.Windows.Forms;
 using TekstilScada.Models;
@@ -16,7 +16,7 @@ namespace TekstilScada.UI.Controls
         private int _lastValidProgress = 0;
         public string MachineUserDefinedId { get; private set; }
         public string MachineName { get; private set; }
-        public string MachineType { get; private set; } // YENİ: Makine Tipi Özelliği
+        public string MachineType { get; private set; } // Makine Tipi Özelliği
 
         public event EventHandler DetailsRequested;
         public event EventHandler VncRequested;
@@ -38,18 +38,17 @@ namespace TekstilScada.UI.Controls
         private readonly Image _originalbaglantivarIcon;
         private readonly Image _originalbaglantiyokIcon;
 
-        // GÜNCELLEME: Constructor'a 'machineType' parametresi eklendi
         public MachineCard_Control(int machineId, string machineUserDefinedId, string machineName, int displayIndex, string machineType)
         {
             InitializeComponent();
-            
+
             this.MachineId = machineId;
             this.MachineUserDefinedId = machineUserDefinedId;
             this.MachineName = machineName;
             this.MachineType = machineType; // Makine tipini kaydet
             lblMachineNumber.Text = $"{displayIndex}.";
-          
-            // YENİ: Makine Tipi "Kurutma" ise ilgili kontrolleri gizle
+
+            // Makine Tipi "Kurutma" ise ilgili kontrolleri gizle
             if (this.MachineType == "Kurutma Makinesi")
             {
                 lblProcessing.Visible = false;
@@ -57,7 +56,7 @@ namespace TekstilScada.UI.Controls
                 lblPercentage.Visible = false;
             }
 
-            // Kaynaklardan orijinal ikonları bir kereliğine yükle
+            // Kaynaklardan orijinal ikonları yükle
             _originalPlayIcon = Properties.Resource1.play2;
             _originalPauseIcon = Properties.Resource1.pause2;
             _originalAlarmIcon = Properties.Resource1.alarm_var;
@@ -77,8 +76,6 @@ namespace TekstilScada.UI.Controls
 
             UpdateView(new FullMachineStatus { ConnectionState = ConnectionStatus.Disconnected, MachineName = this.MachineName });
         }
-
-        // ... Geri kalan kodlar (TintImage, ApplyPermissions, UpdateView vb.) aynen kalacak ...
 
         private Image TintImage(Image sourceImage, Color tintColor)
         {
@@ -113,9 +110,9 @@ namespace TekstilScada.UI.Controls
         private void ApplyPermissions()
         {
             var fullmachine = new FullMachineStatus();
-            var status = fullmachine.ConnectionState; // Not: Bu kullanım mantıksal olarak hatalı olabilir (boş nesne), mevcut kodunuza dokunmadım.
-            if(status == ConnectionStatus.Connected) // Bu blok muhtemelen UpdateView içinde daha anlamlı çalışıyordur.
-            { 
+            var status = fullmachine.ConnectionState;
+            if (status == ConnectionStatus.Connected)
+            {
                 btnVnc.Visible = PermissionService.HasAnyPermission(new List<int> { 4 });
                 btnVnc.Enabled = btnVnc.Visible;
                 var master = PermissionService.HasAnyPermission(new List<int> { 1000 });
@@ -176,6 +173,11 @@ namespace TekstilScada.UI.Controls
             {
                 lblStepValue.Text = status.AktifAdimAdi;
             }
+
+            // YENİ: PLC'den gelen Word 24 (ControlWord) değerine göre Process Status çözümlenip kutucuğa yazılıyor
+            // Not: Modelinizdeki 'ControlWord' özelliğinin adını buraya giriniz (Örn: status.AktifAdimControlWord)
+            UpdateProcessStatusFromWord(status.AktifAdimTipiWordu);
+
             lblMachineNameValue.Text = status.MachineName;
             lblMachineIdValue.Text = this.MachineUserDefinedId;
 
@@ -185,13 +187,12 @@ namespace TekstilScada.UI.Controls
                 picPause.Visible = status.IsPaused;
                 if (picPause.Visible) picPause.Image = _originalPauseIcon;
                 picPlay.Visible = status.IsInRecipeMode && !status.IsPaused && status.manuel_status;
-                
+
                 if (progressBar.Value > 0)
                 {
                     _lastValidProgress = progressBar.Value;
                 }
 
-                // Kurutma değilse progress güncelle (Görünür olmadığı için Kurutmada çalışsa da sorun olmaz ama temiz kod için kontrol eklenebilir)
                 if (this.MachineType != "Kurutma")
                 {
                     progressBar.Value = _lastValidProgress;
@@ -214,8 +215,33 @@ namespace TekstilScada.UI.Controls
                     lblPercentage.Text = $"{_lastValidProgress} %";
                 }
             }
-            
+
             ApplyPermissions();
+        }
+
+        /// <summary>
+        /// PLC'den gelen Word 24 (ControlWord) değerinin son 4 bitini (Bit 12-15) çözer ve txtProcessStatus kutucuğuna yazar.
+        /// </summary>
+        public void UpdateProcessStatusFromWord(int controlWord24)
+        {
+            byte statusValue = (byte)((controlWord24 >> 12) & 0x0F);
+
+            txtProcessStatus.Text = statusValue switch
+            {
+                1 => "ALLOVER SPRAY",
+                2 => "BIO POLISH",
+                3 => "BLEACH",
+                4 => "BRIGHTNER",
+                5 => "DESIZE",
+                6 => "DRY",
+                7 => "NEUTRAL",
+                8 => "RINSE",
+                9 => "SCRAP (NORMAL)",
+                10 => "SOFTNER",
+                11 => "STONE WASH",
+                12 => "TINT",
+                _ => "NONE"
+            };
         }
 
         private void ClearData()
@@ -226,7 +252,9 @@ namespace TekstilScada.UI.Controls
             lblStepValue.Text = noConnectionText;
             lblMachineNameValue.Text = this.MachineName;
             lblMachineIdValue.Text = this.MachineUserDefinedId;
-            
+
+            txtProcessStatus.Text = "NONE"; // Bağlantı koptuğunda kutucuk sıfırlanır
+
             if (this.MachineType != "Kurutma")
             {
                 progressBar.Value = 0;

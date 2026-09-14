@@ -1175,7 +1175,7 @@ namespace TekstilScada.Services
             }
         }
 
-        private string GetStepTypeName(short controlWord)
+        private string GetStepTypeName(int controlWord)
         {
             return _stepNameCache[Math.Abs(controlWord) & 2047];
         }

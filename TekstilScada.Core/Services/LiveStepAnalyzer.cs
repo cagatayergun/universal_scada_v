@@ -262,7 +262,7 @@ namespace TekstilScada.Core.Services
             return CalculateTheoreticalTime(tempStep);
         }
 
-        private string GetStepTypeName(short controlWord)
+        private string GetStepTypeName(int controlWord)
         {
             if (controlWord == 0) return "Undefined Step";
             var stepTypes = new List<string>();

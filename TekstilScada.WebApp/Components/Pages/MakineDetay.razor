@@ -248,7 +248,7 @@ else
         {
             var stepTypes = await ScadaDataService.GetStepTypesAsyncDesign();
 
-            var rpmStep = stepTypes.FirstOrDefault(s => s.StepName.Contains("Sıkma") || s.StepName.Contains("Squeezing"));
+            var rpmStep = stepTypes.FirstOrDefault(s => s.StepName.Contains("Sıkma") || s.StepName.Contains("Extraction"));
             if (rpmStep != null)
             {
                 var controls = await ScadaDataService.GetLayoutAsync(machineSubType, rpmStep.Id);
@@ -414,7 +414,6 @@ else
         try { var r = await ScadaDataService.ReadRecipeFromPlcAsync(MachineId); if (r != null) RecipeSteps = r.Steps.OrderBy(s => s.StepNumber).ToList(); } catch { }
     }
 
-    // 🚨 DÜZELTME: Kurutma Makinesi tanıma mekanizması veritabanı önbelleğine göre kurşun geçirmez hale getirildi
     private bool IsDryerMachine()
     {
         if (Status == null) return false;
@@ -443,7 +442,6 @@ else
         if (Status == null || Status.ConnectionState != ConnectionStatus.Connected) return Loc["BaglantiYok"];
         if (Status.HasActiveAlarm) return Loc["Alarm"];
 
-        // Manuel çalışma metni entegrasyonu
         if (Status.manuel_status) return "Working - Manuel";
 
         return Status.IsInRecipeMode ? Loc["Calisiyor"] : Loc["HazirDuruyor"];
@@ -461,6 +459,8 @@ else
     {
         var types = new List<string>();
         short w = (step.StepDataWords != null && step.StepDataWords.Length > 24) ? step.StepDataWords[24] : (short)0;
+
+        // Bit 0 - 10: Standart Adım Tipleri
         if ((w & 1) != 0) types.Add(Loc["AdimTipi_SuAlma"]);
         if ((w & 2) != 0) types.Add(Loc["AdimTipi_Isitma"]);
         if ((w & 4) != 0) types.Add(Loc["AdimTipi_Calisma"]);
@@ -469,7 +469,35 @@ else
         if ((w & 32) != 0) types.Add(Loc["AdimTipi_Sikma"]);
         if ((w & 1024) != 0) types.Add("Operator Call");
 
+        // Bit 12 - 15: Process Status Çözümleme
+        byte statusValue = (byte)((w >> 12) & 0x0F);
+        string statusText = GetProcessStatusName(statusValue);
+        if (!string.IsNullOrEmpty(statusText))
+        {
+            types.Add($"[{statusText}]");
+        }
+
         return types.Any() ? string.Join(" + ", types) : "";
+    }
+
+    private string GetProcessStatusName(byte statusValue)
+    {
+        return statusValue switch
+        {
+            1 => "ALLOVER SPRAY",
+            2 => "BIO POLISH",
+            3 => "BLEACH",
+            4 => "BRIGHTNER",
+            5 => "DESIZE",
+            6 => "DRY",
+            7 => "NEUTRAL",
+            8 => "RINSE",
+            9 => "SCRAP (NORMAL)",
+            10 => "SOFTNER",
+            11 => "STONE WASH",
+            12 => "TINT",
+            _ => null
+        };
     }
 
     public void Dispose() { ScadaDataService.OnDataUpdated -= HandleDataUpdate; }
